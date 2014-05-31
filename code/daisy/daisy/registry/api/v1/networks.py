@@ -355,6 +355,25 @@ class Controller(object):
         return network_data
 
     @utils.mutating
+    def get_assigned_networks_by_network_id(self, req, network_id):
+        """Return assigned network by the given network id."""
+        try:
+            assigned_network = \
+                self.db_api.get_assigned_networks_by_network_id(req.context, network_id)
+            msg = "Successfully retrieved network %(network_id)s" % {'network_id': network_id}
+            LOG.debug(msg)
+            if 'network' not in assigned_network:
+                assigned_network = dict(network=assigned_network)
+            return assigned_network
+        except exception.NotFound:
+            msg = _LI("Network %(network_id)s not found") % {'network_id': network_id}
+            LOG.info(msg)
+            raise exc.HTTPNotFound()
+        except Exception:
+            LOG.exception(_LE("Unable to show network %s") % network_id)
+            raise
+
+    @utils.mutating
     def update_network(self, req, network_id, body):
         """Updates an existing network with the registry.
 

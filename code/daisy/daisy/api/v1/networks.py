@@ -530,6 +530,29 @@ class Controller(controller.BaseController):
             raise HTTPBadRequest(explanation=e.msg, request=req)
         return dict(networks=networks)
 
+    def _is_dataplane_in_use(self, context, network_meta,
+                             network_id, orig_segment_type):
+        if network_meta.get('custom_name', None):
+            network_name = network_meta.get('custom_name', None)
+        else:
+            network_name = network_meta.get('name', None)
+        update_segment_type = network_meta.get('segmentation_type')
+        try:
+            assigned_network = \
+                registry.get_assigned_networks_data_by_network_id(context,
+                                                                  network_id)
+        except exception.NotFound as e:
+            msg = (_("Failed to find assigned network, %s") %
+                   utils.exception_to_str(e))
+            LOG.error(msg)
+            raise HTTPNotFound(explanation=msg)
+        if assigned_network:
+            if update_segment_type != orig_segment_type:
+                msg = ( _("DATAPLANE %s is in use, can not "
+                      "change segment type " % network_name))
+                LOG.error(msg)
+                raise HTTPForbidden(explanation=msg)
+
     @utils.mutating
     def update_network(self, req, network_id, network_meta):
         """
@@ -626,7 +649,12 @@ class Controller(controller.BaseController):
                         msg = (_('Networks with the same vlan_id must '
                                  'have the same cidr'))
                         raise HTTPBadRequest(explanation=msg)
-
+        dataplane_type = network_meta.get('network_type',
+                                orig_network_meta['network_type'])
+        if dataplane_type == 'DATAPLANE':
+            orig_segment_type = orig_network_meta.get('segmentation_type')
+            self._is_dataplane_in_use(req.context, network_meta, 
+                                      network_id, orig_segment_type)
         if network_meta.get('ip_ranges', None) and \
                 eval(network_meta['ip_ranges']):
             if not cidr:

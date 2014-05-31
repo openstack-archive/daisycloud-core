@@ -1069,6 +1069,14 @@ class RegistryClient(BaseClient):
         data = jsonutils.loads(res.read())
         return data['network']
 
+    def get_assigned_networks_by_network_id(self, network_id):
+        """
+        Get assigend networks about an network
+        """
+        res = self.do_request("GET", "/assigned_networks/%s" % network_id)
+        data = jsonutils.loads(res.read())
+        return data['network']
+
     def get_networks_detailed(self, cluster_id, **kwargs):
         """
         Returns a list of detailed host data mappings from Registry
