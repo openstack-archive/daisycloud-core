@@ -569,6 +569,11 @@ def delete_network_metadata(context, network_id):
     return c.delete_network(network_id)
 
 
+def get_assigned_networks_data_by_network_id(context, network_id):
+    c = get_registry_client(context)
+    return c.get_assigned_networks_by_network_id(network_id)
+
+
 def get_network_metadata(context, network_id):
     c = get_registry_client(context)
     return c.get_networks(network_id)
