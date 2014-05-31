@@ -4223,6 +4223,13 @@ def network_destroy(context,  network_id):
 
     return network_ref
 
+def get_assigned_networks_by_network_id(context, network_id,
+                                        session=None, force_show_deleted=False):
+    # get the assign networks by network id
+    assign_networks = \
+        _get_assigned_networks_by_network_id(context, network_id, session=session)
+    return assign_networks
+
 def delete_network_ip_range(context,  network_id):
     session = get_session()
     with session.begin():
