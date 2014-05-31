@@ -1,11 +1,11 @@
-import mock
-import webob
 from daisy.common import exception
-from oslo_db.sqlalchemy.session import Query
 from daisy.context import RequestContext
 from daisy.db.sqlalchemy import api
 from daisy import test
 from daisy.tests import test_utils
+import mock
+from oslo_db.sqlalchemy.session import Query
+import webob
 
 
 class FakeFetchoneValue(object):
@@ -143,6 +143,7 @@ class FakeSession(object):
 
 
 class DottableDict(dict):
+
     def __init__(self, *args, **kwargs):
         dict.__init__(self, *args, **kwargs)
         self.__dict__ = self
@@ -561,3 +562,9 @@ class TestSqlalchemyApi(test.TestCase):
                           api.discover_host_get,
                           self.req.context,
                           discover_host_id)
+
+    def test_get_assigned_networks_by_network_id(self):
+        network_id = u'1'
+        assigned_networks = api.get_assigned_networks_by_network_id(
+            self.req.context, network_id)
+        self.assertEqual(assigned_networks, [])

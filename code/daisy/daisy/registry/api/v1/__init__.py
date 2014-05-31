@@ -383,6 +383,11 @@ def init(mapper):
                    action="get_network",
                    conditions=dict(method=["GET"]))
 
+    mapper.connect("/assigned_networks/{network_id}",
+                   controller=networks_resource,
+                   action="get_assigned_networks_by_network_id",
+                   conditions=dict(method=["GET"]))
+
     mapper.connect("/networks/update_phyname_of_network",
                    controller=networks_resource,
                    action="update_phyname_of_network",
