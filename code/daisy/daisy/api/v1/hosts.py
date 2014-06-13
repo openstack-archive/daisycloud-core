@@ -1821,8 +1821,8 @@ class Controller(controller.BaseController):
                 if filename in names:
                     ext_name = root.split(path)[1].strip('/')
                     ext_func = "%s.api.hosts" % ext_name
-                    extension = importutils.import_module('daisy.api.v1.ext',
-                                                          ext_func)
+                    extension = importutils.import_module(
+                        'daisy.api.v1.ext.%s' % ext_func)
                     extension.update_host_state(orig_host_meta)
         try:
             if host_meta.get('cluster', None):
