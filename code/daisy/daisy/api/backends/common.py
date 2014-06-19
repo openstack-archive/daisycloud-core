@@ -75,12 +75,9 @@ service_map = {
     'mariadb': 'mariadb',
     'amqp': 'rabbitmq-server',
     'ceilometer-api': 'openstack-ceilometer-api',
-    'ceilometer-collector': 'openstack-ceilometer-collector,\
-                                openstack-ceilometer-mend',
+    'ceilometer-collector': 'openstack-ceilometer-collector',
     'ceilometer-central': 'openstack-ceilometer-central',
     'ceilometer-notification': 'openstack-ceilometer-notification',
-    'ceilometer-alarm': 'openstack-ceilometer-alarm-evaluator,\
-                        openstack-ceilometer-alarm-notifier',
     'heat-api': 'openstack-heat-api',
     'heat-api-cfn': 'openstack-heat-api-cfn',
     'heat-engine': 'openstack-heat-engine',
