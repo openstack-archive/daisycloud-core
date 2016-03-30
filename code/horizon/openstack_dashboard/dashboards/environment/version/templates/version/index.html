@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load i18n%}
+
+
+{% block page_header %}
+    <div>{% trans "Upload Version" %}</div>
+{% endblock %}
+
+{% block main %}
+    <div class="panel panel-default">
+    <div class="panel-body">
+    <form class="form-horizontal" enctype="multipart/form-data"
+     action="{% url 'horizon:environment:version:upload' %}"
+     method="POST">{% csrf_token %}
+      <div class="form-group input-sm">
+        <label class="control-label col-sm-5">{% trans 'Version File' %}:</label>
+        <div class="col-sm-3">
+            <input class="form-control" id="os_version" type="file" name="os_version" />
+        </div>
+      </div>
+      <!--div class="form-group input-sm">
+        <label class="control-label col-sm-5">{% trans 'TECS Version' %}:</label>
+        <div class="col-sm-3">
+            <input class="form-control" id="role_version" type="file" name="role_version" />
+        </div>
+      </div-->   
+      <div class="form-group input-sm">
+        <label class="control-label col-sm-5"></label>
+        <div class="col-sm-3">
+            <input class="btn btn-primary" type="submit" value="{% trans 'Upload' %}">
+        </div>
+      </div>  
+    </form>  
+    </div>
+    </div>
+    <div class="panel panel-default">
+    <div class="panel-body">
+    <table class="table table-striped table-hover">
+    	<thead>
+    		<!--th>#</th-->
+    		<th>{% trans 'File Name' %}</th>
+    		<!--th></th-->
+    	</thead>
+    	<tbody>
+    {% for file in files %}
+        <tr>
+        	<!--td>{{forloop.counter}}</td--> 
+        	<td>{{file}}</td>
+        	<!--td><a class='btn btn-danger btn-sm'>{% trans 'Delete' %}</a></td-->
+        </tr>
+    {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    </div>
+{% endblock%}

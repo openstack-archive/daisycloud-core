@@ -1,0 +1,28 @@
+﻿{% load i18n %}
+<ul class='wizard-steps'>
+    <li class='first {% if wizard.selecthosts.status >= 1 %} active {% endif %}'>
+        <a href='{% url "horizon:environment:deploy:selecthosts" cluster_id %}' class='before'><IMG class='step' src='/dashboard/static/dashboard/img/{% if wizard.selecthosts.status >= 1 %}Server_Blue{% else %}Server_Gray{% endif %}.png'></a>
+        <div style="min-height:18px;">{% if wizard.selecthosts.status >= 2 %}<IMG class='complete' src='/dashboard/static/dashboard/img/complete.png'>{% endif %}</div>
+        <div class='title' style="margin-top:3px;">{% trans 'Discover Servers' %}</div>
+    </li>
+    <li class='{% if wizard.hosts_role_assignment.status >= 1 %} active {% endif %}'>
+        <a href='{% url "horizon:environment:deploy:hosts_role_assignment" cluster_id %}' class='before'><IMG class='step' src='/dashboard/static/dashboard/img/{% if wizard.hosts_role_assignment.status >= 1 %}Role_Blue{% else %}Role_Gray{% endif %}.png'></a>
+        <div style="min-height:18px;">{% if wizard.hosts_role_assignment.status >= 2 %}<IMG class='complete' src='/dashboard/static/dashboard/img/complete.png'>{% endif %}</div>
+        <div class='title' style="margin-top: 3px;">{% trans 'Role Assignment' %}</div>
+    </li>
+    <li class='{% if wizard.bonding.status >= 1 %} active {% endif %}'>
+        <a href='{% url "horizon:environment:deploy:bonding" cluster_id %}' class='before'><IMG class='step' src='/dashboard/static/dashboard/img/{% if wizard.bonding.status >= 1 %}Bonding_Blue{% else %}Bonding_Gray{% endif %}.png'></a>
+        <div style="min-height:18px;">{% if wizard.bonding.status >= 2 %}<IMG class='complete' src='/dashboard/static/dashboard/img/complete.png'>{% endif %}</div>
+        <div class='title' style="margin-top:3px;">{% trans 'Bond Net Port' %}</div>
+    </li>    
+    <li class='{% if wizard.networkmapping.status >= 1 %} active {% endif %}'>
+        <a href='{% url "horizon:environment:deploy:networkmapping" cluster_id %}' class='before'><IMG class='step' src='/dashboard/static/dashboard/img/{% if wizard.networkmapping.status >= 1 %}Network_Mapping_Blue{% else %}Network_Mapping_Gray{% endif %}.png'></a>
+        <div style="min-height:18px;">{% if wizard.networkmapping.status >= 2 %}<IMG class='complete' src='/dashboard/static/dashboard/img/complete.png'>{% endif %}</div>
+        <div class='title' style="margin-top: 3px;">{% trans 'Network Mapping' %}</div>
+    </li>
+    <li class='last {% if wizard.hosts_config.status >= 1 %} active {% endif %}'>
+        <a href='{% url "horizon:environment:deploy:hosts_config" cluster_id %}' class='before'><IMG class='step' src='/dashboard/static/dashboard/img/{% if wizard.hosts_config.status >= 1 %}HostConfig_Blue{% else %}HostConfig_Gray{% endif %}.png'></a>
+        <div style="min-height:18px;">{% if wizard.hosts_config.status >= 2 %}<IMG class='complete' src='/dashboard/static/dashboard/img/complete.png'>{% endif %}</div>
+        <div class='title' style="margin-top: 3px;">{% trans 'Host Config' %}</div>
+    </li>
+</ul>   

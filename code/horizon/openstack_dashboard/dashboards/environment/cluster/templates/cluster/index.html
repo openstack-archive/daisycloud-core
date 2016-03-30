@@ -1,0 +1,74 @@
+﻿{% extends 'base.html' %}
+{% load i18n %}
+
+{% block css %}
+{% include "_stylesheets.html" %}
+<link rel="stylesheet" href="/dashboard/static/dashboard/scss/host_role.css" type="text/css" media="screen">
+{% endblock%}
+
+{% block js %}
+    {% include "horizon/_scripts.html" %}
+    <script type='text/javascript' charset='utf-8'>
+   
+    function update_badge_data(data){
+        $("#on_going").text(data["on_going_host_num"]);
+        $("#success").text(data["success_host_num"]);
+        $("#failed").text(data["failed_host_num"]);
+        $("#on_updating").text(data["on_updating_host_num"]);
+        $("#on_uninstalling").text(data["on_uninstalling_host_num"]);
+        $("#undeploy").text(data["undeploy_host_num"]);
+    }
+
+    function Update_badge()
+    {
+        url = "/dashboard/environment/cluster/" + $("#cluster_id").val() + '/update_badge';
+        do_post(url, JSON.stringify({}), update_badge_data);
+    }
+
+    $(document).ready(function(){
+        setInterval(Update_badge, 3000);
+    });
+    </script>
+{% endblock %}
+{% block main %}
+    <div class="nav nav-pills pull-right">
+            <div class="badge pull-right" style="background-color:#5bc0de;margin:3px;" id="on_going">{{data.on_going_host_num}}</div>
+            <div class="pull-right" style='margin:3px;'>{% trans 'Deploying' %}</div>
+
+            <div class="badge pull-right" style="background-color:#8AAAAA;margin:3px;" id="on_updating">{{data.on_updating_host_num}}</div>
+            <div class="pull-right" style='margin:3px;'>{% trans 'Updating' %}</div>
+
+            <div class="badge pull-right" style="background-color:#AAB85C;margin:3px;" id="on_uninstalling">{{data.on_uninstalling_host_num}}</div>
+            <div class="pull-right" style='margin:3px;'>{% trans 'Uninstalling' %}</div>
+
+            <div class="badge pull-right" style="background-color:#5cb85c;margin:3px;" id="success">{{data.success_host_num}}</div>
+            <div class="pull-right" style='margin:3px;'>{% trans 'Success' %}</div> 
+
+            <div class="badge pull-right" style="background-color:#d9534f;margin:3px;" id="failed">{{data.failed_host_num}}</div>
+            <div class="pull-right" style='margin:3px;'>{% trans 'Failed' %}</div>
+
+            <div class="badge pull-right" style="background-color:#101010;margin:3px;" id="undeploy">{{data.undeploy_host_num}}</div>
+            <div class="pull-right" style='margin:3px;'>{% trans 'Undeployed' %}</div>
+    </div>
+
+    <div style="margin-top:40px;">
+        {{ table.render }}
+    </div>
+    <input type="hidden" value="{{cluster_id}}" id="cluster_id">
+{% endblock %}
+
+{% block page_header %}
+    <div> 
+        <span style="font-weight:bold;">{{current_cluster}}</span>
+        <span> > </span> 
+        {% trans 'Cluster Deploy Info:' %}
+    </div>
+{% endblock %}
+
+{% block footer %}
+    <div class="pull-right">
+        <a class="btn btn-default" href="/dashboard/environment/" role="button">
+            {% trans 'Return Cluster List' %}
+        </a>
+    </div>
+{% endblock %}

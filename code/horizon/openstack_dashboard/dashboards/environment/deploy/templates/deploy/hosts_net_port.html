@@ -1,0 +1,10 @@
+{% load i18n %}
+{% ifequal interface.type "bond"%}
+<img src="/dashboard/static/dashboard/img/bond_port.png">
+{% endifequal %}
+{{interface.name}}
+{% ifequal interface.type "bond"%}
+({% ifequal interface.mode "1"%}MasterSlave{% endifequal%}{% ifequal interface.mode "2"%}Loadblance{% endifequal%} {{interface.slave1}}:{{interface.slave2}})
+{% endifequal %}
+<input type="hidden" value="{{interface.name}}" class="interface_name">
+<input type="hidden" value="{{interface.type}}" class="interface_type">

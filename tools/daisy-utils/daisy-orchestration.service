@@ -1,0 +1,15 @@
+[Unit]
+Description=orchestration Service (code-named Daisy)
+After=syslog.target network.target
+
+[Service]
+Type=simple
+NotifyAccess=all
+Restart=always
+User=root
+ExecStart=/usr/bin/daisy-orchestration --config-file /etc/daisy/daisy-orchestration.conf
+PrivateTmp=false
+
+[Install]
+WantedBy=multi-user.target
+

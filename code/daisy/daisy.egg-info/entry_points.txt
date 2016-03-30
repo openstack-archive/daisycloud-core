@@ -1,0 +1,43 @@
+[console_scripts]
+daisy-api = daisy.cmd.api:main
+daisy-cache-cleaner = daisy.cmd.cache_cleaner:main
+daisy-cache-manage = daisy.cmd.cache_manage:main
+daisy-cache-prefetcher = daisy.cmd.cache_prefetcher:main
+daisy-cache-pruner = daisy.cmd.cache_pruner:main
+daisy-control = daisy.cmd.control:main
+daisy-index = daisy.cmd.index:main
+daisy-manage = daisy.cmd.manage:main
+daisy-registry = daisy.cmd.registry:main
+daisy-replicator = daisy.cmd.replicator:main
+daisy-scrubber = daisy.cmd.scrubber:main
+daisy-search = daisy.cmd.search:main
+daisy-orchestration = daisy.cmd.orchestration:main
+
+[daisy.common.image_location_strategy.modules]
+location_order_strategy = daisy.common.location_strategy.location_order
+store_type_strategy = daisy.common.location_strategy.store_type
+
+[daisy.database.metadata_backend]
+sqlalchemy = daisy.db.sqlalchemy.metadata
+
+[daisy.database.migration_backend]
+sqlalchemy = oslo.db.sqlalchemy.migration
+
+[daisy.flows]
+import = daisy.async.flows.base_import:get_flow
+
+[daisy.flows.import]
+convert = daisy.async.flows.convert:get_flow
+introspect = daisy.async.flows.introspect:get_flow
+
+[daisy.search.index_backend]
+image = daisy.search.plugins.images:ImageIndex
+metadef = daisy.search.plugins.metadefs:MetadefIndex
+
+[oslo.config.opts]
+daisy.api = daisy.opts:list_api_opts
+daisy.cache = daisy.opts:list_cache_opts
+daisy.manage = daisy.opts:list_manage_opts
+daisy.registry = daisy.opts:list_registry_opts
+daisy.scrubber = daisy.opts:list_scrubber_opts
+

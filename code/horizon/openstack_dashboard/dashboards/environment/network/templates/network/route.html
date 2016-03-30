@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block page_header %}
+  <h4>{% trans "Create Route" %}</h4>
+{% endblock page_header %}
+
+{% block main %}
+  {{ table.render }}
+  <div class="pull-right">
+      <a class="btn btn-primary" href="/dashboard/environment/network/{{cluster_id}}/logicnet" role="button">{% trans "Last step" %}</a>
+      <a class="btn btn-primary"  href="/dashboard/environment/deploy/{{cluster_id}}/hosts" role="button">{% trans "Next step" %}</a>
+  </div>  
+{% endblock %}

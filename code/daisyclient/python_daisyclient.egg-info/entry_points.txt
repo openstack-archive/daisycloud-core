@@ -1,0 +1,3 @@
+[console_scripts]
+daisy = daisyclient.shell:main
+

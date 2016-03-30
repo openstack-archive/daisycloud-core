@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Instance" %}{% endblock %}
+
+{% block main %}
+    {% include 'environment/cluster/_instance_cluster_template.html' %}
+{% endblock %}

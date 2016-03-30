@@ -1,0 +1,378 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}
+  {% trans "Modify Cluster" %}
+{% endblock %}
+
+{% block page_header %}
+  {% trans "Modify Cluster" %}
+{% endblock page_header %}
+
+{% block js %}
+    {% include "horizon/_scripts.html" %}
+    <script type="text/javascript">
+    $("#cluster_modify_modal a:first").tab("show");
+    
+    function modify_cluster_commit(cluster_id){
+        // cluster base info
+        var cluster_info = {
+            "other": 0,
+            "id": $("#cluster_id").val(),
+            "name": $("#cluster_name").val(),
+            "networking_parameters": get_network_values(),
+            "auto_scale": $("#auto_scale").val(),
+            "use_dns": $("#use_dns").val(),
+            "description":$("#description").val()
+        };
+        var url = "/dashboard/environment/cluster/modify_cluster/";
+        do_post(url, JSON.stringify({'cluster_info': cluster_info}));
+
+{% if not has_zenic %}
+        // ha role
+        var url = "/dashboard/environment/cluster/set_ha_role_info/";
+        do_post(url, JSON.stringify(get_ha_role_values()));
+
+        // lb role
+        var url = "/dashboard/environment/cluster/set_role_info/";
+        do_post(url, JSON.stringify(get_lb_role_values()));
+{% else %}
+
+        // zenic_nfm role
+        var url = "/dashboard/environment/cluster/set_role_info/";
+        do_post(url, JSON.stringify(get_zenic_nfm_info()));
+
+        // zenic_ctl role
+        var url = "/dashboard/environment/cluster/set_role_info/";
+        do_post(url, JSON.stringify(get_zenic_ctl_info()));
+{% endif %}
+        // network plane
+        modifyNetPlane();
+        
+        window.location = "/dashboard/environment/";
+    }
+
+    function judge_cluster_auto_scale(cluster_list){
+        for(var i=0; i<cluster_list.length; i++)
+        {
+            if (($("#auto_scale").val() == 1) && (cluster_list[i].auto_scale == 1) && (cluster_list[i].id != $("#cluster_id").val()))
+            {
+                title = '{% trans "Confirm to modify" %}';
+                body = '{% trans "Computing node auto scale function has been selected by other clusters, Are you sure to replace it?" %}';
+                action = '{% trans "Confirm" %}';
+                modal = horizon.modals.create(title, body, action);
+                modal.modal();
+                modal.find('.btn-primary').click(function (evt) {
+                    var cluster_info = {
+                        "other": 1,
+                        "id": cluster_list[i].id,
+                        "name": cluster_list[i].name,
+                        "auto_scale": 0
+                    };
+                    var url = "/dashboard/environment/cluster/modify_cluster/"
+                    do_post(url, JSON.stringify({'cluster_info': cluster_info}));
+
+                    modify_cluster_commit(cluster_id);
+                    modal.modal('hide');
+                })
+                return;
+            }
+        }
+        if (i >= cluster_list.length)
+        {
+            modify_cluster_commit(cluster_id);
+        }
+    }
+
+    function modify_cluster_click(){
+        $(".form-cluster-validator").data('bootstrapValidator').validate()
+        if (!$(".form-cluster-validator").data('bootstrapValidator').isValid()){
+            $('#cluster_modify_modal a[href="#cluster_baseinfo"]').tab("show")
+            return;
+        }
+
+        $(".form-roles-validator").data('bootstrapValidator').validate()
+        if (!$(".form-roles-validator").data('bootstrapValidator').isValid()){
+            $('#cluster_modify_modal a[href="#cluster_role"]').tab("show")
+            return;
+        }
+
+        $(".form-net-plane").data("bootstrapValidator").validate()
+        if (!$(".form-net-plane").data('bootstrapValidator').isValid()){
+            $('#cluster_modify_modal a[href="#cluster_netplane"]').tab("show")                
+            return;
+        }
+
+        var url = "/dashboard/environment/cluster/get_clusters/";
+        do_post(url, "", judge_cluster_auto_scale);
+    }
+    
+    function modify_cluster_dialog_init(){
+        $(".form-auto-scale").removeClass('hide')
+
+        var cluster_info = {
+                "cluster_id": $("#cluster_id").val()
+            };
+        var url = "/dashboard/environment/cluster/get_cluster/";
+        do_post(url, JSON.stringify({'cluster_info': cluster_info}), cluster_baseinfo_init);
+
+{% if not has_zenic %}
+        var url = "/dashboard/environment/cluster/get_ha_role_info/";
+        do_post(url, JSON.stringify({'role_id': $("#ha_role_id").val()}), cluster_ha_role_init);
+
+        var url = "/dashboard/environment/cluster/get_role_info/";
+        do_post(url, JSON.stringify({'role_id': $("#lb_role_id").val()}), cluster_lb_role_init);
+
+        $("#collapse_ha").collapse("show");
+{% else %}
+        var url = "/dashboard/environment/cluster/get_role_info/";
+        do_post(url, JSON.stringify({'role_id': $("#zenic_nfm_role_id").val()}), cluster_zenic_nfm_role_init);
+
+        var url = "/dashboard/environment/cluster/get_role_info/";
+        do_post(url, JSON.stringify({'role_id': $("#zenic_ctl_role_id").val()}), cluster_zenic_ctl_role_init);
+
+        $("#collapse_zenic_mdb").collapse("show");
+{% endif %}
+    }
+
+    function cluster_baseinfo_init(cluster_list){
+        if (cluster_list.length == 0)
+            return;
+
+        $("#cluster_id").val(cluster_list[0].id);
+        $("#cluster_name").val(cluster_list[0].name);
+        $("#base_mac").val(cluster_list[0].base_mac);
+        if(cluster_list[0].segmentation_type == null)
+            cluster_list[0].segmentation_type = "";
+
+        if (cluster_list[0].segmentation_type.indexOf("vlan") >= 0){
+            $("#cluster_seg_type_vlan").click();
+        }
+        if (cluster_list[0].segmentation_type.indexOf("vxlan") >= 0){
+            $("#cluster_seg_type_vxlan").click();
+        }
+        if (cluster_list[0].segmentation_type.indexOf("flat") >= 0){
+            $("#cluster_seg_type_flat").click();
+        }
+        if (cluster_list[0].vni_start == null)
+            cluster_list[0].vni_start = 0
+        if (cluster_list[0].vni_end == null)
+            cluster_list[0].vni_end = 0
+        $("#vxlan_range_start").val(cluster_list[0].vni_start);
+        $("#vxlan_range_end").val(cluster_list[0].vni_end);
+        $("#auto_scale").val(cluster_list[0].auto_scale);
+        $("#use_dns").val(cluster_list[0].use_dns);
+        $("#description").val(cluster_list[0].description);
+    }
+
+    function cluster_ha_role_init(role_info){
+        $("#glance_service_id").val("");
+        $("#db_service_id").val("");
+
+        $("#ha_float_ip").val("");
+        $("#ha_ntp_ip").val("");
+
+        $("#glance_backend_type").val(0);
+        $("#glance_lun").val("0");
+        $("#glance_data_ip").val("");
+        $("#glance_lv_size").val("0");
+
+        $("#db_backend_type").val(0);
+        $("#db_lun").val("0");
+        $("#db_data_ip").val("");
+        $("#db_lv_size").val("0");
+
+        if (role_info["vip"] != null)
+            $("#ha_float_ip").val(role_info["vip"]);
+        $("#glance_float_ip").val(role_info["glance_vip"]==null?"":role_info["glance_vip"]);
+        $("#db_float_ip").val(role_info["db_vip"]==null?"":role_info["db_vip"]);
+        $("#public_float_ip").val(role_info["public_vip"]==null?"":role_info["public_vip"]);
+        if (role_info["ntp_ip"] != null)
+            $("#ha_ntp_ip").val(role_info["ntp_ip"]);
+
+        $("#glance_lv_size").val((role_info.glance_lv_size/1024).toString());
+        $("#db_lv_size").val((role_info.db_lv_size/1024).toString());
+        for(var i=0; i<role_info.service_disk_array.length; i++)
+        {
+            if (role_info.service_disk_array[i].service == "glance"){
+                $("#glance_service_id").val(role_info.service_disk_array[i].id);
+                if (role_info.service_disk_array[i].disk_location == "share"){
+                    $(".form-glance").removeClass("hide");
+                    $(".form-glance-lv-size").addClass('hide');
+                    $("#glance_backend_type_share").attr("checked", true);
+                    if (role_info.service_disk_array[i].lun != null)
+                        $("#glance_lun").val(role_info.service_disk_array[i].lun.toString());
+                    if (role_info.service_disk_array[i].data_ips != null){
+                        var data_ip_array = new Array();
+                        data_ip_array = role_info.service_disk_array[i].data_ips.split(",");
+                        if (data_ip_array.length > 0){
+                            $("#glance_data_ip").val(data_ip_array[0]);
+                            for(var j=data_ip_array.length - 1; j>0; j--){
+                                $(".add_glance_data_ip").trigger("click");
+                                var last_index = $("#glance_data_ip_last_index").val();
+                                $("input[name='glance_data_ip" + (parseInt(last_index, 10) - 1).toString() + "']").val(data_ip_array[j])
+                            }
+                        }
+                    }
+                    // Add glance_data_ip validator
+                    $('.form-roles-validator').bootstrapValidator('addField', "glance_data_ip", {
+                            validators: {
+                                notEmpty: {
+                                        message: 'Glance service IP can not be empty, please input'
+                                    },
+                                callback: {
+                                    callback: checkIP,
+                                    message: 'Glance service IP is error, format as: xxx.xxx.xxx.xxx'
+                                }
+                            }
+                        });
+                }
+                else{
+                    $(".form-glance").addClass("hide");
+                    $(".form-glance-lv-size").removeClass('hide');
+                    $("#glance_backend_type_local").attr("checked", true);
+                }
+            }
+            if (role_info.service_disk_array[i].service == "db"){
+                $("#db_service_id").val(role_info.service_disk_array[i].id);
+                if (role_info.service_disk_array[i].disk_location == "share"){
+                    $(".form-db").removeClass("hide");
+                    $(".form-db-lv-size").addClass('hide');
+                    $("#db_backend_type_share").attr("checked", true);
+                    if (role_info.service_disk_array[i].lun != null)
+                        $("#db_lun").val(role_info.service_disk_array[i].lun.toString());
+                    if (role_info.service_disk_array[i].data_ips != null){
+                        var data_ip_array = new Array();
+                        data_ip_array = role_info.service_disk_array[i].data_ips.split(",");
+                        if (data_ip_array.length > 0){
+                            $("#db_data_ip").val(data_ip_array[0]);
+                            for(var j=data_ip_array.length - 1; j>0; j--){
+                                $(".add_db_data_ip").trigger("click");
+                                var last_index = $("#db_data_ip_last_index").val();
+                                $("input[name='db_data_ip" + (parseInt(last_index, 10) - 1).toString() + "']").val(data_ip_array[j])
+                            }
+                        }
+                    }
+                    // Add db_data_ip validator
+                    $('.form-roles-validator').bootstrapValidator('addField', "db_data_ip", {
+                            validators: {
+                                notEmpty: {
+                                        message: 'Db service IP can not be empty, please input'
+                                    },
+                                callback: {
+                                    callback: checkIP,
+                                    message: 'Db service IP is error, format as: xxx.xxx.xxx.xxx'
+                                }
+                            }
+                        });
+                }
+                else{
+                    $(".form-db").addClass("hide");
+                    $(".form-db-lv-size").removeClass('hide');
+                    $("#db_backend_type_local").attr("checked", true);
+                }
+            }
+            if (role_info.service_disk_array[i].service == "mongodb")
+            {
+                $("#mongodb_service_id").val(role_info.service_disk_array[i].id);
+                if (role_info.service_disk_array[i].disk_location == "local")
+                {
+                    $(".form-mongodb").addClass("hide");
+                    $(".form-mongodb-lv-size").removeClass('hide');
+                    $("#mongodb_backend_type_local").attr("checked", true);
+                    if (role_info.service_disk_array[i].size != null)                    
+                       $("#mongodb_lv_size").val((role_info.service_disk_array[i].size/1024).toString());
+                }
+                else
+                {
+                    $(".form-mongodb").removeClass("hide");
+                    $(".form-mongodb-lv-size").addClass('hide');
+                    $("#mongodb_backend_type_share").attr("checked", true);
+                    if (role_info.service_disk_array[i].lun != null)
+                        $("#mongodb_lun").val(role_info.service_disk_array[i].lun.toString());
+                    if (role_info.service_disk_array[i].data_ips != null){
+                        var data_ip_array = new Array();
+                        data_ip_array = role_info.service_disk_array[i].data_ips.split(",");
+                        if (data_ip_array.length > 0)
+                        {
+                            $("#mongodb_data_ip").val(data_ip_array[0]);
+                            for(var j=data_ip_array.length - 1; j>0; j--)
+                            {
+                                $(".add_mongodb_data_ip").trigger("click");
+                                var last_index = $("#mongodb_data_ip_last_index").val();
+                                $("input[name='mongodb_data_ip" + (parseInt(last_index, 10) - 1).toString() + "']").val(data_ip_array[j])
+                            }
+                        }
+                    }
+                }
+            }            
+        }
+
+        var cinder_service_table = findObj("cinder_service_table", document);
+        while(cinder_service_table.rows.length > 1)
+            cinder_service_table.deleteRow(1)
+        /*
+        if (role_info.cinder_volume_array.length > 0){
+            $(".form-cinder").removeClass('hide');
+            $(".form-cinder-lv-size").addClass('hide');
+            $("#cinder_backend_type_share").attr("checked", true);
+        }
+        else{
+            $(".form-cinder").addClass('hide');
+            $(".form-cinder-lv-size").removeClass('hide');
+            $("#cinder_backend_type_local").attr("checked", true);
+        }
+        */
+        $("#cinder_backend_type_share").attr("checked", true);
+        for(i=0; i<role_info.cinder_volume_array.length; i++){
+            var cinder_volume = role_info.cinder_volume_array[i];
+            
+            var management_ips = cinder_volume["management_ips"];
+            cinder_volume["management_ips"] = new Array();
+            cinder_volume["management_ips"] = management_ips.split(",");
+            
+            var data_ips = cinder_volume["data_ips"];
+            cinder_volume["data_ips"] = new Array();
+            if (data_ips != "")
+                cinder_volume["data_ips"] = data_ips.split(",");
+            
+            AddCinderVolume(cinder_volume);
+        }
+    }
+
+    function cluster_lb_role_init(role_info){
+        $("#lb_float_ip").val("");
+        if (role_info["vip"] != null)
+            $("#lb_float_ip").val(role_info["vip"]);
+    }
+    
+    function cluster_zenic_mdb_role_init(role_info){
+        $("#zenic_mdb_float_ip").val("");
+        if (role_info["vip"] != null)
+            $("#zenic_mdb_float_ip").val(role_info["vip"]);
+    }
+    
+    function cluster_zenic_nfm_role_init(role_info){
+        $("#zenic_nfm_float_ip").val("");
+        $("#zenic_mongodb_float_ip").val("");
+        if (role_info["vip"] != null){
+            $("#zenic_nfm_float_ip").val(role_info["vip"]);
+            $("#zenic_mongodb_float_ip").val(role_info["mongodb_vip"]);
+        }
+    }
+    
+    function cluster_zenic_ctl_role_init(role_info){
+        $("#zenic_ctl_float_ip").val("");
+        if (role_info["vip"] != null)
+            $("#zenic_ctl_float_ip").val(role_info["vip"]);
+    }
+    
+    $(function(){
+        modify_cluster_dialog_init();
+    });
+</script>
+{% endblock %}
+
+{% block main %}
+    {% include 'environment/cluster/_modify_cluster.html' %}
+{% endblock %}

@@ -1,0 +1,55 @@
+{% load branding horizon i18n %}
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content='text/html; charset=utf-8' http-equiv='Content-Type' />
+    {% include "horizon/_custom_meta.html" %}
+    <title>{% block title %}{% endblock %} - {% site_branding %}</title>
+    {% comment %} Load CSS sheets before Javascript  {% endcomment %}
+    {% block css %}
+      {% include "_stylesheets.html" %}
+    {% endblock %}
+    {% include "horizon/_conf.html" %}
+    {% include "horizon/client_side/_script_loader.html" %}
+    {% include "horizon/_custom_head_js.html" %}
+  </head>
+  <body id="{% block body_id %}{% endblock %}" ng-app='hz'>
+    {% block content %}
+      {% block sidebar %}
+        {% include 'horizon/common/_sidebar.html' %}
+      {% endblock %}
+      <div id="container" >
+        <!--div>
+          {% horizon_dashboard_nav %}
+        </div-->  
+        <div id='main_content'>
+          <div id="create_cluster_wizard"> 
+            {% block create_cluster_wizard %}
+            {% endblock %}
+          </div>
+          <div style='border: 1px solid #ddd;'>
+            <div class='topbar'>
+            {% block page_header %}{% endblock %}
+            </div>
+            <div id='operate_region'>
+            {% block operate_region %}{% endblock %}
+            </div>
+            {% include "horizon/_messages.html" %}
+            <div id="main_region">
+            {% block main %}{% endblock %}
+            </div>
+          </div>
+        </div>
+        <div id="footer">
+          {% block footer %}{% endblock %}
+        </div>        
+      </div>
+    {% endblock %}
+    {% block js %}
+      {% include "horizon/_scripts.html" %}
+    {% endblock %}
+    <div id="modal_wrapper">
+      {% block modal %}{% endblock %}
+    </div>
+  </body>
+</html>

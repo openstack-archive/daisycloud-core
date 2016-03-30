@@ -1,0 +1,8 @@
+eventlet
+Flask
+keystonemiddleware
+python-ironicclient
+python-keystoneclient
+requests
+six
+stevedore

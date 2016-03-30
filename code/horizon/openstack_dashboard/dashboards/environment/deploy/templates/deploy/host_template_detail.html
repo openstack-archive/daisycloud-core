@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Instance Template" %}{% endblock %}
+
+{% block main %}
+    {% include 'environment/deploy/_host_template_detail.html' %}
+{% endblock %}

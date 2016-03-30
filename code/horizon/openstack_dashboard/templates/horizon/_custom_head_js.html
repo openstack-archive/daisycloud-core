@@ -1,0 +1,77 @@
+<script type='text/javascript' charset='utf-8'>
+    $(document).ajaxSend(function(event, xhr, settings) {
+        function getCookie(name) {
+            var cookieValue = null;
+            if (document.cookie && document.cookie != '') {
+                var cookies = document.cookie.split(';');
+                for (var i = 0; i < cookies.length; i++) {
+                    var cookie = jQuery.trim(cookies[i]);
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        function sameOrigin(url) {
+            // url could be relative or scheme relative or absolute
+            var host = document.location.host; // host + port
+            var protocol = document.location.protocol;
+            var sr_origin = '//' + host;
+            var origin = protocol + sr_origin;
+            // Allow absolute or scheme relative URLs to same origin
+            return (url == origin || url.slice(0, origin.length + 1) == origin + '/') ||
+                (url == sr_origin || url.slice(0, sr_origin.length + 1) == sr_origin + '/') ||
+                // or any other URL that isn't scheme relative or absolute i.e relative.
+                !(/^(\/\/|http:|https:).*/.test(url));
+        }
+        function safeMethod(method) {
+            return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+        }
+
+        if (!safeMethod(settings.type) && sameOrigin(settings.url)) {
+            xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+        }
+    });
+
+    function do_post(location, params, success_callback, error_callback){
+        var ret = false;
+        $.ajax({
+            type: 'POST',
+            url:  location,
+            data: params,
+            dataType: 'json',
+            async: false,
+            success: function (data) {
+                if (success_callback != null){
+                    success_callback(data);
+                }
+                ret = true;
+            },
+            error: function(data) {
+                if (error_callback != null){
+                    error_callback(data);
+                }
+                //horizon.alert("error", data.responseText);
+            }
+        });
+        return ret;
+    }    
+
+    function getArgs( ) {
+        var args = new Object( );
+        var query = location.search.substring(1);      // Get query string
+        var pairs = query.split("&");                  // Break at ampersand
+        for(var i = 0; i < pairs.length; i++) {
+            var pos = pairs[i].indexOf('=');           // Look for "name=value"
+            if (pos == -1) continue;                   // If not found, skip
+            var argname = pairs[i].substring(0,pos);   // Extract the name
+            var value = pairs[i].substring(pos+1);     // Extract the value
+            value = decodeURIComponent(value);         // Decode it, if needed
+            args[argname] = value;                     // Store as a property
+        }
+        return args;                                   // Return the object
+    }
+</script>

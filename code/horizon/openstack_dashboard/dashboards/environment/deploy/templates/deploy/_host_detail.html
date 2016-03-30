@@ -1,0 +1,19 @@
+{% load i18n %}
+<a href="#" id="host_details_{{ host_id }}" class="link-popover" rel="popover" tabindex="0" data-trigger="focus" data-content="
+<table class='table table-bordered'>
+  <tr><th style='width:50%'>{% trans 'CPU Number' %}</th><td style='word-break : break-all'>{{ cpu_num }}</td></tr>
+  <tr><th style='width:50%'>{% trans 'Memory Size (GB)' %}</th><td style='word-break : break-all'>{{ host_memory_size }}</td></tr>
+  <tr><th style='width:50%'>{% trans 'Product' %}</th><td style='word-break : break-all'>{{ product }}</td></tr>
+  <tr><th style='width:50%'>{% trans 'Manufacturer' %}</th><td style='word-break : break-all'>{{ manufacturer }}</td></tr>
+  <tr><th style='width:50%'>{% trans 'Disks Size (GB)' %}</th><td style='word-break : break-all'>{{ disks_size }}</td></tr>
+</table>
+" data-original-title="{% blocktrans %}Host Name: {{ host_name }}">{{ host_name }}{% endblocktrans %}</a>
+<script type="text/javascript" charset="utf-8">
+$(function () {
+  var $host = $("#host_details_{{ host_id }}");
+  // NOTE(tsufiev): check this in case this template is used in network topology -> terminate instance
+  if ( $host.popover ) {
+    $host.popover({html:true});
+  }
+});
+</script>

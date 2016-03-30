@@ -1,0 +1,15 @@
+{% load i18n %}
+{% load url from future %}
+<ul class="nav pull-right" id="user_info">
+  <li style="float:left">
+    <a style="color:white">
+      <span class="glyphicon glyphicon-user"></span> 
+      {% blocktrans with username=request.user.username %}
+          {{ username }}
+      {% endblocktrans %}
+    </a>
+  </li>
+  <li style="float:left">
+  	<a style="color:white" href="{% url 'logout' %}">{% trans "Sign Out" %}</a>
+  </li>
+</ul>

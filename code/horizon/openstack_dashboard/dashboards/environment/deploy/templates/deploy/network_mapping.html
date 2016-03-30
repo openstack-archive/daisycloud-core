@@ -1,0 +1,735 @@
+﻿{% extends 'base.html' %}
+{% load i18n %}
+
+{% block css %}
+{% include "_stylesheets.html" %}
+<link rel="stylesheet" href="/dashboard/static/dashboard/scss/host_role.css" type="text/css" media="screen">
+<style>
+    .dv_drag_base{
+        margin-top: 5%;
+        margin-left: 10%;
+        margin-right: 10%;
+        margin-bottom: 5%;
+        padding-top:3%;
+        height: 30px;
+        width:80%;
+        border-radius: 5px;
+        background-color:rgb(119, 119, 119);
+    }
+    .dv_drag_STORAGE{
+        background-color:rgb(51, 122, 183);
+    }
+    .dv_drag_PUBLIC{
+        background-color:rgb(92, 184, 92);
+    }
+    .dv_drag_EXTERNAL{
+        background-color:rgb(91, 192, 222);
+    }
+    .dv_drag_DEPLOYMENT{
+        background-color:rgb(240, 173, 78);
+    }
+    .dv_drag_PRIVATE{
+        background-color:rgb(198, 140, 164);
+    }
+    .dv_drag_MANAGEMENT{
+        background-color:rgb(217, 83, 79);
+    }
+
+    .dv_drop_net_plane_base{
+        float:left;
+        margin-top:3px;
+        margin-left:5px;
+        padding-top:3px;
+        height: 25px;
+        width: 135px;
+        border-radius: 5px;
+        background-color:rgb(119, 119, 119);
+    }
+    .dv_drop_STORAGE{
+        background-color:rgb(51, 122, 183);
+    }
+    .dv_drop_PUBLIC{
+        background-color:rgb(92, 184, 92);
+    }
+    .dv_drop_EXTERNAL{
+        background-color:rgb(91, 192, 222);
+    }
+    .dv_drop_DEPLOYMENT{
+        background-color:rgb(240, 173, 78);
+    }
+    .dv_drop_PRIVATE{
+        background-color:rgb(198, 140, 164);
+    }
+    .dv_drop_MANAGEMENT{
+        background-color:rgb(217, 83, 79);
+    }
+    .icon_drag_move{
+        margin-left:5px;
+    }
+    .button_remove{
+        margin-right:5px;
+        float:right;
+    }
+    .net_plane_text{
+        margin-left:5px;
+        font-size:12px;
+        color:#FFFFFF;
+        opacity:0.8;
+    }
+    .dv_drop_container{
+        height:30px;
+        width:90%;
+    }
+    .dv_drop_net_plane_hover{
+        border:1px dashed;
+        border-radius: 5px;
+        background-color:rgb(235, 246, 252);
+    }
+</style>
+{% endblock%}
+
+{% block page_header %}
+    <div>
+        <span style="font-weight:bold;">{{current_cluster}}</span>
+        <span> > </span>         
+        {% trans 'Network Mapping' %}
+    </div>
+{% endblock %}
+
+{% block create_cluster_wizard %}
+    {% include 'horizon/_wizard_steps.html' %}
+{% endblock %}
+
+{% block operate_region %}
+<div class="row">
+    <div class="col-xs-10 col-md-10">
+        <div style="margin-top:35px;">
+            <table class="table table-striped table-hover table-condensed table-bordered table_eth">
+                <thead>
+                    <tr>
+                        <th>{% trans "Ports" %}</th>
+                        <th width="80%">{% trans "netplane" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary pull-right" style="margin-top:5px;" onclick="SetHostNetPlane()">
+                {% trans "Save changes" %}
+            </button>
+        </div>
+    </div>
+    <div class="col-xs-2 col-md-2">
+        <h5>{% trans "Drag to Assign Net Plane" %}</h5>
+        <div class="panel panel-default">
+            <div class="row drag_role_container">
+                {% for network in networks %}
+                <div class="dv_drag_base drag_net_plane dv_drag_{{network.name}} {{network.id}}">
+                    <span class="glyphicon glyphicon-move icon_drag_move" aria-hidden="true"></span>
+                    <span class="net_plane_text">{{ network.name }}</span>
+                </div>
+                <input type="hidden" value="{{network.type}}" id="hidden_input_{{network.name}}">
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block main %}
+    <input type="hidden" value="{{cluster_id}}" id="cluster_id">
+    {{table.render}}
+    <div id="modeML2Type" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="modalRoleVipLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <a class="close" data-dismiss="modal">&times;</a>
+                    <h4 class="modal-title" id="modalRoleVipLabel">{% trans "Set vSwith Type" %}</h4>
+                </div>
+                <div class="modal-body">
+                    <form class="form-horizontal">
+                        <div class="form-group">
+                            <label for="selectML2Type" class="col-sm-5 control-label">{% trans "vSwith Type" %}</label>
+                            <div class='col-sm-5'>
+                                <select class="form-control" id="selectML2Type">
+                                    <option value="ovs">OVS</option>
+                                    <option value="ovs,sriov(macvtap)">OVS + Sriov(Macvtap)</option>
+                                    <option value="ovs,sriov(direct)">OVS + Sriov(Direct)</option>
+                                    <option value="sriov(macvtap)">Sriov(Macvtap)</option>
+                                    <option value="sriov(direct)">Sriov(Direct)</option>
+                                    <option value="dvs">DVS</option>               
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="SetSegmentType()">{% trans "Save"%}</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">{% trans "Close" %}</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->   
+{% endblock %}
+
+{% block js %}
+    {% include "horizon/_scripts.html" %}
+    <script type='text/javascript' charset='utf-8'>
+    function ResetDropperSize(dropper)
+    {
+        var height = 30;
+        var count = dropper.find("div").length;
+        var row_number = 1;
+        var cur_row_number = parseInt(count / 5, 10);
+        if (count % 5 > 0)
+        {
+            cur_row_number += 1;
+        }
+        if(cur_row_number > 1)
+        {
+            row_number = cur_row_number;
+        }
+        var height = row_number * height;
+        dropper.css("height", height + "px");
+    }
+
+    function SetSegmentType(){
+        var segment_type = $("#selectML2Type").val();
+        var name = $("#modeML2Type").data("netplane");
+        $(".dv_drop_" + name).data("segment_type", segment_type);
+        $('#modeML2Type').modal('hide');
+    }
+
+    function IsPrivateOrVxlan(netplane){
+        if (netplane == "PRIVATE" || netplane == "VXLAN"){
+            return true;
+        }
+
+        if ($("#hidden_input_" + netplane).val() == "PRIVATE"){
+            return true;
+        }
+
+        return false;
+    }
+
+    function CreateDropDiv(name, callback, param1, param2)
+    {
+        var class_name = "dv_drop_net_plane_base dv_drop_" + name;
+        var div = $('<div class="' + class_name + '"></div>');
+        var span = $('<span class="net_plane_text">' + name + '</span>');
+        div.append(span);
+
+        var button = $('<button type="button" class="close button_remove"></button>');
+        if (callback != null){
+            button.on("click", function(){
+                callback(param1, param2);
+            })
+        }
+        var icon = $('<span>&times;</span>');
+        button.append(icon);        
+        div.append(button);
+
+        if(IsPrivateOrVxlan(name)){
+            var modify = $('<button type="button" class="close button_remove"> \
+                                <span class="glyphicon glyphicon-edit" style=" font-size: xx-small;top: -2px;" aria-hidden="true"></span> \
+                            </button>');
+            modify.on("click", function(){
+                $("#modeML2Type").data("netplane", name);
+                var segment_type = $(".dv_drop_" + name).data("segment_type");
+                $("#selectML2Type").val(segment_type);
+                $('#modeML2Type').modal({
+                    backdrop: "static"
+                });            
+            });
+            div.append(modify);
+        }
+
+        return div;
+    }
+
+    function DeleteNetPlane(net_port_name, net_plane_name){
+        var hosts = [];
+        var roles = [];
+        var class_name = net_port_name + "_" + net_plane_name;
+        var dropper = $("." + class_name).parent();
+        $("." + class_name).remove();
+        var drag_net_plane = $(".dv_drag_" + net_plane_name);
+        drag_net_plane.attr("style", "position: relative;");
+        drag_net_plane.draggable({
+            cursor: "move",
+            appendTo: ".drop_net_plane",
+            revert: "invalid",
+            start: function(){
+                $(this).data("origPosition",$(this).position());
+            }   
+        });
+        ResetDropperSize(dropper);
+    }
+
+    function AddHostNetPlane(dropper, net_port_name, net_plane_name)
+    {
+        ResetDropperSize(dropper);
+        var div = CreateDropDiv(net_plane_name, DeleteNetPlane, net_port_name, net_plane_name);
+        var class_name = net_port_name + "_" + net_plane_name;
+        div.addClass(class_name);
+        div.appendTo(dropper);
+        $(".dv_drag_" + net_plane_name).hide();
+    }
+
+    function OnReloadWindow()
+    {
+        var host_id = "";
+        $(".table-row-multi-select:checked").each(function(){
+            host_id += $(this).val() + "_";
+        })
+        if ($(".select_all").attr("checked"))
+        {
+            host_id += "-1" + "_";
+        }
+        host_id = host_id.substr(0, host_id.length - 1);
+        var url = "/dashboard/environment/deploy/" + $("#cluster_id").val() + "/networkmapping?host_id=" + host_id;
+        window.location.href = url;
+    }
+
+    function SetHostNetPlane()
+    {
+        var hosts = [];
+        var $checkbox = $(".table-row-multi-select");
+        $checkbox.each(function(){
+            if($(this).attr("checked")){
+                hosts.push($(this).val());
+            }
+        })
+        if(hosts.length == 0){
+            horizon.alert('error', gettext("please select a host at least"));
+            return;
+        }
+        var eth_ports = [];
+        var dv_drop_containers = $(".dv_drop_container");
+        for(var i = 0;i < dv_drop_containers.length;i++)
+        {
+            var dv_drop_container = dv_drop_containers.eq(i);
+            var eth_name = dv_drop_container[0].className.split(" ")[0];
+            var assigned_networks = [];
+            var vswitch_type = "";
+            var dv_net_planes = dv_drop_container.find("div");
+            for(var j = 0;j < dv_net_planes.length;j++)
+            {
+                var it_net_plane_name = dv_net_planes.eq(j).find("span:first").text();
+                assigned_networks.push({
+                    "name":$.trim(it_net_plane_name)});
+                if(IsPrivateOrVxlan(it_net_plane_name)){
+                    vswitch_type = dv_net_planes.eq(j).data("segment_type");
+                }
+            }
+            eth_ports.push({
+                "name": eth_name,
+                "vswitch_type": vswitch_type,
+                "assigned_networks": assigned_networks
+            })
+        }
+        var url = "/dashboard/environment/deploy/" + $("#cluster_id").val() + '/assign_net_work';
+        var ret = do_post(url, JSON.stringify({'hosts': hosts, 'eth_ports': eth_ports}), OnReloadWindow);
+    }
+
+    function CompareNetPlane(net_plane_1, net_plane_2)
+    {
+        for(var i = 0;i < net_plane_1.length;i++)
+        {
+            var j = 0;
+            for(;j < net_plane_2.length;j++)
+            {
+                if(net_plane_1[i] == net_plane_2[j])
+                {
+                    break;
+                }
+            }
+            if (j >= net_plane_2.length)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function CompareNetPort(eth_port_list1, eth_port_list2)
+    {
+        for(var i = 0;i < eth_port_list1.length;i++)
+        {
+            var j = 0;
+            for(;j < eth_port_list2.length;j++)
+            {
+                if(eth_port_list1[i]["name"] == eth_port_list2[j]["name"] &&
+                    (CompareNetPlane(eth_port_list1[i]["net_planes"], eth_port_list2[j]["net_planes"]) &&
+                    CompareNetPlane(eth_port_list2[j]["net_planes"], eth_port_list1[i]["net_planes"])))
+                {
+                    break;
+                }
+            }
+            if (j >= eth_port_list2.length)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function SetCkbDisabledByNetPlane(eth_port_list, trs, cur_eth_port_name)
+    {
+        for(var i = 0;i < trs.length;i++)
+        {
+            var tr = trs.eq(i);
+            var it_check_box = tr.find("td:first input");
+            if (it_check_box.val() == cur_eth_port_name)
+            {
+                continue;
+            }
+            var it_eth_port_list = it_check_box.data("eth_port_list");
+            if (!(CompareNetPort(eth_port_list, it_eth_port_list) &&
+                CompareNetPort(it_eth_port_list, eth_port_list)))
+            {
+                it_check_box.attr("disabled", true);
+            }
+        }
+    }
+
+    function ShowHostNetPlaneTable(eth_port_list)
+    {
+        var tbody = $(".table_eth tbody");
+        var eth_trs = $(".table_eth tbody tr")
+        for(var i = 0;i < eth_trs.length;i++)
+        {
+            var it_eth_name_td = eth_trs.eq(i).find("td:first");
+            var it_eth_name = $.trim(it_eth_name_td.text());
+            var dropped_net_planes = $("."+it_eth_name).find("div");
+            //清除已有网络平面
+            for(var j = 0;j < dropped_net_planes.length;j++)
+            {
+                var dropped_net_plane = dropped_net_planes.eq(j);
+                DeleteNetPlane(it_eth_name, $.trim(dropped_net_plane.find(".net_plane_text").text()));
+            }
+        }
+        //清除所有行 重新生成
+        tbody.html("");
+        for(var i = 0;i < eth_port_list.length;i++)
+        {
+            var tr = $("<tr></tr>");
+            var td_name = $('<td>' + eth_port_list[i]["name"] + '</td>');
+            var td_net_plane = $('<td></td>');
+            var div = $('<div></div>')
+            div.addClass(eth_port_list[i]["name"]).addClass("drop_net_plane").addClass("dv_drop_container");
+            /*添加已有网络平面*/
+            var net_plane_name = "";
+            var segment_type = "";
+            for(var j = 0;j < eth_port_list[i]["net_planes"].length;j++)
+            {
+                AddHostNetPlane(div, eth_port_list[i]["name"], eth_port_list[i]["net_planes"][j]);
+                if (IsPrivateOrVxlan(eth_port_list[i]["net_planes"][j])) {
+                    net_plane_name = ".dv_drop_" + eth_port_list[i]["net_planes"][j]; 
+                    segment_type = eth_port_list[i]["vswitch_type"];
+                }              
+            }
+            td_net_plane.append(div);
+            tr.append(td_name).append(td_net_plane);
+            tbody.append(tr);
+
+            $(net_plane_name).data("segment_type", segment_type);
+        }
+        $( ".drop_net_plane" ).droppable({
+            hoverClass: "dv_drop_net_plane_hover",
+            accept: ".drag_net_plane",
+            drop: function( event, ui ) {
+                var net_plane_name = $.trim(ui.draggable.text());
+                var net_port_name = this.className.split(" ")[0];
+
+                if ($(this).find(".dv_drop_PRIVATE").length > 0 ||
+                     $(this).find(".dv_drop_VXLAN").length > 0){
+                    ui.draggable.animate({left: "0px", top: "0px"},"slow");
+                    return;
+                }
+                
+                if ( $(this).find(".dv_drop_net_plane_base").length > 0
+                     && IsPrivateOrVxlan(net_plane_name == "PRIVATE")) {
+                    ui.draggable.animate({left: "0px", top: "0px"},"slow");
+                    return;                
+                }
+
+                AddHostNetPlane($(this), net_port_name, net_plane_name);
+
+                if (IsPrivateOrVxlan(net_plane_name)){
+                    $("#modeML2Type").data("netplane", net_plane_name);
+                    $("#selectML2Type").val("OVS");
+                    $('#modeML2Type').modal({
+                        backdrop: "static"
+                    })
+                }                
+            }
+        });
+    }
+
+    function ShowCheckedHostNetPlaneTable()
+    {
+        var checked_cbk = $(".table-row-multi-select:checked");
+        if (checked_cbk.length > 0)
+        {
+            ShowHostNetPlaneTable([]);
+            var first_cbk = $(".table-row-multi-select:checked:first");
+            var eth_port_list = first_cbk.data("eth_port_list");
+            ShowHostNetPlaneTable(eth_port_list);
+        }
+        else if(checked_cbk.length == 0)
+        {
+            ShowHostNetPlaneTable([]);
+        }
+    }
+
+    function ControlHostsCheckbox(cur_ckb)
+    {
+        var cur_eth_port_list = cur_ckb.data("eth_port_list");
+        if(cur_ckb.attr("checked"))/*选中*/
+        {
+            var checked_cbk = $(".table-row-multi-select:checked");
+            if (checked_cbk.length == $(".table-row-multi-select").length)
+            {
+                $(".select_all").attr("checked", true);
+            }
+            var cur_tr = cur_ckb.parent().parent();//定位当前行
+            var tbody = cur_tr.parent();//定位当前表格主体
+            var trs = tbody.find("tr");//定位表格主体所有行
+            /*将网口上网络平面不一致的checkbox置灰*/
+            SetCkbDisabledByNetPlane(cur_eth_port_list, trs, cur_ckb.val());
+        }
+        else
+        {
+            if($(".table-row-multi-select:checked").length == 0)
+            {
+                $(".table-row-multi-select").attr("disabled", false);
+                $(".select_all").attr("checked", false);
+            }
+        }
+    }
+
+    function BindEthPortInfo2CheckBox()
+    {
+        var $checkbox = $(".table-row-multi-select");
+        $checkbox.each(function(){
+            var cur_tr = $(this).parent().parent();//定位当前行
+            var cur_tds = cur_tr.find("td");//定位当前行所有列
+            var eth_port_list = [];
+            for(var i = 3;i < cur_tds.length;i++)
+            {
+                var td = cur_tds.eq(i);
+                var eth_name = td.find(".interface_name:first").val();
+                var net_plane_text = $.trim(td.find(".interface_assigned_networks:first").val());
+                var vswitch_type = td.find(".interface_vswitch_type:first").val();
+                var net_planes_full = [];
+                var net_planes = [];
+                if (eth_name == null)
+                {
+                    continue;
+                }
+                if (net_plane_text != "")
+                {
+                    net_planes_full = net_plane_text.split(" ");
+                }
+                for (var j = 0;j < net_planes_full.length;j++)
+                {
+                    var net_plane = net_planes_full[j].split(":")[0];
+                    net_planes.push(net_plane);
+                }
+                eth_port_list.push({
+                    "name": eth_name,
+                    "net_planes": net_planes,
+                    "vswitch_type": vswitch_type
+                });
+            }
+            $(this).data("eth_port_list", eth_port_list);
+        })
+    }
+
+    function ControlAllHostsCheckbox()
+    {
+        var is_same = true;
+        var tbody = $("#network_mapping tbody");//定位当前表格主体
+        var trs = tbody.find("tr");//定位表格主体所有行
+        for(var i = 0;i < trs.length;i++)
+        {
+            var it_check_box1 = trs.eq(i).find("td:first input");
+            var it_eth_port_list1 = it_check_box1.data("eth_port_list");
+            for(var j = i + 1;j < trs.length;j++)
+            {
+                var it_check_box2 = trs.eq(j).find("td:first input");
+                var it_eth_port_list2 = it_check_box2.data("eth_port_list");
+                if (!(CompareNetPort(it_eth_port_list1, it_eth_port_list2) &&
+                    CompareNetPort(it_eth_port_list2, it_eth_port_list1)))
+                {
+                    is_same = false;
+                    break;
+                }
+            }
+            if(!is_same)
+            {
+                $(".select_all").attr("disabled", true);
+                break;
+            }
+        }
+        $(".select_all").on("click",function(){
+            if($(this).attr("checked")){
+                $(".table-row-multi-select").attr("checked", true);
+            }
+            else{
+                $(".table-row-multi-select").attr("checked", false);
+            }
+            ShowCheckedHostNetPlaneTable();
+        })
+    }
+
+    function CheckNetPlaneIsUpdate()
+    {
+        var ret = false;
+        var update_eth_port_list = [];
+        var dv_drop_containers = $(".dv_drop_container");
+        for(var i = 0;i < dv_drop_containers.length;i++)
+        {
+            var dv_drop_container = dv_drop_containers.eq(i);
+            var eth_name = dv_drop_container.attr("class").split(" ")[0];
+            var assigned_networks = [];
+            var dv_net_planes = dv_drop_container.find("div");
+            for(var j = 0;j < dv_net_planes.length;j++)
+            {
+                var it_role_name = dv_net_planes.eq(j).find("span:first").text();
+                assigned_networks.push($.trim(it_role_name));
+            }
+            update_eth_port_list.push({
+                "name": eth_name,
+                "net_planes": assigned_networks
+            })
+        }
+        var selected_host = $(".table-row-multi-select:checked");
+        for (var i = 0; i < update_eth_port_list.length;i++){
+            selected_host.each(function(){
+                var eth_port_list_data = $(this).data("eth_port_list");
+                if (!(update_eth_port_list.length == eth_port_list_data.length&&
+                CompareNetPort(update_eth_port_list, eth_port_list_data)))
+                {
+                    ret = true;
+                    return false;
+                }
+            })
+            if (!ret)
+            {
+                return ret;
+            }
+        }
+        return ret;
+    }
+
+    function NetMappingNext()
+    {
+        var url = "/dashboard/environment/deploy/" + $("#cluster_id").val() + "/net_mapping_next";
+        if (!CheckNetPlaneIsUpdate())
+        {
+            window.location.href = url;
+        }
+        else
+        {
+            var title = '{% trans "Confirm to Discard" %}';
+            var body = '{% trans "Changes in the network plane, is discarded?" %}';
+            var action = '{% trans "Confirm" %}'
+            var modal = horizon.modals.create(title, body, action);
+            modal.modal()
+            modal.find('.btn-primary').click(function (evt) {
+                modal.modal('hide');
+                window.location.href = url;
+            });
+        }
+    }
+
+    function OnInit()
+    {
+        $(".table-row-multi-select:first").removeClass("table-row-multi-select").addClass("select_all");
+        BindEthPortInfo2CheckBox();
+        ControlAllHostsCheckbox();
+        $(".table-row-multi-select").on("click", function(){
+            ControlHostsCheckbox($(this));
+            ShowCheckedHostNetPlaneTable();
+        });
+        var host_id = getArgs()["host_id"];
+        if (host_id != null)
+        {
+            var host_id_list = host_id.split("_");
+            for(var i = 0;i < host_id_list.length;i++)
+            {
+                $(".table-row-multi-select").each(function(){
+                    if($(this).val() == host_id_list[i])
+                    {
+                        $(this).attr("checked",true);
+                    }
+                })
+                if(host_id_list[i] == "-1")
+                {
+                    $(".select_all").attr("checked", true);
+                }
+            }
+            var first_cbk = $(".table-row-multi-select:checked:first");
+            ControlHostsCheckbox(first_cbk);
+            ShowCheckedHostNetPlaneTable();
+            $("#operate_region").fadeToggle("fast");
+        }
+        $( ".drag_net_plane" ).draggable({
+            cursor: "move",
+            appendTo: ".drop_net_plane",
+            revert: "invalid",
+            start: function(){
+                $(this).data("origPosition",$(this).position());
+            }            
+        });
+        $( ".drop_net_plane" ).droppable({
+            hoverClass: "dv_drop_net_plane_hover",
+            accept: ".drag_net_plane",
+            drop: function( event, ui ) {
+                var net_plane_name = $.trim(ui.draggable.text());
+                var net_port_name = this.className.split(" ")[0];
+
+                if ($(this).find(".dv_drop_PRIVATE").length > 0 ||
+                     $(this).find(".dv_drop_VXLAN").length > 0){
+                    ui.draggable.animate({left: "0px", top: "0px"},"slow");
+                    return;
+                }
+                
+                if ( $(this).find(".dv_drop_net_plane_base").length > 0
+                     && IsPrivateOrVxlan(net_plane_name)) {
+                    ui.draggable.animate({left: "0px", top: "0px"},"slow");
+                    return;
+                }
+
+                AddHostNetPlane($(this), net_port_name, net_plane_name);
+
+                if (IsPrivateOrVxlan(net_plane_name)){
+                    $("#modeML2Type").data("netplane", net_plane_name);
+                    $("#selectML2Type").val("OVS");
+                    $('#modeML2Type').modal({
+                        backdrop: "static"
+                    });
+                }
+            }
+        });
+    }
+    horizon.addInitFunction(OnInit);
+    </script>
+{% endblock%}
+
+{% block footer %}
+    <div class='pull-right'>
+        <a href='{% url "horizon:environment:deploy:bonding" cluster_id %}' class='btn btn-sm btn-default'>
+            <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>
+            {% trans 'Previous' %}
+        </a>
+        <a href='#' onclick="NetMappingNext()" class='btn btn-sm btn-success'>
+            {% trans 'Next' %}
+            <span class="glyphicon glyphicon-arrow-right" aria-hidden="true"></span>
+        </a>
+    </div>
+{% endblock %}

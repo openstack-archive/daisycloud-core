@@ -1,0 +1,129 @@
+﻿    <div style="padding-top:20px">
+        <h4 id="cluster" value="{{deploy.cluster_id}}">集群{{deploy.cluster_name}}信息:</h4>        
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <a class="btn btn-primary" href="/dashboard/environment/deploy/{{deploy.cluster_id}}/hosts" role="button">部署节点</a>
+            <a class="btn btn-primary" href="/dashboard/environment/network/{{deploy.cluster_id}}" role="button">第一次部署</a>
+            <a class="btn btn-primary" href="/dashboard/environment/deploy/{{deploy.cluster_id}}/selecthosts" role="button">发现主机</a>
+            <div class="pull-right">
+                <a class="btn btn-primary" href="/dashboard/environment/" role="button">返回集群列表</a>
+            </div>            
+        </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-heading"><strong>Overview</strong></div>
+        <div class="panel-body">
+            {% for datum in deploy.data %}
+            <div style="display:inline-block;padding-left:{% if forloop.first  %} 0px {% else %} 120px {% endif %};">
+                <div style="display:inline-block;">
+                    <img src="/dashboard/static/dashboard/img/{{datum.host_status}}.png" title="{{datum.host_status}}" />
+                    <div>{{ datum.host_status }}</div>
+                </div>
+                <div style="display:inline-block;">
+                    <div style="font-size:72px;">
+                        <label id="lbl_{{ datum.host_status }}_count">{{ datum.count }}</label>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-heading"><strong>Deploying</strong></div>
+        <div class="panel-body">
+            <table class="table table-hover tb-deploying">
+                <thead>
+                    <tr>
+                        <th>主机名</th>
+                        <th>安装操作系统状态</th>
+                        <th>安装操作系统进度</th>
+                        <th>安装TECS状态</th>
+                        <th>安装TECS进度</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for datum in deploy.data %}
+                    {% ifequal datum.host_status 'deploying' %}
+                        {% for host_status in datum.host_status_list %}
+                    <tr>
+                        <td>{{ host_status.name }}</td>
+                        <td>{{ host_status.os_status }}</td>
+                        <td>{{ host_status.os_progress }}%</td>
+                        <td>{{ host_status.role_status }}</td>
+                        <td>{{ host_status.role_progress }}%</td>
+                    </tr>
+                        {% endfor %}
+                    {% endifequal%}
+                {% endfor %}
+                </tbody>
+            </table>
+      </thead>
+      <tbody>
+        </div>
+    </div>  
+    <div class="panel panel-default">
+        <div class="panel-heading"><strong>Failed</strong></div>
+        <div class="panel-body">
+            <table class="table table-hover tb-failed">
+                <thead>
+                    <tr>
+                        <th>主机名</th>
+                        <th>安装操作系统状态</th>
+                        <th>安装操作系统进度</th>
+                        <th>安装TECS状态</th>
+                        <th>安装TECS进度</th>
+                        <th>安装TECS失败原因</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for datum in deploy.data %}
+                    {% ifequal datum.host_status 'failed' %}
+                        {% for host_status in datum.host_status_list %}
+                    <tr>
+                        <td>{{ host_status.name }}</td>
+                        <td>{{ host_status.os_status }}</td>
+                        <td>{{ host_status.os_progress }}%</td>
+                        <td>{{ host_status.role_status }}</td>
+                        <td>{{ host_status.role_progress }}%</td>
+                        <td>{{ host_status.messages }}</td>
+                    </tr>
+                        {% endfor %}
+                    {% endifequal%}
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-heading"><strong>Success</strong></div>
+        <div class="panel-body">
+            <table class="table table-hover tb-success">
+                <thead>
+                    <tr>
+                        <th>主机名</th>
+                        <th>安装操作系统状态</th>
+                        <th>安装操作系统进度</th>
+                        <th>安装TECS状态</th>
+                        <th>安装TECS进度</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for datum in deploy.data %}
+                    {% ifequal datum.host_status 'success' %}
+                        {% for host_status in datum.host_status_list %}
+                    <tr>
+                        <td>{{ host_status.name }}</td>
+                        <td>{{ host_status.os_status }}</td>
+                        <td>{{ host_status.os_progress }}%</td>
+                        <td>{{ host_status.role_status }}</td>
+                        <td>{{ host_status.role_progress }}%</td>
+                    </tr>
+                        {% endfor %}
+                    {% endifequal%}
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>    
+

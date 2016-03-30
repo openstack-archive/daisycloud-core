@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Cluster" %}{% endblock %}
+
+{% block css %}
+{% include "_stylesheets.html" %}
+<link rel="stylesheet" href="/dashboard/static/dashboard/scss/host_role.css" type="text/css" media="screen">
+{% endblock%}
+
+{% block js %}
+    {% include "horizon/_scripts.html" %}
+    <script type='text/javascript' charset='utf-8'>
+    $(function(){
+        add_html = '';
+        add_html +=  '<button type="button" id="btnAddHostToCluster" class="btn btn-default btn-sm btn-primary disabled" data-toggle="modal" data-target="#myModal">';
+        add_html +=  '{% trans "Add To Cluster" %}';
+        add_html +=  '</button>';
+        $("#hosts_list").find('thead').find('.table_search').after(add_html);
+    });
+    horizon.addInitFunction(function(){
+        function reload_window(){
+             window.location = "/dashboard/environment/hosts/";
+        }
+
+        function trimSpace(str){
+            return   str.replace(/(^\s*)|(\s*$)/g,'');
+        }
+
+        $(document).on("click", '[type="checkbox"]', function(){
+            host_id = $(this).attr("value");
+            $checkboxs = $("#hosts_list").find('tbody').find('[type="checkbox"]');
+            var hosts = new Array();
+            var status = new Array();
+            $checkboxs.each(function(){
+                if($(this).attr("checked")){
+                    hosts.push($(this).val());
+                    statu = $(this).parent().parent().find("td").eq(3).html();
+                    status.push(statu);
+                }
+            })
+            if(hosts.length != 0){
+                var flag = false;
+                for(var i=0;i<status.length;i++){
+                    if(trimSpace(status[i]) != "init"){
+                        flag = false;
+                    }
+                    else{
+                        flag = true;
+                    }
+                }
+                if(flag){
+                    $("#btnAddHostToCluster").removeClass("disabled");
+                }
+                else{
+                    $("#btnAddHostToCluster").addClass("disabled");
+                }
+            }
+            else{
+                $("#btnAddHostToCluster").addClass("disabled");
+            }
+
+        })
+
+        $(document).on("click", "#btnAddToCluster", function(){
+            cluster_name = $("#cluster_for_add").val();
+            cluster_id = $("#cluster_for_add option:checked").attr("cluster_id");
+            $checkboxs = $("#hosts_list").find('tbody').find('[type="checkbox"]');
+            var hosts = new Array();
+            $checkboxs.each(function(){
+                if($(this).attr("checked")){
+                    hosts.push($(this).val());
+                }
+            })
+            if(hosts.length == 0){
+                $('#myModal').modal('hide');
+                horizon.alert("Please choose at least one host.");
+                return;
+            }
+            var url = "/dashboard/environment/deploy/"+ cluster_id + "/allocatehost";
+
+            do_post(url, JSON.stringify({'hosts': hosts,
+                                         'cluster_id': cluster_id}), reload_window);
+        })
+    })
+    </script>
+{% endblock %}
+
+{% block page_header %}
+    <div>{% trans "Host List" %}</div>
+{% endblock %}
+
+{% block main %}
+{{ table.render }}
+{% endblock %}
+
+{% block footer %}
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" data-backdrop="static" aria-labelledby="myModalLabel">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">{% trans "Add To Cluster" %}</h4>
+                </div>
+                <div class="modal-body">
+                    <form class="form-horizontal">
+                        <div class="form-group input-sm center">
+                            <label class="control-label col-sm-3" style="float:left; font-size:12px; text-align:right; height:30px">{% trans 'Cluster' %}:</label>
+                            <div class="col-sm-6">
+                                <select class="form-control" id="cluster_for_add">
+                                    {% for cluster in clusters %}
+                                    <option cluster_id="{{cluster.id}}">{{ cluster.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background-color: #f1f1f1;">
+                    <div class="pull-right">
+                        <input type="button" class="btn btn-default btn-sm btn-primary" id="btnAddToCluster" value = '{% trans "Add To Cluster" %}' />
+                        <input type="button" class="btn btn-default cancel" onclick="operate_close()" value="{% trans "Cancel" %}" />
+                    </div>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+{% endblock %}

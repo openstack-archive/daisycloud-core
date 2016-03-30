@@ -1,0 +1,4 @@
+    <div style="line-height:26px;padding-right:5px;">
+      <input type='checkbox' {% if action.checked %} checked='checked' {% endif %}
+      {% if action.disabled %} disabled='disabled' {% endif %} />{{ action.verbose_name}}
+    </div>

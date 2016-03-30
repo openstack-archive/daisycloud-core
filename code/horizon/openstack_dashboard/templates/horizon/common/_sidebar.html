@@ -1,0 +1,46 @@
+{% load branding i18n %}
+{% load url from future %}
+
+<div class="header">
+  <div class="nav" id='head_nav'>
+    <div>
+      <div id='head_logo'>
+      </div>
+      <div id='head_mark'>
+        <label style="color:white; font-size:24px; ">Daisy</label>
+      </div>
+    </div>
+    <div class="pull-left dropdown {% if not is_version %}{% if not is_hosts %}{% if not is_templates %}active{% endif %}{% endif %}{% endif %}" id="head_clusters">
+      <a id="dLabel" data-target="#" href="#" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false" style="color:white;">{% trans "Clusters" %}
+        <span class="caret" style="color:white;"></span>
+      </a>
+      <ul class="dropdown-menu" aria-labelledby="dLabel">
+        {% for cluster in clusters %}
+          <li><a href="{% url 'horizon:environment:cluster:overview' cluster.id %}">{{ cluster.name }}</a></li>
+        {% endfor %}
+            <li role="separator" class="divider"></li>
+            <li>
+                <a href="{% url 'horizon:environment:overview:index' %}">
+                    {% trans 'Return Cluster List' %}
+                </a>
+            </li>
+      </ul>
+    </div>
+    <div class="pull-left {% if is_version %}active{% endif %}" id="head_version">
+      <a href="{% url 'horizon:environment:version:index' %}" role="button" style="color:white;">
+          {% trans 'Version' %}
+      </a>
+    </div>
+    <div class="pull-left {% if is_hosts %}active{% endif %}" id="head_hosts_list">
+      <a href="{% url 'horizon:environment:overview:hosts' %}" role="button" style="color:white;">
+          {% trans 'Hosts' %}
+      </a>
+    </div>
+    <div class="pull-left {% if is_templates %}active{% endif %}" id="head_template_list">
+      <a href="{% url 'horizon:environment:overview:templates' %}" role="button" style="color:white;">
+          {% trans 'Template' %}
+      </a>
+    </div>
+    {% include "_header.html" %}
+  </div>
+</div>

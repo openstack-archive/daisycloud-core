@@ -1,0 +1,838 @@
+﻿{% load i18n %}
+{% load context_selection %}
+
+<script src="{{ STATIC_URL }}dashboard/bootstrapValidator.js"></script>
+<script type='text/javascript' charset='utf-8'>
+
+function ShowParamByNetWorkType()
+{
+    $(".form_add_plane .Optional").hide();
+    var type = $("#sel_add_plane_type").val();
+    $(".form_add_plane .Optional").hide();
+    $(".form_add_plane ."+type).show();
+    $(".form_add_plane").data('bootstrapValidator').resetForm();
+}
+
+function ShowAddNetPlaneDialog()
+{
+    ShowParamByNetWorkType();
+    $(".form_add_plane").find("input").val("");
+    $(".form_add_plane").find("textarea").val("");
+    $('#modalAddNetPlane').modal({
+        backdrop: "static"
+    });
+}
+
+function CloseDialog()
+{
+    $(".form_add_plane").data('bootstrapValidator').resetForm();
+}
+
+function refresh_net_plane()
+{
+    var cluster_id = $("#input-network-cluster-id").val();
+    window.location.href = "/dashboard/environment/deploy/" + cluster_id + "/network";
+}
+
+function AddNetPlane()
+{
+    var cluster_id = $("#input-network-cluster-id").val();
+    $(".form_add_plane").data('bootstrapValidator').validate();
+    if (!$(".form_add_plane").data('bootstrapValidator').isValid())
+        return;
+    var ip_ranges = new Array();
+    $('div.add_plane_ip_range').each(function(){
+        var start = $(this).find("input[name='add_plane_ip_start']").val();
+        var end   = $(this).find("input[name='add_plane_ip_end']").val();
+        if (start != "" && end != ""){
+            var ip_range = {
+                "start":start,
+                "end":end};
+            ip_ranges.push(ip_range);
+        }
+    });
+    var cidr = $("#txt_add_plane_cidr").val();
+    var vlan_start = $("#txt_add_plane_vlan_start").val();
+    vlan_start = vlan_start == "" ? "0": vlan_start;
+    var vlan_end = $("#txt_add_plane_vlan_end").val();
+    vlan_end = vlan_end == "" ? "0": vlan_end;
+    var net_plane = {
+        "name": $("#txt_add_plane_name").val(),
+        "network_type":$("#sel_add_plane_type").val(),
+        "cidr":cidr,
+        "gateway":$("#txt_add_plane_gateway").val(),
+        "ip_ranges":ip_ranges,
+        "vlan_start":vlan_start,
+        "vlan_end":vlan_end,
+        "vlan_id":parseInt($("#txt_add_plane_vlan").val(), 10),
+        "capability":$("#sel_add_plane_capability").val(),
+        "description":$("#txt_add_plane_desc").val()
+    }
+    var url = "/dashboard/environment/deploy/" + cluster_id + "/add_net_plane"
+    do_net_plane_post(url, JSON.stringify(net_plane), refresh_net_plane);
+}
+
+
+function reload_network_window(){
+    var cluster_id = $("#input-network-cluster-id").val();
+    if ($("#input-is-wizard").val() == "0"){
+        window.location = '/dashboard/environment/cluster/'+ cluster_id + '/overview?tab=net-plane-tab';
+    }
+    else{
+        window.location = "/dashboard/environment/deploy/" + cluster_id + "/network_next";
+    }
+}
+
+function do_net_plane_post(location, data, callback){
+    $.ajax({
+        type: 'POST',
+        url:  location,
+        data: data,
+        dataType: 'json',
+        async: false,
+        success: function (data) {
+            if (callback!=null){
+                callback();
+            }
+        },
+        error: function(data) {
+        }
+    });
+}
+
+function modifyNetPlane(){
+    var net_planes = new Array();
+    $(".net_plane").each(function(){
+        var name = $.trim($(this).text());
+        var ip_ranges = new Array();
+        $('.'+name+'ip_ranges div.ip_range').each(function(){
+            var start = $(this).find("input[name='ip_start']").val();
+            var end   = $(this).find("input[name='ip_end']").val();
+            if (start != "" && end != ""){
+                var ip_range = {
+                                "start":start,
+                                "end":end
+                                };
+                ip_ranges.push(ip_range);
+            }
+        });
+        var net_plane = {
+            "cluster_id":$("#"+name+"cluster_id").val(),
+            "name":name,
+            "cidr":$("#"+name+"cidr").val(),
+            "gateway":$("#"+name+"gateway").val(),
+            "network_type":$("#"+name+"network_type").val(),
+            "ip_ranges":ip_ranges,
+            "vlan_start":parseInt($("#"+name+"vlanstart").val(), 10),
+            "vlan_end":parseInt($("#"+name+"vlanend").val(), 10),
+            "vlan_id":parseInt($("#"+name+"vlan_id").val(), 10),
+            "id":$("#"+name+"netid").val(),
+            "capability":$("#"+name+"capability").val(),
+            "description":$("#"+name+"description").val()
+        }
+        net_planes.push(net_plane);
+    })
+    var url = "/dashboard/environment/network/modify/";
+    do_net_plane_post(url, JSON.stringify({'nets': net_planes}), reload_network_window);
+}
+
+function checkCIDR(cidr){
+    if (cidr == ""){
+        return true;
+    }
+    var reg = new RegExp("^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[0-9])(\/([0-9]|[1-2][0-9]|3[0-2]))$");
+    if (!reg.test(cidr)){
+        return false;
+    }
+    return true;
+}
+
+function checkAddPlaneCIDR(cidr){
+     var type = $("#sel_add_plane_type").val();
+    if (type == "STORAGE")
+    {
+        var reg = new RegExp("^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[0-9])(\/([0-9]|[1-2][0-9]|3[0-2]))$");
+        if (!reg.test(cidr)){
+            return false;
+        }
+    }
+    return true;
+}
+
+function checkGateway(gateway){
+    if (gateway == "None" || gateway == ""){
+        return true;
+    }
+    var reg = new RegExp("^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[0-9])$");
+    if (!reg.test(gateway)){
+        return false;
+    }
+    return true;
+}
+
+function checkVlanId(vlan_id){
+    if (vlan_id == "None" || vlan_id == ""){
+        return true;
+    }
+    if (vlan_id != "None" && !isNaN(vlan_id)){
+        return true;
+    }
+    return false;
+}
+
+function checkIP(str){
+    if (str === "")
+        return true;
+    var reg = new RegExp("^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[0-9])$");
+    if (!reg.test(str))
+        return false;
+    return true;
+}
+
+function checkVLANRange(str)
+{
+    var type = $("#sel_add_plane_type").val();
+    if (type == "PRIVATE")
+    {
+        return str != "" && !isNaN(str);
+    }
+    return true;
+}
+
+function checkVLANID(str)
+{
+    var type = $("#sel_add_plane_type").val();
+    if (type == "STORAGE")
+    {
+        return str != "" && !isNaN(str);
+    }
+    return true;
+}
+
+$(function(){
+    $("#btnNetWorkReset").on('click', function(){
+        reload_network_window();
+    });
+    
+    //删除原有IP范围
+    $(".delete_ip_range").on('click', function(){
+        var fieldStartName = $(this).attr('data-name-start');
+        var fieldEndName   = $(this).attr('data-name-end');
+        $('.form-net-plane').bootstrapValidator('removeField', fieldStartName);
+        $('.form-net-plane').bootstrapValidator('removeField', fieldEndName);
+        $(this).parent().parent().parent().parent().remove();
+    });
+
+    //动态添加IP范围表单验证
+    $(".add_plane_ip_range_link").on('click', function() {
+        var $that     = $(this),
+            $template = $('#add_plane_ip_range_template'),
+            $newRow   = $template.clone().removeAttr('id').addClass('add_plane_ip_range').insertBefore($template).show();
+
+        // Set the label and field name
+        var fieldStartName = $that.attr('data-name-start');
+        var fieldEndName   = $that.attr('data-name-end');
+        $newRow
+            .find('input:first')
+                .attr('name', fieldStartName)
+                .end()
+            .find('input:last')
+                .attr('name', fieldEndName)
+                .end()
+            .on('click', '.delete_add_plane_ip_range', function() {
+                    // Remove field when clicking the Remove button
+                    $('.form_add_plane').bootstrapValidator('removeField', fieldStartName);
+                    $('.form_add_plane').bootstrapValidator('removeField', fieldEndName);
+                    // Remove element
+                    $(this).parent().parent().parent().parent().remove();
+                });
+
+        // Add new field
+        $('.form_add_plane').bootstrapValidator('addField', fieldStartName, {
+            validators: {
+                callback: {
+                    callback: checkIP,
+                    message: "{% trans 'IP starting address format is wrong,correct format is:xxx.xxx.xxx.xxx' %}"
+                }
+            }
+        });
+        $('.form_add_plane').bootstrapValidator('addField', fieldEndName, {
+            validators: {
+                callback: {
+                    callback: checkIP,
+                    message: "{% trans 'IP ending address format is wrong,correct format is:xxx.xxx.xxx.xxx' %}"
+                }
+            }
+        });
+    });
+
+    $(".add_ip_range").on('click', function() {
+        var $that     = $(this),
+            net_name  = $that.attr('net-name');
+            $template = $('#'+net_name+'template'),
+            $newRow   = $template.clone().removeAttr('id').addClass('ip_range').insertBefore($template).show();
+
+        // Set the label and field name
+        var fieldStartName = $that.attr('data-name-start');
+        var fieldEndName   = $that.attr('data-name-end');
+        $newRow
+            .find('input:first')
+                .attr('name', fieldStartName)
+                .end()
+            .find('input:last')
+                .attr('name', fieldEndName)
+                .end()
+            .on('click', '.delete_dynamic_ip_range', function() {
+                    // Remove field when clicking the Remove button
+                    $('.form-net-plane').bootstrapValidator('removeField', fieldStartName);
+                    $('.form-net-plane').bootstrapValidator('removeField', fieldEndName);
+                    // Remove element
+                    $(this).parent().parent().parent().parent().remove();
+                });
+
+        // Add new field
+        $('.form-net-plane').bootstrapValidator('addField', fieldStartName, {
+            validators: {
+                callback: {
+                    callback: checkIP,
+                    message: "{% trans 'IP starting address format is wrong,correct format is:xxx.xxx.xxx.xxx' %}"
+                }
+            }
+        });
+        $('.form-net-plane').bootstrapValidator('addField', fieldEndName, {
+            validators: {
+                callback: {
+                    callback: checkIP,
+                    message: "{% trans 'IP ending address format is wrong,correct format is:xxx.xxx.xxx.xxx' %}"
+                }
+            }
+        });
+    });
+
+    $(".form_add_plane").bootstrapValidator({
+        message: 'This value is not valid',
+        excluded: ':disabled',
+        feedbackIcons: {
+            valid: 'glyphicon glyphicon-ok',
+            invalid: 'glyphicon glyphicon-remove',
+            validating: 'glyphicon glyphicon-refresh'
+        },
+        fields: {
+            add_plane_name: {
+                validators: {
+                    notEmpty: {
+                        message: "{% trans 'Name can not be empty' %}"
+                    },
+                    stringLength: {
+                        min: 4,
+                        max: 15,
+                        message: 'The name must be more than 4 and less than 15 characters long'
+                    },
+                }
+            },
+            add_plane_cidr: {
+                validators: {
+                    callback: {
+                        callback: checkAddPlaneCIDR,
+                        message: "{% trans 'CIDR format is wrong,correct format is:xxx.xxx.xxx.xxx/xx' %}"
+                    }
+                }
+            },
+            add_plane_gateway: {
+                validators: {
+                    callback: {
+                        callback: checkGateway,
+                        message: "{% trans 'gateway format is wrong,correct format is:xxx.xxx.xxx.xxx' %}"
+                    }
+                }
+            },
+            add_plane_vlan: {
+                validators: {
+                    callback: {
+                        callback: checkVLANID,
+                        message: "{% trans 'VLAN can not be empty and must be digit' %}"
+                    }
+                }
+            },
+            add_plane_vlan_start: {
+                validators: {
+                    callback: {
+                        callback: checkVLANRange,
+                        message: "{% trans 'VLAN starting number can not be empty and must be digit' %}"
+                    }
+                }
+            },
+            add_plane_vlan_end: {
+                validators: {
+                    callback: {
+                        callback: checkVLANRange,
+                        message: "{% trans 'VLAN ending number can not be empty and must be digit' %}"
+                    }
+                }
+            },
+            add_plane_ip_start:{
+                message: "{% trans 'IP starting address format is wrong,correct format is:xxx.xxx.xxx.xxx' %}",
+                validators: {
+                    callback: {
+                        callback: checkIP,
+                        message: "{% trans 'IP starting address format is wrong,correct format is:xxx.xxx.xxx.xxx' %}"
+                    }
+                }
+            },
+            add_plane_ip_end:{
+                message: "{% trans 'IP ending address format is wrong,correct format is:xxx.xxx.xxx.xxx' %}",
+                validators: {
+                    callback: {
+                        callback: checkIP,
+                        message: "{% trans 'IP ending address format is wrong,correct format is:xxx.xxx.xxx.xxx' %}"
+                    }
+                }
+            },
+            add_plane_desc: {
+                validators: {
+                    notEmpty: {
+                        message: "{% trans 'Description can not be empty' %}"
+                    }
+                }
+            }
+        }
+    })
+
+    $('.form-net-plane').bootstrapValidator({
+        message: 'This value is not valid',
+        excluded: ':disabled',
+        feedbackIcons: {
+            valid: 'glyphicon glyphicon-ok',
+            invalid: 'glyphicon glyphicon-remove',
+            validating: 'glyphicon glyphicon-refresh'
+        },
+        fields: {
+            cidr: {
+                validators: {
+                    callback: {
+                        callback: checkCIDR,
+                        message: "{% trans 'CIDR format is wrong,correct format is:xxx.xxx.xxx.xxx/xx' %}"
+                    }
+                }
+            },
+            gateway: {
+                validators: {
+                    callback: {
+                        callback: checkGateway,
+                        message: "{% trans 'gateway format is wrong,correct format is:xxx.xxx.xxx.xxx' %}"
+                    }
+                }
+            },
+            vlan_id: {
+                validators: {
+                    callback: {
+                        callback: checkVlanId,
+                        message: "{% trans 'VLAN_ID number must be digit' %}"
+                    }
+                }
+            },
+            vlanstart: {
+                validators: {
+                    notEmpty: {
+                        message: "{% trans 'VLAN starting number can not be null' %}"
+                    },
+                    digits: {
+                        message: "{% trans 'VLAN starting number must be digit' %}"
+                    }
+                }
+            },
+            vlanend: {
+                validators: {
+                    notEmpty: {
+                        message: "{% trans 'VLAN ending number can not be null' %}"
+                    },
+                    digits: {
+                        message: "{% trans 'VLAN ending number must be digit' %}"
+                    }
+                }
+            },
+            ip_start:{
+                message: "{% trans 'IP starting address format is wrong,correct format is:xxx.xxx.xxx.xxx' %}",
+                validators: {
+                    callback: {
+                        callback: checkIP,
+                        message: "{% trans 'IP starting address format is wrong,correct format is:xxx.xxx.xxx.xxx' %}"
+                    }
+                }
+            },
+            ip_end:{
+                message: "{% trans 'IP ending address format is wrong,correct format is:xxx.xxx.xxx.xxx' %}",
+                validators: {
+                    callback: {
+                        callback: checkIP,
+                        message: "{% trans 'IP ending address format is wrong,correct format is:xxx.xxx.xxx.xxx' %}"
+                    }
+                }
+            }
+        }
+    }).on('error.form.bv', function(e) {
+        // Active the panel element containing the first invalid element
+        var $form         = $(e.target),
+            validator     = $form.data('bootstrapValidator'),
+            $invalidField = validator.getInvalidFields().eq(0),
+            $collapse     = $invalidField.parents('.collapse');
+
+        $collapse.collapse('show');
+        $('.btn-primary').removeAttr('disabled').removeClass('disabled');
+    }).on('success.form.bv', function(e){
+        // Prevent form submission
+        e.preventDefault();
+
+        // Get the form instance
+        var $form = $(e.target);
+
+        // Get the BootstrapValidator instance
+        var bv = $form.data('bootstrapValidator');
+        modifyNetPlane();
+        $('.btn-primary').removeAttr('disabled').removeClass('disabled');
+    });
+
+    {% for anet in network.networks %}
+        if("{{ anet.network_type }}" != "PRIVATE")
+        {
+            $("#{{ anet.name }}capability_block").hide();
+            $("#{{ anet.name }}capability").val("{{ anet.capability}}");
+        }
+        else
+        {
+            $("#{{ anet.name }}capability_block").hide();
+        }
+        
+        if(("{{ anet.network_type }}" == "STORAGE") || ("{{ anet.network_type }}" == "PUBLIC") ||
+           ("{{ anet.network_type }}" == "MANAGEMENT") || ("{{anet.name}}" == "DEPLOYMENT"))
+        {
+            $("#{{ anet.name }}vlanrange_block").hide();
+        }
+        
+        if(("{{anet.name}}" == "VXLAN"))
+        {
+            $("#{{ anet.name }}vlanrange_block").hide();
+            $("#{{ anet.name }}vlan_block").hide();
+        }
+
+        if("{{ anet.network_type }}" == "PRIVATE")
+        {
+            $("#{{ anet.name }}cidr_block").hide();
+            $("#{{ anet.name }}gateway_block").hide();
+            $("#{{ anet.name }}iprange_block").hide();
+            $("#{{ anet.name }}vlan_block").hide();
+        }        
+
+        if("{{ anet.network_type }}" == "EXTERNAL")
+        {
+            $("#{{ anet.name }}vlan_block").hide();
+        }
+
+        if("{{segment_type}}" == "flat")
+        {
+            $("#{{ anet.name }}vlanrange_block").hide();
+            $("#{{ anet.name }}vlan_block").hide();
+        }
+    {% endfor %}    
+
+
+})
+</script>
+<div class="pull-right">
+    <button type="button" class="btn btn-primary" onclick="ShowAddNetPlaneDialog()">
+        {% trans "Add Net Plane" %}
+    </button>
+</div>
+<form class="form-horizontal form-net-plane" style="margin-top:15px;">
+    <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+        {% for anet in network.networks %}
+        <div class="panel panel-default" style="border-left: 3px solid {{ forloop.counter0|get_color }}">
+            <div class="panel-heading" role="tab" id="heading{{ anet.name }}">
+                <h3 class="panel-title">
+                    <a role="button" class="net_plane" data-toggle="collapse" data-parent="#selector" href="#collapse{{ anet.name }}"
+                       {% if forloop.first %}
+                       aria-expanded="true"
+                       {% else %}
+                       aria-expanded="false"
+                       {% endif %} aria-controls="collapse{{ anet.name }}">
+                    {{ anet.name }}
+                    </a>
+                </h3>
+            </div>
+            <div id="collapse{{ anet.name }}" class="panel-collapse collapse {% if forloop.first %} in {% endif %}" role="tabpanel" aria-labelledby="heading{{ anet.name }}">
+                <div class="panel-body">
+                    <div class="form-group" id="{{ anet.name }}cidr_block">
+                        <label for="{{ anet.name }}cidr" class="col-sm-4 control-label">CIDR</label>
+                        <div class="col-sm-4">
+                            <input name="cidr" type="text" class="form-control" id="{{ anet.name }}cidr" placeholder="CIDR" value="{{ anet.cidr|default_if_none:''}}">
+                        </div>
+                    </div>
+                    <div class="form-group" id="{{ anet.name }}gateway_block">
+                        <label for="{{ anet.name }}gateway" class="col-sm-4 control-label">{% trans 'gateway' %}</label>
+                        <div class="col-sm-4">
+                            <input name="gateway" type="text" class="form-control" id="{{ anet.name }}gateway" placeholder="{% trans 'gateway' %}" value="{{ anet.gateway|default_if_none:''}}">
+                        </div>
+                    </div>
+                    <div>
+                        <input id="{{ anet.name }}cluster_id" type="hidden" value="{{ anet.cluster_id }}">
+                        <input id="{{ anet.name }}countipranges" type="hidden" value="1">
+                        <input id="{{ anet.name }}netid" type="hidden" value="{{ anet.id }}">
+                        <input id="{{ anet.name }}network_type" type="hidden" value="{{ anet.network_type }}">
+                    </div>
+                    <div class="{{ anet.name }}ip_ranges" id="{{ anet.name }}iprange_block">
+                        {% if anet.ip_ranges %}
+                        {% for iprange in anet.ip_ranges %}
+                        <div class="form-group ip_range">
+                            <label class="col-sm-4 control-label">{% if forloop.first %}{% trans 'IP range' %}{% endif %}</label>
+                            <div class="col-sm-8">
+                                <div class="row">
+                                    <div class="col-xs-3">
+                                        <input name="ip_start" type="text" class="form-control" placeholder="{% trans 'IP starting address' %}" value="{{ iprange.start }}"/>
+                                    </div>
+                                    <div class="col-xs-1" style="height:34px;line-height:34px;text-align:center;">
+                                        <span class="glyphicon glyphicon-minus"></span>
+                                    </div>
+                                    <div class="col-xs-3">
+                                        <input name="ip_end" type="text" class="form-control" placeholder="{% trans 'IP ending address' %}" value="{{ iprange.end }}"/>
+                                    </div>
+                                    <div class="col-xs-1" style="height:34px;line-height:34px;">
+                                        {% if forloop.first %}
+                                        <a href="#" class="add_ip_range" net-name="{{ anet.name }}" data-name-start="ip_start" data-name-end="ip_end">
+                                            <span class="glyphicon glyphicon-plus"></span>
+                                        </a>
+                                        {% else %}
+                                        <a href="#" data-name-start="ip_start" data-name-end="ip_end" class="delete_ip_range"><span class="glyphicon glyphicon-minus"></span></a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="form-group ip_range">
+                            <label class="col-sm-4 control-label">{% trans 'IP range' %}</label>
+                            <div class="col-sm-8">
+                                <div class="row">
+                                    <div class="col-xs-3">
+                                        <input name="ip_start" type="text" class="form-control" placeholder="{% trans 'IP starting address' %}" value=""/>
+                                    </div>
+                                    <div class="col-xs-1" style="height:34px;line-height:34px;text-align:center;">
+                                        <span class="glyphicon glyphicon-minus"></span>
+                                    </div>
+                                    <div class="col-xs-3">
+                                        <input name="ip_end" type="text" class="form-control" placeholder="{% trans 'IP ending address' %}" value=""/>
+                                    </div>
+                                    <div class="col-xs-1" style="height:34px;line-height:34px;">
+                                        <a href="#" class="add_ip_range" net-name="{{ anet.name }}" data-name-start="ip_start" data-name-end="ip_end">
+                                            <span class="glyphicon glyphicon-plus"></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif%}
+                        <!-- Template for dynamic field -->
+                        <div class="form-group" id="{{ anet.name }}template" style="display:none;">
+                            <label class="col-sm-4 control-label"></label>
+                            <div class="col-sm-8">
+                                <div class="row">
+                                    <div class="col-xs-3">
+                                        <input type="text" class="form-control" placeholder="{% trans 'IP starting address' %}" value=""/>
+                                    </div>
+                                    <div class="col-xs-1" style="height:34px;line-height:34px;text-align:center;">
+                                        <span class="glyphicon glyphicon-minus"></span>
+                                    </div>
+                                    <div class="col-xs-3">
+                                        <input type="text" class="form-control" placeholder="{% trans 'IP ending address' %}" value=""/>
+                                    </div>
+                                    <div class="col-xs-1" style="height:34px;line-height:34px;">
+                                        <a href="#" class="delete_dynamic_ip_range"><span class="glyphicon glyphicon-minus"></span></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+					
+                    <div class="form-group" id="{{ anet.name }}vlan_block">
+                        <label for="{{ anet.name }}vlan" class="col-sm-4 control-label">{% trans 'VLAN' %}</label>
+                        <div class="col-sm-4">
+                            <input name="vlan_id" type="text" class="form-control" id="{{ anet.name }}vlan_id" placeholder="{% trans 'VLAN' %}" value="{{ anet.vlan_id }}">
+                        </div>
+                    </div>
+					
+                    <div class="form-group" id="{{ anet.name }}vlanrange_block">
+                        <label for="{{ anet.name }}vlanstart" class="col-sm-4 control-label">{% trans 'VLAN range' %}</label>
+                        <div class="col-sm-8">
+                            <div class="row">
+                                <div class="col-xs-3">
+                                    <input name="vlanstart" type="text" class="form-control" id="{{ anet.name }}vlanstart" placeholder="{% trans 'VLAN starting number' %}" value="{{ anet.vlan_start }}"/>
+                                </div>
+                                <div class="col-xs-1" style="height:34px;line-height:34px;text-align:center;">
+                                    <span class="glyphicon glyphicon-minus"></span>
+                                </div>
+                                <div class="col-xs-3">
+                                    <input name="vlanend" type="text" class="form-control" id="{{ anet.name }}vlanend" placeholder="{% trans 'VLAN ending number' %}" value="{{ anet.vlan_end }}"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+					
+                    <div class="form-group" id="{{ anet.name }}capability_block">
+                        <label for="{{ anet.name }}capability" class="col-sm-4 control-label">{% trans 'capability' %}</label>
+                        <div class="col-sm-2">
+                            <select class="form-control" name="capability" id="{{ anet.name }}capability">
+                                <option value="None">{% trans 'Default' %}</option>
+                                <option value="high">{% trans 'high' %}</option>
+                                <option value="low">{% trans 'low' %}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="{{ anet.name }}description_block">
+                        <label for="{{ anet.name }}description" class="col-sm-4 control-label">{% trans 'description' %}</label>
+                        <div class="col-sm-4">
+                            <textarea class="form-control" id="{{ anet.name }}description" placeholder="{% trans 'description' %}" rows="3">{{ anet.description }}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div style="margin-top:25px;">
+            <div class="text-center">
+                <input id="input-is-wizard" type="hidden" value="{{network.is_wizard}}">
+                <input id="input-network-cluster-id" type="hidden" value="{{network.cluster_id}}">
+            </div>
+        </div>
+    </div>
+</form>
+
+    <div id="modalAddNetPlane" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="modalAddNetPlaneLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <a class="close" data-dismiss="modal" data-dismiss="modal" aria-label="Close" onclick="CloseDialog()">&times;</a>
+                    <h4 class="modal-title" id="modalAddNetPlaneLabel">{% trans "Add Net Plane" %}</h4>
+                </div>
+                <div class="modal-body">
+                    <form class="form-horizontal form_add_plane">
+                        <div class="form-group">
+                            <label for="txt_add_plane_name" class="col-sm-2 control-label">{% trans "Name" %}</label>
+                            <div class='col-sm-8'>
+                                <input name="add_plane_name" type="text" class="form-control" id="txt_add_plane_name" placeholder='{% trans "Name" %}'>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label">{% trans "Type" %}</label>
+                            <div class='col-sm-8'>
+                                <select class="form-control" id="sel_add_plane_type" onchange="ShowParamByNetWorkType()">
+                                    <!--<option value="PUBLIC">PUBLIC</option>
+                                    <option value="MANAGEMENT">MANAGEMENT</option>-->
+                                    <option value="STORAGE">STORAGE</option>
+                                    <option value="PRIVATE">PRIVATE</option>
+                                    <!--<option value="DEPLOYMENT">DEPLOYMENT</option>
+                                    <option value="EXTERNAL">EXTERNAL</option>-->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group Optional STORAGE">
+                            <label for="txt_add_plane_cidr" class="col-sm-2 control-label">{% trans "CIDR" %}</label>
+                            <div class='col-sm-8'>
+                                <input name="add_plane_cidr" type="text" class="form-control" id="txt_add_plane_cidr" placeholder='{% trans "CIDR" %}'>
+                            </div>
+                        </div>
+                        <div class="form-group Optional STORAGE">
+                            <label for="txt_add_plane_gateway" class="col-sm-2 control-label">{% trans "gateway" %}</label>
+                            <div class='col-sm-8'>
+                                <input name="add_plane_gateway" type="text" class="form-control" id="txt_add_plane_gateway" placeholder='{% trans "gateway" %}'>
+                            </div>
+                        </div>
+                        <div class="form-group Optional STORAGE">
+                            <label class="col-sm-2 control-label">{% trans 'IP range' %}</label>
+                            <div class="col-sm-10">
+                                <div class="row add_plane_ip_range">
+                                    <div class="col-xs-5">
+                                        <input name="add_plane_ip_start" type="text" class="form-control" placeholder="{% trans 'IP starting address' %}"/>
+                                    </div>
+                                    <div class="col-xs-1" style="height:34px;line-height:34px;text-align:center;">
+                                        <span class="glyphicon glyphicon-minus"></span>
+                                    </div>
+                                    <div class="col-xs-5">
+                                        <input name="add_plane_ip_end" type="text" class="form-control" placeholder="{% trans 'IP ending address' %}"/>
+                                    </div>
+                                    <div class="col-xs-1" style="height:34px;line-height:34px;">
+                                        <a href="#" class="add_plane_ip_range_link" data-name-start="add_plane_ip_start" data-name-end="add_plane_ip_end">
+                                            <span class="glyphicon glyphicon-plus"></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group" id="add_plane_ip_range_template" style="display:none;">
+                            <label class="col-sm-2 control-label"></label>
+                            <div class="col-sm-10">
+                                <div class="row">
+                                    <div class="col-xs-5">
+                                        <input type="text" class="form-control" placeholder="{% trans 'IP starting address' %}" value=""/>
+                                    </div>
+                                    <div class="col-xs-1" style="height:34px;line-height:34px;text-align:center;">
+                                        <span class="glyphicon glyphicon-minus"></span>
+                                    </div>
+                                    <div class="col-xs-5">
+                                        <input type="text" class="form-control" placeholder="{% trans 'IP ending address' %}" value=""/>
+                                    </div>
+                                    <div class="col-xs-1" style="height:34px;line-height:34px;">
+                                        <a href="#" class="delete_add_plane_ip_range"><span class="glyphicon glyphicon-minus"></span></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group Optional STORAGE">
+                            <label for="txt_add_plane_vlan" class="col-sm-2 control-label">{% trans 'VLAN' %}</label>
+                            <div class="col-sm-8">
+                                <input name="add_plane_vlan" type="text" class="form-control" id="txt_add_plane_vlan" placeholder="{% trans 'VLAN' %}">
+                            </div>
+                        </div>
+                        <div class="form-group Optional PRIVATE">
+                            <label class="col-sm-2 control-label">{% trans 'VLAN range' %}</label>
+                            <div class="col-sm-10">
+                                <div class="row">
+                                    <div class="col-xs-5">
+                                        <input name="add_plane_vlan_start" type="text" class="form-control" id="txt_add_plane_vlan_start" placeholder="{% trans 'VLAN starting number' %}">
+                                    </div>
+                                    <div class="col-xs-1" style="height:34px;line-height:34px;text-align:center;">
+                                        <span class="glyphicon glyphicon-minus"></span>
+                                    </div>
+                                    <div class="col-xs-5">
+                                        <input name="add_plane_vlan_end" type="text" class="form-control" id="txt_add_plane_vlan_end" placeholder="{% trans 'VLAN ending number' %}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group Optional">
+                            <label for="sel_add_plane_capability" class="col-sm-2 control-label">{% trans 'capability' %}</label>
+                            <div class="col-sm-8">
+                                <select class="form-control" name="capability" id="sel_add_plane_capability">
+                                    <option value="None">{% trans 'Default' %}</option>
+                                    <option value="high">{% trans 'high' %}</option>
+                                    <option value="low">{% trans 'low' %}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="txt_add_plane_desc" class="col-sm-2 control-label">{% trans "description" %}</label>
+                            <div class='col-sm-8'>
+                                <textarea name="add_plane_desc" class="form-control" rows="3" id="txt_add_plane_desc" placeholder="{% trans 'description' %}"></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="AddNetPlane()">{% trans "Save"%}</button>
+                    <button type="button" class="btn btn-default cancel" onclick="CloseDialog()">{% trans "Close" %}</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+

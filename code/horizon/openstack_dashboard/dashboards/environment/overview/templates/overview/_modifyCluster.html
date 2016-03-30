@@ -1,0 +1,22 @@
+{% extends "environment/overview/_modal_form.html" %}
+{% load i18n %}
+{% load url from future %}
+
+{% block form_id %}{% endblock %}
+{% block form_action %}{% url 'horizon:environment:overview:clustermodify' cluster_id %}{% endblock %}
+
+{% block modal_id %}modify_cluster_modal{% endblock %}
+{% block modal-header %}{% trans "Modify Cluster" %}{% endblock %}
+
+{% block modal-body %}
+  <div>
+    <fieldset>
+    {% include "environment/overview/_form_fields.html" %}
+    </fieldset>
+  </div>
+{% endblock %}
+
+{% block modal-footer %}
+  <input class="btn btn-primary" type="submit" value="{% trans 'Modify' %}" />
+  <a href=" " class="btn btn-default cancel">{% trans "Cancel" %}</a>
+{% endblock %}

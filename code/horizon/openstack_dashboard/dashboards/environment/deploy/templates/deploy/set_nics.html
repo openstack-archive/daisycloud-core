@@ -1,0 +1,376 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block css %}
+{% include "_stylesheets.html" %}
+<style>
+   #roles {
+       font-weight: 600;
+   }
+
+   .node_box {
+        border:1px solid #c0c0c0;
+        border-radius: 4px;
+        margin:10px 0 10px 0;
+        font-weight: 600;
+        box-shadow: inset 0 0 0 1px #c0c0c0        
+   }
+
+   .node_box:hover {
+        cursor:pointer;
+        background-color: #c0c0c0;
+   }   
+
+   .node_box_item {
+        display:block;
+        float: left;
+        height: 58px;
+        line-height: 58px;
+        padding: 0 10px 0 10px;
+   }
+
+   .node_box_checkbox {
+         width: 58px; 
+         border-right: 1px dotted #c0c0c0;
+         text-align:center;
+   }
+
+   .node_box_bond_name {
+         width: 50%;
+         font-size: 16px;
+   } 
+
+   .node_box_eth_name {
+         width: 20%;
+         font-size: 16px;
+   }      
+
+   .netplane {
+       display: inline-block;
+       width: 64px;
+       height: 48px;
+       line-height: 48px;
+       box-shadow: inset 0 0 0 1px #ffffff;
+       border: 1px solid #ddd;
+       background-color: #ddd;
+       margin: 3px;
+       text-align: center;
+   }  
+
+   .bond_slave {
+        height: 29px;
+        line-height: 29px;
+        text-align: center;
+        display: block;
+        font-size: 11px;
+   }
+
+   .nic_box {
+        width:50%;
+   }   
+
+</style>
+{% endblock%}
+
+{% block js %}
+    {% include "horizon/_scripts.html" %}
+    <script type='text/javascript' charset='utf-8'>
+         
+         function init_drag_drop(){
+             $(".netplane").draggable({
+                 revert:'invalid',
+                 helper:'clone'
+             }); 
+
+             $(".nic_box").droppable({
+                 accept:'.netplane',
+                 drop: function(event, ui) {
+                    ui.draggable.appendTo($(this));
+                 }
+             });
+         }
+
+         $(init_drag_drop);
+
+         function enable_bond_button(){
+                $checkboxs = $("#hostNicsConf").find('[type="checkbox"]');
+                var bond = new Array();
+                var eth = new Array();
+
+                $checkboxs.each(function(){
+                    if($(this).attr("checked")){
+                        var nic = new Object();
+                        nic.name = $(this).val();
+                        nic.type = $(this).attr('nic_type');
+
+                        if(nic.type == 'bond'){
+                            bond.push(nic);
+                        }
+                        else {
+                            eth.push(nic);
+                        }
+                    }
+                })
+
+                if(bond.length > 0 && eth.length == 0){
+                    $('#unbind_nics').removeAttr("disabled");
+                }
+                else {
+                    $('#unbind_nics').attr("disabled",'disabled');
+                }
+
+                if(eth.length == 2 && bond.length == 0){
+                    $('#bind_nics').removeAttr("disabled");
+                }
+                else {
+                    $('#bind_nics').attr("disabled",'disabled');
+                }
+                $("#hostNicsConf").data('bind_nics_choosed',bond);
+                $("#hostNicsConf").data('ether_nics_choosed',eth);
+         }
+
+         horizon.addInitFunction(function(){
+            $(document).on("click", ".node_box", function(event){
+                $checkbox = $(this).closest('.node_box').find('[type="checkbox"]');
+                if($checkbox.attr("checked"))
+                    $checkbox.attr("checked", false);
+                else
+                    $checkbox.attr("checked", true);
+
+                enable_bond_button();
+            })
+
+            $(".node_box").find('[type="checkbox"]').on("click", function(event){
+               $checkbox = $(this)
+               if($checkbox.attr("checked"))
+                   $checkbox.attr("checked", false);
+               else
+                   $checkbox.attr("checked", true);
+
+               enable_bond_button();
+            })
+
+             $(document).on("click", "#bind_nics", function(evt){
+                $("#BindModal").modal()
+            })
+
+            $(document).on("click","#bindNicConfirm",function(){
+                bindNic = new Object();
+                bindNic.name = $("#bind_name").val();
+                bindNic.mode = $('input[name="optionsRadios"]:checked').val();
+
+                $checkboxs = $("#hostNicsConf").find('[type="checkbox"]');
+                var slaves = new Array();
+                $checkboxs.each(function(){
+                    if($(this).attr("checked")){
+                        var name = $(this).val();
+                        slaves.push(name);
+                        $panel = $(this).closest(".panel-body");
+                        $panel.remove();
+                    }
+                 })
+
+                bindNic.slaves = slaves;
+
+                bond_html  = '<div class="panel-body">';
+                bond_html += '<div class="node_box">';
+                bond_html += '  <div class="row" style="border-bottom:1px dotted #ddd; margin:0;">';
+                bond_html += '      <div class="node_box_item node_box_checkbox">';
+                bond_html += '          <input type="checkbox" value="' + bindNic.name + '" nic_type="bond" slaves=' + JSON.stringify(slaves) + '>';
+                bond_html += '      </div>';
+                bond_html += '      <div class="node_box_item node_box_bond_name">';
+                bond_html += '          <span style="padding-left:5px;">BondName:' + bindNic.name + '</span>';
+                bond_html += '          <span style="padding-left:5px;">BondMode:' + bindNic.mode + '</span>';
+                bond_html += '      </div>';                
+                bond_html += '  </div>';
+                bond_html += '  <div class="row">';
+                bond_html += '    <div class="node_box_item node_box_eth_name">';
+                bond_html += '      <div class="bond_slave">';
+                bond_html += '          <span style="padding:0 10px 0 10px;">'+ slaves[0] + '</span>';
+                bond_html += '      </div>';                
+                bond_html += '      <div class="bond_slave">';
+                bond_html += '          <span style="padding:0 10px 0 10px;">'+ slaves[1] + '</span>';
+                bond_html += '      </div>';
+                bond_html += '    </div>';
+                bond_html += '       <div class="nic_box node_box_item">'
+                bond_html += '       </div>'                
+                bond_html += '  </div>';
+                bond_html += '</div>';
+                bond_html += '</div>';
+
+                $("#bond_nics").append(bond_html);
+                $("#BindModal").modal('hide');
+
+                enable_bond_button();
+                init_drag_drop();
+            })
+
+            $(document).on("click","#unbind_nics",function(){
+                $("#UnbindModal").modal();
+            })
+
+            $(document).on('click','#unbindNicConfirm',function(){
+                $checkboxs = $("#hostNicsConf").find('[type="checkbox"]');
+
+                $checkboxs.each(function(){
+                    if($(this).attr("checked")){
+                        var slaves = eval($(this).attr("slaves"));
+                        $panel = $(this).closest(".panel-body");
+                        $panel.remove();
+
+                        for(i=0; i<slaves.length; i++){
+                           var eth_html = '<div class="panel-body">';
+                               eth_html+= '    <div class="node_box row">';
+                               eth_html+= '       <div class="node_box_item node_box_checkbox">';
+                               eth_html+= '           <input type="checkbox" value="' + slaves[i] + '" nic_type="ether">';
+                               eth_html+= '       </div>';
+                               eth_html+= '       <div class="node_box_item node_box_eth_name">';
+                               eth_html+= '           <div>' + slaves[i] + '</div>';
+                               eth_html+= '       </div>';
+                               eth_html+= '       <div class="node_box_item nic_box">'
+                               eth_html+= '       </div>'                               
+                               eth_html+= '    </div>';
+                               eth_html+= '</div>';
+                           $("#ether_nics").append(eth_html);
+                        }
+                    }
+                })
+
+                $("#UnbindModal").modal('hide');
+
+                enable_bond_button();  
+                init_drag_drop();              
+            })
+
+            $(document).on('click','#HostNicsUpdate',function(){
+            })
+         })
+
+    </script>
+{% endblock %}
+
+{% block main %}
+    <div style="padding-top:20px">
+        <h4 id="cluster" value="{{cluster_id}}">为主机{{host_name}}配置网卡:</h4>
+    </div>
+    <div style="text-align:right;margin-bottom:4px">
+        <a class="btn btn-primary btn-sm" href="/dashboard/environment/deploy/{{ cluster_id }}/hosts" role="button" id="back_to_host">返回主机列表</a>
+        <button  class="btn btn-primary btn-sm" id="bind_nics" disabled="disabled">绑定网卡</button>
+        <button  class="btn btn-primary btn-sm" id="unbind_nics" disabled="disabled">取消绑定</button>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-heading"><strong>网络平面:</strong></div>
+        <div class="panel-body nic_box" style="min-height:90px;">
+          <div class="netplane">Base</div>
+          <div class="netplane">External</div>
+          <div class="netplane">Storage</div>
+          <div class="netplane">Control</div>
+          <div class="netplane">Test</div>
+        </div>
+    </div>    
+    <div class="panel panel-default" id="hostNicsConf">
+        <div class="panel-heading"><strong>网卡配置:</strong></div>
+        <div class="panel-body">
+            <div id="ether_nics">
+            {% for nic in ether_nics_show %}
+                <div class="panel-body">
+                <div class="node_box row">
+                    <div class="node_box_item node_box_checkbox">
+                        <input type="checkbox" value="{{nic.name}}" nic_type="{{nic.type}}">
+                    </div>
+                    <div class="node_box_item node_box_name">
+                        <div>{{nic.name}}</div>
+                    </div>
+                    <div class="nic_box node_box_item">
+                    </div>
+                </div>
+                </div>
+            {% endfor %}
+            </div>
+            <div id="bond_nics">
+            {% for nic in bond_nics %}
+            <div class="panel-body">
+                <div class="node_box">
+                    <div class="row" style="border-bottom:1px dotted #ddd; margin:0;">
+                        <div class="node_box_item node_box_checkbox">
+                            <input type="checkbox" value="{{nic.name}}" nic_type="bond" slaves="{{nic.slaves}}">
+                        </div>
+                        <div class="node_box_item node_box_name" style="">
+                          <span style="padding:0 10px 0 10px;">BondName:{{ nic.name }}</span>
+                          <span style="padding:0 10px 0 10px;">BondMode:{{ nic.bond_type }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="node_box_item node_box_eth_name">
+                          {% for eth in nic.slaves %}
+                          <div class="bond_slave">
+                              <span>{{eth}}</span>
+                          </div>
+                          {% endfor %}
+                        </div>
+                        <div class="nic_box node_box_item">
+                        </div>                        
+                    </div>
+                    
+                </div>
+             </div>
+            {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <div class="pull-right">
+                <a class="btn btn-primary btn-sm" href="/dashboard/environment/deploy/{{ cluster_id }}/hosts" role="button" id="HostNicsUpdate">应用</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="BindModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+      <div class="modal-dialog" role="document">
+      <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">绑定网卡</h4>
+      </div>
+      <div class="modal-body">
+           <div class="form-group form-horizontal">
+            <label  class="control-label">绑定名称:</label>
+            <input type="text" class="form-control" id="bind_name" placeholder="请输入绑定口的名称">
+          </div>
+          <div class="form-group">
+            <label  class="control-label">绑定模式:</label>
+            <div>
+                <input type="radio" name="optionsRadios" value="1" checked>Active Backup   <br/>
+                <input type="radio" name="optionsRadios" value="2">LACP Blance tcp         <br/>
+                <input type="radio" name="optionsRadios" value="3">Blance SLB
+            </div>
+          </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" id = "bindNicConfirm" class="btn btn-primary">Save changes</button>
+      </div>
+       </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="UnbindModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+      <div class="modal-dialog" role="document">
+      <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="myModalLabel">解除绑定网卡</h4>
+      </div>
+      <div class="modal-body">
+          你确定要解除网卡的绑定吗？
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" id = "unbindNicConfirm" class="btn btn-primary">Save changes</button>
+      </div>
+       </div>
+      </div>
+    </div>
+{% endblock %}

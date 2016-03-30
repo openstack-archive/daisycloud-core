@@ -1,0 +1,15 @@
+{% load horizon %}
+
+{% for heading, panels in components.iteritems %}
+  {% with panels|has_permissions_on_list:user as filtered_panels %}
+    {% if filtered_panels %}
+        <ul class="{% if request.horizon.panel in filtered_panels %}nav nav-tabs{% else %}dropdown-menu{% endif %}">
+        {% for panel in filtered_panels %}
+          <li {% if current == panel.slug %}class="active"{% endif %}>
+            <a href="{{ panel.get_absolute_url }}" tabindex='1'>{{ panel.name }}</a>
+          </li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+  {% endwith %}
+{% endfor %}

@@ -1,0 +1,73 @@
+.dv_drop_base{
+    float:left;
+    margin-top:3px;
+    margin-left:5px;
+    padding-top:3px;
+    height: 25px;
+    width: 155px;
+    border-radius: 5px;
+    background-color:rgb(119, 119, 119);
+}
+
+.dv_drop_base_small{
+    width: 120px;
+}
+
+.dv_drop_CONTROLLER_HA {
+    background:rgb(92, 184, 92);
+}
+
+.dv_drop_DOCTOR {
+    background:rgb(51, 122, 183);
+}
+
+.dv_drop_COMPUTER {
+    background:rgb(91, 192, 222);
+}
+
+.dv_drop_CONTROLLER_LB {
+    background:rgb(240, 173, 78);
+}
+
+.dv_drop_ZENIC_NFM{
+    background:rgb(198, 140, 164);
+}
+
+.dv_drop_ZENIC_CTL{
+    background:rgb(181, 162, 104);
+}
+
+.icon_drag_move{
+    margin-left:5px;
+}
+
+.button_remove{
+    margin-right:5px;
+    float:right;
+}
+
+.role_text{
+    margin-left:3px;
+    font-size:12px;
+    color:#FFFFFF;
+    opacity:0.8;
+}
+
+.dv_drop_role_container{
+    height:30px;
+    width:100%;
+}
+
+.dv_drop_role_hover{
+    border:1px dashed;
+    border-radius: 5px;
+    background-color:rgb(235, 246, 252);
+}
+
+.progress-bar-uninstall {
+    background-color: #AAB85C;
+}
+
+.progress-bar-update {
+   background-color: #8AAAAA;
+}

@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Cluster" %}{% endblock %}
+
+{% block js %}
+{% include "horizon/_scripts.html" %}
+<script src="{{ STATIC_URL }}dashboard/bootstrapValidator.js"></script>
+<script type='text/javascript' charset='utf-8'>
+    var CLUSTER_OPERATE_CREATE = 0;
+    var CLUSTER_OPERATE_MODIFY = 1;
+    
+    function reload_cluster_window(){
+        window.location = "/dashboard/environment/";
+    }
+    
+    function do_post(location, data, callback){
+        $.ajax({
+            type: 'POST',
+            url:  location,
+            data: data,
+            dataType: 'json',
+            async: false,
+            success: function (data) {
+                if (callback!=null){
+                    callback(data);
+                }
+            },
+            error: function(data) {
+            }
+        });
+    }
+    
+    function ShowGenerateClusterTemplateDiag(cluster_name)
+    {
+        $("#cluster_template_name").val("");
+        $("#cluster_template_desc").val("");
+        $(".form-generate-cluster-template").data("cluster_name", cluster_name);
+        $("#export_cluster_modal").modal('toggle');
+    }
+
+    function GenerateClusterTemplate()
+    {
+        $(".form-generate-cluster-template").data('bootstrapValidator').validate()
+        if (!$(".form-generate-cluster-template").data('bootstrapValidator').isValid())
+            return;
+        var cluster_name = $(".form-generate-cluster-template").data("cluster_name");
+        var template_name = $("#cluster_template_name").val();
+        var description = $("#cluster_template_desc").val();
+        CloseGenerateClusterTemplateDialog();
+        var url = "{% url 'horizon:environment:overview:generate_cluster_template' %}?cluster_name="+cluster_name+"&template_name="+template_name+"&description="+description;
+        window.location.href = url;
+        $("export_cluster_modal").modal('hide');
+    }
+
+    function CloseGenerateClusterTemplateDialog()
+    {
+        $(".form-generate-cluster-template").data('bootstrapValidator').resetForm();
+    }
+    
+    function operate_close(){
+        $(".form-cluster-validator").data('bootstrapValidator').resetForm()
+    }
+    
+    function delete_cluster(cluster_id){
+        title = '{% trans "Confirm to delete" %}'
+        body = '{% trans "Are you sure to delete this cluster?" %}'
+        action = '{% trans "Delete" %}'
+        modal = horizon.modals.create(title, body, action)
+        modal.modal()
+        modal.find('.btn-primary').click(function (evt) {
+            var cluster_info = {
+                "cluster_id": cluster_id
+            }
+            var url = "/dashboard/environment/overview/delete/"
+            do_post(url, JSON.stringify({'cluster_info': cluster_info}), reload_cluster_window)
+            modal.modal('hide')
+        });
+    }
+    
+    function upgrade_cluster(cluster_id) {
+        title = '{% trans "Confirm to upgrade" %}'
+        body = '{% trans "Are you sure to upgrade this cluster?" %}'
+        action = '{% trans "Upgrade" %}'
+        modal = horizon.modals.create(title, body, action)
+        modal.modal()
+        modal.find('.btn-primary').click(function (evt) {
+            var cluster_info = {
+                "cluster_id": cluster_id
+            }
+
+            function upgrade_callback(){
+                window.location = '/dashboard/environment/cluster/' + cluster_id + '/overview';
+            }
+
+            var url = "/dashboard/environment/cluster/" + cluster_id +  "/upgrade";
+            do_post(url, JSON.stringify({'cluster_info': cluster_info}), upgrade_callback)
+            modal.modal('hide')
+        });
+    }
+    
+    function uninstall_tecs(cluster_id){
+        title = '{% trans "Confirm to uninstall tecs" %}';
+        body = '{% trans "Are you sure to uninstall this cluster ?" %}';
+        action = '{% trans "Uninstall" %}';
+        modal = horizon.modals.create(title, body, action);
+        modal.modal();
+        modal.find('.btn-primary').click(function(evt){
+            var cluster_info = {
+                "cluster_id": cluster_id
+            }
+
+            function uninstall_tecs_callback(){
+                window.location = '/dashboard/environment/cluster/' + cluster_id + '/overview';
+            }
+
+            var url = '/dashboard/environment/cluster/' + cluster_id + '/uninstall';
+            do_post(url, JSON.stringify({'cluster_info': cluster_info}), uninstall_tecs_callback );
+            modal.modal('hide');
+        });
+    }
+
+    $(function(){
+        $(".form-generate-cluster-template").bootstrapValidator({
+            message: 'This value is not valid',
+            feedbackIcons: {
+                valid: 'glyphicon glyphicon-ok',
+                invalid: 'glyphicon glyphicon-remove',
+                validating: 'glyphicon glyphicon-refresh'
+            },
+            fields: {
+                cluster_template_name: {
+                    validators: {
+                        notEmpty: {
+                            message: '{% trans "Can not be empty, please input" %}'
+                        },
+                        regexp: {
+                            regexp: '^[a-zA-Z][a-zA-Z0-9_]{3,15}$',
+                            message: '{% trans "Name must begin with letters, and consist of numbers,letters or underscores. The length of name is 4 to 16" %}'
+                        }
+                    }
+                }
+            }
+        });
+    })
+</script>
+{% endblock %}
+
+{% block page_header %}
+    <div>{% trans 'My Cluster List' %}</div>
+{% endblock %}
+
+{% block main %}
+<div>
+{% for cluster in clusters %}
+    <div class="cluster_box" {% if cluster.auto_scale == 1 %} style="background-color:#C8E3FF;" {% endif %}>
+        <div>
+            <div STYLE="font-size:18px; margin:0 0 0 8px; width:45%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                {{ cluster.name }}
+            </div>
+            <div STYLE="float:right; margin:-21px 4px 0 0;">
+                <a href="#" onclick="delete_cluster('{{ cluster.id }}')" title="{% trans 'Delete Cluster' %}">
+                    <span class="glyphicon glyphicon-trash" style="max-width:24px; font-size:120%;"></span>
+                </a>
+            </div>
+            <div STYLE="float:right; margin:-21px 24px 0 0;">
+                <a href="{% url 'horizon:environment:cluster:modify' cluster.id %}" title="{% trans 'Modify Cluster' %}">
+                    <span class="glyphicon glyphicon-edit" style="max-width:24px; font-size:120%;"></span>
+                </a>
+            </div>
+            <div STYLE="float:right; margin:-21px 44px 0 0;">
+                <a href="#" onclick="uninstall_tecs('{{ cluster.id }}')" title="{% trans 'Uninstall Tecs' %}">
+                    <span class="glyphicon glyphicon-circle-arrow-down" style="max-width:24px; font-size:120%;"></span>
+                </a>
+            </div>
+            <div STYLE="float:right; margin:-21px 64px 0 0;">
+                <a href="#" onclick="upgrade_cluster('{{ cluster.id }}')" title="{% trans 'Upgrade Cluster' %}">
+                    <span class="glyphicon glyphicon-circle-arrow-up" style="max-width:24px; font-size:120%;"></span>
+                </a>
+            </div>
+            <div STYLE="float:right; margin:-21px 84px 0 0;">
+                <a href="#" onclick="ShowGenerateClusterTemplateDiag('{{ cluster.name }}')" title="{% trans 'Generate Cluster Template' %}">
+                    <span class="glyphicon glyphicon-new-window" style="max-width:24px; font-size:120%;"></span>
+                </a>
+            </div>
+        </div>
+        <a class="cluster_link" href="{% url 'horizon:environment:cluster:overview' cluster.id %}">
+            <div STYLE="border-top:2px dotted #ddd; height:125px; padding:10px">
+                <div>
+                    <div STYLE="float:left;width:60%;height:25px">{% trans "Nodes:" %}</div>
+                    <div STYLE="float:left;width:40%;">{{ cluster.host_count }}</div>
+                </div>
+                <div>
+                    <div STYLE="float:left;width:60%;height:25px">{% trans "Target system:" %}</div>
+                    <div STYLE="float:left;width:40%;">{{cluster.target_system}}</div>
+                </div>
+                <div>
+                    <div STYLE="float:left;width:60%;height:25px">{% trans "Auto scale:" %}</div>
+                    {% if cluster.auto_scale == 1 %}
+                        <div STYLE="float:left;width:40%;">{% trans "Support" %}</div>
+                    {% else %}
+                        <div STYLE="float:left;width:40%;">{% trans "Unsupport" %}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+    </div>
+{% endfor %}
+
+    <a href="{% url 'horizon:environment:cluster:create' %}">
+        <div class="cluster_box" align="center">
+            <img src="/dashboard/static/dashboard/img/cluster_create.png" style="max-width:165px; margin:30px 0 0 0;"/>
+        </div>
+    </a>
+</div>
+
+<div class="modal fade" id="export_cluster_modal" tabindex="-1" role="dialog" data-backdrop="static">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="CloseGenerateClusterTemplateDialog()" >
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">{% trans 'Generate Cluster Template' %}</h4>
+            </div>
+            <div class="modal-body">
+                <form class="form-horizontal form-generate-cluster-template" method="post">
+                    <fieldset>
+                        <div style="clear:both" class="form-group">
+                            <label style="float:left; width:30%; font-size:12px; text-align:right; height:30px" for="cluster_template_name" class="col-sm-2 control-label">{% trans 'Template Name' %}</label>
+                            <div style="float:left; width:2%; ">*</div>
+                            <div style="float:left; width:68%; " class="col-sm-4">
+                                <input type="text" id="cluster_template_name" name="cluster_template_name" class="form-control" placeholder="{% trans 'Template Name' %}">
+                            </div>
+                        </div>
+                        <div style="clear:both" class="form-group">
+                            <label style="float:left; width:30%; font-size:12px; text-align:right; height:30px" for="cluster_template_desc" class="col-sm-2 control-label">{% trans 'Description' %}</label>
+                            <div style="float:left; width:2%;">&nbsp;</div>
+                            <div style="float:left; width:68%;" class="col-sm-4">
+                                <textarea class="form-control" rows="3" id="cluster_template_desc" name="cluster_template_desc" placeholder="{% trans 'Description' %}"></textarea>
+                            </div>
+                        </div>
+                    </fieldset>
+                </form>
+            </div>
+            <div class="modal-footer" style="background-color: #F1F1F1">
+                <div class="pull-right">
+                    <input type="button" class="btn btn-primary" onclick="GenerateClusterTemplate()" value="{% trans 'Generate Cluster Template' %}" id="btn_export_cluster" />
+                    <input type="button" class="btn btn-default cancel" onclick="CloseGenerateClusterTemplateDialog()" value='{% trans "Cancel" %}' />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

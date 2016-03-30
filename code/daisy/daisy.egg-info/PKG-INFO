@@ -1,0 +1,30 @@
+Metadata-Version: 1.1
+Name: daisy
+Version: 2015.1.0
+Summary: OpenStack Image Service
+Home-page: http://www.openstack.org/
+Author: OpenStack
+Author-email: openstack-dev@lists.openstack.org
+License: UNKNOWN
+Description: ======
+        Dasiy
+        ======
+        
+        Daisy is a project that defines services for discovering, registering,
+        retrieving and storing virtual machine images.
+        
+        Use the following resources to learn more:
+        
+        * `Official Daisy documentation <http://docs.openstack.org/developer/daisy/>`_
+        * `Official Client documentation <http://docs.openstack.org/developer/python-daisyclient/>`_
+        
+        
+Platform: UNKNOWN
+Classifier: Environment :: OpenStack
+Classifier: Intended Audience :: Information Technology
+Classifier: Intended Audience :: System Administrators
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.7

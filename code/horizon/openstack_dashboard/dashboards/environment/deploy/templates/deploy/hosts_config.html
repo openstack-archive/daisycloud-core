@@ -1,0 +1,519 @@
+﻿{% extends 'base.html' %}
+{% load i18n %}
+
+{% block create_cluster_wizard %}
+    {% include 'horizon/_wizard_steps.html' %}
+{% endblock %}
+
+{% block css %}
+{% include "_stylesheets.html" %}
+<link rel="stylesheet" href="/dashboard/static/dashboard/scss/host_role.css" type="text/css" media="screen">
+<style>
+    .td_disabled{
+        background-color:#AEAEAE;
+        color:#F1F1F1;
+    }
+    .td_disabled:hover{
+        cursor:not-allowed;
+    }
+</style>
+{% endblock%}
+
+{% block page_header %}
+    <div>
+        <span style="font-weight:bold;">{{current_cluster}}</span>
+        <span> > </span>         
+        {% trans 'Host Config' %}
+    </div>
+{% endblock %}
+
+{% block operate_region %}
+<div class="row" style="margin-top:20px;">
+    <div class="col-md-8 col-md-offset-4">
+        <form class="form-horizontal form-host-config">
+            <div class="form-group">
+                <label class="col-sm-2 control-label">{% trans "OS Version File" %}</label>
+                <div class="col-sm-4">
+                    {% if version_files %}
+                    <select name="os_version_file" class="form-control input_os_version_file">
+                        {% for version_file in version_files %}
+                        <option value="{{version_file}}">{{version_file}}</option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                    <input name="os_version_file" type="text" class="form-control input_os_version_file" placeholder='{% trans "OS Version File" %}'>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="input_root_disk" class="col-sm-2 control-label">{% trans "ROOT Disk" %}</label>
+                <div class="col-sm-4">
+                    <input name="root_disk" id="input_root_disk" type="text" class="form-control" placeholder='{% trans "ROOT Disk" %}'>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="input_root_lv_size" class="col-sm-2 control-label">{% trans "ROOT LV Size(GB)" %}</label>
+                <div class="col-sm-4">
+                    <input name="root_lv_disk" id="input_root_lv_size" type="text" class="form-control" placeholder='{% trans "ROOT LV Size(GB)" %}'>
+                </div>
+                <div class="col-sm-4">
+                    <span class="help-inline">{% trans "Cannot be less than 50G, and cannot be greater than the remaining disk size" %}</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="input_ipmi_user" class="col-sm-2 control-label">{% trans "IPMI User" %}</label>
+                <div class="col-sm-4">
+                    <input name="ipmi_user" id="input_ipmi_user" type="text" class="form-control" placeholder='{% trans "IPMI User" %}'>
+                </div>
+            </div>                        
+            <div class="form-group">
+                <label for="input_ipmi_passwd" class="col-sm-2 control-label">{% trans "IPMI Password" %}</label>
+                <div class="col-sm-4">
+                    <input name="ipmi_passwd" id="input_ipmi_passwd" type="password" class="form-control" placeholder='{% trans "IPMI Password" %}'>
+                </div>
+            </div>
+            <div class="form-group COMPUTER">
+                <label for="select_huge_page_size" class="col-sm-2 control-label">{% trans "Huge Page Size" %}</label>
+                <div class="col-sm-4">
+                    <select id="select_huge_page_size" class="form-control">
+                        <option value="1G">1G</option>
+                        <!--option value="2M">2M</option-->
+                    </select>
+                </div>
+            </div>
+            <div class="form-group COMPUTER">
+                <label for="input_huge_page_count" class="col-sm-2 control-label">{% trans "Huge Page Count" %}</label>
+                <div class="col-sm-4">
+                    <input name="huge_page_count" id="input_huge_page_count" type="text" class="form-control" placeholder='{% trans "Huge Page Count" %}'>
+                </div>
+            </div>
+            <div class="form-group COMPUTER">
+                <label for="input_isolation_cpu" class="col-sm-2 control-label">{% trans "Isolation CPU" %}</label>
+                <div class="col-sm-4">
+                    <input name="isolation_cpu" id="input_isolation_cpu" type="text" class="form-control" placeholder='{% trans "Isolation CPU" %}'>
+                </div>
+                <div class="col-sm-4">
+                    <span class="help-inline">{% trans "Format 1-3,5-9 or 1,2,3,4" %}</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="col-sm-offset-2 col-sm-10">
+                    <button type="button" class="btn btn-primary btn-host-config" disabled="disabled" onclick="SetHostConfig()">
+                        {% trans "Save changes" %}
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block main %}
+    <input type="hidden" value="{{cluster_id}}" id="cluster_id">
+    {{table.render}}
+{% endblock %}
+
+{% block js %}
+    {% include "horizon/_scripts.html" %}
+    <script src="{{ STATIC_URL }}dashboard/bootstrapValidator.js"></script>
+    <script type='text/javascript' charset='utf-8'>
+    function trim(str) {
+        return str.replace(/(^\s*)|(\s*$)/g, "");
+    }
+
+    function OnReloadWindow()
+    {
+        var host_id = "";
+        $(".table-row-multi-select:checked").each(function(){
+            host_id += $(this).val() + "_";
+        })
+        if ($(".select_all").attr("checked"))
+        {
+            host_id += "-1" + "_";
+        }
+        host_id = host_id.substr(0, host_id.length - 1);
+        var url = "/dashboard/environment/deploy/" + $("#cluster_id").val() + "/hosts_config?host_id=" + host_id;
+        window.location.href = url;
+    }
+
+    function BindHostConfig2CheckBox()
+    {
+        var $checkbox = $(".table-row-multi-select");
+        $checkbox.each(function(){
+            var cur_tr = $(this).parent().parent();//定位当前行
+            var cur_tds = cur_tr.find("td");//定位当前行所有列
+            var os_status = $.trim(cur_tds.eq(3).text());
+            if (os_status == "active")
+            {
+                cur_tr.removeAttr("class");
+                $(this).removeClass("table-row-multi-select").attr("disabled", true);
+                for(var i = 0;i < cur_tds.length;i++)
+                {
+                    cur_tds.eq(i).css("background-color", "#AEAEAE");
+                    cur_tds.eq(i).addClass("td_disabled");
+                }
+            }
+            else
+            {
+                var i = 4;
+                var role_list = []
+                var role_td = cur_tds.eq(2);
+                var dv_drop_role_container = role_td.find("div.dv_drop_role_container");
+                var dv_drop_roles = dv_drop_role_container.find("div.dv_drop_base");
+                for (var index = 0;index < dv_drop_roles.length;index++)
+                {
+                    var role_name = $.trim(dv_drop_roles.eq(index).find("span.role_text").text());
+                    role_list.push(role_name);
+                }
+                var os_version_file = $.trim(cur_tds.eq(i++).text());
+                os_version_file = os_version_file == "-" ? "" : os_version_file;
+                var root_disk = $.trim(cur_tds.eq(i++).text());
+                root_disk = root_disk == "-"?"":root_disk;
+                var root_lv_size = $.trim(cur_tds.eq(i++).text());
+                root_lv_size = root_lv_size == "-" ? "" : root_lv_size;
+                var ipmi_user = $.trim(cur_tds.eq(i++).text());
+                var cpu_number = $.trim(cur_tds.eq(i++).text());
+                var isol_cpus = $.trim(cur_tds.eq(i++).text());
+                isol_cpus = isol_cpus == "-"?"":isol_cpus;
+                var memory_size = $.trim(cur_tds.eq(i++).text());
+                var huge_pages = $.trim(cur_tds.eq(i++).text());
+                huge_pages = huge_pages == "-"?"":huge_pages;
+                var huge_page_size = $.trim(cur_tds.eq(i++).text());
+                huge_page_size = huge_page_size == "-"?"1G":huge_page_size;
+                var ipmi_passwd = ""; //$.trim(cur_tds.eq(i++).text());
+
+                var host_config = {
+                    "role_list":role_list,
+                    "os_version_file":os_version_file,
+                    "root_disk":root_disk,
+                    "root_lv_size":root_lv_size,
+                    "cpu_number":cpu_number,
+                    "isol_cpus": isol_cpus,
+                    "memory_size": memory_size,
+                    "huge_pages": huge_pages,
+                    "huge_page_size":huge_page_size,
+                    "ipmi_user":ipmi_user,
+                    "ipmi_passwd":ipmi_passwd
+                }
+                $(this).data("host_config", host_config);
+            }
+        })
+    }
+
+    function SetHostConfig()
+    {
+        $(".form-host-config").data('bootstrapValidator').validate();
+        if (!$(".form-host-config").data('bootstrapValidator').isValid())
+            return;
+        var hosts = [];
+        var $checkbox = $(".table-row-multi-select:checked");
+        $checkbox.each(function(){
+            var host_config = $(this).data("host_config");
+            var host = {
+                "host_id": $(this).val(),
+                "roles": host_config["role_list"]
+            }
+            hosts.push(host);
+        })
+        var param = {
+            "os_version_file": "/var/lib/daisy/tecs/" + trim($(".input_os_version_file").val()),
+            "root_disk": $("#input_root_disk").val(),
+            "root_lv_size": parseInt($("#input_root_lv_size").val(), 10) * 1024,
+            "ipmi_user": $("#input_ipmi_user").val(),
+            "ipmi_passwd": $("#input_ipmi_passwd").val()
+        };
+        if (!($(".COMPUTER").is(":hidden")))
+        {
+            param["isol_cpus"] = $("#input_isolation_cpu").val();
+            param["huge_page_size"] = $("#select_huge_page_size").val();
+            param["huge_pages"] = $("#input_huge_page_count").val();
+        }
+        var url = "/dashboard/environment/deploy/" + $("#cluster_id").val() + '/set_host_config';
+        var ret = do_post(url, JSON.stringify({'hosts': hosts, 'param': param}), OnReloadWindow);
+    }
+
+    function CleanHostConfig()
+    {
+        $(".input_os_version_file").val("");
+        $("#input_root_disk").val("");
+        $("#input_root_lv_size").val("");
+        $("#select_huge_page_size").val("1G");
+        $("#input_huge_page_count").val("");
+        $("#input_isolation_cpu").val("");
+        $("#input_ipmi_user").val("");
+        $("#input_ipmi_passwd").val("");
+    }
+
+    function IsAllComputerNode()
+    {
+        var $checkbox = $(".table-row-multi-select:checked");
+        var is_all_computer_node = true;
+        $checkbox.each(function(){
+            var host_config = $(this).data("host_config");
+            var role_list = host_config["role_list"];
+            var i = 0;
+            for(;i < role_list.length;i++)
+            {
+                if(role_list[i] == "COMPUTER")
+                {
+                    break;
+                }
+            }
+            if(i >= role_list.length)
+            {
+                is_all_computer_node = false;
+                return false;
+            }
+        })
+        return is_all_computer_node;
+    }
+
+    function ShowHostConfig(cbk)
+    {
+        var host_config = cbk.data("host_config");
+        $(".input_os_version_file").val(host_config["os_version_file"]);
+        $("#input_root_disk").val(host_config["root_disk"]);
+        $("#input_root_lv_size").val(host_config["root_lv_size"]);
+        $("#select_huge_page_size").val(host_config["huge_page_size"]);
+        $("#input_huge_page_count").val(host_config["huge_pages"]);
+        $("#input_isolation_cpu").val(host_config["isol_cpus"]);
+        $("#input_ipmi_user").val(host_config["ipmi_user"]);
+        $("#input_ipmi_passwd").val(host_config["ipmi_passwd"]);
+        if(IsAllComputerNode())
+        {
+            $(".COMPUTER").show();
+        }
+        else
+        {
+            $(".COMPUTER").hide();
+        }
+    }
+
+    function ControlAllHostCheckbox()
+    {
+        $(".select_all").on("click",function(){
+            if($(this).attr("checked")){
+                $(".table-row-multi-select").attr("checked", true);
+                ShowHostConfig($(".table-row-multi-select:checked:last"));
+                $(".btn-host-config").removeAttr("disabled");
+            }
+            else{
+                $(".table-row-multi-select").attr("checked", false);
+                CleanHostConfig();
+                $(".btn-host-config").attr("disabled", true);
+            }
+        })
+    }
+
+    function ControlHostCheckBox(cbx)
+    {
+        if (cbx.attr("checked"))/*选中*/
+        {
+            var checked_cbk = $(".table-row-multi-select:checked");
+            if (checked_cbk.length == $(".table-row-multi-select").length)/*全选*/
+            {
+                $(".select_all").attr("checked", true);
+            }
+            else
+            {
+                $(".select_all").attr("checked", false);
+            }
+            ShowHostConfig(cbx);
+            $(".btn-host-config").removeAttr("disabled");
+        }
+        else
+        {
+            if($(".table-row-multi-select:checked").length == 0)/*全不选*/
+            {
+                $(".select_all").attr("checked", false);
+                $(".btn-host-config").attr("disabled", true);
+                CleanHostConfig();
+            }
+            else/*显示最后一项*/
+            {
+                var last_checked_box = $(".table-row-multi-select:checked:last");
+                if (last_checked_box.length != 0)
+                {
+                    ShowHostConfig(last_checked_box);
+                }
+            }
+        }
+    }
+
+    function DodeployCallback (argument) {
+        setTimeout(Timer_dodeploy_delay, 3000);
+        horizon.modals.modal_spinner("");
+    }
+
+    function Timer_dodeploy_delay()
+    {
+        horizon.modals.spinner.modal('hide');
+        var next = '{% url "horizon:environment:cluster:overview" cluster_id %}';
+        window.location = next;
+    }
+
+    function CheckRootLvDiskSize(value)
+    {
+        if (value == "" || isNaN(value) || parseInt(value, 10) < 50)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    function CheckHugePageCount(value)
+    {
+        if($(".COMPUTER").is(":hidden"))
+        {
+            return true;
+        }
+        if (value == "" || isNaN(value) || parseInt(value, 10) < 0)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    function HostConfigIsChange()
+    {
+        var is_change = false;
+        var param = {
+            "os_version_file": trim($(".input_os_version_file").val()),
+            "root_disk": $("#input_root_disk").val(),
+            "root_lv_size": parseInt($("#input_root_lv_size").val(), 10)
+        };
+        if (!($(".COMPUTER").is(":hidden")))
+        {
+            param["isol_cpus"] = $("#input_isolation_cpu").val();
+            param["huge_page_size"] = $("#select_huge_page_size").val();
+            param["huge_pages"] = $("#input_huge_page_count").val();
+        }
+        var $checkbox = $(".table-row-multi-select:checked");
+        $checkbox.each(function(){
+            var host_config = $(this).data("host_config");
+            for (var p in param)
+            {
+                if(param[p] != host_config[p])
+                {
+                    is_change = true;
+                    break;
+                }
+            }
+            if (is_change)
+            {
+                return false;
+            }
+        })
+        return is_change;
+    }
+
+    function OnInit()
+    {
+        $('.form-host-config').bootstrapValidator({
+            message: 'This value is not valid',
+            excluded: ':disabled',
+            feedbackIcons: {
+                valid: 'glyphicon glyphicon-ok',
+                invalid: 'glyphicon glyphicon-remove',
+                validating: 'glyphicon glyphicon-refresh'
+            },
+            fields: {
+                os_version_file: {
+                    validators: {
+                        notEmpty: {
+                            message: "{% trans 'OS version file can not be empty' %}"
+                        }
+                    }
+                },
+                root_disk: {
+                    validators: {
+                        notEmpty: {
+                            message: "{% trans 'System disk can not be empty' %}"
+                        },
+                        regexp: {
+                            regexp: '^[a-zA-Z][a-zA-Z0-9_]{0,15}$',
+                            message: '{% trans "Name must begin with letters, and consist of numbers,letters or underscores. The length of name is 1 to 16" %}'
+                        }
+                    }
+                },
+                root_lv_disk: {
+                    validators: {
+                        callback: {
+                            callback: CheckRootLvDiskSize,
+                            message: "{% trans 'System disk size can not be empty, must be digit and greater than or equal to 50' %}"
+                        }
+                    }
+                },
+                huge_page_count: {
+                    validators: {
+                        callback: {
+                            callback: CheckHugePageCount,
+                            message: "{% trans 'Huge page count can not be empty, and must be digit' %}"
+                        }
+                    }
+                }
+            }
+        });
+        $(".table-row-multi-select:first").removeClass("table-row-multi-select").addClass("select_all");
+        BindHostConfig2CheckBox();
+        ControlAllHostCheckbox();
+        $(".table-row-multi-select").on("click", function(){
+            ControlHostCheckBox($(this));
+        });
+        var host_id = getArgs()["host_id"];
+        if (host_id != null)
+        {
+            var host_id_list = host_id.split("_");
+            for(var i = 0;i < host_id_list.length;i++)
+            {
+                $(".table-row-multi-select").each(function(){
+                    if($(this).val() == host_id_list[i])
+                    {
+                        $(this).attr("checked",true);
+                    }
+                })
+                if(host_id_list[i] == "-1")
+                {
+                    $(".select_all").attr("checked", true);
+                }
+            }
+            var cbk = $(".table-row-multi-select:checked:last");
+            ShowHostConfig($(cbk));
+            $("#operate_region").fadeToggle("fast");
+            $(".btn-host-config").removeAttr("disabled");
+        }
+        $(document).on("click", "#delopy_cluster", function(){
+            var url = '{% url "horizon:environment:deploy:dodeploy" cluster_id %}';
+            if (HostConfigIsChange())
+            {
+                var title = '{% trans "Confirm to Discard" %}';
+                var body = '{% trans "Changes in the host config, is discarded?" %}';
+                var action = '{% trans "Confirm" %}'
+                var modal = horizon.modals.create(title, body, action);
+                modal.modal()
+                modal.find('.btn-primary').click(function (evt) {
+                    modal.modal('hide');
+                    do_post(url, "", DodeployCallback);
+                });
+            }
+            else
+            {
+                do_post(url, "", DodeployCallback);
+            }
+        });
+    }
+    horizon.addInitFunction(OnInit);
+    </script>
+{% endblock %}
+
+{% block footer %}
+    <div class='pull-right'>
+        <a href='{% url "horizon:environment:deploy:networkmapping" cluster_id %}' class='btn btn-sm btn-default'>
+            <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>
+            {% trans 'Previous' %}
+        </a>
+        <a href='#' id='delopy_cluster' class='btn btn-sm btn-success'>
+            {% trans 'Deploy' %}
+        </a>
+    </div>
+{% endblock %}
