@@ -1,2 +1,2 @@
-Daisy(Openstack project name: daisycloud)
+Daisy(Openstack project name: daisycloud-core)
 
