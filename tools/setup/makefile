@@ -52,7 +52,7 @@ bin: binclean binforce
 	chmod +x $(_TECS_TOOLS_PATH)/setup/bin_temp/uninstall/uninstall_func.sh
 	chmod +x $(_TECS_TOOLS_PATH)/setup/bin_temp/upgrade/upgrade_interface.sh
 	chmod +x $(_TECS_TOOLS_PATH)/setup/bin_temp/upgrade/upgrade_func.sh
-	cd $(_TECS_TOOLS_PATH)/setup; chmod +x ./makeself.sh; ./makeself.sh ./bin_temp $(_TECS_TARGET_PATH)/$(PURE_OS_TYPE)/$(ARCH)/$(VER_PREFIX)_$(BIN_TYPE).$(VER_SUFFIX) tecs ./setup.sh
+	cd $(_TECS_TOOLS_PATH)/setup; chmod +x ./makeself.sh; ./makeself.sh ./bin_temp $(_TECS_TARGET_PATH)/$(PURE_OS_TYPE)/$(ARCH)/$(VER_PREFIX)_$(BIN_TYPE).$(VER_SUFFIX) daisy ./setup.sh
 	$(RM) $(_TECS_TOOLS_PATH)/setup/bin_temp
 
 binclean:
