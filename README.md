@@ -51,7 +51,8 @@ TODO
 ## Prefered version of python modules
 
 
-Currently we tested building & running Daisy not with the latest upstream python modules but the specific versions list below:
+
+Althrough we are working on catching up with the latest upstream components, currently we still tested building & running Daisy not with the latest upstream python modules but the specific versions list below:
 
 -rwxr--r-- 1 root root  238848 Apr 11 10:06 atk-2.8.0-4.el7.x86_64.rpm
 -rwxr--r-- 1 root root     743 Apr 11 10:06 dependsrpm.sh
