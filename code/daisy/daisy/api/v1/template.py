@@ -42,10 +42,6 @@ from daisy.registry.api.v1 import template
 
 import daisy.api.backends.tecs.common as tecs_cmn
 import daisy.api.backends.common as daisy_cmn
-try:
-    import simplejson as json
-except ImportError:
-    import json
 
 daisy_tecs_path = tecs_cmn.daisy_tecs_path
 
@@ -64,12 +60,13 @@ CONF.import_opt('container_formats', 'daisy.common.config',
                 group='image_format')
 CONF.import_opt('image_property_quota', 'daisy.common.config')
 
+
 class Controller(controller.BaseController):
     """
     WSGI controller for Templates resource in Daisy v1 API
 
-    The Templates resource API is a RESTful web Template for Template data. The API
-    is as follows::
+    The Templates resource API is a RESTful web Template for Template data.
+    The API is as follows::
 
         GET  /Templates -- Returns a set of brief metadata about Templates
         GET  /Templates/detail -- Returns a set of detailed metadata about
@@ -136,8 +133,9 @@ class Controller(controller.BaseController):
     def _raise_404_if_cluster_deleted(self, req, cluster_id):
         cluster = self.get_cluster_meta_or_404(req, cluster_id)
         if cluster['deleted']:
-            msg = _("Cluster with identifier %s has been deleted.") % cluster_id
-            raise webob.exc.HTTPNotFound(msg)
+            msg = _("Cluster with identifier %s has been deleted.") % \
+                cluster_id
+            raise HTTPNotFound(msg)
 
     @utils.mutating
     def add_template(self, req, template):
@@ -150,8 +148,7 @@ class Controller(controller.BaseController):
         :raises HTTPBadRequest if x-Template-name is missing
         """
         self._enforce(req, 'add_template')
-        template_name = template["name"]
-        
+
         template = registry.add_template_metadata(req.context, template)
 
         return {'template': template}
@@ -169,8 +166,8 @@ class Controller(controller.BaseController):
         self._enforce(req, 'update_template')
         try:
             template = registry.update_template_metadata(req.context,
-                                                            template_id,
-                                                            template)
+                                                         template_id,
+                                                         template)
 
         except exception.Invalid as e:
             msg = (_("Failed to update template metadata. Got error: %s") %
@@ -202,6 +199,7 @@ class Controller(controller.BaseController):
             self.notifier.info('template.update', template)
 
         return {'template': template}
+
     @utils.mutating
     def delete_template(self, req, template_id):
         """
@@ -230,23 +228,25 @@ class Controller(controller.BaseController):
                                 request=req,
                                 content_type="text/plain")
         except exception.InUseByStore as e:
-            msg = (_("template %(id)s could not be deleted because it is in use: "
-                     "%(exc)s") % {"id": template_id, "exc": utils.exception_to_str(e)})
+            msg = (_("template %(id)s could not be deleted "
+                     "because it is in use: "
+                     "%(exc)s") % {"id": template_id,
+                                   "exc": utils.exception_to_str(e)})
             LOG.error(msg)
             raise HTTPConflict(explanation=msg,
                                request=req,
                                content_type="text/plain")
         else:
             return Response(body='', status=200)
-            
-    def _del_general_params(self,param):
+
+    def _del_general_params(self, param):
         del param['created_at']
         del param['updated_at']
         del param['deleted']
         del param['deleted_at']
         del param['id']
-        
-    def _del_cluster_params(self,cluster):
+
+    def _del_cluster_params(self, cluster):
         del cluster['networks']
         del cluster['vlan_start']
         del cluster['vlan_end']
@@ -259,7 +259,27 @@ class Controller(controller.BaseController):
         del cluster['segmentation_type']
         del cluster['base_mac']
         del cluster['name']
-        
+
+    def _get_cinder_volumes(self, req, role):
+        cinder_volume_params = {'filters': {'role_id': role['id']}}
+        cinder_volumes = registry.list_cinder_volume_metadata(
+            req.context, **cinder_volume_params)
+        for cinder_volume in cinder_volumes:
+            if cinder_volume.get('role_id', None):
+                cinder_volume['role_id'] = role['name']
+            self._del_general_params(cinder_volume)
+        return cinder_volumes
+
+    def _get_services_disk(self, req, role):
+        params = {'filters': {'role_id': role['id']}}
+        services_disk = registry.list_service_disk_metadata(
+            req.context, **params)
+        for service_disk in services_disk:
+            if service_disk.get('role_id', None):
+                service_disk['role_id'] = role['name']
+            self._del_general_params(service_disk)
+        return services_disk
+
     @utils.mutating
     def export_db_to_json(self, req, template):
         """
@@ -267,40 +287,45 @@ class Controller(controller.BaseController):
         :param req: The WSGI/Webob Request object
         :raises HTTPBadRequest if x-Template-cluster is missing
         """
-        cluster_name = template.get('cluster_name',None)
-        type = template.get('type',None)
-        description = template.get('description',None)
-        template_name = template.get('template_name',None)
+        cluster_name = template.get('cluster_name', None)
+        type = template.get('type', None)
+        description = template.get('description', None)
+        template_name = template.get('template_name', None)
         self._enforce(req, 'export_db_to_json')
         cinder_volume_list = []
+        service_disk_list = []
         template_content = {}
         template_json = {}
         template_id = ""
         if not type or type == "tecs":
             try:
-                params = {'filters': {'name':cluster_name}}
+                params = {'filters': {'name': cluster_name}}
                 clusters = registry.get_clusters_detail(req.context, **params)
                 if clusters:
                     cluster_id = clusters[0]['id']
                 else:
-                    msg = "the cluster %s is not exist"%cluster_name
+                    msg = "the cluster %s is not exist" % cluster_name
                     LOG.error(msg)
-                    raise HTTPForbidden(explanation=msg, request=req, content_type="text/plain")
-                
-                params = {'filters': {'cluster_id':cluster_id}}            
-                cluster = registry.get_cluster_metadata(req.context, cluster_id)
+                    raise HTTPForbidden(
+                        explanation=msg,
+                        request=req,
+                        content_type="text/plain")
+
+                params = {'filters': {'cluster_id': cluster_id}}
+                cluster = registry.get_cluster_metadata(
+                    req.context, cluster_id)
                 roles = registry.get_roles_detail(req.context, **params)
-                networks = registry.get_networks_detail(req.context, cluster_id,**params)
+                networks = registry.get_networks_detail(
+                    req.context, cluster_id, **params)
                 for role in roles:
-                    cinder_volume_params = {'filters': {'role_id':role['id']}} 
-                    cinder_volumes = registry.list_cinder_volume_metadata(req.context, **cinder_volume_params)
-                    for cinder_volume in cinder_volumes:
-                        if cinder_volume.get('role_id',None):
-                            cinder_volume['role_id'] = role['name']
-                        self._del_general_params(cinder_volume)
-                        cinder_volume_list.append(cinder_volume)
-                    if role.get('config_set_id',None):
-                        config_set = registry.get_config_set_metadata(req.context, role['config_set_id'])
+                    cinder_volumes = self._get_cinder_volumes(req, role)
+                    cinder_volume_list += cinder_volumes
+                    services_disk = self._get_services_disk(req, role)
+                    service_disk_list += services_disk
+
+                    if role.get('config_set_id', None):
+                        config_set = registry.get_config_set_metadata(
+                            req.context, role['config_set_id'])
                         role['config_set_id'] = config_set['name']
                     del role['cluster_id']
                     del role['status']
@@ -309,16 +334,17 @@ class Controller(controller.BaseController):
                     del role['config_set_update_progress']
                     self._del_general_params(role)
                 for network in networks:
-                    network_detail = registry.get_network_metadata(req.context, network['id'])
-                    if network_detail.get('ip_ranges',None):
+                    network_detail = registry.get_network_metadata(
+                        req.context, network['id'])
+                    if network_detail.get('ip_ranges', None):
                         network['ip_ranges'] = network_detail['ip_ranges']
                     del network['cluster_id']
                     self._del_general_params(network)
-                if cluster.get('routers',None):
+                if cluster.get('routers', None):
                     for router in cluster['routers']:
                         del router['cluster_id']
                         self._del_general_params(router)
-                if cluster.get('logic_networks',None):
+                if cluster.get('logic_networks', None):
                     for logic_network in cluster['logic_networks']:
                         for subnet in logic_network['subnets']:
                             del subnet['logic_network_id']
@@ -326,7 +352,7 @@ class Controller(controller.BaseController):
                             self._del_general_params(subnet)
                         del logic_network['cluster_id']
                         self._del_general_params(logic_network)
-                if cluster.get('nodes',None):
+                if cluster.get('nodes', None):
                     del cluster['nodes']
                 self._del_general_params(cluster)
                 self._del_cluster_params(cluster)
@@ -334,140 +360,226 @@ class Controller(controller.BaseController):
                 template_content['roles'] = roles
                 template_content['networks'] = networks
                 template_content['cinder_volumes'] = cinder_volume_list
+                template_content['services_disk'] = service_disk_list
                 template_json['content'] = json.dumps(template_content)
                 template_json['type'] = 'tecs'
                 template_json['name'] = template_name
                 template_json['description'] = description
-                
-                template_host_params = {'cluster_name':cluster_name}
-                template_hosts = registry.host_template_lists_metadata(req.context, **template_host_params)
+
+                template_host_params = {'cluster_name': cluster_name}
+                template_hosts = registry.host_template_lists_metadata(
+                    req.context, **template_host_params)
                 if template_hosts:
                     template_json['hosts'] = template_hosts[0]['hosts']
                 else:
                     template_json['hosts'] = "[]"
 
-                template_params = {'filters': {'name':template_name}}
-                template_list = registry.template_lists_metadata(req.context, **template_params)
+                template_params = {'filters': {'name': template_name}}
+                template_list = registry.template_lists_metadata(
+                    req.context, **template_params)
                 if template_list:
-                    update_template = registry.update_template_metadata(req.context, template_list[0]['id'], template_json)
+                    registry.update_template_metadata(
+                        req.context, template_list[0]['id'], template_json)
                     template_id = template_list[0]['id']
                 else:
-                    add_template = registry.add_template_metadata(req.context, template_json)
+                    add_template = registry.add_template_metadata(
+                        req.context, template_json)
                     template_id = add_template['id']
-                    
+
                 if template_id:
-                    template_detail = registry.template_detail_metadata(req.context, template_id)
+                    template_detail = registry.template_detail_metadata(
+                        req.context, template_id)
                     self._del_general_params(template_detail)
-                    template_detail['content'] = json.loads(template_detail['content'])
+                    template_detail['content'] = json.loads(
+                        template_detail['content'])
                     if template_detail['hosts']:
-                        template_detail['hosts'] = json.loads(template_detail['hosts'])
-                    
-                    tecs_json = daisy_tecs_path  + "%s.json"%template_name
+                        template_detail['hosts'] = json.loads(
+                            template_detail['hosts'])
+
+                    tecs_json = daisy_tecs_path + "%s.json" % template_name
                     cmd = 'rm -rf  %s' % (tecs_json,)
                     daisy_cmn.subprocess_call(cmd)
                     with open(tecs_json, "w+") as fp:
-                        fp.write(json.dumps(template_detail))
+                        json.dump(template_detail, fp, indent=2)
+
             except exception.Invalid as e:
                 raise HTTPBadRequest(explanation=e.msg, request=req)
-            
-        return {"template":template_detail}
-        
+
+        return {"template": template_detail}
+
     @utils.mutating
     def import_json_to_template(self, req, template):
         template_id = ""
-        template = json.loads(template.get('template',None))
+        template = json.loads(template.get('template', None))
         template_cluster = copy.deepcopy(template)
-        template_name = template_cluster.get('name',None)
-        template_params = {'filters': {'name':template_name}}
+        template_name = template_cluster.get('name', None)
+        template_params = {'filters': {'name': template_name}}
         try:
-            if template_cluster.get('content',None):
-                template_cluster['content'] = json.dumps(template_cluster['content'])
-            if template_cluster.get('hosts',None):
-                template_cluster['hosts'] = json.dumps(template_cluster['hosts'])
+            if template_cluster.get('content', None):
+                template_cluster['content'] = json.dumps(
+                    template_cluster['content'])
+            if template_cluster.get('hosts', None):
+                template_cluster['hosts'] = json.dumps(
+                    template_cluster['hosts'])
             else:
-                template_cluster['hosts'] = "[]" 
-        
-            template_list = registry.template_lists_metadata(req.context, **template_params)
+                template_cluster['hosts'] = "[]"
+
+            template_list = registry.template_lists_metadata(
+                req.context, **template_params)
             if template_list:
-                update_template_cluster = registry.update_template_metadata(req.context, template_list[0]['id'], template_cluster)
+                registry.update_template_metadata(
+                    req.context, template_list[0]['id'], template_cluster)
                 template_id = template_list[0]['id']
             else:
-                add_template_cluster = registry.add_template_metadata(req.context, template_cluster)
+                add_template_cluster = registry.add_template_metadata(
+                    req.context, template_cluster)
                 template_id = add_template_cluster['id']
-                
+
             if template_id:
-                template_detail = registry.template_detail_metadata(req.context, template_id)
+                template_detail = registry.template_detail_metadata(
+                    req.context, template_id)
                 del template_detail['deleted']
                 del template_detail['deleted_at']
-        
+
         except exception.Invalid as e:
             raise HTTPBadRequest(explanation=e.msg, request=req)
-       
-        return {"template":template_detail}
-        
+
+        return {"template": template_detail}
+
+    def _import_cinder_volumes_to_db(self, req,
+                                     template_cinder_volumes, roles):
+        for template_cinder_volume in template_cinder_volumes:
+            has_template_role = False
+            for role in roles:
+                if template_cinder_volume['role_id'] == role['name']:
+                    has_template_role = True
+                    template_cinder_volume['role_id'] = role['id']
+                    break
+            if has_template_role:
+                registry.add_cinder_volume_metadata(req.context,
+                                                    template_cinder_volume)
+            else:
+                msg = "can't find role %s in new cluster when\
+                       import cinder_volumes from template"\
+                       % template_cinder_volume['role_id']
+                raise HTTPBadRequest(explanation=msg, request=req)
+
+    def _import_services_disk_to_db(self, req,
+                                    template_services_disk, roles):
+        for template_service_disk in template_services_disk:
+            has_template_role = False
+            for role in roles:
+                if template_service_disk['role_id'] == role['name']:
+                    has_template_role = True
+                    template_service_disk['role_id'] = role['id']
+                    break
+            if has_template_role:
+                registry.add_service_disk_metadata(req.context,
+                                                   template_service_disk)
+            else:
+                msg = "can't find role %s in new cluster when\
+                       import service_disks from template"\
+                       % template_service_disk['role_id']
+                raise HTTPBadRequest(explanation=msg, request=req)
+
     @utils.mutating
     def import_template_to_db(self, req, template):
         cluster_id = ""
         template_cluster = {}
         cluster_meta = {}
         template_meta = copy.deepcopy(template)
-        template_name = template_meta.get('name',None)
-        cluster_name = template_meta.get('cluster',None)
-        template_params = {'filters': {'name':template_name}}
-        template_list = registry.template_lists_metadata(req.context, **template_params)
+        template_name = template_meta.get('name', None)
+        cluster_name = template_meta.get('cluster', None)
+        template_params = {'filters': {'name': template_name}}
+        template_list = registry.template_lists_metadata(
+            req.context, **template_params)
         if template_list:
             template_cluster = template_list[0]
         else:
             msg = "the template %s is not exist" % template_name
             LOG.error(msg)
-            raise HTTPForbidden(explanation=msg, request=req, content_type="text/plain")
-        
+            raise HTTPForbidden(
+                explanation=msg,
+                request=req,
+                content_type="text/plain")
+
         try:
             template_content = json.loads(template_cluster['content'])
             template_content_cluster = template_content['cluster']
             template_content_cluster['name'] = cluster_name
-            template_content_cluster['networking_parameters'] = str(template_content_cluster['networking_parameters'])
-            template_content_cluster['logic_networks'] = str(template_content_cluster['logic_networks'])
-            template_content_cluster['logic_networks'] = template_content_cluster['logic_networks'].replace("\'true\'","True")
-            template_content_cluster['routers'] = str(template_content_cluster['routers'])
-            
+            template_content_cluster['networking_parameters'] = str(
+                template_content_cluster['networking_parameters'])
+            template_content_cluster['logic_networks'] = str(
+                template_content_cluster['logic_networks'])
+            template_content_cluster['logic_networks'] = \
+                template_content_cluster[
+                'logic_networks'].replace("\'true\'", "True")
+            template_content_cluster['routers'] = str(
+                template_content_cluster['routers'])
+
             if template_cluster['hosts']:
                 template_hosts = json.loads(template_cluster['hosts'])
-                template_host_params = {'cluster_name':cluster_name}
-                template_host_list = registry.host_template_lists_metadata(req.context, **template_host_params)
+                template_host_params = {'cluster_name': cluster_name}
+                template_host_list = registry.host_template_lists_metadata(
+                    req.context, **template_host_params)
                 if template_host_list:
-                    update_template_meta = {"cluster_name": cluster_name, "hosts":json.dumps(template_hosts)}
-                    registry.update_host_template_metadata(req.context, template_host_list[0]['id'], update_template_meta)
+                    update_template_meta = {
+                        "cluster_name": cluster_name,
+                        "hosts": json.dumps(template_hosts)}
+                    registry.update_host_template_metadata(
+                        req.context, template_host_list[0]['id'],
+                        update_template_meta)
                 else:
-                    template_meta = {"cluster_name": cluster_name, "hosts":json.dumps(template_hosts)}
-                    registry.add_host_template_metadata(req.context, template_meta)
-            
-            cluster_params = {'filters': {'name':cluster_name}}
-            clusters = registry.get_clusters_detail(req.context, **cluster_params)
+                    template_meta = {
+                        "cluster_name": cluster_name,
+                        "hosts": json.dumps(template_hosts)}
+                    registry.add_host_template_metadata(
+                        req.context, template_meta)
+
+            cluster_params = {'filters': {'name': cluster_name}}
+            clusters = registry.get_clusters_detail(
+                req.context, **cluster_params)
             if clusters:
                 msg = "the cluster %s is exist" % clusters[0]['name']
                 LOG.error(msg)
-                raise HTTPForbidden(explanation=msg, request=req, content_type="text/plain")
+                raise HTTPForbidden(
+                    explanation=msg,
+                    request=req,
+                    content_type="text/plain")
             else:
-                cluster_meta = registry.add_cluster_metadata(req.context, template_content['cluster'])
+                if template_content_cluster.get('auto_scale', None) == 1:
+                    params = {'filters': ''}
+                    clusters_list = registry.get_clusters_detail(
+                        req.context, **params)
+                    for cluster in clusters_list:
+                        if cluster.get('auto_scale', None) == 1:
+                            template_content_cluster['auto_scale'] = 0
+                            break
+                cluster_meta = registry.add_cluster_metadata(
+                    req.context, template_content['cluster'])
                 cluster_id = cluster_meta['id']
-            
-            params = {'filters':{}}
-            networks = registry.get_networks_detail(req.context, cluster_id,**params)
+
+            params = {'filters': {}}
+            networks = registry.get_networks_detail(
+                req.context, cluster_id, **params)
             template_content_networks = template_content['networks']
             for template_content_network in template_content_networks:
-                template_content_network['ip_ranges'] = str(template_content_network['ip_ranges'])
+                template_content_network['ip_ranges'] = str(
+                    template_content_network['ip_ranges'])
                 network_exist = 'false'
                 for network in networks:
                     if template_content_network['name'] == network['name']:
-                        update_network_meta = registry.update_network_metadata(req.context, network['id'], template_content_network)
+                        registry.update_network_metadata(
+                            req.context, network['id'],
+                            template_content_network)
                         network_exist = 'true'
 
                 if network_exist == 'false':
                     template_content_network['cluster_id'] = cluster_id
-                    add_network_meta = registry.add_network_metadata(req.context, template_content_network)
-                    
-            params = {'filters': {'cluster_id':cluster_id}}
+                    registry.add_network_metadata(
+                        req.context, template_content_network)
+
+            params = {'filters': {'cluster_id': cluster_id}}
             roles = registry.get_roles_detail(req.context, **params)
             template_content_roles = template_content['roles']
             for template_content_role in template_content_roles:
@@ -475,34 +587,25 @@ class Controller(controller.BaseController):
                 del template_content_role['config_set_id']
                 for role in roles:
                     if template_content_role['name'] == role['name']:
-                        update_role_meta = registry.update_role_metadata(req.context, role['id'], template_content_role)
+                        registry.update_role_metadata(
+                            req.context, role['id'], template_content_role)
                         role_exist = 'true'
-                
+
                 if role_exist == 'false':
                     template_content_role['cluster_id'] = cluster_id
-                    add_role_meta = registry.add_role_metadata(req.context, template_content_role)
-                    
-            cinder_volumes = registry.list_cinder_volume_metadata(req.context, **params)
-            template_content_cinder_volumes = template_content['cinder_volumes']
-            for template_content_cinder_volume in template_content_cinder_volumes:
-                cinder_volume_exist = 'false'
-                roles = registry.get_roles_detail(req.context, **params)
-                for role in roles:
-                    if template_content_cinder_volume['role_id'] == role['name']:
-                        template_content_cinder_volume['role_id'] = role['id']
-                
-                for cinder_volume in cinder_volumes:
-                    if template_content_cinder_volume['role_id'] == cinder_volume['role_id']:
-                        update_cinder_volume_meta = registry.update_cinder_volume_metadata(req.context, cinder_volume['id'], template_content_cinder_volume)
-                        cinder_volume_exist = 'true'
-                        
-                if cinder_volume_exist == 'false':
-                    add_cinder_volumes = registry.add_cinder_volume_metadata(req.context, template_content_cinder_volume)
-        
+                    registry.add_role_metadata(
+                        req.context, template_content_role)
+
+            self._import_cinder_volumes_to_db(
+                req, template_content['cinder_volumes'], roles)
+            self._import_services_disk_to_db(req,
+                                             template_content['services_disk'],
+                                             roles)
+
         except exception.Invalid as e:
             raise HTTPBadRequest(explanation=e.msg, request=req)
-        return {"template":cluster_meta}
-            
+        return {"template": cluster_meta}
+
     @utils.mutating
     def get_template_detail(self, req, template_id):
         """
@@ -513,7 +616,8 @@ class Controller(controller.BaseController):
         """
         self._enforce(req, 'get_template_detail')
         try:
-            template = registry.template_detail_metadata(req.context, template_id)
+            template = registry.template_detail_metadata(
+                req.context, template_id)
             return {'template': template}
         except exception.NotFound as e:
             msg = (_("Failed to find template: %s") %
@@ -531,97 +635,104 @@ class Controller(controller.BaseController):
                                 content_type="text/plain")
         except exception.InUseByStore as e:
             msg = (_("template %(id)s could not be get because it is in use: "
-                     "%(exc)s") % {"id": template_id, "exc": utils.exception_to_str(e)})
+                     "%(exc)s") % {"id": template_id,
+                                   "exc": utils.exception_to_str(e)})
             LOG.error(msg)
             raise HTTPConflict(explanation=msg,
                                request=req,
                                content_type="text/plain")
         else:
             return Response(body='', status=200)
-    
+
     @utils.mutating
     def get_template_lists(self, req):
         self._enforce(req, 'get_template_lists')
         params = self._get_query_params(req)
         try:
-            template_lists = registry.template_lists_metadata(req.context, **params)
+            template_lists = registry.template_lists_metadata(
+                req.context, **params)
         except exception.Invalid as e:
             raise HTTPBadRequest(explanation=e.msg, request=req)
         return dict(template=template_lists)
-        
+
+
 class TemplateDeserializer(wsgi.JSONRequestDeserializer):
     """Handles deserialization of specific controller method requests."""
-        
+
     def _deserialize(self, request):
         result = {}
         result["template"] = utils.get_template_meta(request)
         return result
-        
+
     def add_template(self, request):
         return self._deserialize(request)
-        
+
     def update_template(self, request):
         return self._deserialize(request)
-        
+
     def export_db_to_json(self, request):
         return self._deserialize(request)
-        
+
     def import_json_to_template(self, request):
         return self._deserialize(request)
-        
+
     def import_template_to_db(self, request):
         return self._deserialize(request)
 
+
 class TemplateSerializer(wsgi.JSONResponseSerializer):
     """Handles serialization of specific controller method responses."""
-        
+
     def __init__(self):
         self.notifier = notifier.Notifier()
-        
+
     def add_template(self, response, result):
         template = result['template']
         response.status = 201
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(dict(template=template))
         return response
-        
+
     def delete_template(self, response, result):
         template = result['template']
         response.status = 201
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(dict(template=template))
         return response
+
     def get_template_detail(self, response, result):
         template = result['template']
         response.status = 201
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(dict(template=template))
         return response
+
     def update_template(self, response, result):
         template = result['template']
         response.status = 201
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(dict(template=template))
-        return response        
-        
+        return response
+
     def export_db_to_json(self, response, result):
         response.status = 201
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(result)
         return response
-        
+
     def import_json_to_template(self, response, result):
         response.status = 201
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(result)
         return response
-        
+
     def import_template_to_db(self, response, result):
         response.status = 201
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(result)
         return response
-        
+
+
 def create_resource():
     """Templates resource factory method"""
     deserializer = TemplateDeserializer()

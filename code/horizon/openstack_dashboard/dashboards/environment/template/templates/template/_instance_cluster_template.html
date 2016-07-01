@@ -1,0 +1,17 @@
+{% extends "environment/template/_modal_form.html" %}
+{% load i18n %}
+{% load url from future %}
+
+{% block form_id %}instance_cluster_template{% endblock %}
+
+{% block modal_id %}instance_cluster_template_modal{% endblock %}
+{% block modal-header %}{% trans "Instance" %}{% endblock %}
+
+{% block modal-body %}
+  {% include "environment/template/_form_fields.html" %}
+{% endblock %}
+
+{% block modal-footer %}
+  <input class="btn btn-primary" type="submit" value="{% trans 'Instance' %}" />
+  <input type="button" class="btn btn-default cancel pull-right" value="{% trans 'Cancel' %}" />
+{% endblock %}

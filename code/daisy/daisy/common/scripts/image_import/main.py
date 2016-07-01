@@ -12,11 +12,6 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
-__all__ = [
-    'run',
-]
-
 from oslo_concurrency import lockutils
 from oslo_log import log as logging
 from oslo_utils import excutils
@@ -28,6 +23,9 @@ from daisy.common.scripts import utils as script_utils
 from daisy.common import store_utils
 from daisy.common import utils as common_utils
 from daisy import i18n
+__all__ = [
+    'run',
+]
 
 
 LOG = logging.getLogger(__name__)
@@ -150,7 +148,7 @@ def set_image_data(image, uri, task_id):
     data_iter = None
     try:
         LOG.info(_LI("Task %(task_id)s: Got image data uri %(data_uri)s to be "
-                 "imported") % {"data_uri": uri, "task_id": task_id})
+                     "imported") % {"data_uri": uri, "task_id": task_id})
         data_iter = script_utils.get_image_data_iter(uri)
         image.set_data(data_iter)
     except Exception as e:

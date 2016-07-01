@@ -53,36 +53,38 @@ class Controller(controller.BaseController):
     def _raise_404_if_project_deleted(self, req, cluster_id):
         project = self.get_cluster_meta_or_404(req, cluster_id)
         if project['deleted']:
-            msg = _("Cluster with identifier %s has been deleted.") % cluster_id
+            msg = _("Cluster with identifier %s has been deleted.") % \
+                cluster_id
             raise webob.exc.HTTPNotFound(msg)
 
- #   def get_cluster_hosts(self, req, cluster_id, host_id=None):
- #       """
- #       Return a list of dictionaries indicating the members of the
- #       image, i.e., those tenants the image is shared with.
+#   def get_cluster_hosts(self, req, cluster_id, host_id=None):
+#       """
+#       Return a list of dictionaries indicating the members of the
+#       image, i.e., those tenants the image is shared with.
 #
- #       :param req: the Request object coming from the wsgi layer
- #       :param image_id: The opaque image identifier
- #       :retval The response body is a mapping of the following form::
+#       :param req: the Request object coming from the wsgi layer
+#       :param image_id: The opaque image identifier
+#       :retval The response body is a mapping of the following form::
 
- #           {'members': [
-  #              {'host_id': <HOST>, ...}, ...
-  #          ]}
- #       """
- #       self._enforce(req, 'get_cluster_hosts')
- #       self._raise_404_if_project_deleted(req, cluster_id)
+#           {'members': [
+#              {'host_id': <HOST>, ...}, ...
+#          ]}
+#       """
+#       self._enforce(req, 'get_cluster_hosts')
+#       self._raise_404_if_project_deleted(req, cluster_id)
 #
- #       try:
- #           members = registry.get_cluster_hosts(req.context, cluster_id, host_id)
- #       except exception.NotFound:
- #           msg = _("Project with identifier %s not found") % cluster_id
- #           LOG.warn(msg)
- #           raise webob.exc.HTTPNotFound(msg)
- #       except exception.Forbidden:
- #           msg = _("Unauthorized project access")
- #           LOG.warn(msg)
- #           raise webob.exc.HTTPForbidden(msg)
- #       return dict(members=members)
+#       try:
+#           members = registry.get_cluster_hosts(
+# req.context, cluster_id, host_id)
+#       except exception.NotFound:
+#           msg = _("Project with identifier %s not found") % cluster_id
+#           LOG.warn(msg)
+#           raise webob.exc.HTTPNotFound(msg)
+#       except exception.Forbidden:
+#           msg = _("Unauthorized project access")
+#           LOG.warn(msg)
+#           raise webob.exc.HTTPForbidden(msg)
+#       return dict(members=members)
 
     @utils.mutating
     def delete(self, req, image_id, id):
@@ -104,7 +106,7 @@ class Controller(controller.BaseController):
             raise webob.exc.HTTPNotFound(explanation=e.msg)
 
         return webob.exc.HTTPNoContent()
-        
+
     @utils.mutating
     def add_cluster_host(self, req, cluster_id, host_id, body=None):
         """
@@ -113,7 +115,7 @@ class Controller(controller.BaseController):
         self._enforce(req, 'add_cluster_host')
         self._raise_404_if_project_deleted(req, cluster_id)
         self._raise_404_if_host_deleted(req, host_id)
-        
+
         try:
             registry.add_cluster_host(req.context, cluster_id, host_id)
         except exception.Invalid as e:
@@ -127,7 +129,7 @@ class Controller(controller.BaseController):
             raise webob.exc.HTTPNotFound(explanation=e.msg)
 
         return webob.exc.HTTPNoContent()
-        
+
     @utils.mutating
     def delete_cluster_host(self, req, cluster_id, host_id):
         """
@@ -147,7 +149,7 @@ class Controller(controller.BaseController):
             raise webob.exc.HTTPNotFound(explanation=e.msg)
 
         return webob.exc.HTTPNoContent()
-        
+
     def default(self, req, image_id, id, body=None):
         """This will cover the missing 'show' and 'create' actions"""
         raise webob.exc.HTTPMethodNotAllowed()

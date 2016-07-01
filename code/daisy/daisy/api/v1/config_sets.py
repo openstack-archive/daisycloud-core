@@ -53,21 +53,26 @@ CONF.import_opt('container_formats', 'daisy.common.config',
                 group='image_format')
 CONF.import_opt('image_property_quota', 'daisy.common.config')
 
+
 class Controller(controller.BaseController):
     """
     WSGI controller for config_sets resource in Daisy v1 API
 
-    The config_sets resource API is a RESTful web service for config_set data. The API
-    is as follows::
+    The config_sets resource API is a RESTful web service for config_set data.
+    The API is as follows::
 
         GET  /config_sets -- Returns a set of brief metadata about config_sets
         GET  /config_sets/detail -- Returns a set of detailed metadata about
                               config_sets
-        HEAD /config_sets/<ID> -- Return metadata about an config_set with id <ID>
-        GET  /config_sets/<ID> -- Return config_set data for config_set with id <ID>
-        POST /config_sets -- Store config_set data and return metadata about the
+        HEAD /config_sets/<ID> --
+        Return metadata about an config_set with id <ID>
+        GET  /config_sets/<ID> --
+        Return config_set data for config_set with id <ID>
+        POST /config_sets --
+        Store config_set data and return metadata about the
                         newly-stored config_set
-        PUT  /config_sets/<ID> -- Update config_set metadata and/or upload config_set
+        PUT  /config_sets/<ID> --
+        Update config_set metadata and/or upload config_set
                             data for a previously-reserved config_set
         DELETE /config_sets/<ID> -- Delete the config_set with id <ID>
     """
@@ -125,7 +130,8 @@ class Controller(controller.BaseController):
     def _raise_404_if_cluster_deleted(self, req, cluster_id):
         cluster = self.get_cluster_meta_or_404(req, cluster_id)
         if cluster['deleted']:
-            msg = _("cluster with identifier %s has been deleted.") % cluster_id
+            msg = _("cluster with identifier %s has been deleted.") % \
+                cluster_id
             raise HTTPNotFound(msg)
 
     @utils.mutating
@@ -139,13 +145,14 @@ class Controller(controller.BaseController):
         :raises HTTPBadRequest if x-config_set-name is missing
         """
         self._enforce(req, 'add_config_set')
-        #config_set_id=config_set_meta["id"]
+        # config_set_id=config_set_meta["id"]
         config_set_name = config_set_meta["name"]
         config_set_description = config_set_meta["description"]
-        #print config_set_id
+        # print config_set_id
         print config_set_name
         print config_set_description
-        config_set_meta = registry.add_config_set_metadata(req.context, config_set_meta)
+        config_set_meta = registry.add_config_set_metadata(
+            req.context, config_set_meta)
 
         return {'config_set_meta': config_set_meta}
 
@@ -171,21 +178,20 @@ class Controller(controller.BaseController):
                                request=req,
                                content_type="text/plain")
         except exception.Forbidden as e:
-            msg = (_("Forbidden to delete config_set: %s") %
-                   utils.exception_to_str(e))
-            LOG.warn(msg)
-            raise HTTPForbidden(explanation=msg,
+            LOG.warn(e)
+            raise HTTPForbidden(explanation=e,
                                 request=req,
                                 content_type="text/plain")
         except exception.InUseByStore as e:
-            msg = (_("config_set %(id)s could not be deleted because it is in use: "
+            msg = (_("config_set %(id)s could not be "
+                     "deleted because it is in use: "
                      "%(exc)s") % {"id": id, "exc": utils.exception_to_str(e)})
             LOG.warn(msg)
             raise HTTPConflict(explanation=msg,
                                request=req,
                                content_type="text/plain")
         else:
-            #self.notifier.info('config_set.delete', config_set)
+            # self.notifier.info('config_set.delete', config_set)
             return Response(body='', status=200)
 
     @utils.mutating
@@ -222,7 +228,8 @@ class Controller(controller.BaseController):
         self._enforce(req, 'get_config_sets')
         params = self._get_query_params(req)
         try:
-            config_sets = registry.get_config_sets_detail(req.context, **params)
+            config_sets = registry.get_config_sets_detail(
+                req.context, **params)
         except exception.Invalid as e:
             raise HTTPBadRequest(explanation=e.msg, request=req)
         return dict(config_sets=config_sets)
@@ -248,9 +255,8 @@ class Controller(controller.BaseController):
                                 request=req,
                                 content_type="text/plain")
         try:
-            config_set_meta = registry.update_config_set_metadata(req.context,
-                                                                  id,
-                                                                  config_set_meta)
+            config_set_meta = registry.update_config_set_metadata(
+                req.context, id, config_set_meta)
 
         except exception.Invalid as e:
             msg = (_("Failed to update config_set metadata. Got error: %s") %
@@ -282,48 +288,51 @@ class Controller(controller.BaseController):
             self.notifier.info('config_set.update', config_set_meta)
 
         return {'config_set_meta': config_set_meta}
-        
-    def _raise_404_if_role_exist(self,req,config_set_meta):
-        role_id_list=[]
+
+    def _raise_404_if_role_exist(self, req, config_set_meta):
+        role_id_list = []
         try:
             roles = registry.get_roles_detail(req.context)
             for role in roles:
                 for role_name in eval(config_set_meta['role']):
-                    if role['cluster_id'] == config_set_meta['cluster'] and role['name'] == role_name:
+                    if role['cluster_id'] == config_set_meta[
+                            'cluster'] and role['name'] == role_name:
                         role_id_list.append(role['id'])
                         break
         except exception.Invalid as e:
-                raise HTTPBadRequest(explanation=e.msg, request=req)
+            raise HTTPBadRequest(explanation=e.msg, request=req)
         return role_id_list
 
     @utils.mutating
     def cluster_config_set_update(self, req, config_set_meta):
-        if config_set_meta.has_key('cluster'):
+        if 'cluster' in config_set_meta:
             orig_cluster = str(config_set_meta['cluster'])
             self._raise_404_if_cluster_deleted(req, orig_cluster)
             try:
-                if config_set_meta.get('role',None):
-                    role_id_list=self._raise_404_if_role_exist(req,config_set_meta)
+                if config_set_meta.get('role', None):
+                    role_id_list = self._raise_404_if_role_exist(
+                        req, config_set_meta)
                     if len(role_id_list) == len(eval(config_set_meta['role'])):
-                        for role_id in role_id_list:
-                            backend=manager.configBackend('clushshell', req, role_id)
-                            backend.push_config()
+                        backend = manager.configBackend('clushshell', req)
+                        backend.push_config_by_roles(role_id_list)
                     else:
                         msg = "the role is not exist"
                         LOG.error(msg)
                         raise HTTPNotFound(msg)
                 else:
                     roles = registry.get_roles_detail(req.context)
+                    role_id_list = []
                     for role in roles:
                         if role['cluster_id'] == config_set_meta['cluster']:
-                            backend=manager.configBackend('clushshell', req, role['id'])
-                            backend.push_config()
-                    
+                            role_id_list.append(role['id'])
+                    backend = manager.configBackend('clushshell', req)
+                    backend.push_config_by_roles(role_id_list)
+
             except exception.Invalid as e:
                 raise HTTPBadRequest(explanation=e.msg, request=req)
-            
-            config_status={"status":"config successful"}
-            return {'config_set':config_status}
+
+            config_status = {"status": "config successful"}
+            return {'config_set': config_status}
         else:
             msg = "the cluster is not exist"
             LOG.error(msg)
@@ -332,18 +341,22 @@ class Controller(controller.BaseController):
     @utils.mutating
     def cluster_config_set_progress(self, req, config_set_meta):
         role_list = []
-        if config_set_meta.has_key('cluster'):
+        if 'cluster' in config_set_meta:
             orig_cluster = str(config_set_meta['cluster'])
             self._raise_404_if_cluster_deleted(req, orig_cluster)
             try:
-                if config_set_meta.get('role',None):
-                    role_id_list=self._raise_404_if_role_exist(req,config_set_meta)
+                if config_set_meta.get('role', None):
+                    role_id_list = self._raise_404_if_role_exist(
+                        req, config_set_meta)
                     if len(role_id_list) == len(eval(config_set_meta['role'])):
                         for role_id in role_id_list:
                             role_info = {}
-                            role_meta=registry.get_role_metadata(req.context, role_id)
-                            role_info['role-name']=role_meta['name']
-                            role_info['config_set_update_progress']=role_meta['config_set_update_progress']
+                            role_meta = registry.get_role_metadata(
+                                req.context, role_id)
+                            role_info['role-name'] = role_meta['name']
+                            role_info['config_set_update_progress'] = \
+                                role_meta[
+                                'config_set_update_progress']
                             role_list.append(role_info)
                     else:
                         msg = "the role is not exist"
@@ -354,18 +367,20 @@ class Controller(controller.BaseController):
                     for role in roles:
                         if role['cluster_id'] == config_set_meta['cluster']:
                             role_info = {}
-                            role_info['role-name']=role['name']
-                            role_info['config_set_update_progress']=role['config_set_update_progress']
+                            role_info['role-name'] = role['name']
+                            role_info['config_set_update_progress'] = role[
+                                'config_set_update_progress']
                             role_list.append(role_info)
 
             except exception.Invalid as e:
                 raise HTTPBadRequest(explanation=e.msg, request=req)
             return role_list
-            
+
         else:
             msg = "the cluster is not exist"
             LOG.error(msg)
             raise HTTPNotFound(msg)
+
 
 class Config_setDeserializer(wsgi.JSONRequestDeserializer):
     """Handles deserialization of specific controller method requests."""
@@ -386,6 +401,7 @@ class Config_setDeserializer(wsgi.JSONRequestDeserializer):
 
     def cluster_config_set_progress(self, request):
         return self._deserialize(request)
+
 
 class Config_setSerializer(wsgi.JSONResponseSerializer):
     """Handles serialization of specific controller method responses."""
@@ -426,9 +442,9 @@ class Config_setSerializer(wsgi.JSONResponseSerializer):
         response.body = self.to_json(dict(config_set=result))
         return response
 
+
 def create_resource():
     """config_sets resource factory method"""
     deserializer = Config_setDeserializer()
     serializer = Config_setSerializer()
     return wsgi.Resource(Controller(), deserializer, serializer)
-

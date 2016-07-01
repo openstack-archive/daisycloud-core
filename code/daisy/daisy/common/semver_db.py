@@ -25,6 +25,7 @@ _ = i18n._
 
 
 class DBVersion(object):
+
     def __init__(self, components_long, prerelease, build):
         """
         Creates a DBVersion object out of 3 component fields. This initializer
@@ -54,8 +55,8 @@ class DBVersion(object):
                 other.version == self.version)
 
     def __ne__(self, other):
-        return (not isinstance(other, DBVersion)
-                or self.version != other.version)
+        return (not isinstance(other, DBVersion) or
+                self.version != other.version)
 
     def __composite_values__(self):
         long_version = _version_to_long(self.version)

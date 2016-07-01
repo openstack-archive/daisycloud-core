@@ -138,8 +138,8 @@ class Gateway(object):
         image_repo = self.get_repo(context)
         image_factory = self.get_image_factory(context)
         return daisy.domain.TaskExecutorFactory(task_repo,
-                                                 image_repo,
-                                                 image_factory)
+                                                image_repo,
+                                                image_factory)
 
     def get_metadef_namespace_factory(self, context):
         ns_factory = daisy.domain.MetadefNamespaceFactory()

@@ -24,14 +24,7 @@ mongodb_vip = Column('mongodb_vip', String(255))
 
 def upgrade(migrate_engine):
     meta.bind = migrate_engine
-
-
     roles = Table('roles', meta, autoload=True)
     roles.create_column(db_vip)
     roles.create_column(glance_vip)
     roles.create_column(mongodb_vip)
-
-
-
-    
-

@@ -121,7 +121,7 @@ class SemVerString(String):
 
         super(SemVerString,
               self).__init__(validators=[(validate,
-                                         "Invalid semver string")],
+                                          "Invalid semver string")],
                              **kwargs)
 
 
@@ -436,7 +436,7 @@ class ArtifactReference(declarative.RelationDefinition):
                 if artifact.type_name not in type_names:
                     return False
                 if (type_version is not None and
-                   artifact.type_version != type_version):
+                        artifact.type_version != type_version):
                     return False
                 return True
 
@@ -477,6 +477,7 @@ class ArtifactReferenceList(declarative.ListAttributeDefinition,
 
 class Blob(object):
     """A Binary object being part of the Artifact"""
+
     def __init__(self, size=0, locations=None, checksum=None, item_key=None):
         """Initializes a new Binary Object for an Artifact
 

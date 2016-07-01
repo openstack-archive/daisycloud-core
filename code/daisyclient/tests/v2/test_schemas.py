@@ -65,6 +65,7 @@ def compare_json_patches(a, b):
 
 
 class TestSchemaProperty(testtools.TestCase):
+
     def test_property_minimum(self):
         prop = schemas.SchemaProperty('size')
         self.assertEqual('size', prop.name)
@@ -76,6 +77,7 @@ class TestSchemaProperty(testtools.TestCase):
 
 
 class TestSchema(testtools.TestCase):
+
     def test_schema_minimum(self):
         raw_schema = {'name': 'Country', 'properties': {}}
         schema = schemas.Schema(raw_schema)
@@ -95,6 +97,7 @@ class TestSchema(testtools.TestCase):
 
 
 class TestController(testtools.TestCase):
+
     def setUp(self):
         super(TestController, self).setUp()
         self.api = utils.FakeAPI(fixtures)
@@ -108,6 +111,7 @@ class TestController(testtools.TestCase):
 
 
 class TestSchemaBasedModel(testtools.TestCase):
+
     def setUp(self):
         super(TestSchemaBasedModel, self).setUp()
         self.model = warlock.model_factory(_SCHEMA.raw(),

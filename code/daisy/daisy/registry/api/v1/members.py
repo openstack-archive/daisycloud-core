@@ -30,6 +30,7 @@ _LW = i18n._LW
 
 
 class Controller(object):
+
     def __init__(self):
         self.db_api = daisy.db.get_api()
 
@@ -47,11 +48,12 @@ class Controller(object):
             # If it's private and doesn't belong to them, don't let on
             # that it exists
             msg = _LW("Access denied to cluster %(id)s but returning"
-                     " 'not found'") % {'id': cluster_id}
+                      " 'not found'") % {'id': cluster_id}
             LOG.warn(msg)
             raise webob.exc.HTTPNotFound()
 
-        members = self.db_api.cluster_host_member_find(req.context, cluster_id=cluster_id, host_id=host_id)
+        members = self.db_api.cluster_host_member_find(
+            req.context, cluster_id=cluster_id, host_id=host_id)
         msg = "Returning member list for cluster %(id)s" % {'id': cluster_id}
         LOG.debug(msg)
         return dict(members=make_member_list(members,
@@ -302,7 +304,7 @@ class Controller(object):
 
         # Make sure the cluster exists
         try:
-            cluster = self.db_api.cluster_get(req.context, cluster_id)
+            self.db_api.cluster_get(req.context, cluster_id)
         except exception.NotFound:
             msg = _("Project %(id)s not found") % {'id': cluster_id}
             LOG.warn(msg)
@@ -314,10 +316,10 @@ class Controller(object):
                       " 'not found'") % {'id': cluster_id}
             LOG.warn(msg)
             raise webob.exc.HTTPNotFound()
-            
+
         # Make sure the host exists
         try:
-            host = self.db_api.host_get(req.context, host_id)
+            self.db_api.host_get(req.context, host_id)
         except exception.NotFound:
             msg = _("Host %(id)s not found") % {'id': host_id}
             LOG.warn(msg)
@@ -329,20 +331,22 @@ class Controller(object):
                       " 'not found'") % {'id': host_id}
             LOG.warn(msg)
             raise webob.exc.HTTPNotFound()
-           
+
         # Look up an existing membership...
         members = self.db_api.cluster_host_member_find(req.context,
-                                                cluster_id=cluster_id,
-                                                host_id=host_id)
+                                                       cluster_id=cluster_id,
+                                                       host_id=host_id)
         if members:
-            msg = (_LI("Project %(cluster_id)s has host %(id)s membership already!") %
-               {'cluster_id': image_id,'host_id': host_id})
+            msg = (_LI("Project %(cluster_id)s has host %(host_id)s "
+                       "membership already!") %
+                   {'cluster_id': cluster_id, 'host_id': host_id})
         else:
             values = dict(cluster_id=cluster_id, host_id=host_id)
             self.db_api.cluster_host_member_create(req.context, values)
 
-        msg = (_LI("Successfully added a host %(host_id)s to cluster %(cluster_id)s") %
-               {'host_id':host_id,'cluster_id': cluster_id})
+        msg = (_LI("Successfully added a host %(host_id)s to cluster %("
+                   "cluster_id)s") %
+               {'host_id': host_id, 'cluster_id': cluster_id})
         LOG.info(msg)
         return webob.exc.HTTPNoContent()
 
@@ -353,7 +357,7 @@ class Controller(object):
         """
         # Make sure the cluster exists
         try:
-            cluster = self.db_api.cluster_get(req.context, cluster_id)
+            self.db_api.cluster_get(req.context, cluster_id)
         except exception.NotFound:
             msg = _("Project %(id)s not found") % {'id': cluster_id}
             LOG.warn(msg)
@@ -365,10 +369,10 @@ class Controller(object):
                       " 'not found'") % {'id': cluster_id}
             LOG.warn(msg)
             raise webob.exc.HTTPNotFound()
-            
+
         # Make sure the host exists
         try:
-            host = self.db_api.host_get(req.context, host_id)
+            self.db_api.host_get(req.context, host_id)
         except exception.NotFound:
             msg = _("Host %(id)s not found") % {'id': host_id}
             LOG.warn(msg)
@@ -383,10 +387,11 @@ class Controller(object):
 
         # Look up an existing membership
         members = self.db_api.cluster_host_member_find(req.context,
-                                                cluster_id=cluster_id,
-                                                host_id=host_id)
+                                                       cluster_id=cluster_id,
+                                                       host_id=host_id)
         if members:
-            self.db_api.cluster_host_member_delete(req.context, members[0]['id'])
+            self.db_api.cluster_host_member_delete(
+                req.context, members[0]['id'])
         else:
             msg = ("%(host_id)s is not a member of cluster %(cluster_id)s" %
                    {'host_id': host_id, 'cluster_id': cluster_id})
@@ -395,11 +400,12 @@ class Controller(object):
             raise webob.exc.HTTPNotFound(explanation=msg)
 
         # Make an appropriate result
-        msg = (_LI("Successfully deleted a host %(host_id)s from cluster %(cluster_id)s") %
+        msg = (_LI("Successfully deleted a host %(host_id)s from cluster %("
+                   "cluster_id)s") %
                {'host_id': host_id, 'cluster_id': cluster_id})
         LOG.info(msg)
         return webob.exc.HTTPNoContent()
-        
+
     def default(self, req, *args, **kwargs):
         """This will cover the missing 'show' and 'create' actions"""
         LOG.debug("The method %s is not allowed for this resource" %
@@ -412,14 +418,16 @@ class Controller(object):
         Retrieves clusters shared with the given host.
         """
         try:
-            members = self.db_api.cluster_host_member_find(req.context, host_id=host_id)
+            members = self.db_api.cluster_host_member_find(
+                req.context, host_id=host_id)
         except exception.NotFound:
             msg = _LW("Host %(id)s not found") % {'id': host_id}
             LOG.warn(msg)
             msg = _("Membership could not be found.")
             raise webob.exc.HTTPBadRequest(explanation=msg)
 
-        msg = "Returning list of clusters shared with host %(id)s" % {'id': host_id}
+        msg = "Returning list of clusters shared with host %(id)s" % {
+            'id': host_id}
         LOG.debug(msg)
         return dict(multi_clusters=make_member_list(members,
                                                     cluster_id='cluster_id'))

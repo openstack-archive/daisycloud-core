@@ -905,8 +905,9 @@ class Controller(controller.BaseController):
             # Once an image is 'active' only an admin can
             # modify certain core metadata keys
             for key in ACTIVE_IMMUTABLE:
-                if (orig_status == 'active' and image_meta.get(key) is not None
-                        and image_meta.get(key) != orig_image_meta.get(key)):
+                if (orig_status == 'active' and
+                        image_meta.get(key) is not None and
+                        image_meta.get(key) != orig_image_meta.get(key)):
                     msg = _("Forbidden to modify '%s' of active image.") % key
                     raise HTTPForbidden(explanation=msg,
                                         request=req,

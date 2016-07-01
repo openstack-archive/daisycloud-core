@@ -21,6 +21,8 @@ from django.conf.urls import patterns
 from django.conf.urls import url
 
 from openstack_dashboard.dashboards.environment.cluster import views
+from openstack_dashboard.dashboards.environment.cluster import net_plane
+from openstack_dashboard.dashboards.environment.cluster import role
 from openstack_dashboard.dashboards.environment.cluster import create_cluster
 from openstack_dashboard.dashboards.environment.cluster import modify_cluster
 
@@ -37,23 +39,27 @@ urlpatterns = patterns(
         name='modify'),
     url(CLUSTER % 'overview', views.ClusterView.as_view(), name='overview'),
     url(CLUSTER % 'upgrade', views.upgrade_cluster, name='upgrade'),
-    url(CLUSTER % 'update_badge', views.update_badge, name='update_badge'),
+    url(CLUSTER % 'update_deploy_info',
+        views.update_deploy_info,
+        name='update_deploy_info'),
     url(CLUSTER % 'uninstall', views.uninstall_version, name='uninstall'),
-    
     url(r'get_cluster/$', modify_cluster.GetCluster, name='get_cluster'),
     url(r'get_clusters/$', modify_cluster.GetClusters, name='get_clusters'),
-    url(r'modify_cluster/$', modify_cluster.ModifyCluster,
-        name='modify_cluster'),
-    url(r'get_ha_role_info/$', modify_cluster.get_ha_role_info,
+    url(CLUSTER % 'modify_submit/$', modify_cluster.modify_submit,
+        name='modify_submit'),
+    url(CLUSTER % 'set_cluster_auto_scale/$',
+        modify_cluster.set_cluster_auto_scale,
+        name='set_cluster_auto_scale'),
+    url(r'get_ha_role_info/$', role.get_ha_role_info,
         name='get_ha_role_info'),
-    url(r'set_ha_role_info/$', modify_cluster.set_ha_role_info,
-        name='set_ha_role_info'),
-    url(r'get_role_info/$', modify_cluster.get_role_info,
+    url(r'get_computer_role_info/$', role.get_computer_role_info,
+        name='get_computer_role_info'),
+    url(r'get_role_info/$', role.get_role_info,
         name='get_role_info'),
-    url(r'set_role_info/$', modify_cluster.set_role_info,
-        name='set_role_info'),
-
-    url(CLUSTER_HOST % 'generate_host_template',
-        views.GenerateHostTemplateView.as_view(),
-        name='generate_host_template'),
+    url(CLUSTER % 'add_net_plane/',
+        net_plane.add_net_plane,
+        name='add_net_plane'),
+    url(CLUSTER % 'delete_net_plane',
+        net_plane.delete_net_plane,
+        name='delete_net_plane'),
 )

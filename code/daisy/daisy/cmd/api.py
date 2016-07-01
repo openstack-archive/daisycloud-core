@@ -27,6 +27,17 @@ import sys
 import eventlet
 
 from daisy.common import utils
+import glance_store
+from oslo_config import cfg
+from oslo_log import log as logging
+import osprofiler.notifier
+import osprofiler.web
+
+from daisy.common import config
+from daisy.common import exception
+from daisy.common import wsgi
+from daisy import notifier
+from daisy.openstack.common import systemd
 
 # Monkey patch socket, time, select, threads
 eventlet.patcher.monkey_patch(all=False, socket=True, time=True,
@@ -40,17 +51,6 @@ possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
 if os.path.exists(os.path.join(possible_topdir, 'glance', '__init__.py')):
     sys.path.insert(0, possible_topdir)
 
-import glance_store
-from oslo_config import cfg
-from oslo_log import log as logging
-import osprofiler.notifier
-import osprofiler.web
-
-from daisy.common import config
-from daisy.common import exception
-from daisy.common import wsgi
-from daisy import notifier
-from daisy.openstack.common import systemd
 
 CONF = cfg.CONF
 CONF.import_group("profiler", "daisy.common.wsgi")

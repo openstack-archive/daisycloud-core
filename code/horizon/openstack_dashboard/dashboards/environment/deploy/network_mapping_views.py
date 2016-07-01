@@ -3,36 +3,35 @@
 #   Daisy Tools Dashboard
 #
 
+import json
+
 from django import http
 from django.http import HttpResponse
-from django.views import generic
 from django.views.decorators.csrf import csrf_exempt
-from django import shortcuts
 from django import template
-from django.template import defaultfilters as filters
 from django.core.urlresolvers import reverse
-from django.core.urlresolvers import reverse_lazy
 from django.utils.translation import ugettext_lazy as _
-
-from daisyclient.v1 import client as daisy_client
-
-import json
 
 from horizon import messages
 from horizon import exceptions
-from horizon import forms
 from horizon import tables
 
 from openstack_dashboard import api
-
+from openstack_dashboard.dashboards.environment.cluster import role \
+    as cluster_role
 from openstack_dashboard.dashboards.environment.deploy import actions
 from openstack_dashboard.dashboards.environment.deploy import wizard_cache
+from openstack_dashboard.dashboards.environment.deploy import deploy_rule_lib
 
 import logging
 LOG = logging.getLogger(__name__)
 
 
-def get_host_network_url(interface):
+def get_host_network_url(net_planes, interface):
+    for net_plane in net_planes:
+        for assigned_network in interface["assigned_networks"]:
+            if net_plane.name == assigned_network["name"]:
+                assigned_network["network_type"] = net_plane.network_type
     template_name = 'environment/deploy/hosts_net_work.html'
     context = {
         "interface": interface
@@ -58,6 +57,7 @@ def get_host_table_dynamic_heads(hosts):
 def get_host_list(request, cluster_id):
     host_list = []
     try:
+        net_planes = api.daisy.network_list(request, cluster_id)
         cluster = api.daisy.cluster_get(request, cluster_id)
         if not hasattr(cluster, 'nodes'):
             return host_list
@@ -73,24 +73,29 @@ def get_host_list(request, cluster_id):
                 if hasattr(host, "role"):
                     if len(host.role):
                         host.role.sort()
-                        host_info["roles"] = host.role
+                        host_info["roles"] = cluster_role.\
+                            get_roles_detail(request, host.role, cluster_id)
                 bond_names = []
-                bond_interfaces = [i for i in host.interfaces if i['type'] == 'bond']
+                bond_interfaces = [i for i in host.interfaces
+                                   if i['type'] == 'bond']
                 for interface in bond_interfaces:
                     bond_names.append(interface["slave1"])
                     bond_names.append(interface["slave2"])
                 for interface in host.interfaces:
+                    interface_value = get_host_network_url(net_planes,
+                                                           interface)
                     if interface['type'] == 'ether':
                         if interface["name"] not in bond_names:
                             host_info["interfaces"].append({
                                 "key": interface["name"],
-                                "value": get_host_network_url(interface)
+                                "value": interface_value
                             })
                     else:
-                        host_info["interfaces"].append({
-                            "key": interface["name"],
-                            "value": get_host_network_url(interface)
-                        })
+                        if interface['type'] != "vlan":
+                            host_info["interfaces"].append({
+                                "key": interface["name"],
+                                "value": interface_value
+                            })
                 host_info["interfaces"].sort()
                 host_list.append(host_info)
     except Exception:
@@ -110,7 +115,7 @@ class ToggleMappingAction(actions.OperateRegionAction):
 
 
 def get_host_role_url(host):
-    template_name = 'environment/overview/host_roles.html'
+    template_name = 'environment/host/host_roles.html'
     context = {
         "host_id": host["host_id"],
         "roles": host["roles"],
@@ -121,11 +126,14 @@ def get_host_role_url(host):
 class NetworkMappingTable(tables.DataTable):
     host_name = tables.Column("name",
                               verbose_name=_("Name"))
-    roles = tables.Column(get_host_role_url,
-                          verbose_name=_('Roles'))
+    roles = tables.Column(cluster_role.get_role_html_detail,
+                          verbose_name=_("Roles"))
 
     def __init__(self, request, data=None, needs_form_wrapper=None, **kwargs):
-        super(NetworkMappingTable, self).__init__(request, data, needs_form_wrapper, **kwargs)
+        super(NetworkMappingTable, self).__init__(request,
+                                                  data,
+                                                  needs_form_wrapper,
+                                                  **kwargs)
         try:
             hosts = get_host_list(request, kwargs["cluster_id"])
             dynamic_heads = get_host_table_dynamic_heads(hosts)
@@ -147,7 +155,7 @@ class NetworkMappingTable(tables.DataTable):
     class Meta(object):
         name = 'network_mapping'
         verbose_name = _("Network Mapping")
-        multi_select = True   
+        multi_select = True
         table_actions = (NetWorkMappingFilterAction, ToggleMappingAction)
 
 
@@ -174,14 +182,16 @@ class NetworkMappingView(tables.DataTableView):
     def get_net_plane(self):
         network_data = []
         try:
+            filter_net_planes = ["DEPLOYMENT", "EXTERNAL"]
             network_list = api.daisy.network_list(self.request,
                                                   self.kwargs["cluster_id"])
             for network in network_list:
-                network_info = {
-                    "id": network.id,
-                    "name": network.name,
-                    "type": network.network_type}
-                network_data.append(network_info)
+                if network.network_type not in filter_net_planes:
+                    network_info = {
+                        "id": network.id,
+                        "name": network.name,
+                        "type": network.network_type}
+                    network_data.append(network_info)
             network_data.sort(key=lambda x: x['name'])
         except Exception:
             exceptions.handle(self.request,
@@ -202,21 +212,14 @@ class NetworkMappingView(tables.DataTableView):
         context['clusters'] = cluster_lists
         context['networks'] = self.get_net_plane()
 
-        c = self.get_current_cluster(context['clusters'], context["cluster_id"])
+        c = self.get_current_cluster(context['clusters'],
+                                     context["cluster_id"])
         if c:
             context["current_cluster"] = c.name
             context["segment_type"] = c.segmentation_type
-
-            if context["segment_type"] == 'vlan' or context["segment_type"] == 'flat':
-                context['networks']  = [n 
-                    for n in context['networks']  if n['name'] != "VXLAN"]
-            if context["segment_type"] == 'vxlan':
-                context['networks']  = [n 
-                    for n in context['networks']  if n['name'] != "PRIVATE"]
-
+            context['networks'] = [n for n in context['networks']]
         else:
-            context["current_cluster"] = ""  
-
+            context["current_cluster"] = ""
 
         wizard_cache.set_cache(context['cluster_id'], "networkmapping", 1)
         context['wizard'] = wizard_cache.get_cache(context['cluster_id'])
@@ -226,15 +229,16 @@ class NetworkMappingView(tables.DataTableView):
 
 def clean_none_attr(dict):
     for key in dict.keys():
-        if dict[key] == None:
+        if dict[key] is None:
             del dict[key]
-    if dict.has_key('created_at'):
+
+    if 'created_at' in dict:
         del dict['created_at']
 
-    if dict.has_key('updated_at'):
+    if 'updated_at' in dict:
         del dict['updated_at']
 
-    if dict.has_key('id'):
+    if 'id' in dict:
         del dict['id']
 
 
@@ -247,32 +251,34 @@ def netplane_in_list(name, net_list):
 
 
 @csrf_exempt
-def update_interfaces(interfaces_old, eth_ports):
-    ether_interfaces = [i for i in interfaces_old if i['type'] == 'ether']
-    bond_interfaces = [i for i in interfaces_old if i['type'] == 'bond']
+def update_interface_net_plane(interfaces_old, eth_ports):
+    interfaces = [i for i in interfaces_old]
 
-    for ether in ether_interfaces:
-        clean_none_attr(ether)
-        for eth_port in eth_ports:
-            if ether['name'] == eth_port['name']:
-                ether['assigned_networks'] = eth_port['assigned_networks']
-                if eth_port.get("vswitch_type"):
-                    ether["vswitch_type"] = eth_port['vswitch_type']
-                break
+    # clean none attr
+    for interface in interfaces:
+        clean_none_attr(interface)
+        if interface["type"] == 'bond':
+            interface["slaves"] = [interface['slave1'], interface['slave2']]
+            del interface['slave1']
+            del interface['slave2']
 
-    for bond in bond_interfaces:
-        clean_none_attr(bond)
+    # update new net plane
+    for interface in interfaces:
         for eth_port in eth_ports:
-            if bond['name'] == eth_port['name']:
-                bond['assigned_networks'] = eth_port['assigned_networks']
-                if eth_port.get("vswitch_type"):
-                    bond["vswitch_type"] = eth_port['vswitch_type']                
-                bond["slaves"] = [bond['slave1'], bond['slave2']]
-                del bond['slave1']
-                del bond['slave2']
-                break
-    ether_interfaces.extend(bond_interfaces)
-    return ether_interfaces
+            if interface["name"] != eth_port["name"]:
+                continue
+            new_net_planes = []
+            for in_assigned_network in eth_port['assigned_networks']:
+                new_net_plane = {"name": in_assigned_network["name"]}
+                for assigned_network in interface["assigned_networks"]:
+                    if in_assigned_network["name"] == \
+                            assigned_network["name"]:
+                        new_net_plane["ip"] = assigned_network["ip"]
+                new_net_planes.append(new_net_plane)
+            interface["assigned_networks"] = new_net_planes
+            interface["vswitch_type"] = eth_port["vswitch_type"]
+
+    return interfaces
 
 
 @csrf_exempt
@@ -287,8 +293,18 @@ def assign_net_work(request, cluster_id):
             host = api.daisy.host_get(request, host_id)
             host_dict = host.to_dict()
             host_dict['cluster'] = cluster_id
-            host_interfaces = update_interfaces(host_dict["interfaces"], eth_ports)
-            api.daisy.host_update(request, host_id, cluster=cluster_id, interfaces=host_interfaces)
+            host_interfaces = \
+                update_interface_net_plane(host_dict["interfaces"], eth_ports)
+            ha_role = deploy_rule_lib.get_ha_role(request, cluster_id)
+            host_dict["interfaces"] = host_interfaces
+            network_list = api.daisy.network_list(request, cluster_id)
+            deploy_rule_lib.host_net_plane_rule(ha_role,
+                                                host_dict,
+                                                network_list)
+            api.daisy.host_update(request,
+                                  host_id,
+                                  cluster=cluster_id,
+                                  interfaces=host_interfaces)
     except Exception, e:
         messages.error(request, e)
         response.status_code = 500
@@ -304,4 +320,20 @@ def net_mapping_next(request, cluster_id):
     url = reverse('horizon:environment:deploy:hosts_config',
                   args=[cluster_id])
     response = http.HttpResponseRedirect(url)
+    return response
+
+
+@csrf_exempt
+def net_mapping_check(request, cluster_id):
+    response = HttpResponse()
+    try:
+        rule_context = deploy_rule_lib.get_rule_context(request, cluster_id)
+        deploy_rule_lib.hosts_net_plane_rule(rule_context)
+    except Exception, e:
+        LOG.info("net_mapping_check failed!%s", e)
+        messages.error(request, e)
+        exceptions.handle(request, e)
+        response.status_code = 500
+        return response
+    response.status_code = 200
     return response

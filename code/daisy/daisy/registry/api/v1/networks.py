@@ -44,7 +44,7 @@ DISPLAY_FIELDS_IN_INDEX = ['id', 'name', 'size',
 
 SUPPORTED_FILTERS = ['name', 'status', 'container_format', 'disk_format',
                      'min_ram', 'min_disk', 'size_min', 'size_max',
-                     'changes-since', 'protected']
+                     'changes-since', 'protected', 'type']
 
 SUPPORTED_SORT_KEYS = ('name', 'status', 'container_format', 'disk_format',
                        'size', 'id', 'created_at', 'updated_at')
@@ -59,11 +59,12 @@ class Controller(object):
     def __init__(self):
         self.db_api = daisy.db.get_api()
 
-    def _get_networks(self, context,cluster_id, filters=None, **params):
+    def _get_networks(self, context, cluster_id, filters=None, **params):
         """Get networks, wrapping in exception if necessary."""
         try:
-            return self.db_api.network_get_all(context, cluster_id,filters=filters,
-                                             **params)
+            return self.db_api.network_get_all(context, cluster_id,
+                                               filters=filters,
+                                               **params)
         except exception.NotFound:
             LOG.warn(_LW("Invalid marker. Network %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
@@ -79,22 +80,22 @@ class Controller(object):
             raise
 
     def update_phyname_of_network(self, req, body):
-         try:
+        try:
             self.db_api.update_phyname_of_network(req.context, body)
             return {}
-         except exception.NotFound:
+        except exception.NotFound:
             raise exc.HTTPServerError(
-                explanation="Update database for phyname of network table failed!")
+                explanation="Update database for phyname of network "
+                            "table failed!")
 
     def get_all_networks(self, req):
         params = self._get_query_params(req)
         try:
-            networks = self.db_api.network_get_all(req.context,**params)
+            networks = self.db_api.network_get_all(req.context, **params)
         except Exception:
             raise exc.HTTPServerError(explanation="Get all networks failed")
 
         return networks
-
 
     def detail_network(self, req, id):
         """Return a filtered list of public, non-deleted networks in detail
@@ -108,7 +109,7 @@ class Controller(object):
         all network model fields.
         """
         params = self._get_query_params(req)
-        networks = self._get_networks(req.context, id ,**params)
+        networks = self._get_networks(req.context, id, **params)
 
         return dict(networks=networks)
 
@@ -129,7 +130,7 @@ class Controller(object):
         for key, value in params.items():
             if value is None:
                 del params[key]
-                
+
         return params
 
     def _get_filters(self, req):
@@ -245,7 +246,7 @@ class Controller(object):
                 which will include the newly-created network's internal id
                 in the 'id' field
         """
-        
+
         network_data = body["network"]
 
         network_id = network_data.get('id')
@@ -254,7 +255,7 @@ class Controller(object):
         # add network_id and role
         # if role
         # self.db_api.get_role(req.context,role)
-        
+
         if network_id and not utils.is_uuid_like(network_id):
             msg = _LI("Rejecting network creation request for invalid network "
                       "id '%(bad_id)s'") % {'bad_id': network_id}
@@ -264,7 +265,7 @@ class Controller(object):
 
         try:
             network_data = self.db_api.network_add(req.context, network_data)
-            #network_data = dict(network=make_image_dict(network_data))
+            # network_data = dict(network=make_image_dict(network_data))
             msg = (_LI("Successfully created node %s") %
                    network_data["id"])
             LOG.info(msg)
@@ -272,7 +273,7 @@ class Controller(object):
                 network_data = dict(network=network_data)
             return network_data
         except exception.Duplicate:
-            msg = _("node with identifier %s already exists!") % image_id
+            msg = _("node with identifier %s already exists!") % network_id
             LOG.warn(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
@@ -295,12 +296,15 @@ class Controller(object):
         success, the body contains the deleted image information as a mapping.
         """
         try:
-            deleted_network = self.db_api.network_destroy(req.context, network_id)
-            msg = _LI("Successfully deleted network %(network_id)s") % {'network_id': network_id}
+            deleted_network = self.db_api.network_destroy(
+                req.context, network_id)
+            msg = _LI("Successfully deleted network %(network_id)s") % {
+                'network_id': network_id}
             LOG.info(msg)
             return dict(network=deleted_network)
         except exception.ForbiddenPublicImage:
-            msg = _LI("Delete denied for public network %(network_id)s") % {'network_id': network_id}
+            msg = _LI("Delete denied for public network %(network_id)s") % {
+                'network_id': network_id}
             LOG.info(msg)
             raise exc.HTTPForbidden()
         except exception.Forbidden:
@@ -311,7 +315,8 @@ class Controller(object):
             LOG.info(msg)
             return exc.HTTPNotFound()
         except exception.NotFound:
-            msg = _LI("Network %(network_id)s not found") % {'network_id': network_id}
+            msg = _LI("Network %(network_id)s not found") % {
+                'network_id': network_id}
             LOG.info(msg)
             return exc.HTTPNotFound()
         except Exception:
@@ -343,8 +348,6 @@ class Controller(object):
             network_data = dict(network=network_data)
         return network_data
 
-   
-        
     @utils.mutating
     def update_network(self, req, network_id, body):
         """Updates an existing network with the registry.
@@ -357,9 +360,11 @@ class Controller(object):
         """
         network_data = body['network']
         try:
-            updated_network = self.db_api.network_update(req.context, network_id, network_data)
+            updated_network = self.db_api.network_update(
+                req.context, network_id, network_data)
 
-            msg = _LI("Updating metadata for network %(network_id)s") % {'network_id': network_id}
+            msg = _LI("Updating metadata for network %(network_id)s") % {
+                'network_id': network_id}
             LOG.info(msg)
             if 'network' not in updated_network:
                 network_data = dict(network=updated_network)
@@ -370,17 +375,20 @@ class Controller(object):
             LOG.error(msg)
             return exc.HTTPBadRequest(msg)
         except exception.NotFound:
-            msg = _LI("Network %(network_id)s not found") % {'network_id': network_id}
+            msg = _LI("Network %(network_id)s not found") % {
+                'network_id': network_id}
             LOG.info(msg)
             raise exc.HTTPNotFound(body='Network not found',
                                    request=req,
                                    content_type='text/plain')
         except exception.ForbiddenPublicImage:
-            msg = _LI("Update denied for public network %(network_id)s") % {'network_id': network_id}
+            msg = _LI("Update denied for public network %(network_id)s") % {
+                'network_id': network_id}
             LOG.info(msg)
             raise exc.HTTPForbidden()
-        except exception.Forbidden:
-            raise
+        except exception.Forbidden as e:
+            LOG.info(e)
+            raise exc.HTTPForbidden(e)
         except exception.Conflict as e:
             LOG.info(utils.exception_to_str(e))
             raise exc.HTTPConflict(body='Network operation conflicts',
@@ -389,8 +397,7 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to update network %s") % network_id)
             raise
-            
-            
+
     @utils.mutating
     def update_cluster(self, req, id, body):
         """Updates an existing cluster with the registry.
@@ -403,7 +410,8 @@ class Controller(object):
         """
         cluster_data = body['cluster']
         try:
-            updated_cluster = self.db_api.cluster_update(req.context, id, cluster_data)
+            updated_cluster = self.db_api.cluster_update(
+                req.context, id, cluster_data)
 
             msg = _LI("Updating metadata for cluster %(id)s") % {'id': id}
             LOG.info(msg)
@@ -441,7 +449,7 @@ class Controller(object):
                                    content_type='text/plain')
         except Exception:
             LOG.exception(_LE("Unable to update cluster %s") % id)
-            raise            
+            raise
 
 
 def _limit_locations(image):
@@ -452,7 +460,8 @@ def _limit_locations(image):
         if loc['status'] == 'active':
             image['location'] = loc['url']
             break
-    
+
+
 def make_image_dict(image):
     """Create a dict representation of an image which we can use to
     serialize the image.
@@ -460,7 +469,7 @@ def make_image_dict(image):
 
     def _fetch_attrs(d, attrs):
         return dict([(a, d[a]) for a in attrs
-                    if a in d.keys()])
+                     if a in d.keys()])
 
     # TODO(sirp): should this be a dict, or a list of dicts?
     # A plain dict is more convenient, but list of dicts would provide
@@ -473,6 +482,7 @@ def make_image_dict(image):
     _limit_locations(image_dict)
 
     return image_dict
+
 
 def create_resource():
     """Images resource factory method."""

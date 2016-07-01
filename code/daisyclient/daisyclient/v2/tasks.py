@@ -28,6 +28,7 @@ SORT_KEY_VALUES = ('id', 'type', 'status')
 
 
 class Controller(object):
+
     def __init__(self, http_client, schema_client):
         self.http_client = http_client
         self.schema_client = schema_client
@@ -87,7 +88,7 @@ class Controller(object):
 
         url = '/v2/tasks?%s' % six.moves.urllib.parse.urlencode(filters)
         for task in paginate(url):
-            #NOTE(flwang): remove 'self' for now until we have an elegant
+            # NOTE(flwang): remove 'self' for now until we have an elegant
             # way to pass it into the model constructor without conflict
             task.pop('self', None)
             yield self.model(**task)
@@ -96,7 +97,7 @@ class Controller(object):
         """Get a task based on given task id."""
         url = '/v2/tasks/%s' % task_id
         resp, body = self.http_client.get(url)
-        #NOTE(flwang): remove 'self' for now until we have an elegant
+        # NOTE(flwang): remove 'self' for now until we have an elegant
         # way to pass it into the model constructor without conflict
         body.pop('self', None)
         return self.model(**body)
@@ -113,7 +114,7 @@ class Controller(object):
                 raise TypeError(unicode(e))
 
         resp, body = self.http_client.post(url, data=task)
-        #NOTE(flwang): remove 'self' for now until we have an elegant
+        # NOTE(flwang): remove 'self' for now until we have an elegant
         # way to pass it into the model constructor without conflict
         body.pop('self', None)
         return self.model(**body)

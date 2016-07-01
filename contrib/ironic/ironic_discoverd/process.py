@@ -75,21 +75,16 @@ def process(node_info):
         raise utils.Error(msg)
 
 
-def write_data_to_daisy(node_info, ipmi_addr, os_status=None):
+def write_data_to_daisy(node_info, ipmi_addr, os_status=None,hostname=None):
     daisy_client = utils.get_daisy_client()
-    daisy_data = format_node_info_for_daisy_client(node_info, ipmi_addr, os_status)
+    daisy_data = format_node_info_for_daisy_client(node_info, ipmi_addr, os_status,hostname)
     daisy_client.hosts.add(**daisy_data)
 
 
-def format_node_info_for_daisy_client(node_info, ipmi_addr, os_status):
-    unique_mac = None
+def format_node_info_for_daisy_client(node_info, ipmi_addr, os_status,hostname):
     interface_list = []
     interfaces = node_info.get('interfaces', {})
-    ip_count = 0
     for value in interfaces.values():
-        if value.get('ip', None):
-            unique_mac = value.get('mac')
-            ip_count += 1
         slaves = []
         if value.get("slaves"):
             slaves = value.get("slaves").split()
@@ -99,7 +94,6 @@ def format_node_info_for_daisy_client(node_info, ipmi_addr, os_status):
             'pci': value['pci'],
             "mac": value['mac'],
             "ip": value['ip'],
-            'is_deployment': 'False',
             'state': value['state'],
             'max_speed': value['max_speed'],
             'current_speed': value['current_speed'],
@@ -108,12 +102,9 @@ def format_node_info_for_daisy_client(node_info, ipmi_addr, os_status):
             'slaves': slaves
         }
         interface_list.append(interface)
-    if ip_count == 1:
-        for interface in interface_list:
-            if interface['ip']:
-                interface['is_deployment'] = 'True'
 
-    unique_mac = ''.join(unique_mac.split(":"))
+    min_mac = find_min_mac_in_node_info(node_info)
+    unique_mac = ''.join(min_mac.split(":"))
     
     daisy_data = {'description': 'default',
                   'name': unique_mac,
@@ -124,6 +115,7 @@ def format_node_info_for_daisy_client(node_info, ipmi_addr, os_status):
 
     if os_status:
         daisy_data['os_status'] = 'active'
+        daisy_data['name'] = hostname
     return daisy_data
 
 def write_data_to_ironic(node_info):
@@ -136,23 +128,24 @@ def write_data_to_ironic(node_info):
     uuid = node_info['system'].get('uuid')
     if uuid:
         LOG.debug("find uuid, parse node_info, node_uuid: %s", uuid)
-        mac = find_mac_in_node_info(node_info)
+        mac = find_min_mac_in_node_info(node_info)
         patch = format_node_info_for_ironic(node_info)
         try:
             ironic.physical_node.update(uuid, mac, patch)
         except Exception as ex:
             LOG.warning('%s:update ironic db failed.', ex)
-    else :
+    else:
         LOG.debug("Don't find uuid.")
 
-def find_mac_in_node_info(node_info):
+def find_min_mac_in_node_info(node_info):
     interfaces_dict = node_info['interfaces']
+    mac_list = []
     for value in interfaces_dict.values():
-        if value['ip'] != '':
-            mac = value['mac']
-            ip = value['ip']
-    LOG.debug('dhcp ip=%s, mac=%s', ip, mac)
-    return mac
+        if value['mac'] != '' and value['type'] == 'ether':
+            mac_list.append(value['mac'])
+    min_mac = min(mac_list)
+    LOG.debug('min mac=%s', min_mac)
+    return min_mac
 
 def format_node_info_for_ironic(node_info):
     patch = []
@@ -162,6 +155,7 @@ def format_node_info_for_ironic(node_info):
 
         for key, value in property_dict.items():
             data_dict = {'op':'add'}
+            key = key.replace(':', '-').replace('.', '-')
             if property == 'disk':
                 data_dict['path'] = '/'+property+'s'+'/'+key
             else:

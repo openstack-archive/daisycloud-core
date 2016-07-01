@@ -3,25 +3,20 @@
 #   Daisy Tools Dashboard
 #
 
+import json
+
 from django.http import HttpResponse
 from django.views import generic
 from django.views.decorators.csrf import csrf_exempt
-from django import shortcuts
-from django import template
-from django.core.urlresolvers import reverse_lazy
 from django.utils.translation import ugettext_lazy as _
-
-from daisyclient.v1 import client as daisy_client
-
-import json
 
 from horizon import messages
 from horizon import exceptions
 from horizon import forms
-from horizon import tables
 
 from openstack_dashboard import api
 from openstack_dashboard.dashboards.environment.deploy import wizard_cache
+from openstack_dashboard.dashboards.environment.deploy import deploy_rule_lib
 
 import logging
 LOG = logging.getLogger(__name__)
@@ -37,11 +32,11 @@ def format_deploy_info(host_list):
         if not hasattr(host, 'role_status'):
             host.role_status = ''
         if not hasattr(host, 'role_progress'):
-            host.role_progress = 0  
+            host.role_progress = 0
 
-        if host.os_progress == None:
+        if host.os_progress is None:
             host.os_progress = 0
-        if host.messages == None:
+        if host.messages is None:
             host.messages = " "
         if host.role_status == "active" and host.os_status == "active":
             success_host_info = {"name": host.name,
@@ -51,7 +46,8 @@ def format_deploy_info(host_list):
                                  "role_progress": host.role_progress
                                  }
             success_host_status_list.append(success_host_info)
-        elif host.role_status == "installing " or host.os_status == "installing ":
+        elif host.role_status == "installing " \
+                or host.os_status == "installing ":
             on_going_host_info = {"name": host.name,
                                   "os_status": host.os_status,
                                   "os_progress": host.os_progress,
@@ -67,7 +63,7 @@ def format_deploy_info(host_list):
                                 "role_progress": host.role_progress,
                                 "messages": host.messages}
             failed_host_status_list.append(failed_host_info)
-            
+
     data.append({
         "host_status": "deploying",
         "count": len(on_going_host_status_list),
@@ -87,7 +83,7 @@ def format_deploy_info(host_list):
 
 
 class AddHostForm(forms.SelfHandlingForm):
-    name = forms.CharField(label=_("Name"), 
+    name = forms.CharField(label=_("Name"),
                            max_length=255)
     description = forms.CharField(label=_("Description"),
                                   widget=forms.Textarea,
@@ -105,7 +101,7 @@ class AddHostForm(forms.SelfHandlingForm):
 
 class AddHostView(forms.ModalFormView):
     form_class = AddHostForm
-    template_name = "environment/deploy/addhost.html"    
+    template_name = "environment/deploy/addhost.html"
 
     def get_context_data(self, **kwargs):
         context = super(AddHostView, self).get_context_data(**kwargs)
@@ -119,7 +115,7 @@ class AddHostView(forms.ModalFormView):
 
 class DeployView(generic.TemplateView):
     template_name = "environment/deploy/index.html"
-    
+
     def get_data(self, request, cluster_id):
         try:
             qp = {"cluster_id": cluster_id}
@@ -160,7 +156,9 @@ def get_deploy_info_time(request):
         qp = {"cluster_id": cluster_info["cluster_id"]}
         host_list = api.daisy.host_list(request, filters=qp)
         deploy_info = format_deploy_info(host_list)
-        response = HttpResponse(json.dumps(deploy_info), content_type="application/json")
+        response = \
+            HttpResponse(json.dumps(deploy_info),
+                         content_type="application/json")
         response.status_code = 200
         return response
     except Exception:
@@ -171,37 +169,45 @@ def get_deploy_info_time(request):
 
 
 def do_deploy(request, cluster_id):
+    response = HttpResponse()
     try:
+        deploy_rule_lib.deploy_rule_func(request, cluster_id)
         api.daisy.install_cluster(request, cluster_id)
         response = HttpResponse()
         response.status_code = 200
         wizard_cache.clean_cache(cluster_id)
         return response
     except Exception as e:
-        response = HttpResponse()
-        response.status_code = 200
-        return response            
+        messages.error(request, e)
+        exceptions.handle(request, e)
+        response.status_code = 500
+        return response
+    response.status_code = 200
+    return response
 
 
 class HostsView(generic.TemplateView):
     template_name = "environment/deploy/hosts.html"
 
     def get_data(self):
-        #get all roles
+        # get all roles
         try:
             roles = api.daisy.role_list(self.request)
         except:
             roles = []
             exceptions.handle(self.request, "Unable to retrieve roles!")
 
-        #get allocated nodes
+        # get allocated nodes
         try:
-            cluster_hosts = api.daisy.cluster_host_list(self.request, self.kwargs["cluster_id"])
+            cluster_hosts = \
+                api.daisy.cluster_host_list(self.request,
+                                            self.kwargs["cluster_id"])
             host_ids = [h.id for h in cluster_hosts]
         except:
-            exceptions.handle(self.request, "Unable to retrieve hosts in cluster!")
+            exceptions.handle(self.request,
+                              "Unable to retrieve hosts in cluster!")
 
-        #get aviliable nodes
+        # get aviliable nodes
         try:
             hosts = api.daisy.host_list(self.request)
 
@@ -209,12 +215,12 @@ class HostsView(generic.TemplateView):
             nodes_allocated = []
             for node in hosts:
                 if node.status == 'init':
-                    nodes_unallocated.append(node)     
+                    nodes_unallocated.append(node)
                 else:
                     if node.id in host_ids:
                         nodes_allocated.append(node)
         except:
-            nodes_unallocated = []    
+            nodes_unallocated = []
             nodes_allocated = []
             exceptions.handle(self.request, "Unable to retrieve hosts!")
 
@@ -222,35 +228,39 @@ class HostsView(generic.TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(HostsView, self).get_context_data(**kwargs)
-        
+
         roles, nodes_unallocated, nodes_allocated = self.get_data()
 
         cluster_id = self.kwargs["cluster_id"]
 
-        context['roles'] = [role for role in roles if role.cluster_id == cluster_id]
+        context['roles'] = \
+            [role for role in roles if role.cluster_id == cluster_id]
 
-        context["nodes_allocated"] = nodes_allocated;
-        context["nodes_unallocated"] = nodes_unallocated;
+        context["nodes_allocated"] = nodes_allocated
+        context["nodes_unallocated"] = nodes_unallocated
 
         context['cluster_id'] = cluster_id
         clusters = api.daisy.cluster_list(self.request)
         context["cluster_name"] = ""
-        
+
         for c in clusters:
             if c.id == cluster_id:
                 context["cluster_name"] = c.name
 
-        pre_url = self.request.META.get('HTTP_REFERER',"/")
-        LOG.warning("################### pre_url = %s ###########################" % pre_url)
+        pre_url = self.request.META.get('HTTP_REFERER', "/")
+        LOG.warning("################### pre_url = "
+                    "%s ###########################" % pre_url)
         if "network" in pre_url:
-            context["pre_url"] = "/dashboard/environment/network/" + cluster_id + "/routes"
+            context["pre_url"] =\
+                "/dashboard/environment/network/" + cluster_id + "/routes"
         else:
-            context["pre_url"] = "/dashboard/environment/cluster/" + cluster_id + "/overview"
+            context["pre_url"] = \
+                "/dashboard/environment/cluster/" + cluster_id + "/overview"
 
         return context
 
 
-def allocate_host(request, cluster_id):    
+def allocate_host(request, cluster_id):
     response = HttpResponse()
 
     data = json.loads(request.body)
@@ -260,11 +270,14 @@ def allocate_host(request, cluster_id):
 
     try:
         for host_id in hosts:
-            api.daisy.host_update(request, host_id, cluster=cluster_id, role=roles)
-            
+            api.daisy.host_update(request,
+                                  host_id,
+                                  cluster=cluster_id,
+                                  role=roles)
+
     except:
         exceptions.handle(request, "add host to cluster failed!")
-        response.status_code = 500        
+        response.status_code = 500
         return response
 
     wizard_cache.set_cache(cluster_id, "selecthosts", 2)
@@ -272,8 +285,8 @@ def allocate_host(request, cluster_id):
     return response
 
 
-def remove_host(request, cluster_id):  
-    response = HttpResponse()  
+def remove_host(request, cluster_id):
+    response = HttpResponse()
 
     data = json.loads(request.body)
 
@@ -284,15 +297,15 @@ def remove_host(request, cluster_id):
             api.daisy.delete_host_from_cluster(request, cluster_id, host_id)
     except:
         exceptions.handle(request, "delete host from cluster failed!")
-        response.status_code = 500        
+        response.status_code = 500
         return response
 
     response.status_code = 200
-    return response        
+    return response
 
 
 def update_host_nics(request, cluster_id, host_id):
-    response = HttpResponse()  
+    response = HttpResponse()
 
     data = json.loads(request.body)
 
@@ -300,11 +313,14 @@ def update_host_nics(request, cluster_id, host_id):
         host = get_host_by_id(request, host_id)
         host_dict = host.to_dict()
         host_dict['cluster'] = cluster_id
-        #LOG.warning("############## host_dict[interfaces] = %s #################" % host_dict["interfaces"])
-        LOG.warning("-----------------updat interfaces--start---------- data[interfaces] = %s -----------end-----------" % data["interfaces"])
-        host_interfaces = update_interfaces(host_dict["interfaces"], data["interfaces"])
-        LOG.warning("-------!!!!!!!!!!!!----------updat interfaces------------ interfaces = %s ----!!!!!!!!!!------------" % host_interfaces)
-        #host_dict["interfaces"] = host_interfaces
+        LOG.warning("-----------------updat interfaces--start---------- "
+                    "data[interfaces] = %s -----------end-----------"
+                    % data["interfaces"])
+        host_interfaces = \
+            update_interfaces(host_dict["interfaces"], data["interfaces"])
+        LOG.warning("-------!!!!!!!!!!!!----------updat interfaces------------"
+                    " interfaces = %s ----!!!!!!!!!!------------"
+                    % host_interfaces)
         '''for nic in host_interfaces:
             del nic['current_speed']
             del nic['deleted_at']
@@ -313,19 +329,22 @@ def update_host_nics(request, cluster_id, host_id):
             del nic['max_speed']
             if nic['assigned_networks'] == []:
                 del nic['assigned_networks']'''
-        #clean_none_attr(host_dict)
-        LOG.info("$$$$$$$$$$$$$$ host_interfaces: %s" %host_interfaces)
+        # clean_none_attr(host_dict)
+        LOG.info("$$$$$$$$$$$$$$ host_interfaces: %s" % host_interfaces)
 
-        #api.daisy.host_update(request, host_id, **host_dict)
-        api.daisy.host_update(request, host_id, cluster=cluster_id, interfaces=host_interfaces)
+        # api.daisy.host_update(request, host_id, **host_dict)
+        api.daisy.host_update(request,
+                              host_id,
+                              cluster=cluster_id,
+                              interfaces=host_interfaces)
         messages.success(request, "Update host interface success!")
     except:
         exceptions.handle(request, "update host nics failed!")
-        response.status_code = 500        
+        response.status_code = 500
         return response
 
     response.status_code = 200
-    return response       
+    return response
 
 
 def get_host_by_id(request, host_id):
@@ -334,7 +353,7 @@ def get_host_by_id(request, host_id):
 
 
 def update_host_ipmis(request, cluster_id, host_id):
-    response = HttpResponse()  
+    response = HttpResponse()
 
     data = json.loads(request.body)
 
@@ -356,11 +375,11 @@ def update_host_ipmis(request, cluster_id, host_id):
         messages.success(request, "Update host ipmis success!")
     except:
         exceptions.handle(request, "update host ipmis failed!")
-        response.status_code = 500        
+        response.status_code = 500
         return response
 
     response.status_code = 200
-    return response  
+    return response
 
 
 def update_interfaces(interfaces_old, interfaces_new):
@@ -380,11 +399,8 @@ def update_interfaces(interfaces_old, interfaces_new):
         for inter_old in interfaces_old:
             if bond['name'] == inter_old['name']:
                 clean_none_attr(inter_old)
-                #do something
-                break;
-
-    #LOG.warning("############## ether_interfaces = %s #################" % ether_interfaces)                
-    #LOG.warning("############## bond_interfaces = %s #################" % bond_interfaces)  
+                # do something
+                break
 
     ether_interfaces.extend(bond_interfaces)
     return ether_interfaces
@@ -392,16 +408,16 @@ def update_interfaces(interfaces_old, interfaces_new):
 
 def clean_none_attr(dict):
     for key in dict.keys():
-        if dict[key] == None:
+        if dict[key] is None:
             del dict[key]
-    if dict.has_key('created_at'):
+    if 'created_at' in dict:
         del dict['created_at']
 
-    if dict.has_key('updated_at'):        
+    if 'updated_at' in dict:
         del dict['updated_at']
 
-    if dict.has_key('id'):         
-        del dict['id']        
+    if 'id' in dict:
+        del dict['id']
 
 
 class HostNicsView(generic.TemplateView):
@@ -419,7 +435,7 @@ class HostNicsView(generic.TemplateView):
         LOG.info("~~~~~~~~~~~~~~~~~~~~``````` netplanes: %s" % netplanes)
 
         ether_nics = []
-        bond_nics  = []
+        bond_nics = []
         ether_nics_show = []
 
         for nic in nics:
@@ -427,9 +443,10 @@ class HostNicsView(generic.TemplateView):
             if 'assigned_networks' in nic:
                 for net in nic['assigned_networks']:
                     for i in range(len(netplanes)):
-                        if net != "PRIVATE":
+                        if net != "DATAPLANE":
                             if net == netplanes[i].name:
-                                #nic['networks'].append({'id': net, 'name': netplanes[i].name})
+                                # nic['networks'].append(
+                                # {'id': net, 'name': netplanes[i].name})
                                 del netplanes[i]
                                 break
 
@@ -462,7 +479,8 @@ class HostNicsView(generic.TemplateView):
         context["cluster_id"] = self.kwargs["cluster_id"]
         context["host_id"] = self.kwargs["host_id"]
 
-        netplanes, bond, ether_show, host_name = self.get_data(context["cluster_id"], context["host_id"])
+        netplanes, bond, ether_show, host_name = \
+            self.get_data(context["cluster_id"], context["host_id"])
         context["netplanes"] = netplanes
         context["bond_nics"] = bond
         context["ether_nics_show"] = ether_show

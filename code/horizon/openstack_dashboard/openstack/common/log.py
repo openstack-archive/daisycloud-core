@@ -43,10 +43,10 @@ from oslo_utils import importutils
 import six
 from six import moves
 
-_PY26 = sys.version_info[0:2] == (2, 6)
-
 from openstack_dashboard.openstack.common._i18n import _
 from openstack_dashboard.openstack.common import local
+
+_PY26 = sys.version_info[0:2] == (2, 6)
 
 
 _DEFAULT_LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -500,7 +500,8 @@ def _setup_logging_from_conf(project, version):
     if CONF.publish_errors:
         try:
             handler = importutils.import_object(
-                "openstack_dashboard.openstack.common.log_handler.PublishErrorsHandler",
+                "openstack_dashboard.openstack.common.\
+                log_handler.PublishErrorsHandler",
                 logging.ERROR)
         except ImportError:
             handler = importutils.import_object(

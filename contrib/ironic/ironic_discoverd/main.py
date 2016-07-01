@@ -68,10 +68,14 @@ def api_continue():
         ipmi_addr = data.pop('ipmi_address')
     else:
         ipmi_addr = None
+    if 'hostname' in data.keys():
+        hostname = data.pop('hostname')
+    else:
+        hostname = None
     if data_name == "baremetal_source":
         process.write_data_to_ironic(data)
-        process.write_data_to_daisy(data, ipmi_addr, os_status)
-    return json.dumps(), 200, {'Content-Type': 'applications/json'}
+        process.write_data_to_daisy(data, ipmi_addr, os_status, hostname)
+    return json.dumps(""), 200, {'Content-Type': 'applications/json'}
 
 
 @app.route('/v1/introspection/<uuid>', methods=['GET', 'POST'])

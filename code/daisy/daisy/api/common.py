@@ -67,8 +67,8 @@ def size_checked_iter(response, image_meta, expected_size, image_iter,
                                'bytes_written': bytes_written})
         LOG.error(msg)
         raise exception.DaisyException(_("Corrupt image download for "
-                                          "image %(image_id)s") %
-                                        {'image_id': image_id})
+                                         "image %(image_id)s") %
+                                       {'image_id': image_id})
 
 
 def image_send_notification(bytes_written, expected_size, image_meta, request,
@@ -218,3 +218,9 @@ def get_thread_pool(lock_name, size=1024):
         return wsgi.get_asynchronous_eventlet_pool(size=size)
 
     return _get_thread_pool
+
+
+def get_pxe_mac(host_detail):
+    pxe_macs = [interface['mac'] for interface in host_detail['interfaces']
+                if interface['is_deployment']]
+    return pxe_macs

@@ -38,6 +38,7 @@ _ = i18n._
 
 
 class ImageMembersController(object):
+
     def __init__(self, db_api=None, policy_enforcer=None, notifier=None,
                  store_api=None):
         self.db_api = db_api or daisy.db.get_api()
@@ -45,7 +46,7 @@ class ImageMembersController(object):
         self.notifier = notifier or daisy.notifier.Notifier()
         self.store_api = store_api or glance_store
         self.gateway = daisy.gateway.Gateway(self.db_api, self.store_api,
-                                              self.notifier, self.policy)
+                                             self.notifier, self.policy)
 
     @utils.mutating
     def create(self, req, image_id, member_id):
@@ -250,6 +251,7 @@ class RequestDeserializer(wsgi.JSONRequestDeserializer):
 
 
 class ResponseSerializer(wsgi.JSONResponseSerializer):
+
     def __init__(self, schema=None):
         super(ResponseSerializer, self).__init__()
         self.schema = schema or get_schema()

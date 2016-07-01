@@ -40,13 +40,14 @@ _LI = i18n._LI
 
 
 class ResourceTypeController(object):
+
     def __init__(self, db_api=None, policy_enforcer=None, notifier=None):
         self.db_api = db_api or daisy.db.get_api()
         self.policy = policy_enforcer or policy.Enforcer()
         self.notifier = notifier or daisy.notifier.Notifier()
         self.gateway = daisy.gateway.Gateway(db_api=self.db_api,
-                                              notifier=self.notifier,
-                                              policy_enforcer=self.policy)
+                                             notifier=self.notifier,
+                                             policy_enforcer=self.policy)
 
     def index(self, req):
         try:
@@ -167,6 +168,7 @@ class RequestDeserializer(wsgi.JSONRequestDeserializer):
 
 
 class ResponseSerializer(wsgi.JSONResponseSerializer):
+
     def __init__(self, schema=None):
         super(ResponseSerializer, self).__init__()
         self.schema = schema
@@ -253,7 +255,7 @@ def get_schema():
 def get_collection_schema():
     resource_type_schema = get_schema()
     return daisy.schema.CollectionSchema('resource_type_associations',
-                                          resource_type_schema)
+                                         resource_type_schema)
 
 
 def create_resource():

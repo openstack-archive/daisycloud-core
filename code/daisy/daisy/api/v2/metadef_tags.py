@@ -46,8 +46,8 @@ class TagsController(object):
         self.policy = policy_enforcer or policy.Enforcer()
         self.notifier = notifier or daisy.notifier.Notifier()
         self.gateway = daisy.gateway.Gateway(db_api=self.db_api,
-                                              notifier=self.notifier,
-                                              policy_enforcer=self.policy)
+                                             notifier=self.notifier,
+                                             policy_enforcer=self.policy)
         self.tag_schema_link = '/v2/schemas/metadefs/tag'
 
     def create(self, req, namespace, tag_name):

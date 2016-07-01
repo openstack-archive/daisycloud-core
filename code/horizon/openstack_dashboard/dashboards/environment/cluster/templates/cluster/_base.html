@@ -30,7 +30,7 @@
                         },
                         regexp: {
                             regexp: '^[a-zA-Z][a-zA-Z0-9_]{3,15}$',
-                            message: '{% trans "Name must begin with letters, and consist of numbers,letters or underscores. The length of name is 4 to 16" %}'
+                            message: '{% trans "Name must begin with letters,and consist of numbers,letters or underscores. The length of name is 4 to 16." %}'
                         }
                     }
                 },
@@ -41,87 +41,15 @@
                             message: '{% trans "MAC address is error, format as XX:XX:XX:XX:XX:XX" %}'
                         }
                     }
-                },
-                vxlan_range_start: {
-                    validators: {
-                        callback: {
-                            callback: function(value, validator) {
-                                if ($("#cluster_seg_type_vxlan").attr('checked') == 'checked'){
-                                    var str = $("#vxlan_range_start").val();
-                                    if ((str == "") || (isNaN(str)))
-                                        return false;
-                                    var value = parseInt(str, 10);
-                                    if (value < 1 || value > 16777215)
-                                        return false;
-                                }
-                                return true;
-                            },
-                            message: '{% trans "Range: 1-16777215" %}'
-                        }
-                    }
-                },
-                vxlan_range_end: {
-                    validators: {
-                        callback: {
-                            callback: function(value, validator) {
-                                if ($("#cluster_seg_type_vxlan").attr('checked') == 'checked'){
-                                    var str = $("#vxlan_range_end").val();
-                                    if ((str == "") || (isNaN(str)))
-                                        return false;
-                                    var value = parseInt(str, 10);
-                                    if (value < 1 || value > 16777215)
-                                        return false;
-                                }
-                                return true;
-                            },
-                            message: '{% trans "Range: 1-16777215" %}'
-                        }
-                    }
                 }
             }
         });
-        
-        $("#cluster_seg_type_vlan, #cluster_seg_type_vxlan, #cluster_seg_type_flat").on("change", function (){
-            if($("#cluster_seg_type_vxlan").attr('checked') == 'checked') {
-                $(".vxlan_range").removeClass('hide');
-                $(".PRIVATE").hide();
-                $(".VXLAN").show();
-            }
-            else {
-                $(".vxlan_range").addClass('hide');
-                $(".PRIVATE").show();
-                $(".VXLAN").hide();
-
-                if($("#cluster_seg_type_flat").attr('checked') == 'checked'){
-                    $(".VXLAN").show();                    
-                }
-            }
-        })
-
-        $("#cluster_seg_type_vlan").click();
     });
     
     function get_network_values(){
         var networking_parameters = {
             "base_mac": $("#base_mac").val(),
         };
-
-        var segmentation_type = "";
-        if ($("#cluster_seg_type_vlan").attr('checked') == 'checked'){
-            segmentation_type += "vlan,";
-        }
-        if ($("#cluster_seg_type_vxlan").attr('checked') == 'checked'){
-            var vni_range = new Array();
-            vni_range.push($("#vxlan_range_start").val());
-            vni_range.push($("#vxlan_range_end").val());
-            networking_parameters.vni_range = vni_range;
-            segmentation_type += "vxlan,";
-        }
-        if ($("#cluster_seg_type_flat").attr('checked') == 'checked'){
-            segmentation_type += "flat,";
-        }
-        networking_parameters.segmentation_type = segmentation_type.substr(0, segmentation_type.length - 1);
-
         return networking_parameters;
     }
 </script>
@@ -137,36 +65,6 @@
         <label style="text-align:right;" for="base_mac" class="col-sm-3 control-label">{% trans 'Start MAC' %}</label>
         <div style="float:left;" class="col-sm-4">
             <input type="text" id="base_mac" name="base_mac" class="form-control" placeholder="{% trans 'VM start MAC address' %}">
-        </div>
-    </div>
-    <div style="clear:both" class="form-group">
-        <label style="text-align:right;" class="col-sm-3 control-label">{% trans 'Segment type' %}</label>
-        <div style="float:left;" class="col-sm-4">
-            <label class="radio-inline">
-                <input type="radio" id="cluster_seg_type_vlan" name="cluster_seg_type" class="cluster_seg_type" value="vlan">vlan
-            </label>
-            <label class="radio-inline">
-                <input type="radio" id="cluster_seg_type_vxlan" name="cluster_seg_type" class="cluster_seg_type" value="vxlan">vxlan
-            </label>
-            <label class="radio-inline">
-                <input type="radio" id="cluster_seg_type_flat" name="cluster_seg_type" class="cluster_seg_type" value="flat">flat
-            </label>
-        </div>
-    </div>
-    <div style="clear:both" class="form-group vxlan_range hide">
-        <label style="text-align:right;" class="col-sm-3 control-label">{% trans 'VXLAN Range' %}</label>
-        <div style="float:left;" class="col-sm-4">
-            <div class="row">
-                <div class="col-xs-5">
-                    <input type="text" id="vxlan_range_start" name="vxlan_range_start" class="form-control" placeholder="{% trans 'Start number' %}"/>
-                </div>
-                <div class="col-xs-2" style="line-height:30px;text-align:center;">
-                    <span class="glyphicon glyphicon-minus"></span>
-                </div>
-                <div class="col-xs-5">
-                    <input type="text" id="vxlan_range_end" name="vxlan_range_end" class="form-control" placeholder="{% trans 'End number' %}"/>
-                </div>
-            </div>
         </div>
     </div>
     <div style="clear:both" class="form-group form-auto-scale hide">
@@ -187,6 +85,18 @@
             </select>
         </div>
     </div>
+{% if hwmip_list|length > 0 %} 
+    <div style="clear:both" class="form-group hwm_ip" id="select_hwm_ip_block">
+        <label for="hwm_ip" class="col-sm-3 control-label" style="text-align:right;">{% trans "HWM IP" %}</label>
+        <div style="float:left;" class="col-sm-4">
+            <select id="select_hwm_ip" name="select_hwm_ip" class="form-control">
+            {% for ip in hwmip_list %}
+            <option value={{ip}}>{{ ip }}</option>
+            {% endfor %}
+            </select>
+        </div>
+    </div>
+{% endif %}
     <div style="clear:both" class="form-group">
         <label style="text-align:right;" for="description" class="col-sm-3 control-label">{% trans 'Description' %}</label>
         <div style="float:left;" class="col-sm-4">

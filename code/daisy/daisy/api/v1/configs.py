@@ -52,6 +52,7 @@ CONF.import_opt('container_formats', 'daisy.common.config',
                 group='image_format')
 CONF.import_opt('image_property_quota', 'daisy.common.config')
 
+
 class Controller(controller.BaseController):
     """
     WSGI controller for configs resource in Daisy v1 API
@@ -120,32 +121,40 @@ class Controller(controller.BaseController):
             if PARAM in req.params:
                 params[PARAM] = req.params.get(PARAM)
         return params
+
     def _raise_404_if_config_set_delete(self, req, config_set_id):
         config_set = self.get_config_set_meta_or_404(req, config_set_id)
         if config_set['deleted']:
-            msg = _("config_set with identifier %s has been deleted.") % config_set_id
+            msg = _("config_set with identifier %s has been deleted.") % \
+                config_set_id
             raise HTTPNotFound(msg)
 
     def _raise_404_if_config_file_delete(self, req, config_file_id):
         config_file = self.get_config_file_meta_or_404(req, config_file_id)
         if config_file['deleted']:
-            msg = _("config_file with identifier %s has been deleted.") % config_file_id
+            msg = _(
+                "config_file with identifier %s has been deleted.") % \
+                config_file_id
             raise HTTPNotFound(msg)
-    def _raise_404_if_role_exist(self,req,config_meta):
-        role_id=""
+
+    def _raise_404_if_role_exist(self, req, config_meta):
+        role_id = ""
         try:
             roles = registry.get_roles_detail(req.context)
             for role in roles:
-                if role['cluster_id'] == config_meta['cluster'] and role['name'] == config_meta['role']:
-                    role_id=role['id']
+                if role['cluster_id'] == config_meta[
+                        'cluster'] and role['name'] == config_meta['role']:
+                    role_id = role['id']
                     break
         except exception.Invalid as e:
-                raise HTTPBadRequest(explanation=e.msg, request=req)
+            raise HTTPBadRequest(explanation=e.msg, request=req)
         return role_id
+
     def _raise_404_if_cluster_deleted(self, req, cluster_id):
         cluster = self.get_cluster_meta_or_404(req, cluster_id)
         if cluster['deleted']:
-            msg = _("cluster with identifier %s has been deleted.") % cluster_id
+            msg = _("cluster with identifier %s has been deleted.") % \
+                cluster_id
             raise HTTPNotFound(msg)
 
     @utils.mutating
@@ -159,19 +168,57 @@ class Controller(controller.BaseController):
         :raises HTTPBadRequest if x-config-name is missing
         """
         self._enforce(req, 'add_config')
-        
-        if config_meta.has_key('cluster'):
-            orig_cluster = str(config_meta['cluster'])
-            self._raise_404_if_cluster_deleted(req, orig_cluster)
-        
-        if config_meta.has_key('role'):
-            role_id=self._raise_404_if_role_exist(req,config_meta)
-            if not role_id:
-                msg = "the role name is not exist"
+
+        if ('role' in config_meta and
+                'host_id' in config_meta):
+            msg = "role name and host id only have one"
+            LOG.error(msg)
+            raise HTTPBadRequest(explanation=msg, request=req)
+        elif 'role' in config_meta:
+            # the first way to add config
+            # when have 'role', config_set will be ignore
+            if config_meta.get('cluster'):
+                orig_cluster = str(config_meta['cluster'])
+                self._raise_404_if_cluster_deleted(req, orig_cluster)
+            else:
+                msg = "cluster must be given when add config for role"
                 LOG.error(msg)
                 raise HTTPNotFound(msg)
+            if config_meta['role']:
+                role_id = self._raise_404_if_role_exist(req, config_meta)
+                if not role_id:
+                    msg = "the role name is not exist"
+                    LOG.error(msg)
+                    raise HTTPNotFound(msg)
+            else:
+                msg = "the role name can't be empty"
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg, request=req)
+        elif 'host_id' in config_meta:
+            # the second way to add config
+            # when have 'host_id', config_set will be ignore
+            if config_meta['host_id']:
+                self.get_host_meta_or_404(req, config_meta['host_id'])
+            else:
+                msg = "the host id can't be empty"
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg, request=req)
+        elif 'config_set' in config_meta:
+            # the third way to add config
+            if config_meta['config_set']:
+                self.get_config_set_meta_or_404(req,
+                                                config_meta['config_set'])
+            else:
+                msg = "config set id can't be empty"
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg, request=req)
+        else:
+            msg = "no way to add config"
+            LOG.error(msg)
+            raise HTTPBadRequest(explanation=msg, request=req)
 
-        config_meta = registry.config_interface_metadata(req.context, config_meta)
+        config_meta = registry.config_interface_metadata(
+            req.context, config_meta)
         return config_meta
 
     @utils.mutating
@@ -204,14 +251,15 @@ class Controller(controller.BaseController):
                                 request=req,
                                 content_type="text/plain")
         except exception.InUseByStore as e:
-            msg = (_("config %(id)s could not be deleted because it is in use: "
+            msg = (_("config %(id)s could not be "
+                     "deleted because it is in use: "
                      "%(exc)s") % {"id": id, "exc": utils.exception_to_str(e)})
             LOG.warn(msg)
             raise HTTPConflict(explanation=msg,
                                request=req,
                                content_type="text/plain")
         else:
-            #self.notifier.info('config.delete', config)
+            # self.notifier.info('config.delete', config)
             return Response(body='', status=200)
 
     @utils.mutating
@@ -253,6 +301,7 @@ class Controller(controller.BaseController):
             raise HTTPBadRequest(explanation=e.msg, request=req)
         return dict(configs=configs)
 
+
 class ConfigDeserializer(wsgi.JSONRequestDeserializer):
     """Handles deserialization of specific controller method requests."""
 
@@ -263,9 +312,10 @@ class ConfigDeserializer(wsgi.JSONRequestDeserializer):
 
     def add_config(self, request):
         return self._deserialize(request)
-        
+
     def delete_config(self, request):
         return self._deserialize(request)
+
 
 class ConfigSerializer(wsgi.JSONResponseSerializer):
     """Handles serialization of specific controller method responses."""
@@ -293,9 +343,9 @@ class ConfigSerializer(wsgi.JSONResponseSerializer):
         response.body = self.to_json(dict(config=config_meta))
         return response
 
+
 def create_resource():
     """configs resource factory method"""
     deserializer = ConfigDeserializer()
     serializer = ConfigSerializer()
     return wsgi.Resource(Controller(), deserializer, serializer)
-

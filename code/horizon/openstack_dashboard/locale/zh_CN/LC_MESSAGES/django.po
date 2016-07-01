@@ -3,13 +3,13 @@ msgstr ""
 "Project-Id-Version: Daisy\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-12-23 18:40+0800\n"
-"PO-Revision-Date: 2016-03-23 10:59+0800\n"
+"PO-Revision-Date: 2016-06-08 16:29+0800\n"
 "Language-Team: Daisy Web <dw@zte.com>\n"
 "Language: zh\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.7.4\n"
+"X-Generator: Poedit 1.6.7\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 "Last-Translator: \n"
@@ -42,13 +42,13 @@ msgid "Add Host"
 msgstr "集群主机部署"
 
 #: dashboards/environment/cluster/tables.py:46
-msgid "Delete Host"
-msgid_plural "Delete Hosts"
+msgid "Remove Host"
+msgid_plural "Remove Hosts"
 msgstr[0] "移出集群"
 
 #: dashboards/environment/cluster/tables.py:54
-msgid "Deleted Host"
-msgid_plural "Deleted Hosts"
+msgid "Removed Host"
+msgid_plural "Removed Hosts"
 msgstr[0] "移除主机"
 
 #: dashboards/environment/cluster/tables.py:182
@@ -758,10 +758,6 @@ msgstr "已分配主机："
 msgid "Config ipmis"
 msgstr "配置IPMI"
 
-#: dashboards/environment/deploy/templates/deploy/hosts.html:400
-msgid "Remove Host"
-msgstr "移出集群"
-
 #: dashboards/environment/deploy/templates/deploy/hosts.html:406
 #: dashboards/environment/network/templates/network/route.html:11
 msgid "Last step"
@@ -891,8 +887,8 @@ msgstr "修改Cinder后端"
 msgid "Float IP is error, format as: x.x.x.x"
 msgstr "浮动IP输入错误，正确格式为：x.x.x.x"
 
-msgid "Glance disk size is error, must be an integer not less than 0"
-msgstr "Glance服务的磁盘大小输入错误，只能输入不小于0的数值"
+msgid "Glance disk size is error, must be an integer greater than 0"
+msgstr "Glance服务的磁盘大小输入错误，只能输入大于0的数值"
 
 msgid "Glance LUN is error, must be an integer not less than 0"
 msgstr "Glance服务的LUN输入错误，只能输入不小于0的数值"
@@ -914,6 +910,18 @@ msgstr "Db服务的业务口IP不能为空，请输入"
 
 msgid "Db service IP is error, format as: xxx.xxx.xxx.xxx"
 msgstr "Db服务的业务口IP输入错误，正确格式为：xxx.xxx.xxx.xxx"
+
+msgid "MongoDB disk size is error, must be an integer not less than 0"
+msgstr "MongoDB服务的磁盘大小输入错误，只能输入不小于0的数值"
+
+msgid "MongoDB LUN is error, must be an integer not less than 0"
+msgstr "MongoDB服务的LUN输入错误，只能输入不小于0的数值"
+
+msgid "MongoDB service IP can not be empty, please input"
+msgstr "MongoDB服务的业务口IP不能为空，请输入"
+
+msgid "MongoDB service IP is error, format as: xxx.xxx.xxx.xxx"
+msgstr "MongoDB服务的业务口IP输入错误，正确格式为：xxx.xxx.xxx.xxx"
 
 msgid "User name can not be empty, please input"
 msgstr "用户名不能为空，请输入"
@@ -1286,7 +1294,9 @@ msgstr "确认删除"
 msgid "Confirm to modify"
 msgstr "确认修改"
 
-msgid "Computing node auto scale function has been selected by other clusters, Are you sure to replace it?"
+msgid ""
+"Computing node auto scale function has been selected by other clusters, Are "
+"you sure to replace it?"
 msgstr "计算节点自动扩容功能已被其他集群选中，你确定要替换它吗？"
 
 msgid "Confirm"
@@ -1294,16 +1304,6 @@ msgstr "确认"
 
 msgid "Cluster name can not be empty, please input"
 msgstr "集群名称不能为空，请输入"
-
-#: dashboards/environment/cluster/templates/cluster/_base.html:33
-#: dashboards/environment/cluster/templates/cluster/_network.html:530
-#: dashboards/environment/overview/templates/overview/index.html:138
-msgid ""
-"Name must begin with letters, and consist of numbers,letters or underscores. "
-"The length of name is 4 to 16"
-msgstr ""
-"4-16个字符，只能包含大写字母、小写字母、数字和下划线，并且必须以大小写字母开"
-"始"
 
 msgid "Cluster name must be less than 255 characters"
 msgstr "集群名称长度要小于255个字符"
@@ -1443,7 +1443,9 @@ msgstr "计算节点自动扩容"
 
 #: dashboards/environment/overview/views.py:75
 #: dashboards/environment/overview/views.py:131
-msgid "Computing node auto scale function has been selected by other clusters, you can not select it again!"
+msgid ""
+"Computing node auto scale function has been selected by other clusters, you "
+"can not select it again!"
 msgstr "已经有其它集群启用了自动扩容功能，此功能不能在选中！"
 
 #: dashboards/environment/overview/workflow.py:38
@@ -1672,7 +1674,9 @@ msgid "Something went wrong!"
 msgstr "报错"
 
 #: templates/500.html:68
-msgid "An unexpected error has occurred. Try refreshing the page. If that doesn't help, contact your local administrator."
+msgid ""
+"An unexpected error has occurred. Try refreshing the page. If that doesn't "
+"help, contact your local administrator."
 msgstr "报错.请刷新,如需帮助请联系管理员."
 
 #: templates/500.html:74
@@ -1697,11 +1701,13 @@ msgstr "退出"
 #: templates/auth/_description.html:9
 msgid ""
 "\n"
-"      If you are not sure which authentication method to use, contact your administrator.\n"
+"      If you are not sure which authentication method to use, contact your "
+"administrator.\n"
 "    "
 msgstr ""
 "\n"
-"      If you are not sure which authentication method to use, contact your administrator.\n"
+"      If you are not sure which authentication method to use, contact your "
+"administrator.\n"
 "    "
 
 #: templates/auth/_login.html:5 templates/auth/_login1.html:5
@@ -1714,7 +1720,8 @@ msgstr "你没有权限访问这些资源"
 
 #: templates/auth/_login.html:29
 #, python-format
-msgid "Login as different user or go back to <a href=\"%(home_url)s\"> home page</a>"
+msgid ""
+"Login as different user or go back to <a href=\"%(home_url)s\"> home page</a>"
 msgstr "请用其它用户登录或者返回<a href=\"%(home_url)s\">主页</a>"
 
 #: templates/auth/_login.html:45 templates/auth/_login1.html:28
@@ -1783,6 +1790,9 @@ msgstr "镜像盘大小(GB)"
 msgid "DB LV Size(GB)"
 msgstr "数据库盘大小(GB)"
 
+msgid "DBBackup LV Size(GB)"
+msgstr "DBBackup盘大小(GB)"
+
 msgid "MongoDB LV Size(GB)"
 msgstr "MongoDB盘大小(GB)"
 
@@ -1792,24 +1802,16 @@ msgstr "系统盘大小(GB)"
 msgid "ROOT Disk"
 msgstr "系统盘"
 
-#: dashboards/environment/deploy/hosts_config_views.py:57
-#: dashboards/environment/deploy/templates/deploy/hosts_config.html:64
-#: dashboards/environment/deploy/templates/deploy/hosts_config.html:66
-msgid "IPMI User"
-msgstr "IPMI用户名"
-
-#: dashboards/environment/deploy/templates/deploy/hosts_config.html:70
-#: dashboards/environment/deploy/templates/deploy/hosts_config.html:72
-msgid "IPMI Password"
-msgstr "IPMMI密码"
-
-msgid "Cannot be less than 50G, and cannot be greater than the remaining disk size"
+msgid ""
+"Cannot be less than 50G, and cannot be greater than the remaining disk size"
 msgstr "不能小于50G，且不能大于剩余盘大小"
 
 msgid "OS Version File"
 msgstr "操作系统版本"
 
-msgid "All host can configure the operating system version, system disk size, huge page of compute nodes can be configured and isolated cpu"
+msgid ""
+"All host can configure the operating system version, system disk size, huge "
+"page of compute nodes can be configured and isolated cpu"
 msgstr "所有主机可配置操作系统版本、系统盘大小，计算节点另可配置巨页和被隔离核"
 
 msgid "Huge Page Size"
@@ -1820,6 +1822,17 @@ msgstr "巨页个数"
 
 msgid "CPU Number"
 msgstr "CPU 核数"
+
+#: dashboards/environment/deploy/hosts_config_views.py:57
+#: dashboards/environment/deploy/templates/deploy/hosts_config.html:64
+#: dashboards/environment/deploy/templates/deploy/hosts_config.html:66
+msgid "IPMI User"
+msgstr "IPMI用户名"
+
+#: dashboards/environment/deploy/templates/deploy/hosts_config.html:70
+#: dashboards/environment/deploy/templates/deploy/hosts_config.html:72
+msgid "IPMI Password"
+msgstr "IPMI密码"
 
 msgid "Isolation CPU"
 msgstr "被隔离的核"
@@ -1842,11 +1855,17 @@ msgstr "加入集群"
 msgid "Host List"
 msgstr "主机列表"
 
-msgid "Select only two network interface binding, select at least one binding solution binding cannot be bound and ETH mass selection"
-msgstr "绑定时必须选择两个网口，解绑定至少选择一个网口，绑定口和普通口不能混合选择"
+msgid ""
+"Select only two network interface binding, select at least one binding "
+"solution binding cannot be bound and ETH mass selection"
+msgstr ""
+"绑定时必须选择两个网口，解绑定至少选择一个网口，绑定口和普通口不能混合选择"
 
 msgid "Name can not be empty"
 msgstr "名称不能为空"
+
+msgid "Name must consist of letters, numbers. The length of name is 2 to 8"
+msgstr "1到8个字符，名称必须由字母、数字组成"
 
 msgid "IP address format is wrong,correct format is:xxx.xxx.xxx.xxx"
 msgstr "IP地址格式错误，正确格式:xxx.xxx.xxx.xxx"
@@ -1878,6 +1897,9 @@ msgstr "数据库盘大小必须为数字"
 msgid "OS version file can not be empty"
 msgstr "操作系统版本不能为空"
 
+msgid "System disk can not be empty"
+msgstr "系统盘名称不能空"
+
 #: dashboards/environment/deploy/templates/deploy/hosts_config.html:428
 msgid ""
 "Name must begin with letters, and consist of numbers,letters or underscores. "
@@ -1886,10 +1908,9 @@ msgstr ""
 "1-16个字符，只能包含大写字母、小写字母、数字和下划线，并且必须以大小写字母开"
 "始"
 
-msgid "System disk can not be empty"
-msgstr "系统盘名称不能空"
-
-msgid "System disk size can not be empty, must be digit and greater than or equal to 50"
+msgid ""
+"System disk size can not be empty, must be digit and greater than or equal "
+"to 50"
 msgstr "系统盘大小不能空，必须为数字，且不能小于50G"
 
 msgid "Huge page count can not be empty, and must be digit"
@@ -1906,8 +1927,8 @@ msgstr "描述不能为空"
 
 #: dashboards/environment/cluster/templates/cluster/_network.html:629
 #: dashboards/environment/deploy/templates/deploy/_network.html:432
-msgid "VLAN_ID number must be digit"
-msgstr "VLAN号必须是一个数字"
+msgid "VLAN ID number must be digit greater than 0"
+msgstr "VLAN号必须是大于0的数字"
 
 msgid "VLAN starting number can not be empty and must be digit"
 msgstr "VLAN起始号不能为空，必须为数字"
@@ -1939,8 +1960,8 @@ msgstr "IPMI协议发现未安装操作系统的主机"
 msgid "SSH protocol can discover hosts installed os"
 msgstr "SSH协议发现已安装操作系统的主机"
 
-msgid "IP address of the host to be discover"
-msgstr "待发现主机IP"
+msgid "Management port IP address of the host to be discover"
+msgstr "待发现主机的管理口IP"
 
 msgid "Confirm to Discard"
 msgstr "确认丢弃"
@@ -1978,46 +1999,56 @@ msgstr "磁盘大小(GB)"
 msgid "Host Name: %(host_name)s\">%(host_name)s"
 msgstr "主机详细信息：%(host_name)s\">%(host_name)s"
 
-msgid "ssh hint1"
-msgstr "1.绑定网口：已装好系统的主机做网口绑定，需要提前手动在主机上进行网口绑定。"
+msgid ""
+"1. binding network port: host network interface binding already installed "
+"system, advance manually on the host network interface binding."
+msgstr ""
+"1.绑定网口：已装好系统的主机做网口绑定，需要提前手动在主机上进行网口绑定。"
 
-msgid "ssh hint2"
-msgstr "2.lv_mysql和lv_glance： 如果已经装好的操作系统准备安装tecs的控制节点，用户必须手动创建两个逻辑卷，大小由用户自主设定，/dev/mapper/vg_glance-lv_glance和/dev/mapper/vg_db-lv_db。"
+msgid ""
+"2.lv_mysql and lv_glance: If you have already installed the operating system "
+"install tecs control node, the user must manually create two logical "
+"volumes, size set by the user,/dev/mapper/vg_data-lv_glance and/dev/mapper/"
+"vg_db-lv_db."
+msgstr ""
+"2.lv_mysql和lv_glance： 如果已经装好的操作系统准备安装tecs的控制节点，用户必"
+"须手动创建两个逻辑卷，大小由用户自主设定，/dev/mapper/vg_data-lv_glance和/"
+"dev/mapper/vg_db-lv_db。"
 
-msgid "os install successful, tecs install failed"
+msgid "OS install successful, TECS install failed"
 msgstr "OS安装成功，TECS安装失败"
 
-msgid "os install successful, tecs installing"
+msgid "OS install successful, TECS installing"
 msgstr "OS安装成功，TECS安装中"
 
-msgid "install tecs successful"
+msgid "install TECS successful"
 msgstr "TECS安装成功"
 
-msgid "os updating"
+msgid "OS updating"
 msgstr "OS升级中"
 
-msgid "os update failed"
+msgid "OS update failed"
 msgstr "OS升级失败"
 
-msgid "tecs updating"
+msgid "TECS updating"
 msgstr "TECS升级中"
 
-msgid "tecs update failed"
+msgid "TECS update failed"
 msgstr "TECS升级失败"
 
-msgid "tecs uninstalling"
+msgid "TECS uninstalling"
 msgstr "TECS卸载中"
 
-msgid "tecs uninstall failed"
+msgid "TECS uninstall failed"
 msgstr "TECS卸载失败"
 
-msgid "os installing"
+msgid "OS installing"
 msgstr "OS安装中"
 
-msgid "os install failed"
+msgid "OS install failed"
 msgstr "OS安装失败"
 
-msgid "os install successful"
+msgid "OS install successful"
 msgstr "OS安装成功"
 
 msgid "DISCOVERY_FAILED"
@@ -2071,8 +2102,25 @@ msgstr ""
 "4-16个字符，只能包含大写字母、小写字母、数字和下划线，并且必须以大小写字母开"
 "始"
 
+msgid ""
+"Name must begin with letters,and consist of numbers,letters or "
+"strikethrough. The length of name is 4 to 32."
+msgstr ""
+"名称4-32个字符，只能包含大写字母、小写字母、数字和中划线，并且必须以大小写字"
+"母开始"
+
 msgid "Create Time"
 msgstr "创建时间"
+
+#: dashboards/environment/overview/views.py:708
+msgid "Generate cluster template success!"
+msgstr "生成模板成功!"
+
+#: dashboards/environment/overview/views.py:525
+#: dashboards/environment/overview/views.py:711
+#, python-format
+msgid "Error generate_cluster_template: %s"
+msgstr "生成模板错误: %s"
 
 msgid "Template List"
 msgstr "模板列表"
@@ -2097,7 +2145,7 @@ msgstr "升级集群"
 
 msgid "ReDeploy Host"
 msgid_plural "ReDeploy Hosts"
-msgstr[0] "重新部署"
+msgstr[0] "重置主机"
 
 msgid "Bond Type"
 msgstr "绑定类型"
@@ -2107,6 +2155,331 @@ msgstr "绑定模式"
 
 msgid "Lacp Mode"
 msgstr "LACP模式"
+
+msgid "Deploy Cluster"
+msgstr "直接部署"
+
+msgid "Install Status"
+msgstr "安装状态"
+
+msgid "init"
+msgstr "未部署"
+
+msgid ""
+"Sets the automatically assigned a float IP, please reserve in advance the "
+"corresponding IP address"
+msgstr "如设置自动分配浮动IP，请提前预留对应的IP地址"
+
+msgid "Ssh Discover"
+msgstr "SSH发现"
+
+msgid "Position"
+msgstr "主机位置"
+
+msgid "System"
+msgstr "系统"
+
+msgid "Backup And Restore"
+msgstr "备份与恢复"
+
+msgid "Backup"
+msgstr "备份"
+
+msgid "Restore"
+msgstr "恢复"
+
+msgid "Confirm to restore"
+msgstr "确认恢复"
+
+msgid "backup file version %s,"
+msgstr "备份文件版本号%s，"
+
+msgid "Daisy version %s,"
+msgstr "Daisy版本号%s，"
+
+msgid "version different,confirm Restore?"
+msgstr "版本号不一致，确认恢复吗？"
+
+msgid "Select file"
+msgstr "选择文件"
+
+msgid "Restore system failed! %s."
+msgstr "恢复系统失败!%s。"
+
+msgid "Restore system success!"
+msgstr "恢复系统成功!"
+
+msgid "Please select file!"
+msgstr "请选择文件!"
+
+msgid "File not valid."
+msgstr "文件无效."
+
+msgid "Restoring system,just a moment please."
+msgstr "正在恢复系统，请稍等."
+
+msgid ""
+"Only backup daisy configuration files and database files,do not include the "
+"target system file."
+msgstr "只备份Daisy配置文件和数据库文件，不包括目标系统文件。"
+
+msgid "Protocol Type"
+msgstr "协议类型"
+
+msgid "Service address can not be empty, please input"
+msgstr "业务口地址不能为空，请输入"
+
+msgid ""
+"Service address is error, ISCSI/CEPH format as: xxx.xxx.xxx.xxx,FIBER format "
+"as:xx:xx:xx:xx:xx:xx:xx:xx"
+msgstr ""
+"业务口地址错误，ISCSI/CEPH格式为：xxx.xxx.xxx.xxx，FIBER格式为：xx:xx:xx:xx:"
+"xx:xx:xx:xx"
+
+msgid "Service Address"
+msgstr "业务口地址"
+
+msgid "All hosts must be config MANAGEMENT net plane."
+msgstr "所有主机需要配置MANAGEMENT网络平面。"
+
+msgid "Compute nodes must be config DATAPLANE net plane."
+msgstr "计算节点需要配置DATAPLANE网络平面。"
+
+msgid "Control nodes must be config PUBLICAPI net plane."
+msgstr "控制节点需要配置PUBLICAPI网络平面。"
+
+msgid "Configure share disk, control nodes must be config STORAGE net plane."
+msgstr "配置了磁阵后端，控制节点必须配置STORAGE网络平面。"
+
+msgid "Configure share disk, compute nodes must be config STORAGE net plane."
+msgstr "配置了磁阵后端，计算节点必须配置STORAGE网络平面。"
+
+msgid "ZEN_NFM/ZEN_CTL must be config one HEARTBEAT net plane."
+msgstr "ZEN_NFM/ZEN_CTL角色的主机必须配置一条HEARTBEAT网络平面。"
+
+msgid "Configure DVS, compute nodes must be config isol_cpus."
+msgstr "配置了DVS，计算节点必须配置核隔离。"
+
+msgid "Configure DVS, compute nodes huge page size must be large 10G."
+msgstr "配置了DVS，计算节点巨页大小必须大于10G。"
+
+msgid "Public VIP must be on the same network segment of PUBLICAPI net plane."
+msgstr "Public浮动IP必须在PUBLICAPI网络平面内。"
+
+msgid "HA VIP must be on the same network segment of MANAGEMENT net plane."
+msgstr "HA浮动IP必须在MANAGEMENT网络平面内。"
+
+msgid "Glance VIP must be on the same network segment of MANAGEMENT net plane."
+msgstr "Glance浮动IP必须在MANAGEMENT网络平面内。"
+
+msgid "DB VIP must be on the same network segment of MANAGEMENT net plane."
+msgstr "DB浮动IP必须在MANAGEMENT网络平面内。"
+
+msgid "LB VIP must be on the same network segment of MANAGEMENT net plane."
+msgstr "LB浮动IP必须在MANAGEMENT网络平面内。"
+
+msgid "ZENIC NFM VIP must be on the same network segment of MANAGEMENT net plane."
+msgstr "ZENIC NFM浮动IP必须在MANAGEMENT网络平面内。"
+
+msgid "ZENIC CTL VIP must be on the same network segment of MANAGEMENT net plane."
+msgstr "ZENIC CTL浮动IP必须在MANAGEMENT网络平面内。"
+
+msgid "Linux bond port can not map DATAPLANE net plane."
+msgstr "绑定口不能映射DATAPLANE网络平面。"
+
+msgid "Has been mapped network port does not support bond/unbond."
+msgstr "已经被映射过的网口不允许再做绑定/解绑定操作。"
+
+msgid "Configure vxlan must configure DVS."
+msgstr "配置vxlan必须要配置DVS。"
+
+msgid "Configure HA role, you must configure LB role."
+msgstr "配置了HA角色必须配置LB角色。"
+
+msgid "Configure LB role, you must configure HA role."
+msgstr "配置了LB角色必须配置HA角色。"
+
+msgid "Compute role must have the HA and LB roles."
+msgstr "有compute角色必须有HA和LB角色。"
+
+msgid "Please config role for host:"
+msgstr "请给主机分配角色:"
+
+msgid "Configure must have tow HA roles."
+msgstr "需要配置两个HA角色。"
+
+msgid "Configure must have tow LB roles."
+msgstr "需要配置两个LB角色。"
+
+msgid "Configure must have tow ZEN_NFM roles."
+msgstr "需要配置两个ZEN_NFM角色。"
+
+msgid "Configure ZEN_NFM role, you must configure ZEN_CTL role."
+msgstr "配置了ZEN_NFM角色，需要配置ZEN_CTL角色。"
+
+msgid "Configure at least two ZEN_CTL roles."
+msgstr "至少配置两个ZEN_NFM角色。"
+
+msgid "Glance back-end is not share disk, you need to configure glance float IP."
+msgstr "Glance后端不是共享磁盘，需要配置glance浮动IP。"
+
+msgid "Automatically assigned"
+msgstr "自动分配"
+
+msgid "Float IP address can not be empty, correct format is:xxx.xxx.xxx.xxx"
+msgstr "浮动IP地址不能为空，正确格式：xxx.xxx.xxx.xxx"
+
+msgid "Please select vswitch type."
+msgstr "请选择虚拟机类型。"
+
+msgid "Cluster operations"
+msgstr "集群操作"
+
+msgid "Update Host Name"
+msgstr "修改主机名"
+
+msgid "Update host %s name successfully."
+msgstr "修改主机%s名称成功。"
+
+msgid "Unable to update host %s name."
+msgstr "修改主机%s名称失败。"
+
+msgid "PXE Discover Host"
+msgid_plural "PXE Discover Hosts"
+msgstr[0] "PXE 发现"
+
+msgid "Delete HWM IP"
+msgid_plural "Delete HWM IPs"
+msgstr[0] "删除 HWM IP"
+
+msgid "Discover Status"
+msgstr "发现状态"
+
+msgid "SSH Discover Host"
+msgstr "SSH 发现"
+
+msgid ""
+"If the template content is modified, it is recommended to modify the Name "
+"attribute in template, or import will cover the original template!"
+msgstr ""
+"如果导入模板内容有修改，建议修改模板中的Name属性，否则导入会覆盖原模板！"
+
+msgid "VXLAN type no support add DATAPLANE net plane"
+msgstr "VXLAN类型不支持新增DATAPLANE网络平面"
+
+msgid ""
+"Already have multiple DATAPLANE type net planes, No support modify segment "
+"type,please delete the non physnet1 network plane RE modification"
+msgstr ""
+"已经有多个DATAPLANE类型的网络平面，不支持更改网络隔离类型，请先删除非physnet1"
+"的网络平面再修改"
+
+msgid ""
+"1.A cluster can only config a segment type;2.vxlan segment type can have a  "
+"DATAPLANE type net plane;3.Already have multiple DATAPLANE type net planes, "
+"No support modify segment type,please delete the non physnet1 network plane "
+"RE modification"
+msgstr ""
+"1、一个集群只能配置一种网络隔离类型；2、vxlan网络隔离类型只能有一个DATAPLANE"
+"类型的网络平面；3、已经有多个DATAPLANE类型的网络平面，不支持修改网络隔离类"
+"型，请先删除非physnet1的网络平面再修改"
+
+msgid "System Config"
+msgstr "系统配置"
+
+msgid "HWM IP"
+msgstr "硬件管理服务器IP"
+
+msgid "HWM IP Description"
+msgstr "硬件管理服务器IP描述信息"
+
+msgid "Save success!"
+msgstr "保存成功！"
+
+msgid "PXE Server Settings"
+msgstr "部署服务器设置"
+
+msgid "NIC"
+msgstr "网口"
+
+msgid "Server IP"
+msgstr "服务器IP"
+
+msgid "IP Begin"
+msgstr "起始IP"
+
+msgid "IP End"
+msgstr "结束IP"
+
+msgid "Please input nic name for pxeserver!"
+msgstr "请输入部署服务器监听的网口名！"
+
+msgid "Please input ip for pxeserver!"
+msgstr "请输入部署服务器IP地址！"
+
+msgid "Please input CIDR for pxeserver!"
+msgstr "请输入部署服务器的CIDR范围！"
+
+msgid "compute role info"
+msgstr "计算节点信息"
+
+msgid "Default CPUs Set"
+msgstr "恢复核隔离默认配置"
+
+msgid "Huge page count must greater than or equal to 10."
+msgstr "巨页个数必须大于或等于10。"
+
+msgid "CPU set cannot be repeated."
+msgstr "设置为隔离的核不能重复。"
+
+msgid "The NUMA configuration of the selected node is different."
+msgstr "所选节点的核隔离配置不同构，核隔离不可配置。"
+
+msgid "The selected nodes are not all using DVS."
+msgstr "所选节点不是全部使用DVS，核隔离不可配置。"
+
+msgid "The selected nodes are not all compute nodes."
+msgstr "所选节点中存在非计算节点，COMPUTER角色相关信息不可配置。"
+
+msgid "Share cluster"
+msgstr "共享集群"
+
+msgid "lun1 and lun2 does not equal."
+msgstr "lun1和lun2 不能相同。"
+
+
+msgid "Different roles for the target system cannot be configured on the same physical host."
+msgstr "不同目标系统的角色不能配置在同一台主机."
+
+msgid "Host %s must be config os version."
+msgstr "主机%s必须配置操作系统版本."
+
+msgid "Nova Disk Size"
+msgstr "Nova盘大小"
+
+msgid "Nova disk size can not be empty, please input"
+msgstr "Nova盘大小不能为空，请输入"
+
+msgid "Nova disk size must be numeric"
+msgstr "Nova盘大小必须是数字"
+
+msgid "Nova disk size cannot be less than 0"
+msgstr "Nova盘大小不能小于0"
+
+msgid "The remaining hard disk space allocated to Nova"
+msgstr "将剩余硬盘空间全部分配给Nova"
+
+msgid "The remaining hard disk space allocated to glance"
+msgstr "将剩余硬盘空间全部分配给Glance"
+
+msgid "The remaining hard disk space allocated to db"
+msgstr "将剩余硬盘空间全部分配给DB"
+
+msgid "The remaining hard disk space allocated to dbbackup"
+msgstr "将剩余硬盘空间全部分配给DBBackup"
+
+msgid "The remaining hard disk space allocated to mongodb"
+msgstr "将剩余硬盘空间全部分配给MongoDB"
 
 #~ msgid "OperatingSystem:"
 #~ msgstr "操作系统："

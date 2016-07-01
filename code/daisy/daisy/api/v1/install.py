@@ -17,13 +17,11 @@
 /hosts endpoint for Daisy v1 API
 """
 import time
-import traceback
 import webob.exc
 
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
 from webob.exc import HTTPForbidden
-from webob.exc import HTTPServerError
 
 from threading import Thread
 
@@ -44,10 +42,6 @@ import daisy.api.backends.common as daisy_cmn
 from daisy.api.backends import driver
 from daisy.api.backends import os as os_handle
 
-try:
-    import simplejson as json
-except ImportError:
-    import json
 
 LOG = logging.getLogger(__name__)
 _ = i18n._
@@ -67,31 +61,40 @@ BACKENDS_UNINSTALL_ORDER = []
 
 
 def get_deployment_backends(req, cluster_id, backends_order):
-     cluster_roles = daisy_cmn.get_cluster_roles_detail(req,cluster_id)
-     cluster_backends = set([role['deployment_backend'] for role in cluster_roles if daisy_cmn.get_hosts_of_role(req, role['id'])])
-     ordered_backends = [backend for backend in backends_order if backend in cluster_backends]
-     other_backends = [backend for backend in cluster_backends if backend not in backends_order]
-     deployment_backends =ordered_backends + other_backends
-     return deployment_backends
-     
+    cluster_roles = daisy_cmn.get_cluster_roles_detail(req, cluster_id)
+    cluster_backends = set([role['deployment_backend']
+                            for role in cluster_roles if
+                            daisy_cmn.get_hosts_of_role(req, role['id'])])
+    ordered_backends = [
+        backend for backend in backends_order if backend in cluster_backends]
+    other_backends = [
+        backend for backend in cluster_backends if
+        backend not in backends_order]
+    deployment_backends = ordered_backends + other_backends
+    return deployment_backends
+
+
 class InstallTask(object):
     """
     Class for install OS and TECS.
     """
     """ Definition for install states."""
+
     def __init__(self, req, cluster_id):
         self.req = req
         self.cluster_id = cluster_id
 
     def _backends_install(self):
-        backends = get_deployment_backends(self.req, self.cluster_id, BACKENDS_INSTALL_ORDER)
+        backends = get_deployment_backends(
+            self.req, self.cluster_id, BACKENDS_INSTALL_ORDER)
         if not backends:
             LOG.info(_("No backends need to install."))
             return
         for backend in backends:
             backend_driver = driver.load_deployment_dirver(backend)
             backend_driver.install(self.req, self.cluster_id)
-    # this will be raise raise all the exceptions of the thread to log file 
+    # this will be raise raise all the exceptions of the thread to log file
+
     def run(self):
         try:
             self._run()
@@ -102,43 +105,57 @@ class InstallTask(object):
         """
         Exectue os installation with sync mode.
         :return:
-        """        
+        """
         # get hosts config which need to install OS
-        all_hosts_need_os = os_handle.get_cluster_hosts_config(self.req, self.cluster_id)
+        all_hosts_need_os = os_handle.get_cluster_hosts_config(
+            self.req, self.cluster_id)
         if all_hosts_need_os:
-            hosts_with_role_need_os = [host_detail for host_detail in all_hosts_need_os if host_detail['status'] == 'with-role']
-            hosts_without_role_need_os = [host_detail for host_detail in all_hosts_need_os if host_detail['status'] != 'with-role']
+            hosts_with_role_need_os = [
+                host_detail for host_detail in all_hosts_need_os if
+                host_detail['status'] == 'with-role']
+            hosts_without_role_need_os = [
+                host_detail for host_detail in all_hosts_need_os if
+                host_detail['status'] != 'with-role']
         else:
-            LOG.info(_("No host need to install os, begin to install " 
-                        "backends for cluster %s." % self.cluster_id))
+            LOG.info(_("No host need to install os, begin to install "
+                       "backends for cluster %s." % self.cluster_id))
             self._backends_install()
             return
 
         run_once_flag = True
-        # if no hosts with role need os, install backend applications immediately
+        # if no hosts with role need os, install backend applications
+        # immediately
         if not hosts_with_role_need_os:
             run_once_flag = False
             role_hosts_need_os = []
-            LOG.info(_("All of hosts with role is 'active', begin to install " 
-                        "backend applications for cluster %s first." % self.cluster_id))
+            LOG.info(_("All of hosts with role is 'active', begin to install "
+                       "backend applications for cluster %s first." %
+                       self.cluster_id))
             self._backends_install()
         else:
-            role_hosts_need_os =  [host_detail['id'] for host_detail in hosts_with_role_need_os]
+            role_hosts_need_os = [host_detail['id']
+                                  for host_detail in hosts_with_role_need_os]
 
         # hosts with role put the head of the list
-        order_hosts_need_os = hosts_with_role_need_os + hosts_without_role_need_os
+        order_hosts_need_os = hosts_with_role_need_os + \
+            hosts_without_role_need_os
         while order_hosts_need_os:
             os_install = os_handle.OSInstall(self.req, self.cluster_id)
-            #all os will be installed batch by batch with max_parallel_os_number which was set in daisy-api.conf
-            (order_hosts_need_os,role_hosts_need_os) = os_install.install_os(order_hosts_need_os,role_hosts_need_os)
-            # after a batch of os install over, judge if all role hosts install os completely, 
+            # all os will be installed batch by batch with
+            # max_parallel_os_number which was set in daisy-api.conf
+            (order_hosts_need_os, role_hosts_need_os) = os_install.install_os(
+                order_hosts_need_os, role_hosts_need_os)
+            # after a batch of os install over, judge if all
+            # role hosts install os completely,
             # if role_hosts_need_os is empty, install TECS immediately
             if run_once_flag and not role_hosts_need_os:
                 run_once_flag = False
-                #wait to reboot os after new os installed
+                # wait to reboot os after new os installed
                 time.sleep(10)
                 LOG.info(_("All hosts with role install successfully, "
-                    "begin to install backend applications for cluster %s." % self.cluster_id))
+                           "begin to install backend applications "
+                           "for cluster %s." %
+                           self.cluster_id))
                 self._backends_install()
 
 
@@ -160,6 +177,7 @@ class Controller(controller.BaseController):
                             data for a previously-reserved host
         DELETE /hosts/<ID> -- Delete the host with id <ID>
     """
+
     def __init__(self):
         self.notifier = notifier.Notifier()
         registry.configure_registry_client()
@@ -177,13 +195,14 @@ class Controller(controller.BaseController):
             self.policy.enforce(req.context, action, target)
         except exception.Forbidden:
             raise HTTPForbidden()
-            
+
     def _raise_404_if_cluster_deleted(self, req, cluster_id):
         cluster = self.get_cluster_meta_or_404(req, cluster_id)
         if cluster['deleted']:
-            msg = _("Cluster with identifier %s has been deleted.") % cluster_id
+            msg = _("Cluster with identifier %s has been deleted.") % \
+                cluster_id
             raise webob.exc.HTTPNotFound(msg)
-            
+
     def _get_filters(self, req):
         """
         Return a dictionary of query param filters from the request
@@ -225,19 +244,24 @@ class Controller(controller.BaseController):
 
         :raises HTTPBadRequest if x-install-cluster is missing
         """
+        if 'deployment_interface' in install_meta:
+            os_handle.pxe_server_build(req, install_meta)
+            return {"status": "pxe is installed"}
+
         cluster_id = install_meta['cluster_id']
         self._enforce(req, 'install_cluster')
         self._raise_404_if_cluster_deleted(req, cluster_id)
 
-        if install_meta.get("deployment_interface", None):
-            os_handle.pxe_server_build(req, install_meta)
-            return {"status": "pxe is installed"}
-
-        # if have hosts need to install os, TECS installataion executed in InstallTask
+        daisy_cmn.set_role_status_and_progress(
+            req, cluster_id, 'install',
+            {'messages': 'Waiting for TECS installation', 'progress': '0'},
+            'tecs')
+        # if have hosts need to install os,
+        # TECS installataion executed in InstallTask
         os_install_obj = InstallTask(req, cluster_id)
         os_install_thread = Thread(target=os_install_obj.run)
         os_install_thread.start()
-        return {"status":"begin install"}
+        return {"status": "begin install"}
 
     @utils.mutating
     def uninstall_cluster(self, req, cluster_id):
@@ -251,20 +275,24 @@ class Controller(controller.BaseController):
         self._enforce(req, 'uninstall_cluster')
         self._raise_404_if_cluster_deleted(req, cluster_id)
 
-        backends = get_deployment_backends(req, cluster_id, BACKENDS_UNINSTALL_ORDER)
+        backends = get_deployment_backends(
+            req, cluster_id, BACKENDS_UNINSTALL_ORDER)
         for backend in backends:
             backend_driver = driver.load_deployment_dirver(backend)
-            uninstall_thread = Thread(target=backend_driver.uninstall, args=(req, cluster_id))
+            uninstall_thread = Thread(
+                target=backend_driver.uninstall, args=(
+                    req, cluster_id))
             uninstall_thread.start()
-        return {"status":"begin uninstall"}
-            
+        return {"status": "begin uninstall"}
+
     @utils.mutating
     def uninstall_progress(self, req, cluster_id):
         self._enforce(req, 'uninstall_progress')
         self._raise_404_if_cluster_deleted(req, cluster_id)
-        
+
         all_nodes = {}
-        backends = get_deployment_backends(req, cluster_id, BACKENDS_UNINSTALL_ORDER)
+        backends = get_deployment_backends(
+            req, cluster_id, BACKENDS_UNINSTALL_ORDER)
         if not backends:
             LOG.info(_("No backends need to uninstall."))
             return all_nodes
@@ -273,7 +301,6 @@ class Controller(controller.BaseController):
             nodes_process = backend_driver.uninstall_progress(req, cluster_id)
             all_nodes.update(nodes_process)
         return all_nodes
-
 
     @utils.mutating
     def update_cluster(self, req, cluster_id):
@@ -287,29 +314,36 @@ class Controller(controller.BaseController):
         self._enforce(req, 'update_cluster')
         self._raise_404_if_cluster_deleted(req, cluster_id)
 
-        backends = get_deployment_backends(req, cluster_id, BACKENDS_UPGRADE_ORDER)
+        backends = get_deployment_backends(
+            req, cluster_id, BACKENDS_UPGRADE_ORDER)
         if not backends:
             LOG.info(_("No backends need to update."))
-            return {"status":""}
+            return {"status": ""}
+        daisy_cmn.set_role_status_and_progress(
+            req, cluster_id, 'upgrade',
+            {'messages': 'Waiting for TECS upgrading', 'progress': '0'},
+            'tecs')
         for backend in backends:
-            backend_driver = driver.load_deployment_dirver(backend)            
-            update_thread = Thread(target=backend_driver.upgrade, args=(req, cluster_id))
+            backend_driver = driver.load_deployment_dirver(backend)
+            update_thread = Thread(target=backend_driver.upgrade,
+                                   args=(req, cluster_id))
             update_thread.start()
-        return {"status":"begin update"}
+        return {"status": "begin update"}
 
     @utils.mutating
     def update_progress(self, req, cluster_id):
         self._enforce(req, 'update_progress')
         self._raise_404_if_cluster_deleted(req, cluster_id)
 
-        backends = get_deployment_backends(req, cluster_id, BACKENDS_UPGRADE_ORDER)
+        backends = get_deployment_backends(
+            req, cluster_id, BACKENDS_UPGRADE_ORDER)
         all_nodes = {}
         for backend in backends:
             backend_driver = driver.load_deployment_dirver(backend)
             nodes_process = backend_driver.upgrade_progress(req, cluster_id)
             all_nodes.update(nodes_process)
         return all_nodes
-        
+
     @utils.mutating
     def export_db(self, req, install_meta):
         """
@@ -324,7 +358,8 @@ class Controller(controller.BaseController):
         self._raise_404_if_cluster_deleted(req, cluster_id)
 
         all_config_files = {}
-        backends = get_deployment_backends(req, cluster_id, BACKENDS_INSTALL_ORDER)
+        backends = get_deployment_backends(
+            req, cluster_id, BACKENDS_INSTALL_ORDER)
         if not backends:
             LOG.info(_("No backends need to export."))
             return all_config_files
@@ -345,17 +380,18 @@ class Controller(controller.BaseController):
         """
         self._enforce(req, 'update_disk_array')
         self._raise_404_if_cluster_deleted(req, cluster_id)
-        
+
         tecs_backend_name = 'tecs'
-        backends = get_deployment_backends(req, cluster_id, BACKENDS_UNINSTALL_ORDER)
+        backends = get_deployment_backends(
+            req, cluster_id, BACKENDS_UNINSTALL_ORDER)
         if tecs_backend_name not in backends:
             message = "No tecs backend"
             LOG.info(_(message))
         else:
             backend_driver = driver.load_deployment_dirver(tecs_backend_name)
             message = backend_driver.update_disk_array(req, cluster_id)
-        return {'status':message}
-        
+        return {'status': message}
+
 
 class InstallDeserializer(wsgi.JSONRequestDeserializer):
     """Handles deserialization of specific controller method requests."""
@@ -367,12 +403,13 @@ class InstallDeserializer(wsgi.JSONRequestDeserializer):
 
     def install_cluster(self, request):
         return self._deserialize(request)
-        
+
     def export_db(self, request):
         return self._deserialize(request)
 
     def update_disk_array(self, request):
         return {}
+
 
 class InstallSerializer(wsgi.JSONResponseSerializer):
     """Handles serialization of specific controller method responses."""
@@ -385,7 +422,7 @@ class InstallSerializer(wsgi.JSONResponseSerializer):
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(result)
         return response
-        
+
     def export_db(self, response, result):
         response.status = 201
         response.headers['Content-Type'] = 'application/json'
@@ -397,7 +434,8 @@ class InstallSerializer(wsgi.JSONResponseSerializer):
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(result)
         return response
-        
+
+
 def create_resource():
     """Image members resource factory method"""
     deserializer = InstallDeserializer()

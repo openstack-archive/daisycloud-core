@@ -23,9 +23,19 @@ import six.moves.urllib.parse as urlparse
 from daisyclient.common import utils
 from daisyclient.openstack.common.apiclient import base
 
-UPDATE_PARAMS = ('alias', 'mtu', 'vlan_id', 'ip', 'name', 'cluster_id','ip_ranges', 'vlan_start','vlan_end','gateway','cidr', 'description', 'type','ml2_type','network_type','physnet_name','capability')
+UPDATE_PARAMS = ('alias', 'mtu', 'vlan_id', 'ip', 'name', 'cluster_id',
+                 'ip_ranges', 'vlan_start', 'vlan_end',
+                 'gateway', 'cidr', 'description', 'type', 'ml2_type',
+                 'network_type', 'physnet_name', 'capability',
+                 'segmentation_type', 'vni_start', 'vni_end',
+                 'gre_id_start', 'gre_id_end')
 
-CREATE_PARAMS = ('alias', 'mtu', 'vlan_id', 'ip', 'id', 'name', 'cluster_id','ip_ranges', 'vlan_start','vlan_end','gateway','cidr', 'description', 'type', 'ml2_type','network_type','physnet_name','capability')
+CREATE_PARAMS = ('alias', 'mtu', 'vlan_id', 'ip', 'id', 'name', 'cluster_id',
+                 'ip_ranges', 'vlan_start',
+                 'vlan_end', 'gateway', 'cidr', 'description', 'type',
+                 'ml2_type', 'network_type', 'physnet_name', 'capability',
+                 'segmentation_type', 'vni_start', 'vni_end', 'gre_id_start',
+                 'gre_id_end')
 
 DEFAULT_PAGE_SIZE = 20
 
@@ -36,6 +46,7 @@ OS_REQ_ID_HDR = 'x-openstack-request-id'
 
 
 class Network(base.Resource):
+
     def __repr__(self):
         return "<Network %s>" % self._info
 
@@ -79,7 +90,7 @@ class NetworkManager(base.ManagerWithFind):
                 meta[key] = strutils.bool_from_string(meta[key])
 
         return self._format_network_meta_for_user(meta)
-        
+
     def _network_meta_to_headers(self, fields):
         headers = {}
         fields_copy = copy.deepcopy(fields)
@@ -92,7 +103,7 @@ class NetworkManager(base.ManagerWithFind):
         for key, value in six.iteritems(fields_copy):
             headers['%s' % key] = utils.to_str(value)
         return headers
-        
+
     @staticmethod
     def _format_image_meta_for_user(meta):
         for key in ['size', 'min_ram', 'min_disk']:
@@ -121,12 +132,13 @@ class NetworkManager(base.ManagerWithFind):
         """
         network_id = base.getid(network)
         resp, body = self.client.get('/v1/networks/%s'
-                                      % urlparse.quote(str(network_id)))
-        #meta = self._network_meta_from_headers(resp.headers)
+                                     % urlparse.quote(str(network_id)))
+        # meta = self._network_meta_from_headers(resp.headers)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
-        return Network(self, self._format_network_meta_for_user(body['network']))
+        return Network(self, self._format_network_meta_for_user(
+            body['network']))
 
     def data(self, image, do_checksum=True, **kwargs):
         """Get the raw data for a specific image.
@@ -180,7 +192,8 @@ class NetworkManager(base.ManagerWithFind):
 
         :param page_size: number of items to request in each paginated request
         :param limit: maximum number of networks to return
-        :param marker: begin returning networks that appear later in the network
+        :param marker: begin returning networks that
+                       appear later in the network
                        list than that represented by this network id
         :param filters: dict of direct comparison filters that mimics the
                         structure of an network object
@@ -202,8 +215,10 @@ class NetworkManager(base.ManagerWithFind):
                     # Making sure all params are str before
                     # trying to encode them
                     qp[param] = encodeutils.safe_decode(value)
-            url = '/v1/clusters/%s/networks?%s' % (qp['cluster_id'], urlparse.urlencode(qp)) \
-                        if qp.get('cluster_id', None) else '/v1/networks?%s' % urlparse.urlencode(qp)
+            url = '/v1/clusters/%s/networks?%s' % (
+                  qp['cluster_id'], urlparse.urlencode(qp)) \
+                if qp.get('cluster_id', None) else\
+                '/v1/networks?%s' % urlparse.urlencode(qp)
             networks, resp = self._list(url, "networks")
 
             if return_request_id is not None:
@@ -254,7 +269,7 @@ class NetworkManager(base.ManagerWithFind):
 
         TODO(bcwaldon): document accepted params
         """
-        
+
         fields = {}
         for field in kwargs:
             if field in CREATE_PARAMS:
@@ -264,7 +279,7 @@ class NetworkManager(base.ManagerWithFind):
             else:
                 msg = 'create() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
-                
+
         hdrs = self._network_meta_to_headers(fields)
         resp, body = self.client.post('/v1/networks',
                                       headers=hdrs,
@@ -273,7 +288,8 @@ class NetworkManager(base.ManagerWithFind):
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
-        return Network(self, self._format_network_meta_for_user(body['network']))
+        return Network(self, self._format_network_meta_for_user(
+            body['network']))
 
     def delete(self, network, **kwargs):
         """Delete an network."""
@@ -282,7 +298,7 @@ class NetworkManager(base.ManagerWithFind):
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
-            
+
     def update(self, network, **kwargs):
         """Update an network
 
@@ -306,4 +322,5 @@ class NetworkManager(base.ManagerWithFind):
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
-        return Network(self, self._format_network_meta_for_user(body['network_meta']))
+        return Network(self, self._format_network_meta_for_user(body[
+            'network_meta']))

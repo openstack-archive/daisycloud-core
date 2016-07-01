@@ -14,23 +14,20 @@
 #    under the License.
 
 import copy
-import os
 
-from oslo_utils import encodeutils
-from oslo_utils import strutils
 import six
-import six.moves.urllib.parse as urlparse
 
 from daisyclient.common import utils
 from daisyclient.openstack.common.apiclient import base
-#import daisy.queue_process as queue
-#from daisy.queue_process import exec_cmd
+# import daisy.queue_process as queue
+# from daisy.queue_process import exec_cmd
 
-CREATE_PARAMS = ('cluster_id', 'version_id','deployment_interface')
+CREATE_PARAMS = ('cluster_id', 'version_id', 'deployment_interface')
 OS_REQ_ID_HDR = 'x-openstack-request-id'
 
 
 class Install(base.Resource):
+
     def __repr__(self):
         return "<Install %s>" % self._info
 
@@ -46,7 +43,7 @@ class Install(base.Resource):
 
 class InstallManager(base.ManagerWithFind):
     resource_class = Install
-        
+
     def _install_meta_to_headers(self, fields):
         headers = {}
         fields_copy = copy.deepcopy(fields)
@@ -72,7 +69,7 @@ class InstallManager(base.ManagerWithFind):
 
     def list(self, **kwargs):
         pass
-    
+
     def install(self, **kwargs):
         """Install a cluster
 
@@ -87,12 +84,13 @@ class InstallManager(base.ManagerWithFind):
                 raise TypeError(msg % field)
 
         # if fields.has_key("version_id"):
-            # url = '/v1/install/%s/version/%s' % (fields['cluster_id'], fields['version_id'])
+            # url = '/v1/install/%s/version/%s' % (fields['cluster_id'],
+            # fields['version_id'])
         # else:
         url = '/v1/install'
-         
+
         hdrs = self._install_meta_to_headers(fields)
-        resp, body = self.client.post(url,headers=hdrs,data=hdrs)
+        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
         return Install(self, self._format_install_meta_for_user(body))
 
     def export_db(self, **kwargs):
@@ -107,12 +105,12 @@ class InstallManager(base.ManagerWithFind):
             else:
                 msg = 'export_db() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
-        
+
         url = '/v1/export_db'
         hdrs = self._install_meta_to_headers(fields)
-        resp, body = self.client.post(url,headers=hdrs,data=hdrs)
+        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
         return Install(self, self._format_install_meta_for_user(body))
-        
+
     def disk_array_update(self, cluster, **kwargs):
         UPDATE_DISK_ARRAY_PARAMS = []
         fields = {}
@@ -120,10 +118,11 @@ class InstallManager(base.ManagerWithFind):
             if field in UPDATE_DISK_ARRAY_PARAMS:
                 fields[field] = kwargs[field]
             else:
-                msg = 'disk_array_update() got an unexpected keyword argument \'%s\''
+                msg = 'disk_array_update() \
+                      got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
-        
+
         url = '/v1/disk_array/%s' % base.getid(cluster)
         hdrs = self._install_meta_to_headers(fields)
-        resp, body = self.client.post(url,headers=hdrs,data=hdrs)
+        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
         return Install(self, self._format_install_meta_for_user(body))

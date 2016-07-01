@@ -76,6 +76,7 @@ schema_fixtures = {
 
 
 class TestController(testtools.TestCase):
+
     def setUp(self):
         super(TestController, self).setUp()
         self.api = utils.FakeAPI(data_fixtures)
@@ -84,7 +85,7 @@ class TestController(testtools.TestCase):
 
     def test_list_image_members(self):
         image_id = IMAGE
-        #NOTE(iccha): cast to list since the controller returns a generator
+        # NOTE(iccha): cast to list since the controller returns a generator
         image_members = list(self.controller.list(image_id))
         self.assertEqual(IMAGE, image_members[0].image_id)
         self.assertEqual(MEMBER, image_members[0].member_id)

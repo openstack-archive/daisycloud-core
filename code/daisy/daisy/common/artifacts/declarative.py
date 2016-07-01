@@ -399,6 +399,7 @@ class PropertyDefinition(AttributeDefinition):
 
 class RelationDefinition(AttributeDefinition):
     """A base class for Attributes defining cross-artifact relations"""
+
     def __init__(self, internal=False, **kwargs):
         self.internal = internal
         kwargs.setdefault('mutable', False)
@@ -482,6 +483,7 @@ class ArtifactPropertyDescriptor(object):
 
 class ArtifactAttributes(object):
     """A container class storing description of Artifact Type attributes"""
+
     def __init__(self):
         self.properties = {}
         self.dependencies = {}

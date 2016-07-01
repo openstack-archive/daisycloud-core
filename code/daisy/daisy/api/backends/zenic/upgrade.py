@@ -17,30 +17,13 @@
 /update endpoint for Daisy v1 API
 """
 
-import os
-import webob.exc
 import subprocess
 
-from oslo_config import cfg
 from oslo_log import log as logging
-from webob.exc import HTTPBadRequest
-from webob.exc import HTTPForbidden
-
-from threading import Thread, Lock
 import threading
 from daisy import i18n
-from daisy import notifier
-
-from daisy.api import policy
-import daisy.api.v1
 
 from daisy.common import exception
-from daisy.common import property_utils
-from daisy.common import utils
-from daisy.common import wsgi
-from daisy.api.v1 import controller
-from daisy.api.v1 import filters
-from daisy.api.backends.zenic.common import ZenicShellExector
 import daisy.api.backends.common as daisy_cmn
 import daisy.api.backends.zenic.common as zenic_cmn
 
@@ -54,12 +37,15 @@ zenic_state = zenic_cmn.ZENIC_STATE
 daisy_zenic_path = zenic_cmn.daisy_zenic_path
 
 
-update_zenic_progress=0.0
+update_zenic_progress = 0.0
 update_mutex = threading.Lock()
 
-def update_progress_to_db(req, role_id_list, status, progress_percentage_step=0.0):
+
+def update_progress_to_db(req, role_id_list, status,
+                          progress_percentage_step=0.0):
     """
-    Write update progress and status to db, we use global lock object 'update_mutex'
+    Write update progress and status to db,
+    we use global lock object 'update_mutex'
     to make sure this function is thread safety.
     :param req: http req.
     :param role_id_list: Column neeb be update in role table.
@@ -76,7 +62,7 @@ def update_progress_to_db(req, role_id_list, status, progress_percentage_step=0.
         if 0 == cmp(status, zenic_state['UPDATING']):
             role['status'] = status
             role['progress'] = update_zenic_progress
-        if 0 == cmp(status,  zenic_state['UPDATE_FAILED']):
+        if 0 == cmp(status, zenic_state['UPDATE_FAILED']):
             role['status'] = status
         elif 0 == cmp(status, zenic_state['ACTIVE']):
             role['status'] = status
@@ -85,60 +71,70 @@ def update_progress_to_db(req, role_id_list, status, progress_percentage_step=0.
     update_mutex.release()
 
 
-def thread_bin(req, host,role_id_list,update_progress_percentage):
+def thread_bin(req, host, role_id_list, update_progress_percentage):
 
-    (zenic_version_pkg_file,zenic_version_pkg_name) = zenic_cmn.check_and_get_zenic_version(daisy_zenic_path)
+    (zenic_version_pkg_file, zenic_version_pkg_name) = \
+        zenic_cmn.check_and_get_zenic_version(
+        daisy_zenic_path)
     if not zenic_version_pkg_file:
-        self.state = zenic_state['INSTALL_FAILED']
-        self.message = "ZENIC version file not found in %s" % daisy_zenic_path
-        raise exception.NotFound(message=self.message)
+        # selfstate = zenic_state['INSTALL_FAILED']
+        selfmessage = "ZENIC version file not found in %s" % daisy_zenic_path
+        raise exception.NotFound(message=selfmessage)
 
     host_ip = host['mgtip']
     password = host['rootpwd']
-    
+
     cmd = 'mkdir -p /var/log/daisy/daisy_upgrade/'
     daisy_cmn.subprocess_call(cmd)
 
-    var_log_path = "/var/log/daisy/daisy_upgrade/%s_upgrade_zenic.log" % host_ip
+    var_log_path = \
+        "/var/log/daisy/daisy_upgrade/%s_upgrade_zenic.log" % host_ip
     with open(var_log_path, "w+") as fp:
         cmd = '/var/lib/daisy/zenic/trustme.sh %s %s' % (host_ip, password)
-        daisy_cmn.subprocess_call(cmd,fp)
+        daisy_cmn.subprocess_call(cmd, fp)
         cmd = 'clush -S -b -w %s  /home/zenic/node_stop.sh' % (host_ip,)
-        daisy_cmn.subprocess_call(cmd,fp)
+        daisy_cmn.subprocess_call(cmd, fp)
 
-       
-        cmd = 'clush -S -b -w %s  rm -rf /home/workspace/%s' % (host_ip,zenic_version_pkg_name)
-        daisy_cmn.subprocess_call(cmd,fp)
+        cmd = 'clush -S -b -w %s  rm -rf /home/workspace/%s' % (
+            host_ip, zenic_version_pkg_name)
+        daisy_cmn.subprocess_call(cmd, fp)
 
         cmd = 'clush -S -b -w %s  rm -rf /home/workspace/unipack' % (host_ip,)
-        daisy_cmn.subprocess_call(cmd,fp)
-        
+        daisy_cmn.subprocess_call(cmd, fp)
+
         try:
             exc_result = subprocess.check_output(
-                'sshpass -p ossdbg1 scp %s root@%s:/home/workspace/' % (zenic_version_pkg_file,host_ip,),
+                'sshpass -p ossdbg1 scp %s root@%s:/home/workspace/' % (
+                    zenic_version_pkg_file, host_ip,),
                 shell=True, stderr=fp)
         except subprocess.CalledProcessError as e:
-            update_progress_to_db(req, role_id_list, zenic_state['INSTALL_FAILED'])
+            update_progress_to_db(
+                req, role_id_list, zenic_state['INSTALL_FAILED'])
             LOG.info(_("scp zenic pkg for %s failed!" % host_ip))
             fp.write(e.output.strip())
             exit()
-        else:            
+        else:
             LOG.info(_("scp zenic pkg for %s successfully!" % host_ip))
             fp.write(exc_result)
-            
-        cmd = 'clush -S -b -w %s unzip /home/workspace/%s -d /home/workspace/unipack' % (host_ip,zenic_version_pkg_name,)
+
+        cmd = 'clush -S -b -w %s unzip /home/workspace/%s \
+            -d /home/workspace/unipack' % (host_ip, zenic_version_pkg_name,)
         daisy_cmn.subprocess_call(cmd)
-        
+
         try:
             exc_result = subprocess.check_output(
-                'clush -S -b -w %s  /home/workspace/unipack/node_upgrade.sh' % (host_ip,),
+                'clush -S -b -w %s  /home/workspace/unipack/node_upgrade.sh'
+                % (host_ip,),
                 shell=True, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            update_progress_to_db(req, role_id_list, zenic_state['UPDATE_FAILED'])
+            update_progress_to_db(
+                req, role_id_list, zenic_state['UPDATE_FAILED'])
             LOG.info(_("Upgrade zenic for %s failed!" % host_ip))
             fp.write(e.output.strip())
         else:
-            update_progress_to_db(req, role_id_list, zenic_state['UPDATING'], update_progress_percentage)
+            update_progress_to_db(
+                req, role_id_list, zenic_state['UPDATING'],
+                update_progress_percentage)
             LOG.info(_("Upgrade zenic for %s successfully!" % host_ip))
             fp.write(exc_result)
 
@@ -147,12 +143,13 @@ def thread_bin(req, host,role_id_list,update_progress_percentage):
                 'clush -S -b -w %s  /home/zenic/node_start.sh' % (host_ip,),
                 shell=True, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            update_progress_to_db(req, role_id_list, zenic_state['UPDATE_FAILED'])
+            update_progress_to_db(
+                req, role_id_list, zenic_state['UPDATE_FAILED'])
             LOG.info(_("Start zenic for %s failed!" % host_ip))
             fp.write(e.output.strip())
         else:
-            update_progress_to_db(req, role_id_list, zenic_state['UPDATING'], update_progress_percentage)
+            update_progress_to_db(
+                req, role_id_list, zenic_state['UPDATING'],
+                update_progress_percentage)
             LOG.info(_("Start zenic for %s successfully!" % host_ip))
             fp.write(exc_result)
-
-

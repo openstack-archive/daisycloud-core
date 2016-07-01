@@ -44,6 +44,7 @@ _ = i18n._
 
 
 class BaseStrategy(object):
+
     def __init__(self):
         self.auth_token = None
         # TODO(sirp): Should expose selecting public/internal/admin URL.
@@ -62,6 +63,7 @@ class BaseStrategy(object):
 
 
 class NoAuthStrategy(BaseStrategy):
+
     def authenticate(self):
         pass
 

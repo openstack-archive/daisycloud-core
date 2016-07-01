@@ -38,12 +38,12 @@ _LW = i18n._LW
 
 CONF = cfg.CONF
 
-DISPLAY_FIELDS_IN_INDEX = ['id', 'name','container_format',
+DISPLAY_FIELDS_IN_INDEX = ['id', 'name', 'container_format',
                            'checksum']
 
 SUPPORTED_FILTERS = ['name', 'container_format']
 
-SUPPORTED_SORT_KEYS = ('name', 'container_format', 
+SUPPORTED_SORT_KEYS = ('name', 'container_format',
                        'id', 'created_at', 'updated_at')
 
 SUPPORTED_SORT_DIRS = ('asc', 'desc')
@@ -60,7 +60,7 @@ class Controller(object):
         """Get config_files, wrapping in exception if necessary."""
         try:
             return self.db_api.config_file_get_all(context, filters=filters,
-                                             **params)
+                                                   **params)
         except exception.NotFound:
             LOG.warn(_LW("Invalid marker. Config_file %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
@@ -109,7 +109,7 @@ class Controller(object):
         for key, value in params.items():
             if value is None:
                 del params[key]
-                
+
         return params
 
     def _get_filters(self, req):
@@ -225,21 +225,23 @@ class Controller(object):
                 which will include the newly-created config_file's internal id
                 in the 'id' field
         """
-        
+
         config_file_data = body["config_file"]
 
         config_file_id = config_file_data.get('id')
-        
+
         if config_file_id and not utils.is_uuid_like(config_file_id):
-            msg = _LI("Rejecting config_file creation request for invalid config_file "
+            msg = _LI("Rejecting config_file creation request for "
+                      "invalid config_file "
                       "id '%(bad_id)s'") % {'bad_id': config_file_id}
             LOG.info(msg)
             msg = _("Invalid config_file id format")
             return exc.HTTPBadRequest(explanation=msg)
 
         try:
-            config_file_data = self.db_api.config_file_add(req.context, config_file_data)
-        
+            config_file_data = self.db_api.config_file_add(
+                req.context, config_file_data)
+
             msg = (_LI("Successfully created config_file %s") %
                    config_file_data["id"])
             LOG.info(msg)
@@ -247,7 +249,8 @@ class Controller(object):
                 config_file_data = dict(config_file=config_file_data)
             return config_file_data
         except exception.Duplicate:
-            msg = _("config_file with identifier %s already exists!") % config_file_id
+            msg = _("config_file with identifier %s already exists!") % \
+                config_file_id
             LOG.warn(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
@@ -256,7 +259,9 @@ class Controller(object):
             LOG.error(msg)
             return exc.HTTPBadRequest(msg)
         except Exception:
-            LOG.exception(_LE("Unable to create config_file %s"), config_file_id)
+            LOG.exception(
+                _LE("Unable to create config_file %s"),
+                config_file_id)
             raise
 
     @utils.mutating
@@ -270,12 +275,14 @@ class Controller(object):
         success, the body contains the deleted image information as a mapping.
         """
         try:
-            deleted_config_file = self.db_api.config_file_destroy(req.context, id)
+            deleted_config_file = self.db_api.config_file_destroy(
+                req.context, id)
             msg = _LI("Successfully deleted config_file %(id)s") % {'id': id}
             LOG.info(msg)
             return dict(config_file=deleted_config_file)
         except exception.ForbiddenPublicImage:
-            msg = _LI("Delete denied for public config_file %(id)s") % {'id': id}
+            msg = _LI("Delete denied for public config_file %(id)s") % {
+                'id': id}
             LOG.info(msg)
             raise exc.HTTPForbidden()
         except exception.Forbidden:
@@ -317,7 +324,7 @@ class Controller(object):
         if 'config_file' not in config_file_data:
             config_file_data = dict(config_file=config_file_data)
         return config_file_data
-        
+
     @utils.mutating
     def update_config_file(self, req, id, body):
         """Updates an existing config_file with the registry.
@@ -330,7 +337,8 @@ class Controller(object):
         """
         config_file_data = body['config_file']
         try:
-            updated_config_file = self.db_api.config_file_update(req.context, id, config_file_data)
+            updated_config_file = self.db_api.config_file_update(
+                req.context, id, config_file_data)
 
             msg = _LI("Updating metadata for config_file %(id)s") % {'id': id}
             LOG.info(msg)
@@ -369,6 +377,7 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to update config_file %s") % id)
             raise
+
 
 def create_resource():
     """Images resource factory method."""

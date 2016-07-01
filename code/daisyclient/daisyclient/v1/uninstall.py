@@ -14,17 +14,11 @@
 #    under the License.
 
 import copy
-import os
-
-from oslo_utils import encodeutils
-from oslo_utils import strutils
 import six
-import six.moves.urllib.parse as urlparse
-
 from daisyclient.common import utils
 from daisyclient.openstack.common.apiclient import base
-#import daisy.queue_process as queue
-#from daisy.queue_process import exec_cmd
+# import daisy.queue_process as queue
+# from daisy.queue_process import exec_cmd
 
 CREATE_PARAMS = ('cluster_id')
 
@@ -45,10 +39,9 @@ class Uninstall(base.Resource):
         return self.manager.data(self, **kwargs)
 
 
-    
 class UninstallManager(base.ManagerWithFind):
     resource_class = Uninstall
-        
+
     def _uninstall_meta_to_headers(self, fields):
         headers = {}
         fields_copy = copy.deepcopy(fields)
@@ -74,6 +67,7 @@ class UninstallManager(base.ManagerWithFind):
 
     def list(self, **kwargs):
         pass
+
     def query_progress(self, **kwargs):
         fields = {}
         for field in kwargs:
@@ -83,13 +77,13 @@ class UninstallManager(base.ManagerWithFind):
                 msg = 'uninstall() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
 
-        if fields.has_key("cluster_id"):
+        if "cluster_id" in fields:
             url = '/v1/uninstall/%s' % fields['cluster_id']
 
         resp, body = self.client.get(url)
 
         return Uninstall(self, self._format_uninstall_meta_for_user(body))
-    
+
     def uninstall(self, **kwargs):
         """Uninstall a cluster
 
@@ -103,9 +97,7 @@ class UninstallManager(base.ManagerWithFind):
             else:
                 msg = 'uninstall() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
-        if fields.has_key("cluster_id"):
+        if "cluster_id" in fields:
             url = '/v1/uninstall/%s' % fields['cluster_id']
         resp, body = self.client.post(url)
         return Uninstall(self, self._format_uninstall_meta_for_user(body))
-
-

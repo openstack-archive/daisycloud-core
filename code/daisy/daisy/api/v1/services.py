@@ -52,12 +52,13 @@ CONF.import_opt('container_formats', 'daisy.common.config',
                 group='image_format')
 CONF.import_opt('image_property_quota', 'daisy.common.config')
 
+
 class Controller(controller.BaseController):
     """
     WSGI controller for services resource in Daisy v1 API
 
-    The services resource API is a RESTful web service for service data. The API
-    is as follows::
+    The services resource API is a RESTful web service for service data.
+    The API is as follows::
 
         GET  /services -- Returns a set of brief metadata about services
         GET  /services/detail -- Returns a set of detailed metadata about
@@ -124,7 +125,8 @@ class Controller(controller.BaseController):
     def _raise_404_if_component_deleted(self, req, component_id):
         component = self.get_component_meta_or_404(req, component_id)
         if component['deleted']:
-            msg = _("Component with identifier %s has been deleted.") % component_id
+            msg = _("Component with identifier %s has been deleted.") % \
+                component_id
             raise HTTPNotFound(msg)
 
     @utils.mutating
@@ -141,7 +143,7 @@ class Controller(controller.BaseController):
         service_name = service_meta["name"]
         service_description = service_meta["description"]
 
-        if service_meta.has_key('component_id'):
+        if 'component_id' in service_meta:
             orig_component_id = str(service_meta['component_id'])
             self._raise_404_if_component_deleted(req, orig_component_id)
 
@@ -163,7 +165,7 @@ class Controller(controller.BaseController):
         """
         self._enforce(req, 'delete_service')
 
-        #service = self.get_service_meta_or_404(req, id)
+        # service = self.get_service_meta_or_404(req, id)
         print "delete_service:%s" % id
         try:
             registry.delete_service_metadata(req.context, id)
@@ -182,14 +184,15 @@ class Controller(controller.BaseController):
                                 request=req,
                                 content_type="text/plain")
         except exception.InUseByStore as e:
-            msg = (_("service %(id)s could not be deleted because it is in use: "
+            msg = (_("service %(id)s could not be deleted "
+                     "because it is in use: "
                      "%(exc)s") % {"id": id, "exc": utils.exception_to_str(e)})
             LOG.warn(msg)
             raise HTTPConflict(explanation=msg,
                                request=req,
                                content_type="text/plain")
         else:
-            #self.notifier.info('service.delete', service)
+            # self.notifier.info('service.delete', service)
             return Response(body='', status=200)
 
     @utils.mutating
@@ -287,6 +290,7 @@ class Controller(controller.BaseController):
 
         return {'service_meta': service_meta}
 
+
 class ServiceDeserializer(wsgi.JSONRequestDeserializer):
     """Handles deserialization of specific controller method requests."""
 
@@ -300,6 +304,7 @@ class ServiceDeserializer(wsgi.JSONRequestDeserializer):
 
     def update_service(self, request):
         return self._deserialize(request)
+
 
 class ServiceSerializer(wsgi.JSONResponseSerializer):
     """Handles serialization of specific controller method responses."""
@@ -320,12 +325,14 @@ class ServiceSerializer(wsgi.JSONResponseSerializer):
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(dict(service=service_meta))
         return response
+
     def get_service(self, response, result):
         service_meta = result['service_meta']
         response.status = 201
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(dict(service=service_meta))
         return response
+
 
 def create_resource():
     """Services resource factory method"""

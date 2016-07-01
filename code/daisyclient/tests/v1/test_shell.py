@@ -432,8 +432,8 @@ class ShellStdinHandlingTests(testtools.TestCase):
         self._do_update()
 
         self.assertTrue(
-            'data' not in self.collected_args[1]
-            or self.collected_args[1]['data'] is None
+            'data' not in self.collected_args[1] or
+            self.collected_args[1]['data'] is None
         )
 
     def test_image_update_data_is_read_from_file(self):

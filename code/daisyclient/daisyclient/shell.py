@@ -218,10 +218,11 @@ class DaisyShell(object):
                             action='store_true',
                             help=argparse.SUPPRESS,
                             )
-
+        '''
         parser.add_argument('--version',
                             action='version',
                             version=daisyclient.__version__)
+        '''
 
         parser.add_argument('-d', '--debug',
                             default=bool(utils.env('GLANCECLIENT_DEBUG')),
@@ -453,8 +454,9 @@ class DaisyShell(object):
         image_url = self._get_image_url(args)
         auth_token = args.os_auth_token
 
-        auth_reqd = force_auth or (utils.is_authentication_required(args.func)
-                                   and not (auth_token and image_url))
+        auth_reqd = force_auth or\
+            (utils.is_authentication_required(args.func) and not
+             (auth_token and image_url))
 
         if not auth_reqd:
             endpoint = image_url
@@ -545,12 +547,13 @@ class DaisyShell(object):
         return endpoint, token
 
     def _get_versioned_client(self, api_version, args, force_auth=False):
-        #endpoint, token = self._get_endpoint_and_token(args,force_auth=force_auth)
-        #endpoint = "http://10.43.175.62:19292"
+        # ndpoint, token = self._get_endpoint_and_token(
+        # args,force_auth=force_auth)
+        # endpoint = "http://10.43.175.62:19292"
         endpoint = args.os_endpoint
-        #print endpoint
+        # print endpoint
         kwargs = {
-            #'token': token,
+            # 'token': token,
             'insecure': args.insecure,
             'timeout': args.timeout,
             'cacert': args.os_cacert,
@@ -699,6 +702,7 @@ class DaisyShell(object):
 
 
 class HelpFormatter(argparse.HelpFormatter):
+
     def start_section(self, heading):
         # Title-case the headings
         heading = '%s%s' % (heading[0].upper(), heading[1:])

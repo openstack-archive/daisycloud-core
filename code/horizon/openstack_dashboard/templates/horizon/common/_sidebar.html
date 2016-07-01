@@ -3,16 +3,12 @@
 
 <div class="header">
   <div class="nav" id='head_nav'>
-    <div>
-      <div id='head_logo'>
-      </div>
-      <div id='head_mark'>
-        <label style="color:white; font-size:24px; ">Daisy</label>
-      </div>
+    <div class="pull-left" id='head_logo'>
+        <img src="/dashboard/static/dashboard/img/bg_head.png">
     </div>
-    <div class="pull-left dropdown {% if not is_version %}{% if not is_hosts %}{% if not is_templates %}active{% endif %}{% endif %}{% endif %}" id="head_clusters">
-      <a id="dLabel" data-target="#" href="#" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false" style="color:white;">{% trans "Clusters" %}
-        <span class="caret" style="color:white;"></span>
+    <div class="pull-left dropdown nav_head nav_head_dropdown" id="head_clusters">
+      <a id="dLabel" data-target="#" href="#" {% if not is_version and not is_hosts and not is_templates and not is_system  %}class="active"{% endif %} data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">{% trans "Clusters" %}
+        <span class="caret"></span>
       </a>
       <ul class="dropdown-menu" aria-labelledby="dLabel">
         {% for cluster in clusters %}
@@ -26,21 +22,31 @@
             </li>
       </ul>
     </div>
-    <div class="pull-left {% if is_version %}active{% endif %}" id="head_version">
-      <a href="{% url 'horizon:environment:version:index' %}" role="button" style="color:white;">
+    <div class="pull-left nav_head" id="head_version">
+      <a href="{% url 'horizon:environment:version:index' %}" {% if is_version %}class="active"{% endif %} role="button">
           {% trans 'Version' %}
       </a>
     </div>
-    <div class="pull-left {% if is_hosts %}active{% endif %}" id="head_hosts_list">
-      <a href="{% url 'horizon:environment:overview:hosts' %}" role="button" style="color:white;">
+    <div class="pull-left nav_head" id="head_hosts_list">
+      <a href="{% url 'horizon:environment:host:index' %}" {% if is_hosts %}class="active"{% endif %} role="button">
           {% trans 'Hosts' %}
       </a>
     </div>
-    <div class="pull-left {% if is_templates %}active{% endif %}" id="head_template_list">
-      <a href="{% url 'horizon:environment:overview:templates' %}" role="button" style="color:white;">
+    <div class="pull-left nav_head" id="head_template_list">
+      <a href="{% url 'horizon:environment:template:index' %}" {% if is_templates %}class="active"{% endif %} role="button">
           {% trans 'Template' %}
       </a>
+    </div>
+    <div class="pull-left dropdown nav_head nav_head_dropdown" id="head_system">
+      <a id="dLabel" data-target="#" href="#" {% if is_system %}class="active"{% endif %} data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">{% trans "System" %}
+        <span class="caret"></span>
+      </a>
+      <ul class="dropdown-menu" aria-labelledby="dLabel">
+          <li><a href="{% url 'horizon:environment:system:index' %}">{% trans "Backup And Restore" %}</a></li>
+          <li><a href="{% url 'horizon:environment:system:systemconfig' %}">{% trans "System Config" %}</a></li>
+      </ul>
     </div>
     {% include "_header.html" %}
   </div>
 </div>
+

@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load i18n%}
+
+
+{% block page_header %}
+    <div>{% trans "Backup And Restore" %}</div>
+{% endblock %}
+
+{% block main %}
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <form class="form-horizontal form_backup">
+                <div class="form-group input-sm">
+                    <label class="control-label col-sm-5"></label>
+                    <div class="col-sm-3">
+                        <input id="backup" class="btn btn-primary btn-block" type="button" value="{% trans 'Backup' %}">
+                    </div>
+                    <div class="col-sm-3">
+                        <a href="#" title="{% trans 'Only backup daisy configuration files and database files,do not include the target system file.' %}">
+                            <span class="glyphicon glyphicon-question-sign"></span>
+                        </a>
+                    </div>
+                </div>
+            </form>  
+        </div>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <form class="form-horizontal form_restore" enctype="multipart/form-data">{% csrf_token %}
+                <div class="form-group input-sm">
+                    <label class="control-label col-sm-5">{% trans 'Select file' %}:</label>
+                    <div class="col-sm-3">
+                        <input class="form-control" id="restore_file" type="file" name="restore_file" />
+                    </div>
+                </div>
+                <div class="form-group input-sm">
+                    <label class="control-label col-sm-5"></label>
+                    <div class="col-sm-3">
+                        <input id="restore" class="btn btn-primary btn-block" type="button" value="{% trans 'Restore' %}">
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock%}
+
+{% block js %}
+    {% include "horizon/_scripts.html" %}
+    <script src="{{ STATIC_URL }}dashboard/bootstrapValidator.js"></script>
+    <script type="text/javascript">
+    function bacup_system(){
+        var url = "{% url 'horizon:environment:system:backup' %}";
+        window.location = url;
+    }
+
+    function restore_system(){
+        $(".form_restore").data('bootstrapValidator').resetForm();
+        $(".form_restore").data('bootstrapValidator').validate();
+        if (!$(".form_restore").data('bootstrapValidator').isValid()){
+            return;
+        }
+        var title = '{% trans "Confirm to restore" %}';
+        var body = gettext("Please confirm your selection. ");
+        body += '{% trans "This action cannot be undone." %}';
+        var action = '{% trans "Restore" %}'
+        modal = horizon.modals.create(title, body, action)
+        modal.modal()
+        modal.find('.btn-primary').click(function (evt) {
+            modal.modal('hide');
+            $(".form_restore").submit();
+        });
+    }
+
+    function callback_restore_system_force(data){
+        horizon.modals.spinner.modal('hide');
+    }
+
+    function process_different_version(data){
+        var title = '{% trans "Confirm to restore" %}';
+        var body = interpolate('{% trans "backup file version %s," %}', [data["backup_file_version"]]);
+        body += interpolate('{% trans "Daisy version %s," %}', [data["daisy_version"]]);
+        body += '{% trans "version different,confirm Restore?" %}'
+        var action = '{% trans "Restore" %}'
+        modal = horizon.modals.create(title, body, action)
+        modal.modal()
+        modal.find('.btn-primary').click(function (evt) {
+            modal.modal('hide');
+            horizon.modals.modal_spinner('{% trans "Restoring system,just a moment please." %}');
+            var url = "{% url 'horizon:environment:system:restore_system_force' %}";
+            do_post(url, 
+                JSON.stringify({'file_name': data["file_name"]}), 
+                callback_restore_system_force, 
+                callback_restore_system_force);
+        });
+    }
+
+    function OnInit(){
+        $("#backup").on('click', bacup_system);
+        $("#restore").on('click', restore_system);
+        $(".form_restore").bootstrapValidator({
+            message: 'This value is not valid',
+            excluded: ':disabled',
+            feedbackIcons: {
+                valid: 'glyphicon glyphicon-ok',
+                invalid: 'glyphicon glyphicon-remove',
+                validating: 'glyphicon glyphicon-refresh'
+            },
+            fields: {
+                restore_file: {
+                    validators: {
+                        notEmpty: {
+                            message: "{% trans 'Please select file!' %}"
+                        },
+                        file: {                            
+                            message: '{% trans "File not valid." %}'
+                        }
+                    }
+                }
+            }
+        });
+        $(".form_restore").submit(function(){
+            var form_data = new FormData();
+            var file_obj = document.getElementById("restore_file").files;
+            form_data.append("restore_file", file_obj[0]);
+            horizon.modals.modal_spinner('{% trans "Restoring system,just a moment please." %}');
+            $.ajax({
+                type: 'POST',
+                url: "{% url 'horizon:environment:system:restore' %}",
+                data: form_data,
+                async: false,
+                /**
+                *必须false才会自动加上正确的Content-Type
+                */
+                contentType: false,
+                /**
+                * 必须false才会避开jQuery对 formdata 的默认处理
+                * XMLHttpRequest会对 formdata 进行正确的处理
+                */
+                processData: false,
+                success: function (data) {
+                    horizon.modals.spinner.modal('hide');
+                    if (data != null && data != ""){
+                        process_different_version(data);
+                    }
+                },
+                error: function(data) {
+                    horizon.modals.spinner.modal('hide');
+                }
+            });
+            return false;
+        });
+    };
+    horizon.addInitFunction(OnInit);
+    </script>
+{% endblock %}

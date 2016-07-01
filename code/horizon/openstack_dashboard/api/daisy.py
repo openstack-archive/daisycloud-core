@@ -20,7 +20,7 @@ class Host(base.APIResourceWrapper):
               'os_version_id', 'os_version_file', 'ipmi_user', 'ipmi_passwd',
               'ipmi_addr', 'os_version', 'role', 'cluster', 'mac',
               'interfaces', 'os_progress', 'messages', 'role_status',
-              'os_status', 'role_progress', 'role_messages']
+              'os_status', 'role_progress', 'role_messages', 'discover_state']
 
     def __init__(self, apiresource, request):
         super(Host, self).__init__(apiresource)
@@ -114,6 +114,10 @@ def network_list(request, cluster_id):
     return [n for n in networks]
 
 
+def netplane_delete(request, network_id):
+    return daisyclient(request).networks.delete(network_id)
+
+
 def install_cluster(request, cluster_id):
     return daisyclient(request).install.install(cluster_id=cluster_id)
 
@@ -128,6 +132,15 @@ def upgrade_cluster(request, cluster_id):
 
 def config_add(request, **kwargs):
     return daisyclient(request).configs.add(**kwargs)
+
+
+def config_delete(request, **kwargs):
+    return daisyclient(request).configs.delete(**kwargs)
+
+
+def config_list(request, **kwargs):
+    configs = daisyclient(request).configs.list(**kwargs)
+    return [c for c in configs]
 
 
 def service_disk_add(request, **kwargs):
@@ -216,3 +229,58 @@ def template_detail(request, template_id):
 
 def template_delete(request, template_id):
     return daisyclient(request).template.delete(template_id)
+
+
+def node_update(request, **kwargs):
+    return daisyclient(request).node.update(**kwargs)
+
+
+def hwm_list(request):
+    return daisyclient(request).hwm.list()
+
+
+def backup_system(request, **kwargs):
+    return daisyclient(request).backup_restore.backup(**kwargs)
+
+
+def restore_system(request, **kwargs):
+    return daisyclient(request).backup_restore.restore(**kwargs)
+
+
+def get_backup_file_version(request, **kwargs):
+    return daisyclient(request).backup_restore.backup_file_version(**kwargs)
+
+
+def get_daisy_internal_version(request):
+    return daisyclient(request).backup_restore.version(**{'type': 'internal'})
+
+
+def pxe_host_discover(request, **kwargs):
+    return daisyclient(request).node.pxe_host_discover(**kwargs)
+
+
+def hwmip_delete(request, hwm_id):
+    return daisyclient(request).hwm.delete(hwm_id)
+
+
+def hwmip_add(request, **kwargs):
+    return daisyclient(request).hwm.add(**kwargs)
+
+
+def hwmip_update(request, hwm_id, **kwargs):
+    return daisyclient(request).hwm.update(hwm_id, **kwargs)
+
+
+def hwmip_get(request, hwm_id):
+    return daisyclient(request).hwm.get(hwm_id)
+
+
+def get_pxeserver(request):
+    qp = {'type': "system"}
+    networks = daisyclient(request).networks.list(filters=qp)
+    return [n for n in networks]
+
+
+def set_pxeserver(request, network_id, interface, **kwargs):
+    daisyclient(request).networks.update(network_id, **kwargs)
+    daisyclient(request).install.install(deployment_interface=interface)

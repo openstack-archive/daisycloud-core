@@ -27,6 +27,7 @@ _FATAL_EXCEPTION_FORMAT_ERRORS = False
 
 
 class RedirectException(Exception):
+
     def __init__(self, url):
         self.url = urlparse.urlparse(url)
 
@@ -336,12 +337,15 @@ class TaskException(DaisyException):
 class BadTaskConfiguration(DaisyException):
     message = _("Task was not configured properly")
 
+
 class InstallException(DaisyException):
     message = _("Cluster installtation raise exception")
+
 
 class InstallTimeoutException(DaisyException):
     message = _(
         "Time out, during install TECS components to cluster %(cluster_id)s")
+
 
 class TaskNotFound(TaskException, NotFound):
     message = _("Task with the given id %(task_id)s was not found")
@@ -566,23 +570,32 @@ class InvalidJsonPatchPath(JsonPatchException):
 class InvalidNetworkConfig(DaisyException):
     pass
 
+
 class InvalidIP(DaisyException):
     pass
-    
+
+
 class OSInstallFailed(DaisyException):
     message = _("os installtation failed.")
-    
+
+
 class IMPIOprationFailed(DaisyException):
     message = _("ipmi command failed.")
-    
+
+
 class ThreadBinException(DaisyException):
+
     def __init__(self, *args):
         super(ThreadBinException, self).__init__(*args)
-        
+
+
 class SubprocessCmdFailed(DaisyException):
     message = _("suprocess command failed.")
-    
+
+
 class DeleteConstrainted(DaisyException):
     message = _("delete is not allowed.")
 
 
+class TrustMeFailed(DaisyException):
+    message = _("Trust me script failed.")

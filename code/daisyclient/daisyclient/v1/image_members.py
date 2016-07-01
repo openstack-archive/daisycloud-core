@@ -17,6 +17,7 @@ from daisyclient.openstack.common.apiclient import base
 
 
 class ImageMember(base.Resource):
+
     def __repr__(self):
         return "<ImageMember %s>" % self._info
 
@@ -44,7 +45,7 @@ class ImageMemberManager(base.ManagerWithFind):
         if image and member:
             try:
                 out.append(self.get(image, member))
-            #TODO(bcwaldon): narrow this down to 404
+            # TODO(bcwaldon): narrow this down to 404
             except Exception:
                 pass
         elif image:
@@ -52,7 +53,7 @@ class ImageMemberManager(base.ManagerWithFind):
         elif member:
             out.extend(self._list_by_member(member))
         else:
-            #TODO(bcwaldon): figure out what is appropriate to do here as we
+            # TODO(bcwaldon): figure out what is appropriate to do here as we
             # are unable to provide the requested response
             pass
         return out

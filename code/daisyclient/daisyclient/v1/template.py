@@ -14,8 +14,6 @@
 #    under the License.
 
 import copy
-import os
-
 from oslo_utils import encodeutils
 from oslo_utils import strutils
 import six
@@ -24,9 +22,12 @@ import six.moves.urllib.parse as urlparse
 from daisyclient.common import utils
 from daisyclient.openstack.common.apiclient import base
 
-UPDATE_PARAMS = ('name','description', 'type', 'hosts', 'content','cluster_name','template_name', 'template')
+UPDATE_PARAMS = ('name', 'description', 'type', 'hosts', 'content',
+                 'cluster_name', 'template_name', 'template')
 
-CREATE_PARAMS = ('id', 'cluster_id','name', 'description', 'cluster_name','host_id', 'host_template_name', 'type', 'hosts', 'content','cluster','template_name', 'template')
+CREATE_PARAMS = ('id', 'cluster_id', 'name', 'description', 'cluster_name',
+                 'host_id', 'host_template_name', 'type', 'hosts', 'content',
+                 'cluster', 'template_name', 'template')
 
 DEFAULT_PAGE_SIZE = 20
 
@@ -80,7 +81,7 @@ class TemplateManager(base.ManagerWithFind):
                 meta[key] = strutils.bool_from_string(meta[key])
 
         return self._format_template_meta_for_user(meta)
-        
+
     def _template_meta_to_headers(self, fields):
         headers = {}
         fields_copy = copy.deepcopy(fields)
@@ -93,7 +94,7 @@ class TemplateManager(base.ManagerWithFind):
         for key, value in six.iteritems(fields_copy):
             headers['%s' % key] = utils.to_str(value)
         return headers
-        
+
     @staticmethod
     def _format_image_meta_for_user(meta):
         for key in ['size', 'min_ram', 'min_disk']:
@@ -140,20 +141,22 @@ class TemplateManager(base.ManagerWithFind):
         params.update(filters)
 
         return params
-        
+
     def get(self, template_id):
         """get template information by id."""
         url = "/v1/template/%s" % base.getid(template_id)
         resp, body = self.client.get(url)
-        return Template(self, self._format_template_meta_for_user(body['template']))
+        return Template(self, self._format_template_meta_for_user(
+            body['template']))
 
     def list(self, **kwargs):
         """Get a list of cluster template.
 
         :param page_size: number of items to request in each paginated request
         :param limit: maximum number of services to return
-        :param marker: begin returning services that appear later in the service
-                       list than that represented by this service id
+        :param marker: begin returning services that appear later
+                       in the service list than that represented
+                       by this service id
         :param filters: dict of direct comparison filters that mimics the
                         structure of an service object
         :param return_request_id: If an empty list is provided, populate this
@@ -162,7 +165,7 @@ class TemplateManager(base.ManagerWithFind):
         :rtype: list of :class:`Service`
         """
         absolute_limit = kwargs.get('limit')
-        page_size = kwargs.get('page_size', DEFAULT_PAGE_SIZE)
+        # page_size = kwargs.get('page_size', DEFAULT_PAGE_SIZE)
 
         def paginate(qp, return_request_id=None):
             for param, value in six.iteritems(qp):
@@ -189,8 +192,8 @@ class TemplateManager(base.ManagerWithFind):
 
         seen = 0
         seen_last_page = 0
-        filtered = 0
-        
+        # filtered = 0
+
         for template in paginate(params, return_request_id):
             if (absolute_limit is not None and
                     seen + seen_last_page >= absolute_limit):
@@ -205,7 +208,7 @@ class TemplateManager(base.ManagerWithFind):
 
         TODO(bcwaldon): document accepted params
         """
-        
+
         fields = {}
         for field in kwargs:
             if field in CREATE_PARAMS:
@@ -216,7 +219,7 @@ class TemplateManager(base.ManagerWithFind):
                 msg = 'create() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
         hdrs = self._template_meta_to_headers(fields)
-        
+
         resp, body = self.client.post('/v1/template',
                                       headers=hdrs,
                                       data=hdrs)
@@ -224,14 +227,14 @@ class TemplateManager(base.ManagerWithFind):
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
-        return Template(self, self._format_template_meta_for_user(body['template']))
+        return Template(self, self._format_template_meta_for_user(
+                        body['template']))
 
     def delete(self, template_id):
         """Delete a cluster template."""
         url = "/v1/template/%s" % base.getid(template_id)
         resp, body = self.client.delete(url)
 
-            
     def update(self, template_id, **kwargs):
         """Update an service
 
@@ -255,8 +258,9 @@ class TemplateManager(base.ManagerWithFind):
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
-        return Template(self, self._format_template_meta_for_user(body['template']))
-        
+        return Template(self, self._format_template_meta_for_user(
+                        body['template']))
+
     def export_db_to_json(self, **kwargs):
         """Add a template record, export a JSON file
         TODO(bcwaldon): document accepted params
@@ -271,9 +275,10 @@ class TemplateManager(base.ManagerWithFind):
 
         url = '/v1/export_db_to_json'
         hdrs = self._template_meta_to_headers(fields)
-        resp, body = self.client.post(url,headers=hdrs,data=hdrs)
-        return Template(self, self._format_template_meta_for_user(body['template']))
-        
+        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        return Template(
+            self, self._format_template_meta_for_user(body['template']))
+
     def import_json_to_template(self, **kwargs):
         """import json to tempalte
         TODO(bcwaldon): document accepted params
@@ -288,9 +293,10 @@ class TemplateManager(base.ManagerWithFind):
 
         url = '/v1/import_json_to_template'
         hdrs = self._template_meta_to_headers(fields)
-        resp, body = self.client.post(url,headers=hdrs,data=hdrs)
-        return Template(self, self._format_template_meta_for_user(body['template']))
-        
+        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        return Template(
+            self, self._format_template_meta_for_user(body['template']))
+
     def import_template_to_db(self, **kwargs):
         """Create a cluster with a template record
         TODO(bcwaldon): document accepted params
@@ -305,9 +311,9 @@ class TemplateManager(base.ManagerWithFind):
 
         url = '/v1/import_template_to_db'
         hdrs = self._template_meta_to_headers(fields)
-        resp, body = self.client.post(url,headers=hdrs,data=hdrs)
-        return Template(self, self._format_template_meta_for_user(body['template']))
-        
+        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        return Template(
+            self, self._format_template_meta_for_user(body['template']))
 
     def host_to_template(self, **kwargs):
         fields = {}
@@ -315,14 +321,16 @@ class TemplateManager(base.ManagerWithFind):
             if field in CREATE_PARAMS:
                 fields[field] = kwargs[field]
             else:
-                msg = 'host_to_template() got an unexpected keyword argument \'%s\''
+                msg = 'host_to_template() \
+                       got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
-        
+
         url = '/v1/host_to_template'
         hdrs = self._template_meta_to_headers(fields)
-        resp, body = self.client.post(url,headers=hdrs,data=hdrs)
-        return Template(self, self._format_template_meta_for_user(body['host_template']))
-        
+        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        return Template(
+            self, self._format_template_meta_for_user(body['host_template']))
+
     def template_to_host(self, **kwargs):
         """Update host with template"""
         hdrs = {}
@@ -341,11 +349,12 @@ class TemplateManager(base.ManagerWithFind):
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
-        return Template(self, self._format_template_meta_for_user(body['host_template']))
-        
+        return Template(
+            self, self._format_template_meta_for_user(body['host_template']))
+
     def host_template_list(self, **kwargs):
         absolute_limit = kwargs.get('limit')
-        page_size = kwargs.get('page_size', DEFAULT_PAGE_SIZE)
+        # page_size = kwargs.get('page_size', DEFAULT_PAGE_SIZE)
 
         def paginate(qp, return_request_id=None):
             for param, value in six.iteritems(qp):
@@ -366,13 +375,13 @@ class TemplateManager(base.ManagerWithFind):
             for template in host_templates:
                 yield template
         return_request_id = kwargs.get('return_req_id', None)
-        
+
         params = self._build_params(kwargs)
 
         seen = 0
         seen_last_page = 0
-        filtered = 0
-        
+        # filtered = 0
+
         for template in paginate(params, return_request_id):
             if (absolute_limit is not None and
                     seen + seen_last_page >= absolute_limit):
@@ -388,10 +397,12 @@ class TemplateManager(base.ManagerWithFind):
             if field in CREATE_PARAMS:
                 fields[field] = kwargs[field]
             else:
-                msg = 'host_to_template() got an unexpected keyword argument \'%s\''
+                msg = 'host_to_template()\
+                       got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
-        
+
         url = '/v1/host_template'
         hdrs = self._template_meta_to_headers(fields)
-        resp, body = self.client.put(url,headers=hdrs,data=hdrs)
-        return Template(self, self._format_template_meta_for_user(body['host_template']))
+        resp, body = self.client.put(url, headers=hdrs, data=hdrs)
+        return Template(
+            self, self._format_template_meta_for_user(body['host_template']))

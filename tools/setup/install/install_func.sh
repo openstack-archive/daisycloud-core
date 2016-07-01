@@ -1,10 +1,9 @@
 #!/bin/bash
-# DAISY°²×°¹«¹²º¯Êý
+# DAISY upgrade
 
-#·ÀÖ¹½Å±¾ÖØ¸´±»°üº¬
 if [ ! "$_INSTALL_FUNC_FILE" ];then 
 _INSTALL_FUNC_DIR=`pwd`
-#Í·ÎÄ¼þ°üº¬
+
 cd $_INSTALL_FUNC_DIR/../common/
 .  daisy_common_func.sh
 .  daisy_global_var.sh
@@ -15,18 +14,63 @@ cd $_INSTALL_FUNC_DIR/../uninstall/
 cd $_INSTALL_FUNC_DIR
 .  install_global_var.sh
 
-#É¾³ý¶àÓàµÄrepoÎÄ¼þ
+
+function ip2int()
+{
+    local ip=$1
+    [ `echo $ip |grep "^[0-9]\{1,3\}\.\([0-9]\{1,3\}\.\)\{2\}[0-9]\{1,3\}$"` ] || { echo "ip of $ip format error."; exit 1; }
+    ip_list=${ip//./ }
+    read -a ip_array <<<${ip_list}; 
+    int_num=`echo $(( ${ip_array[0]}<<24 | ${ip_array[1]}<<16 | ${ip_array[2]}<<8 | ${ip_array[3]} ))`
+}
+
+function int2ip()
+{
+    A=$((($1 & 0xff000000 ) >>24))
+    B=$((($1 & 0x00ff0000)>>16))
+    C=$((($1 & 0x0000ff00)>>8))
+    D=$(($1 & 0x000000ff))
+    ip_addr=$A.$B.$C.$D
+}
+
+function netmask_to_int()
+{
+    local netmask=$1
+    [ `echo $ip |grep "^[0-9]\{1,3\}\.\([0-9]\{1,3\}\.\)\{2\}[0-9]\{1,3\}$"` ] || { echo "netmask of $netmask format error."; exit 1; }
+    netmask_int=`echo $netmask |awk -F. -vOFS=\; 'NF+=0{print "obase=2;"$0}'|bc |paste -s -d '' |grep -E '^1[1]*[0]*$' |grep -o '1' |wc -l`
+    [ "$netmask_int" -eq 0 ] && { echo "error, $netmask is not a correct netmask."; exit 1; }
+}
+function ip_to_cidr()
+{
+    local ip=$1
+    local netmask=$2
+
+    netmask_to_int $netmask
+    cidr_int=$netmask_int
+
+    ip2int "$ip"
+    local ip_int=$int_num
+    ip2int "$netmask"    
+    local netmask_int=$int_num
+
+    cidr0_int=$(( $ip_int & $netmask_int ))
+    int2ip "$cidr0_int"
+    cidr_ip=$ip_addr
+    cidr="$cidr_ip/$cidr_int"
+}
+
+#rm daisy yum config file
 function delete_unused_repo_file
 {
     rm -f /etc/yum.repos.d/daisy*
 }
 
-# ²úÉúÒ»¸össh key
+#create ssh key
 function generate_ssh_key
 {
     local private_key_file=~/.ssh/id_dsa
     local public_key_file=~/.ssh/id_dsa.pub
-    #sshË½Ô¿»ò¹«Ô¿ÓÐÒ»¸ö²»´æÔÚ¾ÍÒªÖØÐÂ²úÉúÒ»¶Ô
+
     if [ ! -e $private_key_file ] || [ ! -e $public_key_file ]; then
         rm -rf $public_key_file
         rm -rf $private_key_file
@@ -38,7 +82,6 @@ function generate_ssh_key
 }
 
 
-#½«ÓòÃû×ª»»Îªip£¬²¢¶Ôping²»Í¨µÄÇé¿ö¸ø³ö¾¯¸æ
 function get_ip_from_ping
 {
     input_ip=$1
@@ -57,7 +100,7 @@ function get_ip_from_ping
 function get_public_ip
 {
     local_ip_list=`ifconfig  | grep "inet " | grep -v "127.0.0.1" | awk -F' ' {'print $2'} `
-    #Í¨ÏòÄ¬ÈÏÍø¹ØµÄ½Ó¿ÚÉÏÍ¨³£ÅäÖÃµÄ¶¼ÊÇÓÐÐ§µÄ´óÍøµØÖ·
+
     local def_gw_if=`route | grep default | awk -F' ' '{print $8}'|uniq`
     public_ip=""
     if [[ -n "$def_gw_if" ]];then
@@ -77,7 +120,7 @@ function set_default_gw_st
     fi
 }
 
-#´´½¨daisy³£ÓÃ×é¼þ
+#create daisy component
 function create_daisy_component
 {
     write_install_log "Daisy init and create the component"
@@ -121,11 +164,14 @@ function create_daisy_component
     /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-add "ha" "High availability component" >> $install_logfile 2>&1
     [ "$?" -ne 0 ] && { write_install_log "Error:create the component of ha failed"; exit 1; } 
     
+    /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-add "camellia" "Camellia component" >> $install_logfile 2>&1
+    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of camellia failed"; exit 1; } 
+    
  #   /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-add "log" "Log component" >> $install_logfile 2>&1
  #   [ "$?" -ne 0 ] && { write_install_log "Error:create the component of log failed"; exit 1; }
 }
 
-#´´½¨daisy³£ÓÃ·þÎñ
+#create daisy service
 function create_daisy_service
 {
     write_install_log "Daisy init and create the service"
@@ -169,6 +215,9 @@ function create_daisy_service
     local lb_component_id=`/usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-list |grep -w "loadbalance" |awk -F  " " '{print $2}'` >> $install_logfile 2>&1
     [ "$?" -ne 0 ] && { write_install_log "Error:query the id of loadbalance component failed"; exit 1; }
     
+    local camellia_component_id=`/usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-list |grep -w "camellia" |awk -F  " " '{print $2}'` >> $install_logfile 2>&1
+    [ "$?" -ne 0 ] && { write_install_log "Error:query the id of camellia component failed"; exit 1; }
+    
   #  local log_component_id=`/usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-list |grep -w "log" |awk -F  " " '{print $2}'` >> $install_logfile 2>&1
   #  [ "$?" -ne 0 ] && { write_install_log "Error:query the id of log component failed"; exit 1; }
 
@@ -189,7 +238,7 @@ function create_daisy_service
         [ "$?" -ne 0 ] && { write_install_log "Error:create the service of nova scheduler failed"; exit 1; } 
 
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "nova-cert" "The nova certificate service" --component-id $nova_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of nova certificate failed"; exit 1; }
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of nova certificate failed"; exit 1; } 
 
     else
         write_install_log "Error:there is no componet of nova"
@@ -293,7 +342,7 @@ function create_daisy_service
     fi
 
     if [ ! -z $amqp_component_id ];then
-        /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "amqp" "The amqp service" --component-id $amqp_component_id --backup-type lb >> $install_logfile 2>&1
+        /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "amqp" "The amqp service" --component-id $amqp_component_id --backup-type ha >> $install_logfile 2>&1
         [ "$?" -ne 0 ] && { write_install_log "Error:create the service of amqp failed"; exit 1; } 
     else
         write_install_log "Error:there is no componet of amqp"
@@ -333,7 +382,15 @@ function create_daisy_service
         exit 1;   
     fi
     
-   # if [ ! -z $log_component_id ];then
+    if [ ! -z $camellia_component_id ];then
+        /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "camellia-api" "The camellia-api service" --component-id $camellia_component_id --backup-type ha >> $install_logfile 2>&1
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of camellia-api failed"; exit 1; } 
+    else
+        write_install_log "Error:there is no componet of camellia"
+        exit 1;   
+    fi
+    
+  # if [ ! -z $log_component_id ];then
   #      /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "log-server" "The log-server service" --component-id $log_component_id --backup-type ha >> $install_logfile 2>&1
   #      [ "$?" -ne 0 ] && { write_install_log "Error:create the service of log-server failed"; exit 1; } 
   #  else
@@ -342,33 +399,34 @@ function create_daisy_service
   #  fi
 }
 
-#´´½¨daisyµÄÍøÂç
+#create daisy network
 function create_daisy_network
 {
     write_install_log "Daisy init and create the network"
 
-    daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "PUBLIC" "For public api"  "PUBLIC" --cidr "192.168.1.1/24" --type template --capability high >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "create the network of public failed"; exit 1; } 
+    daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "PUBLICAPI" "For public api"  "PUBLICAPI" --cidr "192.168.1.1/24" --type template --capability high >> $install_logfile 2>&1
+    [ "$?" -ne 0 ] && { write_install_log "create the network of publicAPI failed"; exit 1; }
 
     daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "MANAGEMENT" "For internal API and AMQP" "MANAGEMENT" --cidr "192.168.1.1/24" --type template --capability high >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "create the network of MANAGEMENT failed"; exit 1; } 
+    [ "$?" -ne 0 ] && { write_install_log "create the network of MANAGEMENT failed"; exit 1; }
 
-    daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "STORAGE" "Storage network plane" "STORAGE"  --cidr "192.168.1.1/24" --type template --capability high >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "create the network of STORAGE failed"; exit 1; } 
+    daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "STORAGE" "Storage network plane" "STORAGE"  --cidr "192.169.1.1/24" --type template --capability high >> $install_logfile 2>&1
+    [ "$?" -ne 0 ] && { write_install_log "create the network of STORAGE failed"; exit 1; }
 
-    daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "PRIVATE" "Network plane for vms" "PRIVATE" --type template --ml2-type ovs --capability high >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "create the network of PRIVATE failed"; exit 1; } 
+    daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "physnet1" "Dataplane network for vms" "DATAPLANE" --type template --ml2-type ovs --capability high >> $install_logfile 2>&1
+    [ "$?" -ne 0 ] && { write_install_log "create the network of DATAPLANE failed"; exit 1; }
 
-    daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "DEPLOYMENT" "For deploy the infrastructure" "DEPLOYMENT" --cidr "192.168.1.1/24" --type template --capability high >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "create the network of DEPLOYMENT failed"; exit 1; } 
+    daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "DEPLOYMENT" "For deploy the infrastructure" "DEPLOYMENT" --cidr "99.99.1.1/24" --type template --capability high >> $install_logfile 2>&1
+    [ "$?" -ne 0 ] && { write_install_log "create the network of DEPLOYMENT failed"; exit 1; }
 
-   daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "EXTERNAL" "For external interactive" "EXTERNAL" --cidr "192.168.1.1/24" --type template --capability high >> $install_logfile 2>&1
-   [ "$?" -ne 0 ] && { write_install_log "create the network of EXTERNAL failed"; exit 1; } 
-   daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "VXLAN" "For vxlan interactive" "VXLAN" --cidr "192.168.1.1/24" --type template >> $install_logfile 2>&1
-   [ "$?" -ne 0 ] && { write_install_log "create the network of VXLAN failed"; exit 1; }
+   daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "EXTERNAL" "For external interactive" "EXTERNAL" --cidr "192.170.1.1/24" --type template --capability high >> $install_logfile 2>&1
+   [ "$?" -ne 0 ] && { write_install_log "create the network of EXTERNAL failed"; exit 1; }
+
+    daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "DEPLOYMENT" "For build pxe server" "DEPLOYMENT" --cidr "99.99.1.1/24" --ip "99.99.1.5" --ip-ranges "start":"99.99.1.50","end":"99.99.1.150" --type system >> $install_logfile 2>&1
+    [ "$?" -ne 0 ] && { write_install_log "create the network of DEPLOYMENT failed"; exit 1; }
 }
 
-#´´½¨daisyµÄ½ÇÉ«
+#create daisy role with tecs
 function create_daisy_role_with_tecs
 {
     write_install_log "Daisy init and create the role with tecs"
@@ -439,13 +497,12 @@ function create_daisy_service_role_with_cell
 
 function daisy_init_func
 {
-    # »ñÈ¡¹ÜÀíÍøipµØÖ·£¬ÓÃÓÚ--os-endpoint²ÎÊý
     get_public_ip
     if [ -z $public_ip ];then
         write_install_log "Error:default gateway is not set!!!"
         exit 1
     fi
-    #»ñÈ¡°ó¶¨¶Ë¿ÚºÅ£¬ÓÃÓÚ--os-endpoint²ÎÊý
+
     local file="/etc/daisy/daisy-api.conf"
     bind_port=""
     if [ -e $file ];then
@@ -511,7 +568,7 @@ function config_ironic
     [ ! -e $file ] && { write_install_log "Error:$file is not exist"; exit 1;}
     
     openstack-config --set "$file" DEFAULT "rpc_backend" "rabbit"
-    # »ñÈ¡¹ÜÀíÍøipµØÖ·£¬È»ºó°ÑÊý¾Ý¿âµÄironicÅäÖÃÎÄ¼þÖÐ
+
     get_public_ip
     if [ -z $public_ip ];then
         write_install_log "Error:default gateway is not set!!!"
@@ -565,7 +622,6 @@ function config_ironic_discoverd
 {    
     local file=$1
     local ip=$2
-    #»ñÈ¡°ó¶¨¶Ë¿ÚºÅ
     local daisy_file="/etc/daisy/daisy-api.conf"
     local bind_port=""
     if [ -e $daisy_file ];then
@@ -604,6 +660,8 @@ function daisyrc_admin
 function build_pxe_server
 {
     local ip=$1
+    local daisy_port=$2
+
     config_file="/home/daisy_install/daisy.conf"
     [ ! -e $config_file ] && return 
     
@@ -639,6 +697,29 @@ function build_pxe_server
             optional_parameters="$optional_parameters --client_ip_end $client_ip_end_params"
         fi
         ironic --ironic-url="http://${ip}:6385/v1" --os-auth-token daisy daisy-build-pxe $pxe_bond_name yes $optional_parameters >> $install_logfile 2>&1
+
+        # write dhcp cidr to DEPLOYMENT network of system for daisy
+        # to decide which is pxe mac
+        if [ "$ip_address_params" -a "$net_mask_params" ];then
+            ip_to_cidr "$ip_address_params" "$net_mask_params"
+            [ -z "$cidr" ] && { write_install_log "Error: can't get cidr of dhcp"; exit 1; }
+            dhcp_cidr=$cidr
+            template_deploy_network_id=`/usr/bin/daisy --os-endpoint="http://${ip}:${daisy_port}" network-list --type "system"|grep -w system |grep -w 'DEPLOYMENT' |awk -F ' ' '{print $2}' 2>&1`
+            if [ "$client_ip_begin_params" -a "$client_ip_end_params" ];then
+                ip_ranges="start:$client_ip_begin_params,end:$client_ip_end_params"
+            else
+                ip_ranges=""
+            fi
+            [ -z "$template_deploy_network_id" ] && { write_install_log "Error:can't find DEPLOYMENT network of system"; exit 1; }
+            write_install_log "write dhcp cidr to DEPLOYMENT network of system"
+            if [ "$ip_ranges" ];then
+                /usr/bin/daisy --os-endpoint="http://${ip}:${daisy_port}" network-update "$template_deploy_network_id" --cidr "$dhcp_cidr" --ip-ranges "$ip_ranges" >> $install_logfile 2>&1
+            else
+                /usr/bin/daisy --os-endpoint="http://${ip}:${daisy_port}" network-update "$template_deploy_network_id" --cidr "$dhcp_cidr" >> $install_logfile 2>&1
+            fi
+            [ "$?" -ne 0 ] && { write_install_log "Error:update DEPLOYMENT network $template_deploy_network_id of system failed"; exit 1; }
+        fi
+
         systemctl is-active dhcpd.service >> $install_logfile 2>&1
         [ "$?" -ne 0 ] && { write_install_log "Error:dhcpd.service is not active,so build pxe server failed"; exit 1; }
     else
@@ -650,6 +731,7 @@ function config_keystone_local_setting
 {
     local dashboard_conf_file="/etc/openstack-dashboard/local_settings"
     local keystone_conf_file="/etc/keystone/keystone.conf"
+
     get_public_ip
     if [ -z $public_ip ];then
         write_install_log "Error:default gateway is not set!!!"
@@ -664,10 +746,21 @@ function config_keystone_local_setting
     update_config "$dashboard_conf_file" ALLOWED_HOSTS "['*']"
     update_config "$dashboard_conf_file" AUTHENTICATION_URLS "['openstack_auth.urls',]"
     openstack-config --set "$keystone_conf_file" DEFAULT admin_token "e93e9abf42f84be48e0996e5bd44f096"
-    openstack-config --set "$keystone_conf_file" token expiration "43200"
+    openstack-config --set "$keystone_conf_file" token expiration "90000"    
     
     touch /var/log/horizon/horizon.log
     chown apache:apache /var/log/horizon/horizon.log
+    
+    config_file="/home/daisy_install/daisy.conf"
+    local director_theme_conf_file="/usr/share/openstack-dashboard/openstack_dashboard/enabled/_20_director_theme.py"
+    [ ! -e $config_file ] && return
+    get_config "$config_file" with_director
+    local with_director=$config_answer
+    if [ "$with_director" == yes ];then
+        update_config "$director_theme_conf_file" DISABLED "False"
+    else
+        update_config "$director_theme_conf_file" DISABLED "True"
+    fi
 }
 
 function config_get_node_info

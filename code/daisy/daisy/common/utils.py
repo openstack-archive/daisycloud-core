@@ -21,6 +21,7 @@ System-level utilities and helper functions.
 """
 
 import errno
+from functools import reduce
 
 try:
     from eventlet import sleep
@@ -46,9 +47,11 @@ from oslo_utils import netutils
 from oslo_utils import strutils
 import six
 from webob import exc
+import ConfigParser
 
 from daisy.common import exception
 from daisy import i18n
+from ironicclient import client as ironic_client
 
 CONF = cfg.CONF
 
@@ -72,6 +75,11 @@ IMAGE_META_HEADERS = ['x-image-meta-location', 'x-image-meta-size',
                       'x-image-meta-virtual_size']
 
 DAISY_TEST_SOCKET_FD_STR = 'DAISY_TEST_SOCKET_FD'
+
+DISCOVER_DEFAULTS = {
+    'listen_port': '5050',
+    'ironic_url': 'http://127.0.0.1:6385/v1',
+}
 
 
 def chunkreadable(iter, chunk_size=65536):
@@ -135,6 +143,7 @@ MAX_COOP_READER_BUFFER_SIZE = 134217728  # 128M seems like a sane buffer limit
 
 
 class CooperativeReader(object):
+
     """
     An eventlet thread friendly class for reading in image data.
 
@@ -144,6 +153,7 @@ class CooperativeReader(object):
     starvation, ie allows all threads to be scheduled periodically rather than
     having the same thread be continuously active.
     """
+
     def __init__(self, fd):
         """
         :param fd: Underlying image file object
@@ -223,10 +233,12 @@ class CooperativeReader(object):
 
 
 class LimitingReader(object):
+
     """
     Reader designed to fail when reading image data past the configured
     allowable amount.
     """
+
     def __init__(self, data, limit):
         """
         :param data: Underlying image data object
@@ -330,71 +342,90 @@ def get_image_meta_from_headers(response):
             result[key] = strutils.bool_from_string(result[key])
     return result
 
+
 def get_host_meta(response):
     result = {}
-    for key,value in response.json.items():
+    for key, value in response.json.items():
         result[key] = value
     return result
+
+
+def get_hwm_meta(response):
+    result = {}
+    for key, value in response.json.items():
+        result[key] = value
+    return result
+
 
 def get_cluster_meta(response):
     result = {}
-    for key,value in response.json.items():
+    for key, value in response.json.items():
         result[key] = value
     return result
+
 
 def get_component_meta(response):
     result = {}
-    for key,value in response.json.items():
+    for key, value in response.json.items():
         result[key] = value
     return result
+
 
 def get_service_meta(response):
     result = {}
-    for key,value in response.json.items():
+    for key, value in response.json.items():
         result[key] = value
     return result
+
 
 def get_template_meta(response):
     result = {}
-    for key,value in response.json.items():
+    for key, value in response.json.items():
         result[key] = value
     return result
+
 
 def get_role_meta(response):
     result = {}
-    for key,value in response.json.items():
+    for key, value in response.json.items():
         result[key] = value
     return result
+
 
 def get_config_file_meta(response):
     result = {}
-    for key,value in response.json.items():
+    for key, value in response.json.items():
         result[key] = value
     return result
+
 
 def get_config_set_meta(response):
     result = {}
-    for key,value in response.json.items():
+    for key, value in response.json.items():
         result[key] = value
     return result
+
 
 def get_config_meta(response):
     result = {}
-    for key,value in response.json.items():
-        result[key] = value
-    return result
-    
-def get_network_meta(response):
-    result = {}
-    for key,value in response.json.items():
+    for key, value in response.json.items():
         result[key] = value
     return result
 
-def get_dict_meta(response):
+
+def get_network_meta(response):
     result = {}
-    for key,value in response.json.items():
+    for key, value in response.json.items():
         result[key] = value
     return result
+
+
+def get_dict_meta(response):
+    result = {}
+    for key, value in response.json.items():
+        result[key] = value
+    return result
+
 
 def create_mashup_dict(image_meta):
     """
@@ -434,6 +465,7 @@ def safe_remove(path):
 
 
 class PrettyTable(object):
+
     """Creates an ASCII art table for use in bin/glance
 
     Example:
@@ -442,6 +474,7 @@ class PrettyTable(object):
         --- ----------------- ------------ -----
         122 image                       22     0
     """
+
     def __init__(self):
         self.columns = []
 
@@ -506,8 +539,9 @@ def get_terminal_size():
 
         try:
             height_width = struct.unpack('hh', fcntl.ioctl(sys.stderr.fileno(),
-                                         termios.TIOCGWINSZ,
-                                         struct.pack('HH', 0, 0)))
+                                                           termios.TIOCGWINSZ,
+                                                           struct.pack(
+                                                               'HH', 0, 0)))
         except Exception:
             pass
 
@@ -802,3 +836,254 @@ def get_search_plugins():
     ext_manager = stevedore.extension.ExtensionManager(
         namespace, invoke_on_load=True)
     return ext_manager.extensions
+
+
+def get_host_min_mac(host_interfaces):
+    if not isinstance(host_interfaces, list):
+        host_interfaces = eval(host_interfaces)
+    macs = [interface['mac'] for interface in host_interfaces
+            if interface['type'] == 'ether' and interface['mac']]
+    min_mac = min(macs)
+    return min_mac
+
+
+def ip_into_int(ip):
+    """
+    Switch ip string to decimalism integer..
+    :param ip: ip string
+    :return: decimalism integer
+    """
+    return reduce(lambda x, y: (x << 8) + y, map(int, ip.split('.')))
+
+
+def is_ip_in_cidr(ip, cidr):
+    """
+    Check ip is in cidr
+    :param ip: Ip will be checked, like:192.168.1.2.
+    :param cidr: Ip range,like:192.168.0.0/24.
+    :return: If ip in cidr, return True, else return False.
+    """
+    network = cidr.split('/')
+    mask = ~(2**(32 - int(network[1])) - 1)
+    return (ip_into_int(ip) & mask) == (ip_into_int(network[0]) & mask)
+
+
+def is_ip_in_ranges(ip, ip_ranges):
+    """
+    Check ip is in range
+    : ip: Ip will be checked, like:192.168.1.2.
+    : ip_ranges : Ip ranges, like:
+                    [{'start':'192.168.0.10', 'end':'192.168.0.20'}
+                    {'start':'192.168.0.50', 'end':'192.168.0.60'}]
+    :return: If ip in ip_ranges, return True, else return False.
+    """
+    for ip_range in ip_ranges:
+        start_ip_int = ip_into_int(ip_range['start'])
+        end_ip_int = ip_into_int(ip_range['end'])
+        ip_int = ip_into_int(ip)
+        if ip_int >= start_ip_int and ip_int <= end_ip_int:
+            return True
+
+    return False
+
+
+def get_ironicclient():  # pragma: no cover
+    """Get Ironic client instance."""
+    config_discoverd = ConfigParser.ConfigParser(defaults=DISCOVER_DEFAULTS)
+    config_discoverd.read("/etc/ironic-discoverd/discoverd.conf")
+    ironic_url = config_discoverd.get("discoverd", "ironic_url")
+    args = {'os_auth_token': 'fake',
+            'ironic_url': ironic_url}
+    return ironic_client.get_client(1, **args)
+
+
+def get_host_hw_info(host_interface):
+    host_hw_config = {}
+    ironicclient = get_ironicclient()
+    if host_interface:
+        min_mac = get_host_min_mac(host_interface)
+        try:
+            host_obj = ironicclient.physical_node.get(min_mac)
+            host_hw_config = dict([(f, getattr(host_obj, f, ''))
+                                   for f in ['system', 'memory', 'cpu',
+                                             'disks', 'interfaces',
+                                             'pci', 'devices']])
+        except Exception:
+            LOG.exception(_LE("Unable to find ironic data %s")
+                          % Exception)
+    return host_hw_config
+
+
+def get_dvs_interfaces(host_interfaces):
+    dvs_interfaces = []
+    if not isinstance(host_interfaces, list):
+        host_interfaces = eval(host_interfaces)
+    for interface in host_interfaces:
+        if not isinstance(interface, dict):
+            interface = eval(interface)
+        if ('vswitch_type' in interface and
+                interface['vswitch_type'] == 'dvs'):
+            dvs_interfaces.append(interface)
+
+    return dvs_interfaces
+
+
+def get_clc_pci_info(pci_info):
+    clc_pci = []
+    flag1 = 'Intel Corporation Coleto Creek PCIe Endpoint'
+    flag2 = '8086:0435'
+    for pci in pci_info:
+        if flag1 in pci or flag2 in pci:
+            clc_pci.append(pci.split()[0])
+    return clc_pci
+
+
+def cpu_str_to_list(spec):
+    """Parse a CPU set specification.
+
+    :param spec: cpu set string eg "1-4,^3,6"
+
+    Each element in the list is either a single
+    CPU number, a range of CPU numbers, or a
+    caret followed by a CPU number to be excluded
+    from a previous range.
+
+    :returns: a set of CPU indexes
+    """
+
+    cpusets = []
+    if not spec:
+        return cpusets
+
+    cpuset_ids = set()
+    cpuset_reject_ids = set()
+    for rule in spec.split(','):
+        rule = rule.strip()
+        # Handle multi ','
+        if len(rule) < 1:
+            continue
+        # Note the count limit in the .split() call
+        range_parts = rule.split('-', 1)
+        if len(range_parts) > 1:
+            # So, this was a range; start by converting the parts to ints
+            try:
+                start, end = [int(p.strip()) for p in range_parts]
+            except ValueError:
+                raise exception.Invalid(_("Invalid range expression %r")
+                                        % rule)
+            # Make sure it's a valid range
+            if start > end:
+                raise exception.Invalid(_("Invalid range expression %r")
+                                        % rule)
+            # Add available CPU ids to set
+            cpuset_ids |= set(range(start, end + 1))
+        elif rule[0] == '^':
+            # Not a range, the rule is an exclusion rule; convert to int
+            try:
+                cpuset_reject_ids.add(int(rule[1:].strip()))
+            except ValueError:
+                raise exception.Invalid(_("Invalid exclusion "
+                                          "expression %r") % rule)
+        else:
+            # OK, a single CPU to include; convert to int
+            try:
+                cpuset_ids.add(int(rule))
+            except ValueError:
+                raise exception.Invalid(_("Invalid inclusion "
+                                          "expression %r") % rule)
+
+    # Use sets to handle the exclusion rules for us
+    cpuset_ids -= cpuset_reject_ids
+    cpusets = list(cpuset_ids)
+    cpusets.sort()
+    return cpusets
+
+
+def cpu_list_to_str(cpu_list):
+    """Parse a CPU list to string.
+
+    :param cpu_list: eg "[1,2,3,4,6,7]"
+
+    :returns: a string of CPU ranges, eg 1-4,6,7
+    """
+    spec = ''
+    if not cpu_list:
+        return spec
+
+    cpu_list.sort()
+    count = 0
+    group_cpus = []
+    tmp_cpus = []
+    for cpu in cpu_list:
+        if count == 0:
+            init = cpu
+            tmp_cpus.append(cpu)
+        else:
+            if cpu == (init + count):
+                tmp_cpus.append(cpu)
+            else:
+                group_cpus.append(tmp_cpus)
+                tmp_cpus = []
+                count = 0
+                init = cpu
+                tmp_cpus.append(cpu)
+        count += 1
+
+    group_cpus.append(tmp_cpus)
+
+    for group in group_cpus:
+        if len(group) > 2:
+            group_spec = ("%s-%s" % (group[0], group[0]+len(group)-1))
+        else:
+            group_str = [str(num) for num in group]
+            group_spec = ','.join(group_str)
+        if spec:
+            spec += ',' + group_spec
+        else:
+            spec = group_spec
+
+    return spec
+
+
+def simple_subprocess_call(cmd):
+    return_code = subprocess.call(cmd,
+                                  shell=True,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE)
+    return return_code
+
+
+def translate_quotation_marks_for_shell(orig_str):
+    translated_str = ''
+    quotation_marks = '"'
+    quotation_marks_count = orig_str.count(quotation_marks)
+    if quotation_marks_count > 0:
+        replace_marks = '\\"'
+        translated_str = orig_str.replace(quotation_marks, replace_marks)
+    else:
+        translated_str = orig_str
+    return translated_str
+
+
+def get_numa_node_cpus(host_cpu):
+    numa = {}
+    if 'numa_node0' in host_cpu:
+        numa['numa_node0'] = cpu_str_to_list(host_cpu['numa_node0'])
+    if 'numa_node1' in host_cpu:
+        numa['numa_node1'] = cpu_str_to_list(host_cpu['numa_node1'])
+    return numa
+
+
+def get_numa_node_from_cpus(numa, str_cpus):
+    numa_nodes = []
+
+    cpu_list = cpu_str_to_list(str_cpus)
+    for cpu in cpu_list:
+        if cpu in numa['numa_node0']:
+            numa_nodes.append(0)
+        if cpu in numa['numa_node1']:
+            numa_nodes.append(1)
+
+    numa_nodes = list(set(numa_nodes))
+    numa_nodes.sort()
+    return numa_nodes

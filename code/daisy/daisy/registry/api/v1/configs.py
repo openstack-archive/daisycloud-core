@@ -38,12 +38,12 @@ _LW = i18n._LW
 
 CONF = cfg.CONF
 
-DISPLAY_FIELDS_IN_INDEX = ['id', 'name','container_format',
+DISPLAY_FIELDS_IN_INDEX = ['id', 'name', 'container_format',
                            'checksum']
 
 SUPPORTED_FILTERS = ['name', 'container_format']
 
-SUPPORTED_SORT_KEYS = ('name', 'container_format', 
+SUPPORTED_SORT_KEYS = ('name', 'container_format',
                        'id', 'created_at', 'updated_at')
 
 SUPPORTED_SORT_DIRS = ('asc', 'desc')
@@ -60,7 +60,7 @@ class Controller(object):
         """Get configs, wrapping in exception if necessary."""
         try:
             return self.db_api.config_get_all(context, filters=filters,
-                                             **params)
+                                              **params)
         except exception.NotFound:
             LOG.warn(_LW("Invalid marker. Config %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
@@ -109,7 +109,7 @@ class Controller(object):
         for key, value in params.items():
             if value is None:
                 del params[key]
-                
+
         return params
 
     def _get_filters(self, req):
@@ -225,11 +225,11 @@ class Controller(object):
                 which will include the newly-created config's internal id
                 in the 'id' field
         """
-        
+
         config_data = body["config"]
 
         config_id = config_data.get('id')
-        
+
         if config_id and not utils.is_uuid_like(config_id):
             msg = _LI("Rejecting config creation request for invalid config "
                       "id '%(bad_id)s'") % {'bad_id': config_id}
@@ -239,7 +239,7 @@ class Controller(object):
 
         try:
             config_data = self.db_api.config_add(req.context, config_data)
-        
+
             msg = (_LI("Successfully created config %s") %
                    config_data["id"])
             LOG.info(msg)
@@ -317,10 +317,11 @@ class Controller(object):
         if 'config' not in config_data:
             config_data = dict(config=config_data)
         return config_data
-        
+
     @utils.mutating
     def update_config_by_role_hosts(self, req, body):
-        return self.db_api.update_config_by_role_hosts(req.context, body['configs'])
+        return self.db_api.update_config_by_role_hosts(
+            req.context, body['configs'])
 
     @utils.mutating
     def update_config(self, req, id, body):
@@ -334,7 +335,8 @@ class Controller(object):
         """
         config_data = body['config']
         try:
-            updated_config = self.db_api.config_update(req.context, id, config_data)
+            updated_config = self.db_api.config_update(
+                req.context, id, config_data)
 
             msg = _LI("Updating metadata for config %(id)s") % {'id': id}
             LOG.info(msg)
@@ -373,6 +375,7 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to update config %s") % id)
             raise
+
 
 def create_resource():
     """Images resource factory method."""

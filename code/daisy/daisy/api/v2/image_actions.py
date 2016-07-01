@@ -32,6 +32,7 @@ _LI = i18n._LI
 
 
 class ImageActionsController(object):
+
     def __init__(self, db_api=None, policy_enforcer=None, notifier=None,
                  store_api=None):
         self.db_api = db_api or daisy.db.get_api()
@@ -39,7 +40,7 @@ class ImageActionsController(object):
         self.notifier = notifier or daisy.notifier.Notifier()
         self.store_api = store_api or glance_store
         self.gateway = daisy.gateway.Gateway(self.db_api, self.store_api,
-                                              self.notifier, self.policy)
+                                             self.notifier, self.policy)
 
     @utils.mutating
     def deactivate(self, req, image_id):

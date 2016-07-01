@@ -272,8 +272,8 @@ def _filter_images(images, filters, context,
             elif visibility == 'private':
                 if image['is_public']:
                     continue
-                if not (has_ownership or (context.is_admin
-                        and not admin_as_user)):
+                if not (has_ownership or (context.is_admin and not
+                                          admin_as_user)):
                     continue
             elif visibility == 'shared':
                 if not is_member:
@@ -387,8 +387,8 @@ def _image_get(context, image_id, force_show_deleted=False, status=None):
         LOG.warn(_LW('Could not find image %s') % image_id)
         raise exception.NotFound()
 
-    if image['deleted'] and not (force_show_deleted
-                                 or context.can_see_deleted):
+    if image['deleted'] and not (force_show_deleted or
+                                 context.can_see_deleted):
         LOG.warn(_LW('Unable to get deleted image'))
         raise exception.NotFound()
 
@@ -625,7 +625,7 @@ def _image_locations_delete_all(context, image_id, delete_time=None):
                                   delete_time=delete_time)
 
     for i, loc in enumerate(DATA['locations']):
-        if image_id == loc['image_id'] and loc['deleted'] == False:
+        if image_id == loc['image_id'] and loc['deleted'] is False:
             del DATA['locations'][i]
 
 

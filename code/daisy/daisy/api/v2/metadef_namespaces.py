@@ -48,13 +48,14 @@ CONF = cfg.CONF
 
 
 class NamespaceController(object):
+
     def __init__(self, db_api=None, policy_enforcer=None, notifier=None):
         self.db_api = db_api or daisy.db.get_api()
         self.policy = policy_enforcer or policy.Enforcer()
         self.notifier = notifier or daisy.notifier.Notifier()
         self.gateway = daisy.gateway.Gateway(db_api=self.db_api,
-                                              notifier=self.notifier,
-                                              policy_enforcer=self.policy)
+                                             notifier=self.notifier,
+                                             policy_enforcer=self.policy)
         self.ns_schema_link = '/v2/schemas/metadefs/namespace'
         self.obj_schema_link = '/v2/schemas/metadefs/object'
         self.tag_schema_link = '/v2/schemas/metadefs/tag'
@@ -486,6 +487,7 @@ class RequestDeserializer(wsgi.JSONRequestDeserializer):
 
 
 class ResponseSerializer(wsgi.JSONResponseSerializer):
+
     def __init__(self, schema=None):
         super(ResponseSerializer, self).__init__()
         self.schema = schema
@@ -781,20 +783,20 @@ def get_collection_schema():
 
 
 def get_namespace_href(namespace):
-        base_href = '/v2/metadefs/namespaces/%s' % namespace.namespace
-        return base_href
+    base_href = '/v2/metadefs/namespaces/%s' % namespace.namespace
+    return base_href
 
 
 def get_object_href(namespace_name, metadef_object):
-        base_href = ('/v2/metadefs/namespaces/%s/objects/%s' %
-                     (namespace_name, metadef_object.name))
-        return base_href
+    base_href = ('/v2/metadefs/namespaces/%s/objects/%s' %
+                 (namespace_name, metadef_object.name))
+    return base_href
 
 
 def get_tag_href(namespace_name, metadef_tag):
-        base_href = ('/v2/metadefs/namespaces/%s/tags/%s' %
-                     (namespace_name, metadef_tag.name))
-        return base_href
+    base_href = ('/v2/metadefs/namespaces/%s/tags/%s' %
+                 (namespace_name, metadef_tag.name))
+    return base_href
 
 
 def create_resource():

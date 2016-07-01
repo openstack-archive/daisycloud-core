@@ -42,13 +42,14 @@ CONF = cfg.CONF
 
 
 class MetadefObjectsController(object):
+
     def __init__(self, db_api=None, policy_enforcer=None, notifier=None):
         self.db_api = db_api or daisy.db.get_api()
         self.policy = policy_enforcer or policy.Enforcer()
         self.notifier = notifier or daisy.notifier.Notifier()
         self.gateway = daisy.gateway.Gateway(db_api=self.db_api,
-                                              notifier=self.notifier,
-                                              policy_enforcer=self.policy)
+                                             notifier=self.notifier,
+                                             policy_enforcer=self.policy)
         self.obj_schema_link = '/v2/schemas/metadefs/object'
 
     def create(self, req, metadata_object, namespace):
@@ -294,6 +295,7 @@ class RequestDeserializer(wsgi.JSONRequestDeserializer):
 
 
 class ResponseSerializer(wsgi.JSONResponseSerializer):
+
     def __init__(self, schema=None):
         super(ResponseSerializer, self).__init__()
         self.schema = schema or get_schema()
@@ -324,9 +326,9 @@ class ResponseSerializer(wsgi.JSONResponseSerializer):
 
 
 def get_object_href(namespace_name, metadef_object):
-        base_href = ('/v2/metadefs/namespaces/%s/objects/%s' %
-                     (namespace_name, metadef_object.name))
-        return base_href
+    base_href = ('/v2/metadefs/namespaces/%s/objects/%s' %
+                 (namespace_name, metadef_object.name))
+    return base_href
 
 
 def create_resource():

@@ -27,6 +27,15 @@ import sys
 import eventlet
 
 from daisy.common import utils
+from oslo.config import cfg
+from oslo_log import log as logging
+import osprofiler.notifier
+import osprofiler.web
+
+from daisy.common import config
+from daisy.common import exception
+from daisy.common import wsgi
+from daisy import notifier
 
 # Monkey patch socket, time, select, threads
 eventlet.patcher.monkey_patch(socket=True, time=True, select=True,
@@ -40,15 +49,6 @@ possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
 if os.path.exists(os.path.join(possible_topdir, 'glance', '__init__.py')):
     sys.path.insert(0, possible_topdir)
 
-from oslo.config import cfg
-from oslo_log import log as logging
-import osprofiler.notifier
-import osprofiler.web
-
-from daisy.common import config
-from daisy.common import exception
-from daisy.common import wsgi
-from daisy import notifier
 
 CONF = cfg.CONF
 CONF.import_group("profiler", "daisy.common.wsgi")

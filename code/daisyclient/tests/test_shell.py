@@ -25,7 +25,7 @@ import six
 from glanceclient import exc
 from glanceclient import shell as openstack_shell
 
-#NOTE (esheffield) Used for the schema caching tests
+# NOTE (esheffield) Used for the schema caching tests
 from glanceclient.v2 import schemas as schemas
 import json
 from tests import keystone_client_fixtures
@@ -427,6 +427,7 @@ class ShellTestWithKeystoneV3Auth(ShellTest):
 
 
 class ShellCacheSchemaTest(utils.TestCase):
+
     def setUp(self):
         super(ShellCacheSchemaTest, self).setUp()
         self._mock_client_setup()
@@ -457,6 +458,7 @@ class ShellCacheSchemaTest(utils.TestCase):
 
     def _make_args(self, args):
         class Args():
+
             def __init__(self, entries):
                 self.__dict__.update(entries)
 

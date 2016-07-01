@@ -39,7 +39,7 @@ function all_install
         touch $install_logfile
     fi 
 
-    sudo rm -rf /root/.my.cnf
+    rm -rf /root/.my.cnf
     [ "$?" -ne 0 ] && { write_install_log "Error:can not rm of /root/.my.cnf file"; exit 1; } 
     write_install_log "install fping rpm"
     install_rpm_by_yum "fping"
@@ -69,8 +69,13 @@ function all_install
     install_rpm_by_yum "python-django-horizon-doc"
     install_rpm_by_yum "daisy-dashboard"
     
-    write_install_log "install pxe server rpm"
-    install_rpm_by_yum pxe_server_install
+    if [ -f "/etc/zte-docker" ];then
+        write_install_log "install pxe_docker_install rpm"
+        install_rpm_by_yum pxe_docker_install
+    else
+        write_install_log "install pxe server rpm"
+        install_rpm_by_yum pxe_server_install
+    fi
 
     # 获取管理网ip地址，然后把数据库的daisy用户更新到配置文件中
     get_public_ip
@@ -272,7 +277,7 @@ function all_install
     
     daisyrc_admin "$public_ip"
     
-    build_pxe_server "$public_ip"
+    build_pxe_server "$public_ip" "$bind_port"
     
     config_get_node_info
     

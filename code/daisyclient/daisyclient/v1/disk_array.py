@@ -16,31 +16,30 @@
 import copy
 
 from oslo_utils import encodeutils
-from oslo_utils import strutils
 import six
 import six.moves.urllib.parse as urlparse
-from webob.exc import HTTPBadRequest
 from daisyclient.common import utils
 from daisyclient.openstack.common.apiclient import base
 
 CREATE_SERVICE_DISK_PARAMS = ('service', 'data_ips', 'size',
-                              'disk_location', 'role_id','lun')
+                              'disk_location', 'role_id', 'lun',
+                              'protocol_type')
 CREATE_CINDER_BACKEND_PARAMS = ('disk_array', 'role_id')
 CREATE_CINDER_BACKEND_INTER_PARAMS = ('management_ips', 'data_ips',
                                       'pools', 'volume_driver',
                                       'volume_type', 'role_id',
-                                      'user_name','user_pwd')
+                                      'user_name', 'user_pwd')
 UPDATE_CINDER_BACKEND_PARAMS = ('id', 'disk_array', 'role_id')
 DEFAULT_PAGE_SIZE = 20
 
 SORT_DIR_VALUES = ('asc', 'desc')
 SORT_KEY_VALUES = ('id', 'role_id', 'created_at', 'updated_at', 'status')
-SERVICE_DISK_UPDATE_PARAMS = CREATE_SERVICE_DISK_PARAMS 
+SERVICE_DISK_UPDATE_PARAMS = CREATE_SERVICE_DISK_PARAMS
 OS_REQ_ID_HDR = 'x-openstack-request-id'
 
 
-
 class Disk_array(base.Resource):
+
     def __repr__(self):
         return "<Disk_array %s>" % self._info
 
@@ -67,7 +66,6 @@ class DiskArrayManager(base.ManagerWithFind):
         return ([obj_class(self, res, loaded=True) for res in data if res],
                 resp)
 
-        
     def _service_disk_meta_to_headers(self, fields):
         headers = {}
         fields_copy = copy.deepcopy(fields)
@@ -80,7 +78,7 @@ class DiskArrayManager(base.ManagerWithFind):
         for key, value in six.iteritems(fields_copy):
             headers['%s' % key] = utils.to_str(value)
         return headers
-        
+
     def _cinder_volume_meta_to_headers(self, fields):
         headers = {}
         fields_copy = copy.deepcopy(fields)
@@ -115,12 +113,13 @@ class DiskArrayManager(base.ManagerWithFind):
         """
         service_disk_id = base.getid(service_disk)
         resp, body = self.client.get('/v1/service_disk/%s'
-                                      % urlparse.quote(str(service_disk_id)))
+                                     % urlparse.quote(str(service_disk_id)))
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
-        #return Host(self, meta)
-        return Disk_array(self, self._format_service_disk_meta_for_user(body['disk_meta']))
+        # return Host(self, meta)
+        return Disk_array(self, self._format_service_disk_meta_for_user(
+            body['disk_meta']))
 
     def data(self, image, do_checksum=True, **kwargs):
         """Get the raw data for a specific image.
@@ -181,12 +180,13 @@ class DiskArrayManager(base.ManagerWithFind):
             else:
                 msg = 'Disk_array() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
-       
+
         url = '/v1/service_disk'
-         
+
         hdrs = self._service_disk_meta_to_headers(fields)
-        resp, body = self.client.post(url,headers=hdrs,data=hdrs)
-        return Disk_array(self, self._format_service_disk_meta_for_user(body['disk_meta']))
+        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        return Disk_array(self, self._format_service_disk_meta_for_user(
+            body['disk_meta']))
 
     def service_disk_delete(self, id, **kwargs):
         """Delete an service_disk."""
@@ -219,7 +219,8 @@ class DiskArrayManager(base.ManagerWithFind):
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
-        return Disk_array(self, self._format_service_disk_meta_for_user(body['disk_meta']))
+        return Disk_array(self, self._format_service_disk_meta_for_user(
+            body['disk_meta']))
 
     def service_disk_detail(self, id, **kwargs):
         """Get the metadata for a specific service_disk.
@@ -229,20 +230,22 @@ class DiskArrayManager(base.ManagerWithFind):
         """
         service_disk_id = base.getid(id)
         resp, body = self.client.get('/v1/service_disk/%s'
-                                      % urlparse.quote(str(service_disk_id)))
+                                     % urlparse.quote(str(service_disk_id)))
 
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
-        return Disk_array(self, self._format_service_disk_meta_for_user(body['disk_meta']))
-        
+        return Disk_array(self, self._format_service_disk_meta_for_user(
+            body['disk_meta']))
+
     def service_disk_list(self, **kwargs):
         """Get a list of service_disks.
 
         :param page_size: number of items to request in each paginated request
         :param limit: maximum number of service_disks to return
-        :param marker: begin returning service_disks that appear later in the service_disk
+        :param marker: begin returning service_disks that
+                       appear later in the service_disk
                        list than that represented by this service_disk id
         :param filters: dict of direct comparison filters that mimics the
                         structure of an service_disk object
@@ -296,7 +299,8 @@ class DiskArrayManager(base.ManagerWithFind):
             seen += seen_last_page
 
             if seen_last_page + filtered == 0:
-                # Note(kragniz): we didn't get any service_disks in the last page
+                # Note(kragniz): we didn't get any service_disks in the last
+                # page
                 return
 
             if absolute_limit is not None and seen >= absolute_limit:
@@ -304,14 +308,14 @@ class DiskArrayManager(base.ManagerWithFind):
                 return
 
             if page_size and seen_last_page + filtered < page_size:
-                # Note(kragniz): we've reached the last page of the service_disks
+                # Note(kragniz): we've reached the last page of the
+                # service_disks
                 return
 
             # Note(kragniz): there are more service_disks to come
             params['marker'] = last_service_disk
             seen_last_page = 0
 
- 
     def cinder_volume_add(self, **kwargs):
         """Disk_array a cluster
 
@@ -325,10 +329,11 @@ class DiskArrayManager(base.ManagerWithFind):
                 msg = 'Disk_array() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
         url = '/v1/cinder_volume'
-         
+
         hdrs = self._service_disk_meta_to_headers(fields)
-        resp, body = self.client.post(url,headers=hdrs,data=hdrs)
-        return Disk_array(self, self._format_service_disk_meta_for_user(body['disk_meta']))
+        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        return Disk_array(self, self._format_service_disk_meta_for_user(
+            body['disk_meta']))
 
     def cinder_volume_delete(self, id, **kwargs):
         """Delete an cinder_volume."""
@@ -353,7 +358,7 @@ class DiskArrayManager(base.ManagerWithFind):
             else:
                 msg = 'update() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
- 
+
         hdrs.update(self._cinder_volume_meta_to_headers(fields))
 
         url = '/v1/cinder_volume/%s' % base.getid(id)
@@ -362,7 +367,8 @@ class DiskArrayManager(base.ManagerWithFind):
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
-        return Disk_array(self, self._format_service_disk_meta_for_user(body['disk_meta']))
+        return Disk_array(self, self._format_service_disk_meta_for_user(
+            body['disk_meta']))
 
     def cinder_volume_detail(self, id, **kwargs):
         """Get the metadata for a specific cinder_volume.
@@ -373,20 +379,22 @@ class DiskArrayManager(base.ManagerWithFind):
 
         cinder_volume_id = base.getid(id)
         resp, body = self.client.get('/v1/cinder_volume/%s'
-                                      % urlparse.quote(str(cinder_volume_id)))
+                                     % urlparse.quote(str(cinder_volume_id)))
 
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
-        return Disk_array(self, self._format_service_disk_meta_for_user(body['disk_meta']))
-        
+        return Disk_array(self, self._format_service_disk_meta_for_user(
+            body['disk_meta']))
+
     def cinder_volume_list(self, **kwargs):
         """Get a list of cinder_volumes.
 
         :param page_size: number of items to request in each paginated request
         :param limit: maximum number of cinder_volumes to return
-        :param marker: begin returning cinder_volumes that appear later in the cinder_volume
+        :param marker: begin returning cinder_volumes that appear later in
+                       the cinder_volume
                        list than that represented by this cinder_volume id
         :param filters: dict of direct comparison filters that mimics the
                         structure of an cinder_volume object
@@ -440,7 +448,8 @@ class DiskArrayManager(base.ManagerWithFind):
             seen += seen_last_page
 
             if seen_last_page + filtered == 0:
-                # Note(kragniz): we didn't get any service_disks in the last page
+                # Note(kragniz): we didn't get any service_disks in the last
+                # page
                 return
 
             if absolute_limit is not None and seen >= absolute_limit:
@@ -448,7 +457,8 @@ class DiskArrayManager(base.ManagerWithFind):
                 return
 
             if page_size and seen_last_page + filtered < page_size:
-                # Note(kragniz): we've reached the last page of the service_disks
+                # Note(kragniz): we've reached the last page of the
+                # service_disks
                 return
 
             # Note(kragniz): there are more service_disks to come

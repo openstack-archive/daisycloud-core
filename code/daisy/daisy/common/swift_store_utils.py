@@ -63,6 +63,7 @@ def is_multiple_swift_store_accounts_enabled():
 
 
 class SwiftParams(object):
+
     def __init__(self):
         if is_multiple_swift_store_accounts_enabled():
             self.params = self._load_config()
@@ -71,8 +72,8 @@ class SwiftParams(object):
 
     def _form_default_params(self):
         default = {}
-        if (CONF.swift_store_user and CONF.swift_store_key
-           and CONF.swift_store_auth_address):
+        if (CONF.swift_store_user and CONF.swift_store_key and
+                CONF.swift_store_auth_address):
             default['user'] = CONF.swift_store_user
             default['key'] = CONF.swift_store_key
             default['auth_address'] = CONF.swift_store_auth_address

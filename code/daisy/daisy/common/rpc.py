@@ -251,8 +251,8 @@ class RPCClient(client.BaseClient):
         # checking if content contains the '_error' key,
         # verify if it is an instance of dict - since the
         # RPC call may have returned something different.
-        if self.raise_exc and (isinstance(content, dict)
-                               and '_error' in content):
+        if self.raise_exc and (isinstance(content, dict) and
+                               '_error' in content):
             error = content['_error']
             try:
                 exc_cls = imp.import_class(error['cls'])

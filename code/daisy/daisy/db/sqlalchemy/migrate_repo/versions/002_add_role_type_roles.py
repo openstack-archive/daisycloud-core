@@ -19,9 +19,9 @@ from sqlalchemy import MetaData, Table, Column, String
 meta = MetaData()
 role_type = Column('role_type', String(255))
 
+
 def upgrade(migrate_engine):
     meta.bind = migrate_engine
 
     roles = Table('roles', meta, autoload=True)
     roles.create_column(role_type)
-

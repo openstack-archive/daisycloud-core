@@ -24,8 +24,8 @@ from webob.exc import HTTPConflict
 from webob.exc import HTTPForbidden
 from webob.exc import HTTPNotFound
 from webob import Response
-import copy
-import json
+
+# import json
 
 from daisy.api import policy
 import daisy.api.v1
@@ -41,7 +41,7 @@ import daisy.registry.client.v1.api as registry
 from daisy.registry.api.v1 import template
 
 import daisy.api.backends.tecs.common as tecs_cmn
-import daisy.api.backends.common as daisy_cmn
+
 try:
     import simplejson as json
 except ImportError:
@@ -64,21 +64,26 @@ CONF.import_opt('container_formats', 'daisy.common.config',
                 group='image_format')
 CONF.import_opt('image_property_quota', 'daisy.common.config')
 
+
 class Controller(controller.BaseController):
     """
     WSGI controller for Templates resource in Daisy v1 API
 
-    The HostTemplates resource API is a RESTful web Template for Template data. The API
-    is as follows::
+    The HostTemplates resource API is a RESTful web Template for Template data.
+    The API is as follows::
 
         GET  /HostTemplates -- Returns a set of brief metadata about Templates
         GET  /HostTemplates/detail -- Returns a set of detailed metadata about
                               HostTemplates
-        HEAD /HostTemplates/<ID> -- Return metadata about an Template with id <ID>
-        GET  /HostTemplates/<ID> -- Return Template data for Template with id <ID>
-        POST /HostTemplates -- Store Template data and return metadata about the
+        HEAD /HostTemplates/<ID> --
+        Return metadata about an Template with id <ID>
+        GET  /HostTemplates/<ID> --
+        Return Template data for Template with id <ID>
+        POST /HostTemplates --
+        Store Template data and return metadata about the
                         newly-stored Template
-        PUT  /HostTemplates/<ID> -- Update Template metadata and/or upload Template
+        PUT  /HostTemplates/<ID> --
+        Update Template metadata and/or upload Template
                             data for a previously-reserved Template
         DELETE /HostTemplates/<ID> -- Delete the Template with id <ID>
     """
@@ -136,8 +141,9 @@ class Controller(controller.BaseController):
     def _raise_404_if_cluster_deleted(self, req, cluster_id):
         cluster = self.get_cluster_meta_or_404(req, cluster_id)
         if cluster['deleted']:
-            msg = _("Cluster with identifier %s has been deleted.") % cluster_id
-            raise webob.exc.HTTPNotFound(msg)
+            msg = _("Cluster with identifier %s has been deleted.") % \
+                cluster_id
+            raise HTTPNotFound(msg)
 
     @utils.mutating
     def add_template(self, req, host_template):
@@ -150,9 +156,9 @@ class Controller(controller.BaseController):
         :raises HTTPBadRequest if x-Template-name is missing
         """
         self._enforce(req, 'add_host_template')
-        template_name = host_template["name"]
-        
-        host_template = registry.add_host_template_metadata(req.context, host_template)
+
+        host_template = registry.add_host_template_metadata(
+            req.context, host_template)
 
         return {'host_template': template}
 
@@ -167,7 +173,7 @@ class Controller(controller.BaseController):
         :retval Returns the updated image information as a mapping
         """
         self._enforce(req, 'update_host_template')
-        #orig_Template_meta = self.get_Template_meta_or_404(req, id)
+        # orig_Template_meta = self.get_Template_meta_or_404(req, id)
         '''
         if orig_Template_meta['deleted']:
             msg = _("Forbidden to update deleted Template.")
@@ -176,9 +182,8 @@ class Controller(controller.BaseController):
                                 content_type="text/plain")
         '''
         try:
-            host_template = registry.update_host_template_metadata(req.context,
-                                                            template_id,
-                                                            host_template)
+            host_template = registry.update_host_template_metadata(
+                req.context, template_id, host_template)
 
         except exception.Invalid as e:
             msg = (_("Failed to update template metadata. Got error: %s") %
@@ -210,47 +215,51 @@ class Controller(controller.BaseController):
             self.notifier.info('host_template.update', host_template)
 
         return {'host_template': host_template}
-    
+
     def _filter_params(self, host_meta):
         for key in host_meta.keys():
-            if key=="id" or key=="updated_at" or key=="deleted_at" or key=="created_at" or key=="deleted":
+            if key == "id" or key == "updated_at" or key == "deleted_at" or \
+                    key == "created_at" or key == "deleted":
                 del host_meta[key]
-        if host_meta.has_key("memory"):
+        if "memory" in host_meta:
             del host_meta['memory']
-            
-        if host_meta.has_key("system"):
+
+        if "system" in host_meta:
             del host_meta['system']
-                
-        if host_meta.has_key("disks"):
-           del host_meta['disks']
-           
-        if host_meta.has_key("os_status"):
-           del host_meta['os_status']
 
-        if host_meta.has_key("status"):
-           del host_meta['status']
+        if "disks" in host_meta:
+            del host_meta['disks']
 
-        if host_meta.has_key("messages"):
-           del host_meta['messages']
-            
-        if host_meta.has_key("cpu"):
+        if "os_status" in host_meta:
+            del host_meta['os_status']
+
+        if "status" in host_meta:
+            del host_meta['status']
+
+        if "messages" in host_meta:
+            del host_meta['messages']
+
+        if "cpu" in host_meta:
             del host_meta['cpu']
 
-        if host_meta.has_key("ipmi_addr"):
+        if "ipmi_addr" in host_meta:
             del host_meta['ipmi_addr']
 
-        if host_meta.has_key("interfaces"):
+        if "interfaces" in host_meta:
             for interface in host_meta['interfaces']:
                 for key in interface.keys():
-                    if key=="id" or key=="updated_at" or key=="deleted_at" \
-                        or key=="created_at" or key=="deleted" or key=="current_speed" \
-                        or key=="max_speed" or key=="host_id" or key=="state":
+                    if key == "id" or key == "updated_at" or \
+                            key == "deleted_at" \
+                            or key == "created_at" or key == "deleted" or \
+                            key == "current_speed" \
+                            or key == "max_speed" or key == "host_id" or \
+                            key == "state":
                         del interface[key]
                 for assigned_network in interface['assigned_networks']:
-                    if assigned_network.has_key("ip"):
-                        assigned_network['ip'] = ""               
-        return host_meta        
-            
+                    if "ip" in assigned_network:
+                        assigned_network['ip'] = ""
+        return host_meta
+
     @utils.mutating
     def get_host_template_detail(self, req, template_id):
         """
@@ -263,7 +272,8 @@ class Controller(controller.BaseController):
         """
         self._enforce(req, 'get_host_template_detail')
         try:
-            host_template = registry.host_template_detail_metadata(req.context, template_id)
+            host_template = registry.host_template_detail_metadata(
+                req.context, template_id)
             return {'host_template': host_template}
         except exception.NotFound as e:
             msg = (_("Failed to find host template: %s") %
@@ -280,30 +290,33 @@ class Controller(controller.BaseController):
                                 request=req,
                                 content_type="text/plain")
         except exception.InUseByStore as e:
-            msg = (_("host template %(id)s could not be get because it is in use: "
-                     "%(exc)s") % {"id": template_id, "exc": utils.exception_to_str(e)})
+            msg = (_("host template %(id)s could not be get "
+                     "because it is in use: "
+                     "%(exc)s") % {"id": template_id,
+                                   "exc": utils.exception_to_str(e)})
             LOG.error(msg)
             raise HTTPConflict(explanation=msg,
                                request=req,
                                content_type="text/plain")
         else:
-            #self.notifier.info('host.delete', host)
+            # self.notifier.info('host.delete', host)
             return Response(body='', status=200)
-    
+
     @utils.mutating
     def get_host_template_lists(self, req):
         self._enforce(req, 'get_template_lists')
         params = self._get_query_params(req)
         template_meta = {}
         try:
-            host_template_lists = registry.host_template_lists_metadata(req.context, **params)
+            host_template_lists = registry.host_template_lists_metadata(
+                req.context, **params)
             if host_template_lists and host_template_lists[0]:
                 template_meta = json.loads(host_template_lists[0]['hosts'])
             return {'host_template': template_meta}
         except exception.Invalid as e:
             raise HTTPBadRequest(explanation=e.msg, request=req)
         return dict(host_template=host_template_lists)
-        
+
     @utils.mutating
     def host_to_template(self, req, host_template):
         """
@@ -315,21 +328,32 @@ class Controller(controller.BaseController):
         """
         self._enforce(req, 'host_to_template')
         if host_template.get('host_id', None):
-            origin_host_meta = self.get_host_meta_or_404(req, host_template['host_id'])
+            origin_host_meta = self.get_host_meta_or_404(
+                req, host_template['host_id'])
             host_meta = self._filter_params(origin_host_meta)
-            if host_template.get('host_template_name', None) and host_template.get('cluster_name', None):
+            if host_template.get(
+                    'host_template_name',
+                    None) and host_template.get(
+                    'cluster_name',
+                    None):
                 host_meta['name'] = host_template['host_template_name']
-                host_meta['description'] = host_template.get('description', None)
-                params = {'filters':{'cluster_name':host_template['cluster_name']}}
-                templates = registry.host_template_lists_metadata(req.context, **params)
-                if templates and templates[0]: 
+                host_meta['description'] = host_template.get(
+                    'description', None)
+                params = {
+                    'filters': {
+                        'cluster_name': host_template['cluster_name']}}
+                templates = registry.host_template_lists_metadata(
+                    req.context, **params)
+                if templates and templates[0]:
                     had_host_template = False
                     if templates[0]['hosts']:
-                        templates[0]['hosts'] = json.loads(templates[0]['hosts'])
+                        templates[0]['hosts'] = json.loads(
+                            templates[0]['hosts'])
                     else:
                         templates[0]['hosts'] = []
                     for index in range(len(templates[0]['hosts'])):
-                        if host_template['host_template_name'] == templates[0]['hosts'][index]['name']:
+                        if host_template['host_template_name'] == templates[
+                                0]['hosts'][index]['name']:
                             had_host_template = True
                             templates[0]['hosts'][index] = host_meta
                             break
@@ -337,12 +361,15 @@ class Controller(controller.BaseController):
                         host_meta['name'] = host_template['host_template_name']
                         templates[0]['hosts'].append(host_meta)
                     templates[0]['hosts'] = json.dumps(templates[0]['hosts'])
-                    host_template = registry.update_host_template_metadata(req.context,
-                                                            templates[0]['id'],
-                                                            templates[0])
+                    host_template = registry.update_host_template_metadata(
+                        req.context, templates[0]['id'], templates[0])
                 else:
-                    param = {"cluster_name": host_template['cluster_name'], "hosts":json.dumps([host_meta])}
-                    host_template = registry.add_host_template_metadata(req.context, param)
+                    param = {
+                        "cluster_name": host_template['cluster_name'],
+                        "hosts": json.dumps(
+                            [host_meta])}
+                    host_template = registry.add_host_template_metadata(
+                        req.context, param)
         return {'host_template': host_template}
 
     @utils.mutating
@@ -350,8 +377,9 @@ class Controller(controller.BaseController):
         if not host_template.get('cluster_name', None):
             msg = "cluster name is null"
             raise HTTPNotFound(explanation=msg)
-        params = {'filters':{'cluster_name':host_template['cluster_name']}}
-        templates = registry.host_template_lists_metadata(req.context, **params)
+        params = {'filters': {'cluster_name': host_template['cluster_name']}}
+        templates = registry.host_template_lists_metadata(
+            req.context, **params)
         hosts_param = []
         host_template_used = {}
         if templates and templates[0]:
@@ -362,66 +390,79 @@ class Controller(controller.BaseController):
                     break
         if not host_template_used:
             msg = "not host_template %s" % host_template['host_template_name']
-            raise HTTPNotFound(explanation=msg, request=req, content_type="text/plain")
+            raise HTTPNotFound(
+                explanation=msg,
+                request=req,
+                content_type="text/plain")
         if host_template.get('host_id', None):
             self.get_host_meta_or_404(req, host_template['host_id'])
         else:
-            msg="host_id is not null"
-            raise HTTPBadRequest(explanation = msg)
+            msg = "host_id is not null"
+            raise HTTPBadRequest(explanation=msg)
         host_id = host_template['host_id']
-        params = {'filters':{'name': host_template['cluster_name']}}
+        params = {'filters': {'name': host_template['cluster_name']}}
         clusters = registry.get_clusters_detail(req.context, **params)
         if clusters and clusters[0]:
             host_template_used['cluster'] = clusters[0]['id']
-        if host_template_used.has_key('role') and host_template_used['role']:
+        if 'role' in host_template_used and host_template_used['role']:
             role_id_list = []
             host_role_list = []
-            if host_template_used.has_key('cluster'):
+            if 'cluster' in host_template_used:
                 params = self._get_query_params(req)
                 role_list = registry.get_roles_detail(req.context, **params)
                 for role_name in role_list:
-                    if role_name['cluster_id'] == host_template_used['cluster']:
+                    if role_name['cluster_id'] == host_template_used[
+                            'cluster']:
                         host_role_list = list(host_template_used['role'])
                         if role_name['name'] in host_role_list:
                             role_id_list.append(role_name['id'])
-                host_template_used['role'] = role_id_list       
-        if host_template_used.has_key('name'):
+                host_template_used['role'] = role_id_list
+        if 'name' in host_template_used:
             host_template_used.pop('name')
-        if host_template_used.has_key('dmi_uuid'):
+        if 'dmi_uuid' in host_template_used:
             host_template_used.pop('dmi_uuid')
-        if host_template_used.has_key('ipmi_user'):
+        if 'ipmi_user' in host_template_used:
             host_template_used.pop('ipmi_user')
-        if host_template_used.has_key('ipmi_passwd'):
+        if 'ipmi_passwd' in host_template_used:
             host_template_used.pop('ipmi_passwd')
-        if host_template_used.has_key('ipmi_addr'):
+        if 'ipmi_addr' in host_template_used:
             host_template_used.pop('ipmi_addr')
         host_template_interfaces = host_template_used.get('interfaces', None)
         if host_template_interfaces:
-            template_ether_interface = [interface for interface in host_template_interfaces if interface['type'] == "ether" ]
+            template_ether_interface = [
+                interface for interface in host_template_interfaces if
+                interface['type'] == "ether"]
             orig_host_meta = registry.get_host_metadata(req.context, host_id)
             orig_host_interfaces = orig_host_meta.get('interfaces', None)
-            temp_orig_host_interfaces = [ interface for interface in orig_host_interfaces if interface['type'] == "ether" ]
+            temp_orig_host_interfaces = [
+                interface for interface in orig_host_interfaces if
+                interface['type'] == "ether"]
             if len(temp_orig_host_interfaces) != len(template_ether_interface):
                 msg = (_('host_id %s does not match the host_id host_template '
-                         '%s.') % (host_id, host_template['host_template_name']))
-                raise HTTPBadRequest(explanation = msg)
+                         '%s.') % (host_id,
+                                   host_template['host_template_name']))
+                raise HTTPBadRequest(explanation=msg)
             interface_match_flag = 0
             for host_template_interface in host_template_interfaces:
                 if host_template_interface['type'] == 'ether':
                     for orig_host_interface in orig_host_interfaces:
-                        if orig_host_interface['pci'] == host_template_interface['pci']:
+                        if orig_host_interface[
+                                'pci'] == host_template_interface['pci']:
                             interface_match_flag += 1
-                            host_template_interface['mac'] = orig_host_interface['mac']
-                            if host_template_interface.has_key('ip'):
+                            host_template_interface[
+                                'mac'] = orig_host_interface['mac']
+                            if 'ip' in host_template_interface:
                                 host_template_interface.pop('ip')
             if interface_match_flag != len(template_ether_interface):
                 msg = (_('host_id %s does not match the host '
-                         'host_template %s.') % (host_id, host_template['host_template_name']))
+                         'host_template %s.') % (
+                    host_id, host_template['host_template_name']))
                 raise HTTPBadRequest(explanation=msg)
             host_template_used['interfaces'] = str(host_template_interfaces)
-            host_template = registry.update_host_metadata(req.context, host_id, host_template_used)
+            host_template = registry.update_host_metadata(
+                req.context, host_id, host_template_used)
         return {"host_template": host_template}
-        
+
     @utils.mutating
     def delete_host_template(self, req, host_template):
         """
@@ -437,8 +478,11 @@ class Controller(controller.BaseController):
             if not host_template.get('cluster_name', None):
                 msg = "cluster name is null"
                 raise HTTPNotFound(explanation=msg)
-            params = {'filters':{'cluster_name':host_template['cluster_name']}}
-            host_templates = registry.host_template_lists_metadata(req.context, **params)
+            params = {
+                'filters': {
+                    'cluster_name': host_template['cluster_name']}}
+            host_templates = registry.host_template_lists_metadata(
+                req.context, **params)
             template_param = []
             had_host_template = False
             if host_templates and host_templates[0]:
@@ -449,18 +493,20 @@ class Controller(controller.BaseController):
                         had_host_template = True
                         break
                 if not had_host_template:
-                    msg = "not host template name %s" %host_template['host_template_name'] 
+                    msg = "not host template name %s" % host_template[
+                        'host_template_name']
                     raise HTTPNotFound(explanation=msg)
                 else:
                     host_templates[0]['hosts'] = json.dumps(template_param)
-                    host_template = registry.update_host_template_metadata(req.context,
-                                                            host_templates[0]['id'],
-                                                            host_templates[0])
-                    return {"host_template": host_template} 
+                    host_template = registry.update_host_template_metadata(
+                        req.context, host_templates[0]['id'],
+                        host_templates[0])
+                    return {"host_template": host_template}
             else:
-                msg = "host template cluster name %s is null" %host_template['cluster_name']
-                raise HTTPNotFound(explanation=msg)    
-            
+                msg = "host template cluster name %s is null" % host_template[
+                    'cluster_name']
+                raise HTTPNotFound(explanation=msg)
+
         except exception.NotFound as e:
             msg = (_("Failed to find host template to delete: %s") %
                    utils.exception_to_str(e))
@@ -476,15 +522,18 @@ class Controller(controller.BaseController):
                                 request=req,
                                 content_type="text/plain")
         except exception.InUseByStore as e:
-            msg = (_("template %(id)s could not be deleted because it is in use: "
-                     "%(exc)s") % {"id": template_id, "exc": utils.exception_to_str(e)})
+            msg = (_("template %(id)s could not be deleted "
+                     "because it is in use: "
+                     "%(exc)s") % {"id": host_template['host_id'],
+                                   "exc": utils.exception_to_str(e)})
             LOG.error(msg)
             raise HTTPConflict(explanation=msg,
                                request=req,
                                content_type="text/plain")
         else:
             return Response(body='', status=200)
-                
+
+
 class HostTemplateDeserializer(wsgi.JSONRequestDeserializer):
     """Handles deserialization of specific controller method requests."""
 
@@ -492,13 +541,12 @@ class HostTemplateDeserializer(wsgi.JSONRequestDeserializer):
         result = {}
         result["host_template"] = utils.get_template_meta(request)
         return result
-        
+
     def add_host_template(self, request):
         return self._deserialize(request)
 
     def update_host_template(self, request):
         return self._deserialize(request)
-        
 
     def host_to_template(self, request):
         return self._deserialize(request)
@@ -508,6 +556,7 @@ class HostTemplateDeserializer(wsgi.JSONRequestDeserializer):
 
     def delete_host_template(self, request):
         return self._deserialize(request)
+
 
 class HostTemplateSerializer(wsgi.JSONResponseSerializer):
     """Handles serialization of specific controller method responses."""
@@ -528,18 +577,20 @@ class HostTemplateSerializer(wsgi.JSONResponseSerializer):
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(dict(host_template=host_template))
         return response
+
     def get_host_template_detail(self, response, result):
         host_template = result['host_template']
         response.status = 201
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(dict(host_template=host_template))
         return response
+
     def update_host_template(self, response, result):
         host_template = result['host_template']
         response.status = 201
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(dict(host_template=host_template))
-        return response        
+        return response
 
     def host_to_template(self, response, result):
         host_template = result['host_template']
@@ -560,7 +611,7 @@ class HostTemplateSerializer(wsgi.JSONResponseSerializer):
         response.status = 201
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(dict(host_template=host_template))
-        
+
 
 def create_resource():
     """Templates resource factory method"""

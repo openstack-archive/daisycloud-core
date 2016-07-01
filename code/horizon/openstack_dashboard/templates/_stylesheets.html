@@ -19,18 +19,18 @@ css rules getting cut off if one css file to get more than 4k rules inside.
 
 <style>
     body:not(#splash) {
-        background-image: none !important; 
+        background-image: none !important;
     }
 
     #login_page {
-        background-image: url('{{ STATIC_URL }}dashboard/img/bg-login.jpg');
+        background-image: url('{{ STATIC_URL }}dashboard/img/bg-login.png');
         position: fixed;
         right: 0px;
         bottom: 0px;
         left: 0px;
         background-size: cover;
         background-position: 50% 50%;
-        top: 0px;   
+        top: 0px;
     }
 
     #login_page:before {
@@ -40,74 +40,89 @@ css rules getting cut off if one css file to get more than 4k rules inside.
         right: 0px;
         bottom: 0px;
         left: 0px;
-        background-color: rgba(22, 22, 104, 0.3);
-        background-image: none;
-        opacity: 0.6;
-    }    
+    }
 
     #login_page .login {
-        margin-top: 10%;
+        margin-top: 15%;
         padding-top: 0px;
-        background-color: #ddd; 
-        filter:alpha(opacity=65); 
-        -moz-opacity:0.65;
-        -khtml-opacity: 0.65; 
-        opacity: 0.65;                 
+        background-color: #e5e5e5;
+
     }
 
     #login_page .modal-header {
         display: none;
     }
 
+    #login_page .modal-footer {
+        border-top: 1px solid #ddd;
+    }
+
+    #login_page .form-group {
+        margin: 10px 0 0 0;
+    }
+
+    #login_page .form-control {
+        height: 36px;
+        font-size: 16px;
+    }
+
+    #loginBtn {
+        width: 100%;
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    #login-logo {
+        width: 220px;
+        position: fixed;
+        top: 80px;
+        left: 50%;
+        margin: 0 0 0 -120px;
+    }
+
     #head_nav {
         min-width:1230px;
-        background: url('{{ STATIC_URL }}dashboard/img/bg_head.png') repeat-x;
+        height: 60px;
+        background: url('{{ STATIC_URL }}dashboard/img/modal-head.png') repeat-x;
     }
 
     #head_logo {
-        float:left;
-        margin:5px 5px 0 20px;
-        width: 40px;
-        height: 40px;
-        background-image: url('{{ STATIC_URL }}dashboard/img/logo_head.png'); 
-        background-size: cover;
-        background-position: 50% 50%;        
+        width: 160px;
     }
 
-    #head_mark {
-        float:left;
-        margin:5px 20px 0 5px;
+    .nav_head>a {
+        font-size: 16px;
+        font-weight: bold;
+        line-height: 60px;
+        padding: 2px 15px 2px 15px;
+        color: #e5e5e5;
+        text-decoration:none;
     }
 
-    #head_clusters, #head_version, #head_hosts_list, #head_template_list{
-        font-size: 14px; 
-        line-height: 40px;
-        padding: 2px 15px 2px 15px;    
+    .nav_head_dropdown>a {
+        background-color: transparent;
+        border-color: transparent;
     }
 
-    #head_clusters.active, #head_version.active, #head_hosts_list.active, #head_template_list.active{
-        background-color: rgba(48, 112, 128, 1) !important;        
-    } 
+    .nav_head>a.active {
+        color: rgba(100, 217, 251, 1);
+        text-decoration: none;
+    }
 
     #user_info {
         padding: 3px;
     }
 
     #user_info a:hover {
-        background-color: rgba(48, 112, 128, 1) !important;
+        background: none;
     }
-
-    #head_clusters a:focus {
-        background-color: rgba(48, 112, 128, 1) !important;
-    }    
 
     .btn {
         padding: 3px 8px;
     }
 
-
     .modal-header {
-        background: url('{{ STATIC_URL }}dashboard/img/bg_head.png') repeat-x !important; 
+        background: url('{{ STATIC_URL }}dashboard/img/modal-head.png') repeat-x !important;
         color: white;
         padding: 5px;
         padding-left: 15px;
@@ -131,7 +146,7 @@ css rules getting cut off if one css file to get more than 4k rules inside.
     }
 
     #modal_wrapper .modal-title {
-        font-size: 18px !important;  
+        font-size: 18px !important;
     }
 
     #modal_wrapper .modal-dialog {
@@ -150,8 +165,8 @@ css rules getting cut off if one css file to get more than 4k rules inside.
         width: 99.99% !important;
     }
 
-    .table > thead > tr > th, .table > thead > tr > td, 
-    .table > tbody > tr > th, .table > tbody > tr > td, 
+    .table > thead > tr > th, .table > thead > tr > td,
+    .table > tbody > tr > th, .table > tbody > tr > td,
     .table > tfoot > tr > th, .table > tfoot > tr > td {
         padding: 5px !important;
     }
@@ -170,13 +185,13 @@ css rules getting cut off if one css file to get more than 4k rules inside.
     }
 
     .loading_gif {
-        display: none !important; 
+        display: none !important;
     }
 
     .form-control, .datepicker input  {
         padding: 2px 6px;
         height: 28px;
-    }  
+    }
 
     .panel-title {
         font-size: 13px;
@@ -197,17 +212,18 @@ css rules getting cut off if one css file to get more than 4k rules inside.
         width:200px;
         height:170px;
         border:1px solid #ddd;
-        box-shadow:1px 1px 3px rgba(240, 173, 78, 0.3);
+
         float:left;
         margin:30px;
         display: block;
-        -moz-border-radius:10px;  
-        -webkit-border-radius:10px;  
-        border-radius:10px;
+        -moz-border-radius:5px;
+        -webkit-border-radius:5px;
+        border-radius:5px;
     }
 
     .cluster_box:hover {
-        box-shadow: 8px 8px 8px rgb(240, 173, 78);
+        border: 1px solid rgba(100, 217, 251, 1);
+        box-shadow:1px 1px 3px rgba(100, 217, 251, 0.3);
     }
 
     .cluster_link {
@@ -220,11 +236,11 @@ css rules getting cut off if one css file to get more than 4k rules inside.
 
     .cluster_box span{
         opacity: 0;
-        transition: opacity 1s;
+        transition: opacity 0.5s;
     }
     .cluster_box:hover span{
         opacity: 1;
-        transition-duration: 1s;
+        transition-duration: 0.5s;
     }
 
     .wizard-step {
@@ -234,9 +250,16 @@ css rules getting cut off if one css file to get more than 4k rules inside.
     }
 
     #container {
-        padding: 15px; 
-        border: 1px solid #f1f1f1; 
+        padding: 15px;
+        border: 1px solid #f1f1f1;
         border-bottom: none;
+    }
+
+    #content_outline {
+        border: 1px dashed #7b94a2;
+        -moz-border-radius:10px;
+        -webkit-border-radius:10px;
+        border-radius:10px;
     }
 
     #main_content {
@@ -245,12 +268,16 @@ css rules getting cut off if one css file to get more than 4k rules inside.
     }
 
     .topbar {
-        height: 30px;
-        line-height: 30px;
+        height: 40px;
+        line-height: 40px;
         border-bottom: none;
-        background: #f1f1f1;
-        /*font-weight: bold;*/ 
-        padding-left: 10px;       
+        background: #e5e5e5;
+        color: #656565;
+        font-size: 16px;
+        padding-left: 10px;
+        -moz-border-radius:10px 10px 0 0;
+        -webkit-border-radius:10px 10px 0 0;
+        border-radius:10px 10px 0 0;
     }
 
     #operate_region {
@@ -264,7 +291,8 @@ css rules getting cut off if one css file to get more than 4k rules inside.
 
     #main_region {
         margin: 15px;
-        overflow:hidden;         
+        min-width:450px;
+        overflow:auto;
     }
 
     #footer {
@@ -309,13 +337,13 @@ css rules getting cut off if one css file to get more than 4k rules inside.
         -moz-transition-duration: 0.5s; /* Firefox 4 */
         -webkit-transition-duration: 0.5s; /* Safari Chrome */
         transform:scale(0.8);
-        -moz-transform:scale(0.8);        
+        -moz-transform:scale(0.8);
         -webkit-transform:scale(0.8);
     }
 
     .wizard-steps li.active .step {
         color: #fff;
-    }    
+    }
 
     .wizard-steps li.active:before, .wizard-steps li.active .step {
         border-color: #80afd4 !important;
@@ -337,7 +365,7 @@ css rules getting cut off if one css file to get more than 4k rules inside.
     }
     .wizard-steps li.first .step {
         margin-right: -60px;
-    }        
+    }
 
     .wizard-steps li .complete {
         margin-right: -60px;
@@ -361,8 +389,8 @@ css rules getting cut off if one css file to get more than 4k rules inside.
         margin-left: -60px;
     }
     .wizard-steps li.last .step {
-        margin-left: -60px;        
-    }    
+        margin-left: -60px;
+    }
 
     .wizard-steps li.active .before:after {
         background-color: rgba(52, 109, 153, 1);
@@ -400,7 +428,7 @@ css rules getting cut off if one css file to get more than 4k rules inside.
     .wizard-steps li.complete:before, .wizard-steps li.complete .step {
         background-color: #5293C4;
         /* border-color: #93cbf9 !important;*/
-    }    
+    }
 
     .wizard-steps li.incomplete:before, li.incomplete .step {
         border-color: #d15b47 !important;

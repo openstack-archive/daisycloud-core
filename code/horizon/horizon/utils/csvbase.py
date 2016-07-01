@@ -23,6 +23,8 @@ from django import VERSION  # noqa
 
 import logging
 LOG = logging.getLogger(__name__)
+
+
 class CsvDataMixin(object):
 
     """CSV data Mixin - provides handling for CSV data.
@@ -74,8 +76,8 @@ class BaseCsvResponse(CsvDataMixin, HttpResponse):
         self['Content-Disposition'] = 'attachment; filename="%s"' % (
             kwargs.get("filename", "export.csv"),)
         self['Content-Type'] = content_type
-        LOG.debug('##############BaseCsvResponse##########################') 		
-        LOG.debug(content_type) 		
+        LOG.debug('##############BaseCsvResponse##########################')
+        LOG.debug(content_type)
 
         self.context = context
         self.header = None
@@ -86,7 +88,7 @@ class BaseCsvResponse(CsvDataMixin, HttpResponse):
             self.header = header_template.render(context)
 
         if self.header:
-            self.out.write(codecs.BOM_UTF8)		
+            self.out.write(codecs.BOM_UTF8)
             self.out.write(self.encode(self.header))
 
         self.write_csv_header()

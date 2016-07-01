@@ -29,15 +29,6 @@ from __future__ import print_function
 
 import os
 import sys
-
-# If ../glance/__init__.py exists, add ../ to Python search path, so that
-# it will override what happens to be installed in /usr/(local/)lib/python...
-possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
-                                   os.pardir,
-                                   os.pardir))
-if os.path.exists(os.path.join(possible_topdir, 'daisy', '__init__.py')):
-    sys.path.insert(0, possible_topdir)
-
 from oslo_config import cfg
 from oslo_db.sqlalchemy import migration
 from oslo_log import log as logging
@@ -51,6 +42,14 @@ from daisy.db import migration as db_migration
 from daisy.db.sqlalchemy import api as db_api
 from daisy.db.sqlalchemy import metadata
 from daisy import i18n
+
+# If ../glance/__init__.py exists, add ../ to Python search path, so that
+# it will override what happens to be installed in /usr/(local/)lib/python...
+possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
+                                   os.pardir,
+                                   os.pardir))
+if os.path.exists(os.path.join(possible_topdir, 'daisy', '__init__.py')):
+    sys.path.insert(0, possible_topdir)
 
 
 CONF = cfg.CONF

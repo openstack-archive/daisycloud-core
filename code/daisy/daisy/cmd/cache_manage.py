@@ -19,16 +19,16 @@
 A simple cache management utility for daisy.
 """
 from __future__ import print_function
-
 import functools
 import optparse
 import os
 import sys
 import time
-
 from oslo_utils import timeutils
-
 from daisy.common import utils
+from daisy.common import exception
+import daisy.image_cache.client
+from daisy.version import version_info as version
 
 # If ../glance/__init__.py exists, add ../ to Python search path, so that
 # it will override what happens to be installed in /usr/(local/)lib/python...
@@ -37,10 +37,6 @@ possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
                                    os.pardir))
 if os.path.exists(os.path.join(possible_topdir, 'glance', '__init__.py')):
     sys.path.insert(0, possible_topdir)
-
-from daisy.common import exception
-import daisy.image_cache.client
-from daisy.version import version_info as version
 
 
 SUCCESS = 0

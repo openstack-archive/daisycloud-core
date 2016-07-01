@@ -23,19 +23,35 @@ import six.moves.urllib.parse as urlparse
 from daisyclient.common import utils
 from daisyclient.openstack.common.apiclient import base
 
-UPDATE_PARAMS = ('name', 'resource_type', 'dmi_uuid', 'role', 'cluster', 'root_disk','root_lv_size','swap_lv_size','isolcpus','hugepagesize','hugepages','root_pwd','os_version', 'os_status', 'interfaces', 'is_deployment',  'description', 'deleted', 'status','ipmi_user','ipmi_passwd','ipmi_addr', 'ip', 'status', 'user', 'passwd')
+UPDATE_PARAMS = ('name', 'resource_type', 'dmi_uuid', 'role', 'cluster',
+                 'root_disk', 'root_lv_size', 'swap_lv_size', 'isolcpus',
+                 'hugepagesize', 'hugepages', 'root_pwd', 'os_version',
+                 'os_status', 'interfaces', 'is_deployment',
+                 'description', 'deleted', 'status', 'ipmi_user',
+                 'ipmi_passwd', 'ipmi_addr', 'ip', 'status', 'user',
+                 'passwd', 'hwm_id', 'hwm_ip', 'cluster_id',
+                 'vcpu_pin_set', 'dvs_high_cpuset', 'pci_high_cpuset',
+                 'os_cpus', 'dvs_cpus', 'config_set_id')
 
-CREATE_PARAMS = ('id', 'name', 'description', 'resource_type', 'dmi_uuid','role', 'cluster', 'os_version', 'os_status', 'interfaces', 'is_deployment','status','ipmi_user','ipmi_passwd','ipmi_addr', 'ip', 'status', 'user', 'passwd')
+CREATE_PARAMS = ('id', 'name', 'description', 'resource_type', 'dmi_uuid',
+                 'role', 'cluster', 'os_version', 'os_status',
+                 'interfaces', 'is_deployment', 'status', 'ipmi_user',
+                 'ipmi_passwd', 'ipmi_addr', 'ip', 'status', 'user',
+                 'passwd', 'hwm_id', 'hwm_ip', 'cluster_id',
+                 'vcpu_pin_set', 'dvs_high_cpuset', 'pci_high_cpuset',
+                 'os_cpus', 'dvs_cpus', 'config_set_id')
 
-DEFAULT_PAGE_SIZE = 20
+DEFAULT_PAGE_SIZE = 200
 
 SORT_DIR_VALUES = ('asc', 'desc')
-SORT_KEY_VALUES = ('name', 'id', 'cluster_id', 'created_at', 'updated_at', 'status')
+SORT_KEY_VALUES = (
+    'name', 'id', 'cluster_id', 'created_at', 'updated_at', 'status')
 
 OS_REQ_ID_HDR = 'x-openstack-request-id'
 
 
 class Host(base.Resource):
+
     def __repr__(self):
         return "<Host %s>" % self._info
 
@@ -79,7 +95,7 @@ class HostManager(base.ManagerWithFind):
                 meta[key] = strutils.bool_from_string(meta[key])
 
         return self._format_host_meta_for_user(meta)
-        
+
     def _host_meta_to_headers(self, fields):
         headers = {}
         fields_copy = copy.deepcopy(fields)
@@ -111,12 +127,12 @@ class HostManager(base.ManagerWithFind):
         """
         host_id = base.getid(host)
         resp, body = self.client.get('/v1/nodes/%s'
-                                      % urlparse.quote(str(host_id)))
-        #meta = self._host_meta_from_headers(resp.headers)
+                                     % urlparse.quote(str(host_id)))
+        # meta = self._host_meta_from_headers(resp.headers)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
-        #return Host(self, meta)
+        # return Host(self, meta)
         return Host(self, self._format_host_meta_for_user(body['host']))
 
     def _build_params(self, parameters):
@@ -225,7 +241,7 @@ class HostManager(base.ManagerWithFind):
 
         TODO(bcwaldon): document accepted params
         """
-        
+
         fields = {}
         for field in kwargs:
             if field in CREATE_PARAMS:
@@ -235,7 +251,7 @@ class HostManager(base.ManagerWithFind):
             else:
                 msg = 'create() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
-                
+
         hdrs = self._host_meta_to_headers(fields)
 
         resp, body = self.client.post('/v1/nodes',
@@ -254,7 +270,7 @@ class HostManager(base.ManagerWithFind):
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
-            
+
     def update(self, host, **kwargs):
         """Update an host
 
@@ -267,7 +283,7 @@ class HostManager(base.ManagerWithFind):
                 fields[field] = kwargs[field]
             elif field == 'return_req_id':
                 continue
-            #else:
+            # else:
             #    msg = 'update() got an unexpected keyword argument \'%s\''
             #    raise TypeError(msg % field)
 
@@ -280,7 +296,7 @@ class HostManager(base.ManagerWithFind):
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
         return Host(self, self._format_host_meta_for_user(body['host_meta']))
-        
+
     def discover_host(self, **kwargs):
         """discovery host
         TODO(bcwaldon): document accepted params
@@ -292,18 +308,35 @@ class HostManager(base.ManagerWithFind):
                 fields[field] = kwargs[field]
             elif field == 'return_req_id':
                 continue
-
+        hdrs.update(self._host_meta_to_headers(fields))
         url = '/v1/discover_host/'
         resp, body = self.client.post(url, headers=hdrs, data=hdrs)
 
         return Host(self, self._format_host_meta_for_user(body))
-        
+
+    def get_min_mac(self, hwm_id):
+        params = dict()
+        resp, body = self.client.get('/v1/nodes')
+        hosts = body.get('nodes')
+        if hosts:
+            for host in hosts:
+                if hwm_id == host.get('hwm_id'):
+                    resp, host_body = self.client.get('/v1/nodes/%s' %
+                                                      host['id'])
+                    interfaces = host_body['host'].get('interfaces')
+                    if interfaces:
+                        mac_list = [interface['mac'] for interface in
+                                    interfaces if interface.get('mac')]
+                        if mac_list:
+                            params['mac'] = min(mac_list)
+        return params
+
     def add_discover_host(self, **kwargs):
         """Add a discover host
 
         TODO(bcwaldon): document accepted params
         """
-        
+
         fields = {}
         for field in kwargs:
             if field in CREATE_PARAMS:
@@ -313,19 +346,22 @@ class HostManager(base.ManagerWithFind):
             else:
                 msg = 'create() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
-                
+
+        hwm_id = fields.get('hwm_id')
+        params = self.get_min_mac(hwm_id)
+        fields['mac'] = params.get('mac')
         hdrs = self._host_meta_to_headers(fields)
 
         resp, body = self.client.post('/v1/discover/nodes',
                                       headers=hdrs,
                                       data=hdrs)
-        
+
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
         return Host(self, self._format_host_meta_for_user(body['host']))
-    
+
     def delete_discover_host(self, host, **kwargs):
         """Delete a discover host."""
         url = "/v1/discover/nodes/%s" % base.getid(host)
@@ -333,7 +369,7 @@ class HostManager(base.ManagerWithFind):
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
-        
+
     def list_discover_host(self, **kwargs):
         """Get a list of hosts.
 
@@ -420,7 +456,7 @@ class HostManager(base.ManagerWithFind):
                 fields[field] = kwargs[field]
             elif field == 'return_req_id':
                 continue
-            #else:
+            # else:
             #    msg = 'update() got an unexpected keyword argument \'%s\''
             #    raise TypeError(msg % field)
 
@@ -433,14 +469,14 @@ class HostManager(base.ManagerWithFind):
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
         return Host(self, self._format_host_meta_for_user(body['host']))
-    
+
     def get_discover_host_detail(self, host_id, **kwargs):
         '''
         '''
         resp, body = self.client.get('/v1/discover/nodes/%s' % host_id)
-        #meta = self._host_meta_from_headers(resp.headers)
+        # meta = self._host_meta_from_headers(resp.headers)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
-        #return Host(self, meta)
+        # return Host(self, meta)
         return Host(self, self._format_host_meta_for_user(body['host']))

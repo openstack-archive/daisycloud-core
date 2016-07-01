@@ -23,9 +23,13 @@ import six.moves.urllib.parse as urlparse
 from daisyclient.common import utils
 from daisyclient.openstack.common.apiclient import base
 
-UPDATE_PARAMS = ('section', 'description', 'deleted','config_set_id','config_file_id','key','value','cluster','role','config_set','config')
+UPDATE_PARAMS = ('section', 'description', 'deleted', 'config_set_id',
+                 'config_file_id', 'key', 'value', 'cluster', 'role',
+                 'config_set', 'config', 'host_id')
 
-CREATE_PARAMS = ('id', 'section', 'description','config_set_id','config_file_id','key','value','cluster','role','config_set','config')
+CREATE_PARAMS = ('id', 'section', 'description', 'config_set_id',
+                 'config_file_id', 'key', 'value', 'cluster', 'role',
+                 'config_set', 'config', 'host_id')
 
 DEFAULT_PAGE_SIZE = 20
 
@@ -36,6 +40,7 @@ OS_REQ_ID_HDR = 'x-openstack-request-id'
 
 
 class Config(base.Resource):
+
     def __repr__(self):
         return "<Config %s>" % self._info
 
@@ -79,7 +84,7 @@ class ConfigManager(base.ManagerWithFind):
                 meta[key] = strutils.bool_from_string(meta[key])
 
         return self._format_config_meta_for_user(meta)
-        
+
     def _config_meta_to_headers(self, fields):
         headers = {}
         fields_copy = copy.deepcopy(fields)
@@ -111,12 +116,12 @@ class ConfigManager(base.ManagerWithFind):
         """
         config_id = base.getid(config)
         resp, body = self.client.get('/v1/configs/%s'
-                                      % urlparse.quote(str(config_id)))
-        #meta = self._config_meta_from_headers(resp.headers)
+                                     % urlparse.quote(str(config_id)))
+        # meta = self._config_meta_from_headers(resp.headers)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
-        #return Config(self, meta)
+        # return Config(self, meta)
         return Config(self, self._format_config_meta_for_user(body['config']))
 
     def _build_params(self, parameters):
@@ -225,7 +230,7 @@ class ConfigManager(base.ManagerWithFind):
 
         TODO(bcwaldon): document accepted params
         """
-        
+
         fields = {}
         for field in kwargs:
             if field in CREATE_PARAMS:
@@ -235,7 +240,7 @@ class ConfigManager(base.ManagerWithFind):
             # else:
                 # msg = 'create() got an unexpected keyword argument \'%s\''
                 # raise TypeError(msg % field)
-                
+
         hdrs = self._config_meta_to_headers(fields)
         resp, body = self.client.post('/v1/configs',
                                       headers=hdrs,
@@ -255,7 +260,7 @@ class ConfigManager(base.ManagerWithFind):
                 continue
         hdrs = self._config_meta_to_headers(fields)
         url = "/v1/configs_delete"
-        resp, body = self.client.delete(url,headers=hdrs,data=hdrs)
+        resp, body = self.client.delete(url, headers=hdrs, data=hdrs)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))

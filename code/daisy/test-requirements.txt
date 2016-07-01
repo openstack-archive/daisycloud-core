@@ -32,3 +32,8 @@ oslosphinx>=2.5.0,<2.6.0  # Apache-2.0
 
 # Glance catalog index
 elasticsearch>=1.3.0
+python-daisyclient
+python-ironicclient
+ironic
+mox
+

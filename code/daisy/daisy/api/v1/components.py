@@ -52,21 +52,25 @@ CONF.import_opt('container_formats', 'daisy.common.config',
                 group='image_format')
 CONF.import_opt('image_property_quota', 'daisy.common.config')
 
+
 class Controller(controller.BaseController):
     """
     WSGI controller for components resource in Daisy v1 API
 
-    The components resource API is a RESTful web service for component data. The API
-    is as follows::
+    The components resource API is a RESTful web service for component data.
+    The API is as follows::
 
         GET  /components -- Returns a set of brief metadata about components
         GET  /components/detail -- Returns a set of detailed metadata about
                               components
-        HEAD /components/<ID> -- Return metadata about an component with id <ID>
-        GET  /components/<ID> -- Return component data for component with id <ID>
+        HEAD /components/<ID> --
+        Return metadata about an component with id <ID>
+        GET  /components/<ID> --
+        Return component data for component with id <ID>
         POST /components -- Store component data and return metadata about the
                         newly-stored component
-        PUT  /components/<ID> -- Update component metadata and/or upload component
+        PUT  /components/<ID> --
+        Update component metadata and/or upload component
                             data for a previously-reserved component
         DELETE /components/<ID> -- Delete the component with id <ID>
     """
@@ -132,15 +136,16 @@ class Controller(controller.BaseController):
         :raises HTTPBadRequest if x-component-name is missing
         """
         self._enforce(req, 'add_component')
-        #component_id=component_meta["id"]
-        #component_owner=component_meta["owner"]
+        # component_id=component_meta["id"]
+        # component_owner=component_meta["owner"]
         component_name = component_meta["name"]
         component_description = component_meta["description"]
-        #print component_id
-        #print component_owner
+        # print component_id
+        # print component_owner
         print component_name
         print component_description
-        component_meta = registry.add_component_metadata(req.context, component_meta)
+        component_meta = registry.add_component_metadata(
+            req.context, component_meta)
 
         return {'component_meta': component_meta}
 
@@ -156,7 +161,7 @@ class Controller(controller.BaseController):
         """
         self._enforce(req, 'delete_component')
 
-        #component = self.get_component_meta_or_404(req, id)
+        # component = self.get_component_meta_or_404(req, id)
         print "delete_component:%s" % id
         try:
             registry.delete_component_metadata(req.context, id)
@@ -175,14 +180,15 @@ class Controller(controller.BaseController):
                                 request=req,
                                 content_type="text/plain")
         except exception.InUseByStore as e:
-            msg = (_("component %(id)s could not be deleted because it is in use: "
+            msg = (_("component %(id)s could not be "
+                     "deleted because it is in use: "
                      "%(exc)s") % {"id": id, "exc": utils.exception_to_str(e)})
             LOG.warn(msg)
             raise HTTPConflict(explanation=msg,
                                request=req,
                                content_type="text/plain")
         else:
-            #self.notifier.info('component.delete', component)
+            # self.notifier.info('component.delete', component)
             return Response(body='', status=200)
 
     @utils.mutating
@@ -280,6 +286,7 @@ class Controller(controller.BaseController):
 
         return {'component_meta': component_meta}
 
+
 class ComponentDeserializer(wsgi.JSONRequestDeserializer):
     """Handles deserialization of specific controller method requests."""
 
@@ -293,6 +300,7 @@ class ComponentDeserializer(wsgi.JSONRequestDeserializer):
 
     def update_component(self, request):
         return self._deserialize(request)
+
 
 class ComponentSerializer(wsgi.JSONResponseSerializer):
     """Handles serialization of specific controller method responses."""
@@ -313,6 +321,7 @@ class ComponentSerializer(wsgi.JSONResponseSerializer):
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(dict(component=component_meta))
         return response
+
     def get_component(self, response, result):
         component_meta = result['component_meta']
         response.status = 201
@@ -320,9 +329,9 @@ class ComponentSerializer(wsgi.JSONResponseSerializer):
         response.body = self.to_json(dict(component=component_meta))
         return response
 
+
 def create_resource():
     """Components resource factory method"""
     deserializer = ComponentDeserializer()
     serializer = ComponentSerializer()
     return wsgi.Resource(Controller(), deserializer, serializer)
-

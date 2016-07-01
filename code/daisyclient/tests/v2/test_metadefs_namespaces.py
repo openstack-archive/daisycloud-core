@@ -537,6 +537,7 @@ schema_fixtures = {
 
 
 class TestNamespaceController(testtools.TestCase):
+
     def setUp(self):
         super(TestNamespaceController, self).setUp()
         self.api = utils.FakeAPI(data_fixtures)

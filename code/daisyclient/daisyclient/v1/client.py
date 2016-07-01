@@ -32,6 +32,11 @@ from daisyclient.v1.uninstall import UninstallManager
 from daisyclient.v1.update import UpdateManager
 from daisyclient.v1.disk_array import DiskArrayManager
 from daisyclient.v1.template import TemplateManager
+from daisyclient.v1.hwm_nodes import NodeManager
+from daisyclient.v1.hwms import HwmManager
+from daisyclient.v1.backup_restore import BackupRestoreManager
+
+
 class Client(object):
     """Client for the OpenStack Images v1 API.
 
@@ -64,3 +69,6 @@ class Client(object):
         self.update = UpdateManager(self.http_client)
         self.disk_array = DiskArrayManager(self.http_client)
         self.template = TemplateManager(self.http_client)
+        self.node = NodeManager(self.http_client)
+        self.hwm = HwmManager(self.http_client)
+        self.backup_restore = BackupRestoreManager(self.http_client)

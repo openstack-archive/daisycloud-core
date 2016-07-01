@@ -6,7 +6,7 @@
 import os
 import logging
 
-from django import http 
+from django import http
 from django.views import generic
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
@@ -27,18 +27,18 @@ def get_files():
     VER_PATH = get_version_path()
 
     files = []
-    items = os.listdir(VER_PATH)    
+    items = os.listdir(VER_PATH)
 
-    for item in items:            
+    for item in items:
         full_path = os.path.join(VER_PATH, item)
         if os.path.isfile(full_path):
-            files.append(item)    
+            files.append(item)
 
     return files
 
 
 def delete_file(newfile):
-    VER_PATH = get_version_path()    
+    VER_PATH = get_version_path()
     begins = newfile.split('_')
     begin = begins[0]
     ends = newfile.split('.')
@@ -54,7 +54,7 @@ def delete_file(newfile):
 
 class VersionView(generic.TemplateView):
     template_name = "environment/version/index.html"
-    
+
     def get_context_data(self, **kwargs):
         context = super(VersionView, self).get_context_data(**kwargs)
         clusters = api.daisy.cluster_list(self.request)
@@ -63,24 +63,24 @@ class VersionView(generic.TemplateView):
         context['files'] = get_files()
         context['is_version'] = True
 
-        return context 
+        return context
 
 
 def upload_version(request):
-    VER_PATH = get_version_path()    
+    VER_PATH = get_version_path()
     try:
         os_version = request.FILES.get("os_version")
         if os_version is not None:
             destination = open(VER_PATH + os_version.name, 'wb+')
-            for chunk in os_version.chunks(): 
+            for chunk in os_version.chunks():
                 destination.write(chunk)
-            destination.close()    
+            destination.close()
             delete_file(os_version.name)
 
         tecs_version = request.FILES.get("role_version")
         if tecs_version is not None:
             destination = open(VER_PATH + tecs_version.name, 'wb+')
-            for chunk in tecs_version.chunks(): 
+            for chunk in tecs_version.chunks():
                 destination.write(chunk)
             destination.close()
             delete_file(tecs_version.name)

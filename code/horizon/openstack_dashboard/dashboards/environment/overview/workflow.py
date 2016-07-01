@@ -1,9 +1,8 @@
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.debug import sensitive_variables
-from django.forms.widgets import Textarea, RadioSelect
+from django.forms.widgets import RadioSelect
 
 from horizon import exceptions
-from horizon import messages
 from horizon import workflows
 from horizon import forms
 from openstack_dashboard import api
@@ -22,14 +21,14 @@ class SetClusterNameAction(workflows.Action):
     name = forms.CharField(label=_("Cluster Name"),
                            max_length=255)
     target = forms.ChoiceField(label=_("Target System"),
-                           required=False)
+                               required=False)
     os = forms.ChoiceField(label=_("OS"),
                            required=False)
     model = forms.ChoiceField(label=_("Model"),
-                           required=False)
+                              required=False)
     description = forms.CharField(label=_("Description"),
-                              required=False,
-                              max_length=255)
+                                  required=False,
+                                  max_length=255)
 
     def __init__(self, request, *args, **kwargs):
         super(SetClusterNameAction, self).__init__(request, *args, **kwargs)
@@ -44,10 +43,11 @@ class SetClusterName(workflows.Step):
 
 
 class SetDeployModeAction(workflows.Action):
-    deploy_mode = forms.MultipleChoiceField(label=_("Deploy Mode"),
-                                            initial=["default"],
-                                            required="True",
-                                            widget=forms.CheckboxSelectMultiple(),
+    deploy_mode = \
+        forms.MultipleChoiceField(label=_("Deploy Mode"),
+                                  initial=["default"],
+                                  required="True",
+                                  widget=forms.CheckboxSelectMultiple(),
                                   help_text="")
 
     def __init__(self, request, *args, **kwargs):
@@ -67,11 +67,12 @@ class SetDeployMode(workflows.Step):
 
 
 class SetNetworkAction(workflows.Action):
-    segmentation_type = forms.MultipleChoiceField(label=_("Network"),
-                                initial="GRE",
-                                required=False,
-                                choices=[],
-                                widget=forms.CheckboxSelectMultiple(),
+    segmentation_type = \
+        forms.MultipleChoiceField(label=_("Network"),
+                                  initial="GRE",
+                                  required=False,
+                                  choices=[],
+                                  widget=forms.CheckboxSelectMultiple(),
                                   help_text="")
 
     def __init__(self, request, *args, **kwargs):
@@ -92,9 +93,9 @@ class SetNetwork(workflows.Step):
 
 class SetComputerNodeAction(workflows.Action):
     net_l23_provider = forms.ChoiceField(label=_("NET_L23_PROVIDER"),
-                                                     initial="OVS",
-                                                     required=False,
-                                                     widget=RadioSelect(),
+                                         initial="OVS",
+                                         required=False,
+                                         widget=RadioSelect(),
                                          help_text="")
 
     def __init__(self, request, *args, **kwargs):
@@ -153,13 +154,16 @@ class SetBackendStorage(workflows.Step):
 
 
 class SetAdditionalServicesAction(workflows.Action):
-    additional_services = forms.MultipleChoiceField(label=_("Additional Services"),
-                                                    initial=["default"],
-                                                    widget=forms.CheckboxSelectMultiple(),
-                                                    help_text=_(""))
+    additional_services = forms.MultipleChoiceField(
+        label=_("Additional Services"),
+        initial=["default"],
+        widget=forms.CheckboxSelectMultiple(),
+        help_text="")
 
     def __init__(self, request, *args, **kwargs):
-        super(SetAdditionalServicesAction, self).__init__(request, *args, **kwargs)
+        super(SetAdditionalServicesAction, self).__init__(request,
+                                                          *args,
+                                                          **kwargs)
         # Set additional_services choices
         services = [(service, service)
                     for service in ADDITIONAL_SERVICE]
@@ -183,11 +187,8 @@ class CreateCluster(workflows.Workflow):
     success_url = "horizon:environment:overview:index"
     multipart = True
     default_steps = (SetClusterName,
-                     #SetDeployMode,
                      SetNetwork,
                      SetComputerNode,)
-                     #SetBackendStorage,
-                     #SetAdditionalServices)
 
     def format_status_message(self, message):
         cluster_name = self.context.get('name', 'unknown cluster')
@@ -196,12 +197,11 @@ class CreateCluster(workflows.Workflow):
     @sensitive_variables('context')
     def handle(self, request, context):
         try:
-            cluster = api.daisy.cluster_add(self.request,
-                                            name=context["name"],
-                                            description=context["description"])
+            api.daisy.cluster_add(self.request,
+                                  name=context["name"],
+                                  description=context["description"])
             return True
         except Exception:
             LOG.info("Create cluster failed.")
             exceptions.handle(request, "Create cluster failed.")
             return False
-

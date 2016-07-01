@@ -2,14 +2,36 @@
 {% load url from future %}
 <ul class="nav pull-right" id="user_info">
   <li style="float:left">
-    <a style="color:white">
-      <span class="glyphicon glyphicon-user"></span> 
+    <a style="padding:10px 5px;">
+      <img src="/dashboard/static/dashboard/img/user.png"/>        
+    </a>
+  </li>
+  <li style="float:left">
+    <a style="padding:10px 5px;">
+      <img src="/dashboard/static/dashboard/img/user_left.png"/>        
+    </a>
+  </li>  
+  <li style="float:left">  
+    <a style="color:white;font-size:16px;padding:10px 5px;">    
       {% blocktrans with username=request.user.username %}
-          {{ username }}
+        {{ username }}
       {% endblocktrans %}
     </a>
   </li>
   <li style="float:left">
-  	<a style="color:white" href="{% url 'logout' %}">{% trans "Sign Out" %}</a>
+    <a style="color:white;font-size:16px;padding:10px 5px;" href="/dashboard/language/en">EN</a>
+  </li>
+  <li style="float:left">
+    <a style="padding:10px 5px;">
+      <img src="/dashboard/static/dashboard/img/user_left.png"/>        
+    </a>
+  </li>  
+  <li style="float:left">
+    <a style="color:white;font-size:16px;padding:10px 5px;" href="/dashboard/language/zh-cn">中文</a>
+  </li>
+  <li style="float:left">
+  	<a style="color:white;font-size:16px;background-color:#f49530;padding:5px 20px;margin:10px 30px 0px 15px" href="{% url 'logout' %}">
+        {% trans "Sign Out" %}
+    </a>
   </li>
 </ul>

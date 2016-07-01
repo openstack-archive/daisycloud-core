@@ -13,9 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-SUPPORTED_FILTERS = ['name', 'status','cluster_id','id','host_id', 'role_id', 'auto_scale','container_format', 'disk_format',
+SUPPORTED_FILTERS = ['name', 'status', 'cluster_id', 'id',
+                     'host_id', 'role_id',
+                     'auto_scale', 'container_format', 'disk_format',
                      'min_ram', 'min_disk', 'size_min', 'size_max',
-                     'is_public', 'changes-since', 'protected']
+                     'is_public', 'changes-since', 'protected', 'type']
 
 SUPPORTED_PARAMS = ('limit', 'marker', 'sort_key', 'sort_dir')
 

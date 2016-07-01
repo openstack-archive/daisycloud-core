@@ -17,30 +17,12 @@
 /hosts endpoint for Daisy v1 API
 """
 
-import os
-import webob.exc
+
 import subprocess
 
-from oslo_config import cfg
 from oslo_log import log as logging
-from webob.exc import HTTPBadRequest
-from webob.exc import HTTPForbidden
-
-from threading import Thread, Lock
 import threading
 from daisy import i18n
-from daisy import notifier
-
-from daisy.api import policy
-import daisy.api.v1
-
-from daisy.common import exception
-from daisy.common import property_utils
-from daisy.common import utils
-from daisy.common import wsgi
-from daisy.api.v1 import controller
-from daisy.api.v1 import filters
-from daisy.api.backends.zenic.common import ZenicShellExector
 import daisy.api.backends.common as daisy_cmn
 import daisy.api.backends.zenic.common as zenic_cmn
 
@@ -52,12 +34,15 @@ _LW = i18n._LW
 
 zenic_state = zenic_cmn.ZENIC_STATE
 
-uninstall_zenic_progress=100.0
+uninstall_zenic_progress = 100.0
 uninstall_mutex = threading.Lock()
 
-def update_progress_to_db(req, role_id_list, status, progress_percentage_step=0.0):
+
+def update_progress_to_db(req, role_id_list, status,
+                          progress_percentage_step=0.0):
     """
-    Write uninstall progress and status to db, we use global lock object 'uninstall_mutex'
+    Write uninstall progress and status to db,
+    we use global lock object 'uninstall_mutex'
     to make sure this function is thread safety.
     :param req: http req.
     :param role_id_list: Column neeb be update in role table.
@@ -74,33 +59,36 @@ def update_progress_to_db(req, role_id_list, status, progress_percentage_step=0.
         if 0 == cmp(status, zenic_state['UNINSTALLING']):
             role['status'] = status
             role['progress'] = uninstall_zenic_progress
-        if 0 == cmp(status,  zenic_state['UNINSTALL_FAILED']):
+        if 0 == cmp(status, zenic_state['UNINSTALL_FAILED']):
             role['status'] = status
         elif 0 == cmp(status, zenic_state['INIT']):
             role['status'] = status
             role['progress'] = 0
         daisy_cmn.update_role(req, role_id, role)
     uninstall_mutex.release()
-    
-def thread_bin(req, host, role_id_list,uninstall_progress_percentage):
+
+
+def thread_bin(req, host, role_id_list, uninstall_progress_percentage):
     host_ip = host['mgtip']
     password = host['rootpwd']
     cmd = 'mkdir -p /var/log/daisy/daisy_uninstall/'
     daisy_cmn.subprocess_call(cmd)
-    var_log_path = "/var/log/daisy/daisy_uninstall/%s_uninstall_zenic.log" % host_ip
+    var_log_path =\
+        "/var/log/daisy/daisy_uninstall/%s_uninstall_zenic.log" % host_ip
     with open(var_log_path, "w+") as fp:
         cmd = '/var/lib/daisy/zenic/trustme.sh %s %s' % (host_ip, password)
-        daisy_cmn.subprocess_call(cmd,fp)
-        
+        daisy_cmn.subprocess_call(cmd, fp)
+
         try:
             exc_result = subprocess.check_output(
                 'clush -S -b -w %s  /home/zenic/node_stop.sh' % (host_ip,),
                 shell=True, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            update_progress_to_db(req, role_id_list, zenic_state['UNINSTALL_FAILED'])
-            fp.write(e.output.strip())            
+            update_progress_to_db(
+                req, role_id_list, zenic_state['UNINSTALL_FAILED'])
+            fp.write(e.output.strip())
         else:
-            update_progress_to_db(req, role_id_list, zenic_state['UNINSTALLING'], uninstall_progress_percentage)
+            update_progress_to_db(
+                req, role_id_list, zenic_state['UNINSTALLING'],
+                uninstall_progress_percentage)
             fp.write(exc_result)
-            
-            

@@ -533,7 +533,7 @@ def make_image_dict(image):
 
     def _fetch_attrs(d, attrs):
         return dict([(a, d[a]) for a in attrs
-                    if a in d.keys()])
+                     if a in d.keys()])
 
     # TODO(sirp): should this be a dict, or a list of dicts?
     # A plain dict is more convenient, but list of dicts would provide

@@ -146,7 +146,7 @@
         cinder_volume["user_pwd"] = $("#cinder_user_password").val();
         cinder_volume["volume_driver"] = $("#cinder_volume_driver option:selected").text();
         cinder_volume["data_ips"] = new Array();
-        if (cinder_volume["volume_driver"] == "FUJISTU_ETERNUS"){
+        if (cinder_volume["volume_driver"] == "FUJITSU_ETERNUS"){
             cinder_volume["data_ips"].push($("#cinder_data_ip").val());
             for(var i=1; i<parseInt($("#cinder_data_ip_last_index").val()); i++){
                 var input_ip = "cinder_data_ip" + i.toString();
@@ -170,8 +170,8 @@
     }
     
     function cinder_volume_driver_chanage(){
-        if ($("#cinder_volume_driver option:selected").text() == "FUJISTU_ETERNUS"){
-            $(".form-fujistu").removeClass('hide');
+        if ($("#cinder_volume_driver option:selected").text() == "FUJITSU_ETERNUS"){
+            $(".form-fujitsu").removeClass('hide');
             $("#cinder_data_ip").val("");
 
             $('.form-cinder-validator').bootstrapValidator('addField', "cinder_data_ip", {
@@ -186,10 +186,19 @@
                 });
         }
         else{
-            $(".form-fujistu").addClass('hide');
+            $(".form-fujitsu").addClass('hide');
             $("#cinder_data_ip").val("");
             
             $('.form-cinder-validator').bootstrapValidator('removeField', "cinder_data_ip");
+            
+            for(var i=1; i<parseInt($("#cinder_data_ip_last_index").val(), 10); i++){
+                var input_ip = "cinder_data_ip" + i.toString();
+                if ($("input[name='" + input_ip + "']").val() != undefined){
+                    $('.form-cinder-validator').bootstrapValidator('removeField', input_ip);
+                    $("input[name='" + input_ip + "']").parent().parent().remove();
+                }
+            }
+            $("#cinder_data_ip_last_index").val("1");
         }
     }
 </script>
@@ -256,11 +265,12 @@
                                 <select id="cinder_volume_driver" name="cinder_volume_driver" class="form-control" onchange="cinder_volume_driver_chanage()">
                                     <option value="0" selected="selected">KS3200_IPSAN</option>
                                     <option value="1">KS3200_FCSAN</option>
-                                    <option value="2">FUJISTU_ETERNUS</option>
+                                    <option value="2">FUJITSU_ETERNUS</option>
+                                    <option value="3">HP3PAR_FCSAN</option>
                                 </select>
                             </div>
                         </div>
-                        <div style="clear:both" class="form-group form-fujistu hide">
+                        <div style="clear:both" class="form-group form-fujitsu hide">
                             <label style="float:left; width:30%; font-size:12px; text-align:right; height:30px" for="cinder_data_ip" class="col-sm-2 control-label">{% trans 'Service IPs' %}</label>
                             <div style="float:left; width:2%; ">&nbsp;</div>
                             <div style="float:left; width:60%; " class="col-sm-4">

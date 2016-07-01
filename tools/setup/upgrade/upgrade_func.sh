@@ -31,6 +31,7 @@ function get_daisy_services
     openstack-ironic-discoverd
     python-ironic-discoverd
     pxe_server_install
+    pxe_docker_install
     python-django-horizon-doc
     daisy-dashboard
     " 
