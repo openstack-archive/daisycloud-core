@@ -1,0 +1,28 @@
+{% load i18n %}
+<div class="drop_role dv_drop_role_container">
+    {% for role in roles %}
+    <div class="dv_drop_base dv_drop_base_small dv_drop_{{role.name}}">
+        {% if role.name in show_vip_role_list %}
+        <a href="#" id="role_details_{{ host_id }}_{{ role.name }}" class="link-popover" rel="popover" tabindex="0" data-trigger="focus" data-content="
+            <table class='table table-bordered'>
+                <tr><th style='width:50%'>{% trans 'Float IP' %}</th><td style='word-break : break-all'>{{ role.vip}}</td></tr>
+                {% ifequal role.name 'CONTROLLER_HA' %}
+                <tr><th style='width:50%'>Glance {% trans 'Float IP' %}</th><td style='word-break : break-all'>{{ role.glance_vip}}</td></tr>
+                <tr><th style='width:50%'>DB {% trans 'Float IP' %}</th><td style='word-break : break-all'>{{ role.db_vip}}</td></tr>
+                {% endifequal %}
+            </table>" data-original-title="{{ role.name }}">{{ role.name }}</a>
+        <script type="text/javascript" charset="utf-8">
+        $(function () {
+            var $role = $("#role_details_{{ host_id }}_{{ role.name }}");
+            // NOTE(tsufiev): check this in case this template is used in network topology -> terminate instance
+            if ( $role.popover ) {
+                $role.popover({trigger:'hover',html:true});
+            }
+        });
+        </script>
+        {% else %}
+        <span class="role_text">{{role.name}}</span>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>

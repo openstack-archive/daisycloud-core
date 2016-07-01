@@ -32,6 +32,7 @@ SORT_KEY_VALUES = ('name', 'status', 'container_format', 'disk_format',
 
 
 class Controller(object):
+
     def __init__(self, http_client, schema_client):
         self.http_client = http_client
         self.schema_client = schema_client
@@ -171,7 +172,7 @@ class Controller(object):
     def get(self, image_id):
         url = '/v2/images/%s' % image_id
         resp, body = self.http_client.get(url)
-        #NOTE(bcwaldon): remove 'self' for now until we have an elegant
+        # NOTE(bcwaldon): remove 'self' for now until we have an elegant
         # way to pass it into the model constructor without conflict
         body.pop('self', None)
         return self.model(**body)
@@ -227,7 +228,7 @@ class Controller(object):
                 raise TypeError(utils.exception_to_str(e))
 
         resp, body = self.http_client.post(url, data=image)
-        #NOTE(esheffield): remove 'self' for now until we have an elegant
+        # NOTE(esheffield): remove 'self' for now until we have an elegant
         # way to pass it into the model constructor without conflict
         body.pop('self', None)
         return self.model(**body)
@@ -250,7 +251,7 @@ class Controller(object):
         if remove_props is not None:
             cur_props = image.keys()
             new_props = kwargs.keys()
-            #NOTE(esheffield): Only remove props that currently exist on the
+            # NOTE(esheffield): Only remove props that currently exist on the
             # image and are NOT in the properties being updated / added
             props_to_remove = set(cur_props).intersection(
                 set(remove_props).difference(new_props))
@@ -262,7 +263,7 @@ class Controller(object):
         hdrs = {'Content-Type': 'application/openstack-images-v2.1-json-patch'}
         self.http_client.patch(url, headers=hdrs, data=image.patch)
 
-        #NOTE(bcwaldon): calling image.patch doesn't clear the changes, so
+        # NOTE(bcwaldon): calling image.patch doesn't clear the changes, so
         # we need to fetch the image again to get a clean history. This is
         # an obvious optimization for warlock
         return self.get(image_id)

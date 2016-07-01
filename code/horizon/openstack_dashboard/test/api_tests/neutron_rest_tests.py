@@ -64,8 +64,8 @@ class NeutronNetworksTestCase(test.TestCase):
         response = neutron.Networks().post(request)
         self.assertStatusCode(response, 201)
         self.assertEqual(response['location'],
-                         '/api/neutron/networks/'
-                         + str(TEST.api_networks.first().get("id")))
+                         '/api/neutron/networks/' + str(
+                             TEST.api_networks.first().get("id")))
         self.assertEqual(response.content,
                          json.dumps(TEST.api_networks.first()))
 

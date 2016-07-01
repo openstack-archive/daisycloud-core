@@ -291,8 +291,6 @@ cd openstack_dashboard && django-admin compilemessages && cd ..
 # compress css, js etc.
 cp openstack_dashboard/local/local_settings.py.example openstack_dashboard/local/local_settings.py
 
-mkdir -p /var/log/horizon/
-
 # get it ready for compressing later in puppet-horizon
 %{__python} manage.py collectstatic --noinput
 
@@ -409,6 +407,7 @@ systemctl daemon-reload >/dev/null 2>&1 || :
 %{_datadir}/openstack-dashboard/openstack_dashboard/api
 %dir %{_datadir}/openstack-dashboard/openstack_dashboard/dashboards/
 %{_datadir}/openstack-dashboard/openstack_dashboard/dashboards/environment
+%{_datadir}/openstack-dashboard/openstack_dashboard/dashboards/director_theme
 %{_datadir}/openstack-dashboard/openstack_dashboard/dashboards/__init__.py*
 %{_datadir}/openstack-dashboard/openstack_dashboard/django_pyscss_fix
 %{_datadir}/openstack-dashboard/openstack_dashboard/enabled

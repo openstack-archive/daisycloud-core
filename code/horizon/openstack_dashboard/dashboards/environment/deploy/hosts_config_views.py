@@ -15,6 +15,7 @@ from horizon import tables
 from openstack_dashboard import api
 from openstack_dashboard.dashboards.environment.deploy import actions
 from openstack_dashboard.dashboards.environment.deploy import wizard_cache
+from openstack_dashboard.dashboards.environment.deploy import deploy_rule_lib
 
 import logging
 LOG = logging.getLogger(__name__)
@@ -26,12 +27,13 @@ class ToggleMappingAction(actions.OperateRegionAction):
 
 
 class HostConfigFilterAction(tables.FilterAction):
+
     def filter(self, table, hosts, filter_string):
         pass
 
 
 def get_host_role_url(host):
-    template_name = 'environment/overview/host_roles.html'
+    template_name = 'environment/host/host_roles.html'
     context = {
         "host_id": host["host_id"],
         "roles": host["roles"],
@@ -57,10 +59,8 @@ class HostsTable(tables.DataTable):
                               verbose_name=_('IPMI User'))
     cpu_number = tables.Column("cpu_number",
                                verbose_name=_('CPU Number'))
-    isol_cpus = tables.Column("isol_cpus",
-                              verbose_name=_('Isolation CPU'))
     memory_size = tables.Column("memory_size",
-                                verbose_name=_('Memory Size'))
+                                verbose_name=_('Memory Size (GB)'))
     huge_pages = tables.Column("huge_pages",
                                verbose_name=_('Huge Page Count'))
     huge_page_size = tables.Column("huge_page_size",
@@ -68,6 +68,34 @@ class HostsTable(tables.DataTable):
     ipmi_passwd = tables.Column("ipmi_passwd",
                                 verbose_name=_('IPMI Passwd'),
                                 hidden=True)
+    os_cpus = tables.Column("os_cpus",
+                            verbose_name=_('OS HT'))
+    dvs_cpus = tables.Column("dvs_cpus",
+                             verbose_name=_('DVS HT'))
+    vcpu_pin_set = tables.Column("vcpu_pin_set",
+                                 verbose_name=_('VCPU PIN Set'),
+                                 hidden=True)
+    dvs_high_cpuset = tables.Column("dvs_high_cpuset",
+                                    verbose_name=_('DVS High HT Set'),
+                                    hidden=True)
+    pci_high_cpuset = tables.Column("pci_high_cpuset",
+                                    verbose_name=_('PCI High HT Set'),
+                                    hidden=True)
+    vswitch_type = tables.Column("vswitch_type",
+                                 verbose_name=_('Vswitch Type'),
+                                 hidden=True)
+    numa_node0 = tables.Column("numa_node0",
+                               verbose_name=_('Numa Node0'),
+                               hidden=True)
+    numa_node1 = tables.Column("numa_node1",
+                               verbose_name=_('Numa Node1'),
+                               hidden=True)
+    suggest_os_cpus = tables.Column("suggest_os_cpus",
+                                    verbose_name=_('Suggest OS Cpus'),
+                                    hidden=True)
+    suggest_dvs_cpus = tables.Column("suggest_dvs_cpus",
+                                     verbose_name=_('Suggest DVS Cpus'),
+                                     hidden=True)
 
     def get_object_id(self, datum):
         return datum["host_id"]
@@ -96,6 +124,23 @@ def get_version_files():
     return ver_files
 
 
+def get_format_memory_size(str_memory):
+    memory_size = None
+    compose = str_memory.strip().split(" ")
+    if len(compose) == 2:
+        act_size = int(compose[0])
+        prefix = compose[1].upper()
+        if prefix == "B":
+            memory_size = act_size / 1024 / 1024 / 1024
+        elif prefix == "KB":
+            memory_size = act_size / 1024 / 1024
+        elif prefix == "MB":
+            memory_size = act_size / 1024 / 1024
+        else:
+            memory_size = act_size
+    return memory_size
+
+
 class IndexView(tables.DataTableView):
     table_class = HostsTable
     template_name = 'environment/deploy/hosts_config.html'
@@ -121,10 +166,26 @@ class IndexView(tables.DataTableView):
                     "root_disk": host_detail.root_disk,
                     "root_lv_size": None,
                     "cpus": None,
-                    "isol_cpus": host_detail.isolcpus,
+                    "os_cpus": host_detail.os_cpus,
+                    "dvs_cpus": host_detail.dvs_cpus,
+                    "vcpu_pin_set": host_detail.vcpu_pin_set,
+                    "dvs_high_cpuset": host_detail.dvs_high_cpuset,
+                    "pci_high_cpuset": host_detail.pci_high_cpuset,
                     "memory": None,
                     "huge_pages": host_detail.hugepages,
-                    "huge_page_size": host_detail.hugepagesize}
+                    "huge_page_size": host_detail.hugepagesize,
+                    "vswitch_type": "",
+                    "numa_node0": "",
+                    "numa_node1": "",
+                    "suggest_os_cpus": host_detail.suggest_os_cpus,
+                    "suggest_dvs_cpus": host_detail.suggest_dvs_cpus}
+
+                if hasattr(host_detail, "interfaces"):
+                    for nic in host_detail.interfaces:
+                        vswitch_type = nic['vswitch_type']
+                        if vswitch_type == "dvs":
+                            host_info["vswitch_type"] = "dvs"
+                            break
                 if host_detail.root_lv_size is not None:
                     host_info["root_lv_size"] = host_detail.root_lv_size / 1024
                 if host_detail.os_version_file is not None:
@@ -135,9 +196,13 @@ class IndexView(tables.DataTableView):
                     host_info["roles"] = host_detail.role
                 if hasattr(host_detail, "cpu"):
                     host_info["cpu_number"] = host_detail.cpu["total"]
+                if hasattr(host_detail.cpu, "numa_node0"):
+                    host_info["numa_node0"] = host_detail.cpu["numa_node0"]
+                if hasattr(host_detail.cpu, "numa_node1"):
+                    host_info["numa_node1"] = host_detail.cpu["numa_node1"]
                 if hasattr(host_detail, "memory"):
-                    host_info["memory_size"] = host_detail.memory["total"]
-
+                    host_info["memory_size"] = \
+                        get_format_memory_size(host_detail.memory["total"])
                 hosts_data.append(host_info)
         except Exception:
             exceptions.handle(self.request,
@@ -182,28 +247,28 @@ def set_host_config(request, cluster_id):
     if param["ipmi_passwd"]:
         host_config["ipmi_passwd"] = param["ipmi_passwd"]
 
-    if "isol_cpus" in param.keys():
-        host_config["isolcpus"] = param["isol_cpus"]
+    if "os_cpus" in param.keys():
+        host_config["os_cpus"] = param["os_cpus"]
+    if "dvs_cpus" in param.keys():
+        host_config["dvs_cpus"] = param["dvs_cpus"]
+    if "vcpu_pin_set" in param.keys():
+        host_config["vcpu_pin_set"] = param["vcpu_pin_set"]
+    if "dvs_high_cpuset" in param.keys():
+        host_config["dvs_high_cpuset"] = param["dvs_high_cpuset"]
+    if "pci_high_cpuset" in param.keys():
+        host_config["pci_high_cpuset"] = param["pci_high_cpuset"]
     if "huge_page_size" in param.keys() and "huge_pages" in param.keys():
         host_config["hugepagesize"] = param["huge_page_size"]
         host_config["hugepages"] = param["huge_pages"]
     try:
         for host in hosts:
+            host_get = api.daisy.host_get(request, host["host_id"])
+            host_dict = host_get.to_dict()
+            host_dict.update(host_config)
+            deploy_rule_lib.host_config_rule(host_dict)
             api.daisy.host_update(request, host["host_id"], **host_config)
-            if "isolcpus" in host_config.keys():
-                config_add = {
-                    "cluster": cluster_id,
-                    "role": "COMPUTER",
-                    "config": [{
-                        "file-name": "/etc/nova/nova.conf",
-                        "section": "DEFAULT",
-                        "key": "vcpu_pin_set",
-                        "value": host_config["isolcpus"],
-                        "description": ""
-                    }]
-                }
-                LOG.info("config_add %s", config_add)
-                api.daisy.config_add(request, **config_add)
+            LOG.info("set host config success!")
+
     except Exception, e:
         messages.error(request, e)
         response.status_code = 500

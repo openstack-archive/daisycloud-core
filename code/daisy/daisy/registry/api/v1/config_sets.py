@@ -38,12 +38,12 @@ _LW = i18n._LW
 
 CONF = cfg.CONF
 
-DISPLAY_FIELDS_IN_INDEX = ['id', 'name','container_format',
+DISPLAY_FIELDS_IN_INDEX = ['id', 'name', 'container_format',
                            'checksum']
 
 SUPPORTED_FILTERS = ['name', 'container_format']
 
-SUPPORTED_SORT_KEYS = ('name', 'container_format', 
+SUPPORTED_SORT_KEYS = ('name', 'container_format',
                        'id', 'created_at', 'updated_at')
 
 SUPPORTED_SORT_DIRS = ('asc', 'desc')
@@ -60,7 +60,7 @@ class Controller(object):
         """Get config_sets, wrapping in exception if necessary."""
         try:
             return self.db_api.config_set_get_all(context, filters=filters,
-                                             **params)
+                                                  **params)
         except exception.NotFound:
             LOG.warn(_LW("Invalid marker. Config_set %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
@@ -109,7 +109,7 @@ class Controller(object):
         for key, value in params.items():
             if value is None:
                 del params[key]
-                
+
         return params
 
     def _get_filters(self, req):
@@ -225,21 +225,23 @@ class Controller(object):
                 which will include the newly-created config_set's internal id
                 in the 'id' field
         """
-        
+
         config_set_data = body["config_set"]
 
         config_set_id = config_set_data.get('id')
-        
+
         if config_set_id and not utils.is_uuid_like(config_set_id):
-            msg = _LI("Rejecting config_set creation request for invalid config_set "
+            msg = _LI("Rejecting config_set creation request for "
+                      "invalid config_set "
                       "id '%(bad_id)s'") % {'bad_id': config_set_id}
             LOG.info(msg)
             msg = _("Invalid config_set id format")
             return exc.HTTPBadRequest(explanation=msg)
 
         try:
-            config_set_data = self.db_api.config_set_add(req.context, config_set_data)
-        
+            config_set_data = self.db_api.config_set_add(
+                req.context, config_set_data)
+
             msg = (_LI("Successfully created config_set %s") %
                    config_set_data["id"])
             LOG.info(msg)
@@ -247,7 +249,8 @@ class Controller(object):
                 config_set_data = dict(config_set=config_set_data)
             return config_set_data
         except exception.Duplicate:
-            msg = _("config_set with identifier %s already exists!") % config_set_id
+            msg = _("config_set with identifier %s already exists!") % \
+                config_set_id
             LOG.warn(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
@@ -270,21 +273,21 @@ class Controller(object):
         success, the body contains the deleted image information as a mapping.
         """
         try:
-            deleted_config_set = self.db_api.config_set_destroy(req.context, id)
+            deleted_config_set = self.db_api.config_set_destroy(
+                req.context, id)
             msg = _LI("Successfully deleted config_set %(id)s") % {'id': id}
             LOG.info(msg)
             return dict(config_set=deleted_config_set)
         except exception.ForbiddenPublicImage:
-            msg = _LI("Delete denied for public config_set %(id)s") % {'id': id}
+            msg = _LI("Delete denied for public config_set %(id)s") % {
+                'id': id}
             LOG.info(msg)
             raise exc.HTTPForbidden()
-        except exception.Forbidden:
+        except exception.Forbidden as e:
             # If it's private and doesn't belong to them, don't let on
             # that it exists
-            msg = _LI("Access denied to config_set %(id)s but returning"
-                      " 'not found'") % {'id': id}
-            LOG.info(msg)
-            return exc.HTTPNotFound()
+            LOG.info(e)
+            return exc.HTTPForbidden(e)
         except exception.NotFound:
             msg = _LI("config_set %(id)s not found") % {'id': id}
             LOG.info(msg)
@@ -316,15 +319,17 @@ class Controller(object):
             raise
         if 'config_set' not in config_set_data:
             config_set_data = dict(config_set=config_set_data)
-        config_items = self.db_api._config_item_get_by_config_set_id(req.context, id)
+        config_items = self.db_api._config_item_get_by_config_set_id(
+            req.context, id)
         config = []
         for config_item in config_items:
-            config_inf = self.db_api.config_get(req.context, config_item['config_id'])
+            config_inf = self.db_api.config_get(
+                req.context, config_item['config_id'])
             config.append(config_inf)
         if config:
             config_set_data['config_set']['config'] = config
         return config_set_data
-        
+
     @utils.mutating
     def update_config_set(self, req, id, body):
         """Updates an existing config_set with the registry.
@@ -337,7 +342,8 @@ class Controller(object):
         """
         config_set_data = body['config_set']
         try:
-            updated_config_set = self.db_api.config_set_update(req.context, id, config_set_data)
+            updated_config_set = self.db_api.config_set_update(
+                req.context, id, config_set_data)
 
             msg = _LI("Updating metadata for config_set %(id)s") % {'id': id}
             LOG.info(msg)
@@ -376,6 +382,7 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to update config_set %s") % id)
             raise
+
 
 def create_resource():
     """Images resource factory method."""

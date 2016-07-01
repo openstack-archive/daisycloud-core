@@ -25,6 +25,16 @@ import os
 import sys
 
 import eventlet
+from oslo_config import cfg
+from oslo_log import log as logging
+import osprofiler.notifier
+import osprofiler.web
+
+from daisy.common import config
+from daisy.common import utils
+from daisy.common import wsgi
+from daisy import notifier
+from daisy.openstack.common import systemd
 
 # Monkey patch socket and time
 eventlet.patcher.monkey_patch(all=False, socket=True, time=True, thread=True)
@@ -37,16 +47,6 @@ possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
 if os.path.exists(os.path.join(possible_topdir, 'daisy', '__init__.py')):
     sys.path.insert(0, possible_topdir)
 
-from oslo_config import cfg
-from oslo_log import log as logging
-import osprofiler.notifier
-import osprofiler.web
-
-from daisy.common import config
-from daisy.common import utils
-from daisy.common import wsgi
-from daisy import notifier
-from daisy.openstack.common import systemd
 
 CONF = cfg.CONF
 CONF.import_group("profiler", "daisy.common.wsgi")

@@ -2,32 +2,26 @@
 #   Copyright ZTE
 #   Daisy Tools Dashboard
 #
-from django import http
-from django.http import HttpResponse
-from django.views import generic
-from django.views.decorators.csrf import csrf_exempt
-from django import shortcuts
-from django import template
-from django.template import defaultfilters as filters
-from django.core.urlresolvers import reverse
-from django.core.urlresolvers import reverse_lazy
-from django.utils.translation import ugettext_lazy as _
-
-from daisyclient.v1 import client as daisy_client
 
 import json
+import logging
+
+from django import http
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from django import template
+from django.utils.translation import ugettext_lazy as _
+from django.core.urlresolvers import reverse
 
 from horizon import messages
 from horizon import exceptions
-from horizon import forms
 from horizon import tables
 
 from openstack_dashboard import api
-
 from openstack_dashboard.dashboards.environment.deploy import actions
 from openstack_dashboard.dashboards.environment.deploy import wizard_cache
+from openstack_dashboard.dashboards.environment.deploy import deploy_rule_lib
 
-import logging
 LOG = logging.getLogger(__name__)
 
 
@@ -40,7 +34,7 @@ def get_host_bond_net_port_url(interface):
 
 
 def get_host_role_url(host):
-    template_name = 'environment/overview/host_roles.html'
+    template_name = 'environment/host/host_roles.html'
     context = {
         "host_id": host["host_id"],
         "roles": host["roles"],
@@ -84,7 +78,8 @@ def get_host_list(request, cluster_id):
                         host.role.sort()
                         host_info["roles"] = host.role
                 bond_names = []
-                bond_interfaces = [i for i in host.interfaces if i['type'] == 'bond']
+                bond_interfaces = [i for i in host.interfaces
+                                   if i['type'] == 'bond']
                 for interface in bond_interfaces:
                     bond_names.append(interface["slave1"])
                     bond_names.append(interface["slave2"])
@@ -96,10 +91,11 @@ def get_host_list(request, cluster_id):
                                 "value": get_host_bond_net_port_url(interface)
                             })
                     else:
-                        host_info["interfaces"].append({
-                            "key": interface["name"],
-                            "value": get_host_bond_net_port_url(interface)
-                        })
+                        if interface['type'] != "vlan":
+                            host_info["interfaces"].append({
+                                "key": interface["name"],
+                                "value": get_host_bond_net_port_url(interface)
+                            })
                 host_info["interfaces"].sort()
                 host_list.append(host_info)
     except Exception, e:
@@ -128,7 +124,10 @@ class BondingTable(tables.DataTable):
                               hidden=True)
 
     def __init__(self, request, data=None, needs_form_wrapper=None, **kwargs):
-        super(BondingTable, self).__init__(request, data, needs_form_wrapper, **kwargs)
+        super(BondingTable, self).__init__(request,
+                                           data,
+                                           needs_form_wrapper,
+                                           **kwargs)
         try:
             hosts = get_host_list(request, kwargs["cluster_id"])
             dynamic_heads = get_host_table_dynamic_heads(hosts)
@@ -150,7 +149,7 @@ class BondingTable(tables.DataTable):
     class Meta(object):
         name = 'bond_net_port'
         verbose_name = _("Bond Net Port")
-        multi_select = True   
+        multi_select = True
         table_actions = (HostBondingFilterAction, ToggleBondAction)
 
 
@@ -189,23 +188,25 @@ class BondingView(tables.DataTableView):
         context['clusters'] = cluster_lists
         wizard_cache.set_cache(context['cluster_id'], "bonding", 1)
         context['wizard'] = wizard_cache.get_cache(context['cluster_id'])
-        context["current_cluster"] = self.get_current_cluster(context['clusters'], context["cluster_id"])
-        
+        context["current_cluster"] = \
+            self.get_current_cluster(context['clusters'],
+                                     context["cluster_id"])
+
         return context
 
 
 @csrf_exempt
 def clean_none_attr(dict):
     for key in dict.keys():
-        if dict[key] == None:
+        if dict[key] is None:
             del dict[key]
-    if dict.has_key('created_at'):
+    if 'created_at' in dict:
         del dict['created_at']
 
-    if dict.has_key('updated_at'):
+    if 'updated_at' in dict:
         del dict['updated_at']
 
-    if dict.has_key('id'):
+    if 'id' in dict:
         del dict['id']
 
 
@@ -240,10 +241,16 @@ def bond_net_port(request, cluster_id):
     try:
         for host_id in hosts:
             host = api.daisy.host_get(request, host_id)
+            deploy_rule_lib.net_port_4_net_map_rule(host.interfaces,
+                                                    bond_params["net_ports"])
             host_dict = host.to_dict()
             host_dict['cluster'] = cluster_id
-            host_interfaces = update_interfaces(host_dict["interfaces"], bond_params)
-            api.daisy.host_update(request, host_id, cluster=cluster_id, interfaces=host_interfaces)
+            host_interfaces = \
+                update_interfaces(host_dict["interfaces"], bond_params)
+            api.daisy.host_update(request,
+                                  host_id,
+                                  cluster=cluster_id,
+                                  interfaces=host_interfaces)
     except Exception, e:
         messages.error(request, e)
         response.status_code = 500
@@ -263,6 +270,8 @@ def un_bond_net_port(request, cluster_id):
     try:
         for host_id in hosts:
             host = api.daisy.host_get(request, host_id)
+            deploy_rule_lib.net_port_4_net_map_rule(host.interfaces,
+                                                    net_ports)
             host_dict = host.to_dict()
             host_dict['cluster'] = cluster_id
             interfaces = []
@@ -272,8 +281,12 @@ def un_bond_net_port(request, cluster_id):
             for interface in interfaces:
                 clean_none_attr(interface)
                 if interface["type"] == "bond":
-                    interface["slaves"] = [interface["slave1"], interface["slave2"]]
-            api.daisy.host_update(request, host_id, cluster=cluster_id, interfaces=interfaces)
+                    interface["slaves"] = \
+                        [interface["slave1"], interface["slave2"]]
+            api.daisy.host_update(request,
+                                  host_id,
+                                  cluster=cluster_id,
+                                  interfaces=interfaces)
     except Exception, e:
         messages.error(request, e)
         response.status_code = 500

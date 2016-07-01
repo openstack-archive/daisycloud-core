@@ -1,0 +1,66 @@
+﻿{% load i18n %}
+{% load context_selection %}
+
+<script src="{{ STATIC_URL }}dashboard/bootstrapValidator.js"></script>
+<script type='text/javascript' charset='utf-8'>
+    
+</script>
+
+<form class="form-horizontal form-host-config">    
+    <div class="form-group ">
+        <label for="select_huge_page_size" class="col-sm-2 control-label">{% trans "Huge Page Size" %}</label>
+        <div class="col-sm-4">
+            <select id="select_huge_page_size" class="form-control COMPUTER">
+                <option value="1G">1G</option>
+                <!--option value="2M">2M</option-->
+            </select>
+        </div>
+    </div>
+    <div class="form-group ">
+        <label for="input_huge_page_count" class="col-sm-2 control-label">{% trans "Huge Page Count" %}</label>
+        <div class="col-sm-4">
+            <input name="huge_page_count" id="input_huge_page_count" type="text" class="form-control COMPUTER" placeholder='{% trans "Huge Page Count" %}'>
+        </div>
+    </div>
+
+    <div class="form-group ">
+        <label for="input_os_cpus" class="col-sm-2 control-label">{% trans "OS HT" %}</label>
+        <div class="col-sm-4">
+            <input name="os_cpus" id="input_os_cpus" type="text" class="form-control COMPUTER NUMA" placeholder='{% trans "OS HT" %}'>
+        </div>
+        <div class="col-sm-4 ">
+            <span class="help-inline">{% trans "Format 1-3,5-9 or 1,2,3,4" %}</span>
+        </div>
+    </div>
+    <div class="form-group ">
+        <label for="input_dvs_cpus" class="col-sm-2 control-label">{% trans "DVS HT" %}</label>
+        <div class="col-sm-4">
+            <input name="dvs_cpus" id="input_dvs_cpus" type="text" class="form-control COMPUTER NUMA" placeholder='{% trans "DVS HT" %}'>
+        </div>
+        <div class="col-sm-4">
+            <span class="help-inline">{% trans "Format 1-3,5-9 or 1,2,3,4" %}</span>
+        </div>
+    </div>
+    <div class="form-group ">
+        <label for="input_vcpu_pin_set" class="col-sm-2 control-label">{% trans "VCPU PIN Set" %}</label>
+        <div class="col-sm-4">
+            <input name="vcpu_pin_set" id="input_vcpu_pin_set" type="text" readonly="readonly" class="form-control COMPUTER NUMA" placeholder='{% trans "VCPU PIN Set" %}'>
+        </div>
+    </div>
+    <div class="form-group ">
+        <label for="input_dvs_high_cpuset" class="col-sm-2 control-label">{% trans "DVS High HT Set" %}</label>
+        <div class="col-sm-4">
+            <input name="dvs_high_cpuset" id="input_dvs_high_cpuset" type="text" readonly="readonly" class="form-control COMPUTER NUMA" placeholder='{% trans "DVS High CPU Set" %}'>
+        </div>
+    </div>
+    <div class="form-group ">
+        <label for="input_pci_high_cpuset" class="col-sm-2 control-label">{% trans "PCI High HT Set" %}</label>
+        <div class="col-sm-4">
+            <input name="pci_high_cpuset" id="input_pci_high_cpuset" type="text" readonly="readonly" class="form-control COMPUTER NUMA" placeholder='{% trans "PCI High HT Set" %}'>
+        </div>
+    </div>
+    <div class="form-group " id="config_error_hint" style="color:#00F;margin-left:60px" >
+
+    </div>
+
+</form>

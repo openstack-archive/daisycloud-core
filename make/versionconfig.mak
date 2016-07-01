@@ -33,7 +33,7 @@ endif
 ##系统测试版本号
 export VER_B              = 1
 ##对外发布版本号
-export VER_P              = 6
+export VER_P              = 1
 ##RELEASE版本号,此变量一般需要在编译的时候指定
 export _VER_REL           = $(VER_P).$(VER_B).$(VER_I)
 

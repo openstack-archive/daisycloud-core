@@ -17,6 +17,7 @@
 Reference implementation registry server WSGI controller
 """
 
+import sys
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import strutils
@@ -28,7 +29,13 @@ from daisy.common import utils
 from daisy.common import wsgi
 import daisy.db
 from daisy import i18n
-from ironicclient import client as ironic_client
+
+from daisyclient import client as daisy_client
+from daisy.registry.api.v1 import hwms as registry_hwm
+import ConfigParser
+
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 LOG = logging.getLogger(__name__)
 _ = i18n._
@@ -42,11 +49,13 @@ DISPLAY_FIELDS_IN_INDEX = ['id', 'name', 'size',
                            'disk_format', 'container_format',
                            'checksum']
 
-SUPPORTED_FILTERS = ['name', 'status','id','cluster_id' , 'auto_scale', 'container_format', 'disk_format',
-                    
+SUPPORTED_FILTERS = ['name', 'status', 'id', 'cluster_id',
+                     'auto_scale', 'container_format', 'disk_format',
+
                      'changes-since', 'protected']
 
-SUPPORTED_SORT_KEYS = ('name', 'status', 'cluster_id', 'container_format', 'disk_format',
+SUPPORTED_SORT_KEYS = ('name', 'status', 'cluster_id',
+                       'container_format', 'disk_format',
                        'size', 'id', 'created_at', 'updated_at')
 
 SUPPORTED_SORT_DIRS = ('asc', 'desc')
@@ -58,20 +67,26 @@ class Controller(object):
 
     def __init__(self):
         self.db_api = daisy.db.get_api()
-        self.ironicclient = self.get_ironicclient()
-        
+        self.ironicclient = utils.get_ironicclient()
+        self.daisyclient = self.get_daisyclient()
+
     @staticmethod
-    def get_ironicclient():  # pragma: no cover
-        """Get Ironic client instance."""
-        args = {'os_auth_token': 'fake',
-                'ironic_url':'http://127.0.0.1:6385/v1'}
-        return ironic_client.get_client(1, **args)
+    def get_daisyclient():
+        """Get Daisy client instance."""
+        config_daisy = ConfigParser.ConfigParser()
+        config_daisy.read("/etc/daisy/daisy-api.conf")
+        daisy_port = config_daisy.get("DEFAULT", "bind_port")
+        args = {
+            'version': 1.0,
+            'endpoint': 'http://127.0.0.1:' + daisy_port
+        }
+        return daisy_client.Client(**args)
 
     def _get_hosts(self, context, filters, **params):
         """Get hosts, wrapping in exception if necessary."""
         try:
             return self.db_api.host_get_all(context, filters=filters,
-                                             **params)
+                                            **params)
         except exception.NotFound:
             LOG.warn(_LW("Invalid marker. Host %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
@@ -90,7 +105,7 @@ class Controller(object):
         """Get clusters, wrapping in exception if necessary."""
         try:
             return self.db_api.cluster_get_all(context, filters=filters,
-                                             **params)
+                                               **params)
         except exception.NotFound:
             LOG.warn(_LW("Invalid marker. Cluster %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
@@ -139,7 +154,7 @@ class Controller(object):
         for key, value in params.items():
             if value is None:
                 del params[key]
-                
+
         return params
 
     def _get_filters(self, req):
@@ -255,11 +270,11 @@ class Controller(object):
                 which will include the newly-created host's internal id
                 in the 'id' field
         """
-        
+
         host_data = body["host"]
 
         host_id = host_data.get('id')
-        
+
         if host_id and not utils.is_uuid_like(host_id):
             msg = _LI("Rejecting host creation request for invalid host "
                       "id '%(bad_id)s'") % {'bad_id': host_id}
@@ -271,8 +286,21 @@ class Controller(object):
             if host_id is None:
                 host_data = self.db_api.host_add(req.context, host_data)
             else:
-                host_data = self.db_api.host_update(req.context, host_id, host_data)
-            #host_data = dict(host=make_image_dict(host_data))
+                orig_config_set_id = None
+                if 'config_set_id' in host_data:
+                    orig_host_data = self.db_api.host_get(req.context, host_id)
+                    orig_config_set_id = orig_host_data.get('config_set_id')
+
+                host_data = self.db_api.host_update(
+                    req.context, host_id, host_data)
+
+                if orig_config_set_id:
+                    try:
+                        self.db_api.config_set_destroy(req.context,
+                                                       orig_config_set_id)
+                    except exception.Forbidden as e:
+                        LOG.info(e)
+            # host_data = dict(host=make_image_dict(host_data))
             msg = (_LI("Successfully created node %s") %
                    host_data["id"])
             LOG.info(msg)
@@ -280,7 +308,7 @@ class Controller(object):
                 host_data = dict(host=host_data)
             return host_data
         except exception.Duplicate:
-            msg = _("node with identifier %s already exists!") % image_id
+            msg = _("node with identifier %s already exists!") % host_id
             LOG.warn(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
@@ -288,6 +316,10 @@ class Controller(object):
                      "Got error: %s") % utils.exception_to_str(e))
             LOG.error(msg)
             return exc.HTTPBadRequest(msg)
+        except exception.Forbidden as e:
+            msg = (_("%s") % utils.exception_to_str(e))
+            LOG.error(msg)
+            raise exc.HTTPForbidden(msg)
         except Exception:
             LOG.exception(_LE("Unable to create node %s"), host_id)
             raise
@@ -303,16 +335,31 @@ class Controller(object):
         success, the body contains the deleted image information as a mapping.
         """
         try:
+            host_interface = self.db_api.get_host_interface(req.context, id)
             deleted_host = self.db_api.host_destroy(req.context, id)
             msg = _LI("Successfully deleted host %(id)s") % {'id': id}
             LOG.info(msg)
             members = self.db_api.cluster_host_member_find(req.context,
-                                                host_id=id)
+                                                           host_id=id)
             if members:
                 for member in members:
-                    self.db_api.cluster_host_member_delete(req.context, member['id'])
- 
+                    self.db_api.cluster_host_member_delete(
+                        req.context, member['id'])
+
             self.db_api.role_host_member_delete(req.context, host_id=id)
+            orig_config_set_id = deleted_host.config_set_id
+            if orig_config_set_id:
+                try:
+                    self.db_api.config_set_destroy(req.context,
+                                                   orig_config_set_id)
+                except exception.Forbidden as e:
+                    LOG.info(e)
+
+            # delete ironic host by mac
+            if host_interface:
+                min_mac = utils.get_host_min_mac(host_interface)
+                self.ironicclient.physical_node.get(min_mac)
+                self.ironicclient.physical_node.delete(min_mac)
             return dict(host=deleted_host)
         except exception.ForbiddenPublicImage:
             msg = _LI("Delete denied for public host %(id)s") % {'id': id}
@@ -340,11 +387,12 @@ class Controller(object):
         try:
             host_data = self.db_api.host_get(req.context, id)
             if utils.is_uuid_like(host_data.os_version_id):
-               version = self.db_api.get_os_version(req.context, host_data.os_version_id)
-               if version:
-                   os_version_dict['name'] = version.name
-                   os_version_dict['id'] = version.id
-                   os_version_dict['desc'] = version.description               
+                version = self.db_api.get_os_version(
+                    req.context, host_data.os_version_id)
+                if version:
+                    os_version_dict['name'] = version.name
+                    os_version_dict['id'] = version.id
+                    os_version_dict['desc'] = version.description
             msg = "Successfully retrieved host %(id)s" % {'id': id}
             LOG.debug(msg)
         except exception.NotFound:
@@ -361,20 +409,36 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to show host %s") % id)
             raise
+        param = dict()
+        param['hwm_ip'] = host_data.hwm_ip
+        param['hwm_id'] = host_data.hwm_id
+        controller = registry_hwm.Controller()
+        hwms = controller.hwm_list(req)
+        hwms_ip = [hwm['hwm_ip'] for hwm in hwms]
+        if param['hwm_ip'] in hwms_ip:
+            result = self.daisyclient.node.location(**param)
+            location = str(result.rack) + '/' + str(result.position)
+        else:
+            location = ""
         host_interface = self.db_api.get_host_interface(req.context, id)
-       
-        role_name=[]
+
+        role_name = []
         if host_data.status == "with-role":
-            host_roles=self.db_api.role_host_member_get(req.context,None,id)
+            host_roles = self.db_api.role_host_member_get(
+                req.context, None, id)
             for host_role in host_roles:
-                role_info=self.db_api.role_get(req.context, host_role.role_id)
+                role_info = self.db_api.role_get(
+                    req.context, host_role.role_id)
                 role_name.append(role_info['name'])
-        host_cluster=self.db_api.cluster_host_member_find(req.context, None,id)
+        host_cluster = self.db_api.cluster_host_member_find(
+            req.context, None, id)
         if host_cluster:
-            cluster_info = self.db_api.cluster_get(req.context, host_cluster[0]['cluster_id'])
+            cluster_info = self.db_api.cluster_get(
+                req.context, host_cluster[0]['cluster_id'])
             cluster_name = cluster_info['name']
         else:
             cluster_name = None
+
         if 'host' not in host_data:
             host_data = dict(host=host_data)
         if host_interface:
@@ -382,48 +446,48 @@ class Controller(object):
         if os_version_dict:
             host_data['host']['os_version'] = os_version_dict
         if role_name:
-           host_data['host']['role']=role_name
+            host_data['host']['role'] = role_name
         if cluster_name:
-            host_data['host']['cluster']=cluster_name
+            host_data['host']['cluster'] = cluster_name
 
-        host_deploy_network = [hi for hi in host_interface if hi['is_deployment']]
-        if host_deploy_network:
-            try:
-                host_obj = self.ironicclient.physical_node.get(host_deploy_network[0]['mac'])
-                host_hardware_config = dict([(f, getattr(host_obj, f, '')) for f in ['system', 'memory', 'cpu', 'disks', 'interfaces']])
-                host_data['host']['system'] = host_hardware_config['system']
-                host_data['host']['memory'] = host_hardware_config['memory']
-                host_data['host']['cpu'] = host_hardware_config['cpu']
-                host_data['host']['disks'] = host_hardware_config['disks']
-                if host_interface:
-                    for interface in host_interface:
-                        for ironic_interface  in host_hardware_config['interfaces'].values():
-                            if interface['mac'] == ironic_interface['mac'] and \
-                                interface['pci'] == ironic_interface['pci']:
-                                interface['state'] = ironic_interface['state']
-                                interface['max_speed'] = ironic_interface['max_speed']
-                                interface['current_speed'] = ironic_interface['current_speed']
-                                # interface['pci'] = ironic_interface['pci']
-                    host_data['host']['interfaces'] = host_interface
-            except Exception:               
-                LOG.exception(_LE("Unable to find ironic data %s") % Exception)
-            
+        host_hardware_config = utils.get_host_hw_info(host_interface)
+        if host_hardware_config:
+            host_data['host']['system'] = host_hardware_config['system']
+            host_data['host']['memory'] = host_hardware_config['memory']
+            host_data['host']['cpu'] = host_hardware_config['cpu']
+            host_data['host']['disks'] = host_hardware_config['disks']
+
+            for interface in host_interface:
+                for ironic_interface in host_hardware_config[
+                        'interfaces'].values():
+                    if interface['mac'] == ironic_interface['mac'] and \
+                            interface['pci'] == ironic_interface['pci']:
+                        interface['state'] = ironic_interface['state']
+                        interface['max_speed'] = ironic_interface['max_speed']
+                        interface['current_speed'] = ironic_interface[
+                            'current_speed']
+                        # interface['pci'] = ironic_interface['pci']
+            host_data['host']['interfaces'] = host_interface
+
+        host_data['host']['position'] = location
+
         return host_data
-        
+
     @utils.mutating
     def get_host_interface(self, req, body):
         orig_interfaces = list(eval(body['interfaces']))
         for orig_interface in orig_interfaces:
-            host_interface = self.db_api.get_host_interface_mac(req.context,orig_interface['mac'])
+            host_interface = self.db_api.get_host_interface_mac(
+                req.context, orig_interface['mac'])
         return host_interface
 
     @utils.mutating
-    def get_all_host_interfaces(self, req, body):
+    def get_all_host_interfaces(self, req, body, **params):
         """Return all_host_interfaces about the given filter."""
         filters = body['filters']
-        
         try:
-            host_interfaces = self.db_api.host_interfaces_get_all(req.context, filters)
+            host_interfaces = self.db_api.host_interfaces_get_all(
+                req.context, filters)
             return host_interfaces
         except exception.NotFound:
             LOG.warn(_LW("Invalid marker. template %(id)s could not be "
@@ -443,23 +507,28 @@ class Controller(object):
     @utils.mutating
     def get_assigned_network(self, req, interface_id, network_id):
         try:
-            host_assigned_network = self.db_api.get_assigned_network(req.context,
-                                             interface_id, network_id)
+            host_assigned_network = self.db_api.get_assigned_network(
+                req.context,
+                interface_id, network_id)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. Assigned_network with interface %(interface_id)s and network %(network_id)s"
-                         " could not be found.") % {'interface_id': interface_id,'network_id': network_id})
+            LOG.warn(_LW("Invalid marker. Assigned_network with interface %("
+                         "interface_id)s and network %(network_id)s"
+                         " could not be found.") % {
+                'interface_id': interface_id, 'network_id': network_id})
             msg = _("Invalid marker.  Assigned_network could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied for assigned_network with interface %(interface_id)s "
-            "and network %(network_id)s") % {'interface_id': interface_id,'network_id': network_id})
+            LOG.warn(_LW("Access denied for assigned_network with interface %("
+                         "interface_id)s "
+                         "and network %(network_id)s") % {
+                'interface_id': interface_id, 'network_id': network_id})
             msg = _("Invalid marker. Assigned_network denied to get.")
             raise exc.HTTPBadRequest(explanation=msg)
         except Exception:
             LOG.exception(_LE("Unable to get assigned_network"))
             raise
         return host_assigned_network
-        
+
     @utils.mutating
     def add_discover_host(self, req, body):
         """Registers a new host with the registry.
@@ -474,7 +543,7 @@ class Controller(object):
 
         discover_host_data = body["discover_host"]
         discover_host_id = discover_host_data.get('id')
-        
+
         if discover_host_id and not utils.is_uuid_like(discover_host_id):
             msg = _LI("Rejecting host creation request for invalid host "
                       "id '%(bad_id)s'") % {'bad_id': discover_host_id}
@@ -484,18 +553,21 @@ class Controller(object):
 
         try:
             if discover_host_id is None:
-                discover_host_data = self.db_api.discover_host_add(req.context, discover_host_data)
+                discover_host_data = self.db_api.discover_host_add(
+                    req.context, discover_host_data)
             else:
-                discover_host_data = self.db_api.discover_host_update(req.context, discover_host_id, discover_host_data)
-            #host_data = dict(host=make_image_dict(host_data))
+                discover_host_data = self.db_api.discover_host_update(
+                    req.context, discover_host_id, discover_host_data)
+            # host_data = dict(host=make_image_dict(host_data))
             msg = (_LI("Successfully created node %s") %
                    discover_host_data["id"])
             LOG.info(msg)
             if 'discover_host' not in discover_host_data:
-                discover_host_data = dict(discover_host = discover_host_data)
+                discover_host_data = dict(discover_host=discover_host_data)
             return discover_host_data
         except exception.Duplicate:
-            msg = _("node with identifier %s already exists!") % discover_host_id
+            msg = _("node with identifier %s already exists!") % \
+                discover_host_id
             LOG.warn(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
@@ -506,7 +578,7 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to create node %s"), discover_host_id)
             raise
-    
+
     @utils.mutating
     def delete_discover_host(self, req, id):
         """Deletes an existing discover host with the registry.
@@ -533,7 +605,7 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to delete host %s") % id)
             raise
-            
+
     def detail_discover_host(self, req):
         """Return a filtered list of public, non-deleted hosts in detail
 
@@ -548,7 +620,7 @@ class Controller(object):
         params = self._get_query_params(req)
         try:
             nodes = self.db_api.discover_host_get_all(req.context,
-                                             **params)
+                                                      **params)
         except exception.NotFound:
             LOG.warn(_LW("Invalid marker. Host %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
@@ -563,8 +635,8 @@ class Controller(object):
             LOG.exception(_LE("Unable to get hosts"))
             raise
 
-        return dict(nodes=nodes)            
-    
+        return dict(nodes=nodes)
+
     @utils.mutating
     def update_discover_host(self, req, id, body):
         '''
@@ -576,9 +648,10 @@ class Controller(object):
             LOG.info(msg)
             msg = _("Invalid host id format")
             return exc.HTTPBadRequest(explanation=msg)
-    
+
         try:
-            updated_host = self.db_api.discover_host_update(req.context, id, discover_host_data)
+            updated_host = self.db_api.discover_host_update(
+                req.context, id, discover_host_data)
             msg = _LI("Updating metadata for host %(id)s") % {'id': id}
             LOG.info(msg)
             if 'discover_host' not in updated_host:
@@ -609,7 +682,7 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to update host %s") % id)
             raise
-    
+
     def get_discover_host(self, req, discover_host_id):
         '''
         '''
@@ -619,10 +692,12 @@ class Controller(object):
             LOG.info(msg)
             msg = _("Invalid host id format")
             return exc.HTTPBadRequest(explanation=msg)
-    
+
         try:
-            host_detail_info = self.db_api.get_discover_host_detail(req.context, discover_host_id)
-            msg = _LI("Updating metadata for host %(id)s") % {'id': discover_host_id}
+            host_detail_info = self.db_api.get_discover_host_detail(
+                req.context, discover_host_id)
+            msg = _LI("Updating metadata for host %(id)s") % {
+                'id': discover_host_id}
             LOG.info(msg)
             if 'discover_host' not in host_detail_info:
                 host_data = dict(discover_host=host_detail_info)
@@ -640,7 +715,8 @@ class Controller(object):
                                    request=req,
                                    content_type='text/plain')
         except exception.ForbiddenPublicImage:
-            msg = _LI("Update denied for public host %(id)s") % {'id': discover_host_id}
+            msg = _LI("Update denied for public host %(id)s") % {
+                'id': discover_host_id}
             LOG.info(msg)
             raise exc.HTTPForbidden()
         except exception.Forbidden:
@@ -665,11 +741,11 @@ class Controller(object):
                 which will include the newly-created host's internal id
                 in the 'id' field
         """
-        
+
         cluster_data = body["cluster"]
 
         cluster_id = cluster_data.get('id')
-        
+
         if cluster_id and not utils.is_uuid_like(cluster_id):
             msg = _LI("Rejecting host creation request for invalid cluster "
                       "id '%(bad_id)s'") % {'bad_id': cluster_id}
@@ -686,7 +762,7 @@ class Controller(object):
                 cluster_data = dict(cluster=cluster_data)
             return cluster_data
         except exception.Duplicate:
-            msg = _("cluster with identifier %s already exists!") % image_id
+            msg = _("cluster with identifier %s already exists!") % cluster_id
             LOG.warn(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
@@ -712,13 +788,14 @@ class Controller(object):
             deleted_cluster = self.db_api.cluster_destroy(req.context, id)
             msg = _LI("Successfully deleted cluster %(id)s") % {'id': id}
             LOG.info(msg)
-              # Look up an existing membership
+            # Look up an existing membership
             members = self.db_api.cluster_host_member_find(req.context,
-                                                cluster_id=id)
+                                                           cluster_id=id)
             if members:
                 for member in members:
-                    self.db_api.cluster_host_member_delete(req.context, member['id'])
-            
+                    self.db_api.cluster_host_member_delete(
+                        req.context, member['id'])
+
             return dict(cluster=deleted_cluster)
         except exception.ForbiddenPublicImage:
             msg = _LI("Delete denied for public cluster %(id)s") % {'id': id}
@@ -746,13 +823,18 @@ class Controller(object):
             cluster_data = self.db_api.cluster_get(req.context, id)
             msg = "Successfully retrieved cluster %(id)s" % {'id': id}
             LOG.debug(msg)
-            networking_parameters = {}            
-            networking_parameters['gre_id_range'] = [cluster_data['gre_id_start'],cluster_data['gre_id_end']]
-            networking_parameters['vlan_range'] = [cluster_data['vlan_start'],cluster_data['vlan_end']]
-            networking_parameters['vni_range'] = [cluster_data['vni_start'],cluster_data['vni_end']]
-            networking_parameters['net_l23_provider'] = cluster_data['net_l23_provider']
+            networking_parameters = {}
+            networking_parameters['gre_id_range'] = [
+                cluster_data['gre_id_start'], cluster_data['gre_id_end']]
+            networking_parameters['vlan_range'] = [
+                cluster_data['vlan_start'], cluster_data['vlan_end']]
+            networking_parameters['vni_range'] = [
+                cluster_data['vni_start'], cluster_data['vni_end']]
+            networking_parameters['net_l23_provider'] = cluster_data[
+                'net_l23_provider']
             networking_parameters['base_mac'] = cluster_data['base_mac']
-            networking_parameters['segmentation_type'] = cluster_data['segmentation_type']
+            networking_parameters['segmentation_type'] = cluster_data[
+                'segmentation_type']
             networking_parameters['public_vip'] = cluster_data['public_vip']
             cluster_data['networking_parameters'] = networking_parameters
         except exception.NotFound:
@@ -772,22 +854,24 @@ class Controller(object):
         cluster_host_member_list = []
         cluster_network_member_list = []
         cluster_id = id
-        cluster_host_member = self.db_api.cluster_host_member_find(req.context,cluster_id)
+        cluster_host_member = self.db_api.cluster_host_member_find(
+            req.context, cluster_id)
         if len(cluster_host_member) > 0:
             for cluster_host in list(cluster_host_member):
                 cluster_host_member_list.append(cluster_host['host_id'])
             cluster_data['nodes'] = cluster_host_member_list
-            
-        cluster_network_member = self.db_api.network_get_all(req.context,cluster_id)
+
+        cluster_network_member = self.db_api.network_get_all(
+            req.context, cluster_id)
         if len(cluster_network_member) > 0:
             for cluster_network in list(cluster_network_member):
                 cluster_network_member_list.append(cluster_network['id'])
             cluster_data['networks'] = cluster_network_member_list
-            
-        logic_networks = self.db_api.get_logic_network(req.context,id)
+
+        logic_networks = self.db_api.get_logic_network(req.context, id)
         cluster_data['logic_networks'] = logic_networks
 
-        routers = self.db_api.router_get(req.context,cluster_id)
+        routers = self.db_api.router_get(req.context, cluster_id)
         cluster_data['routers'] = routers
         return cluster_data
 
@@ -809,13 +893,22 @@ class Controller(object):
         clusters = self._get_clusters(req.context, **params)
         for cluster in clusters:
             cluster_id = cluster['id']
-            cluster_host_member = self.db_api.cluster_host_member_find(req.context,cluster_id)
+            filters = {'deleted': False, 'cluster_id': cluster_id}
+            roles = self._get_roles(req.context, filters)
+            roles_status = [role['status'] for role in roles]
+            if len(set(roles_status)) == 1:
+                cluster['status'] = roles_status[0]
+            else:
+                cluster['status'] = "init"
+            cluster_host_member = self.db_api.cluster_host_member_find(
+                req.context, cluster_id)
             if len(cluster_host_member) > 0:
                 for cluster_host in list(cluster_host_member):
                     cluster_host_member_list.append(cluster_host['host_id'])
                 cluster['nodes'] = cluster_host_member_list
 
-            cluster_network_member = self.db_api.network_get_all(req.context,cluster_id)
+            cluster_network_member = self.db_api.network_get_all(
+                req.context, cluster_id)
             if len(cluster_network_member) > 0:
                 for cluster_network in list(cluster_network_member):
                     cluster_network_member_list.append(cluster_network['id'])
@@ -834,11 +927,11 @@ class Controller(object):
                 which will include the newly-created host's internal id
                 in the 'id' field
         """
-        
+
         component_data = body["component"]
 
         component_id = component_data.get('id')
-        
+
         if component_id and not utils.is_uuid_like(component_id):
             msg = _LI("Rejecting host creation request for invalid component "
                       "id '%(bad_id)s'") % {'bad_id': component_id}
@@ -847,8 +940,9 @@ class Controller(object):
             return exc.HTTPBadRequest(explanation=msg)
 
         try:
-            component_data = self.db_api.component_add(req.context, component_data)
-            #host_data = dict(host=make_image_dict(host_data))
+            component_data = self.db_api.component_add(
+                req.context, component_data)
+            # host_data = dict(host=make_image_dict(host_data))
             msg = (_LI("Successfully created component %s") %
                    component_data["id"])
             LOG.info(msg)
@@ -856,7 +950,8 @@ class Controller(object):
                 component_data = dict(component=component_data)
             return component_data
         except exception.Duplicate:
-            msg = _("component with identifier %s already exists!") % image_id
+            msg = (_("component with identifier %s already exists!")
+                   % component_id)
             LOG.warn(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
@@ -906,7 +1001,7 @@ class Controller(object):
         """Get components, wrapping in exception if necessary."""
         try:
             return self.db_api.component_get_all(context, filters=filters,
-                                             **params)
+                                                 **params)
         except exception.NotFound:
             LOG.warn(_LW("Invalid marker. Project %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
@@ -975,7 +1070,8 @@ class Controller(object):
         """
         component_data = body['component']
         try:
-            updated_component = self.db_api.component_update(req.context, id, component_data)
+            updated_component = self.db_api.component_update(
+                req.context, id, component_data)
 
             msg = _LI("Updating metadata for component %(id)s") % {'id': id}
             LOG.info(msg)
@@ -1014,7 +1110,6 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to update component %s") % id)
             raise
-        
 
     @utils.mutating
     def add_service(self, req, body):
@@ -1027,11 +1122,11 @@ class Controller(object):
                 which will include the newly-created host's internal id
                 in the 'id' field
         """
-        
+
         service_data = body["service"]
 
         service_id = service_data.get('id')
-        
+
         if service_id and not utils.is_uuid_like(service_id):
             msg = _LI("Rejecting host creation request for invalid service "
                       "id '%(bad_id)s'") % {'bad_id': service_id}
@@ -1042,7 +1137,7 @@ class Controller(object):
         try:
             print service_data
             service_data = self.db_api.service_add(req.context, service_data)
-            #host_data = dict(host=make_image_dict(host_data))
+            # host_data = dict(host=make_image_dict(host_data))
             msg = (_LI("Successfully created service %s") %
                    service_data["id"])
             LOG.info(msg)
@@ -1050,7 +1145,7 @@ class Controller(object):
                 service_data = dict(service=service_data)
             return service_data
         except exception.Duplicate:
-            msg = _("service with identifier %s already exists!") % image_id
+            msg = _("service with identifier %s already exists!") % service_id
             LOG.warn(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
@@ -1100,7 +1195,7 @@ class Controller(object):
         """Get services, wrapping in exception if necessary."""
         try:
             return self.db_api.service_get_all(context, filters=filters,
-                                             **params)
+                                               **params)
         except exception.NotFound:
             LOG.warn(_LW("Invalid marker. Project %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
@@ -1169,7 +1264,8 @@ class Controller(object):
         """
         service_data = body['service']
         try:
-            updated_service = self.db_api.service_update(req.context, id, service_data)
+            updated_service = self.db_api.service_update(
+                req.context, id, service_data)
 
             msg = _LI("Updating metadata for service %(id)s") % {'id': id}
             LOG.info(msg)
@@ -1209,7 +1305,6 @@ class Controller(object):
             LOG.exception(_LE("Unable to update service %s") % id)
             raise
 
-			
     @utils.mutating
     def add_role(self, req, body):
         """Registers a new host with the registry.
@@ -1221,11 +1316,11 @@ class Controller(object):
                 which will include the newly-created host's internal id
                 in the 'id' field
         """
-        
+
         role_data = body["role"]
 
         role_id = role_data.get('id')
-        
+
         if role_id and not utils.is_uuid_like(role_id):
             msg = _LI("Rejecting host creation request for invalid role "
                       "id '%(bad_id)s'") % {'bad_id': role_id}
@@ -1236,7 +1331,7 @@ class Controller(object):
         try:
             print role_data
             role_data = self.db_api.role_add(req.context, role_data)
-            #host_data = dict(host=make_image_dict(host_data))
+            # host_data = dict(host=make_image_dict(host_data))
             msg = (_LI("Successfully created role %s") %
                    role_data["id"])
             LOG.info(msg)
@@ -1244,7 +1339,7 @@ class Controller(object):
                 role_data = dict(role=role_data)
             return role_data
         except exception.Duplicate:
-            msg = _("role with identifier %s already exists!") % image_id
+            msg = _("role with identifier %s already exists!") % role_id
             LOG.warn(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
@@ -1294,7 +1389,7 @@ class Controller(object):
         """Get roles, wrapping in exception if necessary."""
         try:
             return self.db_api.role_get_all(context, filters=filters,
-                                             **params)
+                                            **params)
         except exception.NotFound:
             LOG.warn(_LW("Invalid marker. Project %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
@@ -1330,10 +1425,11 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to show role %s") % id)
             raise
-        role_services = self.db_api.role_services_get(req.context,id)
+        role_services = self.db_api.role_services_get(req.context, id)
         service_name = []
         for role_service in role_services:
-            service_info = self.db_api.service_get(req.context, role_service['service_id'])
+            service_info = self.db_api.service_get(
+                req.context, role_service['service_id'])
             service_name.append(service_info['name'])
         if 'role' not in role_data:
             role_data = dict(role=role_data)
@@ -1447,7 +1543,19 @@ class Controller(object):
         """
         host_data = body['host']
         try:
+            orig_config_set_id = None
+            if 'config_set_id' in host_data:
+                orig_host_data = self.db_api.host_get(req.context, id)
+                orig_config_set_id = orig_host_data.get('config_set_id', None)
+
             updated_host = self.db_api.host_update(req.context, id, host_data)
+
+            if orig_config_set_id:
+                try:
+                    self.db_api.config_set_destroy(req.context,
+                                                   orig_config_set_id)
+                except exception.Forbidden as e:
+                    LOG.info(e)
 
             msg = _LI("Updating metadata for host %(id)s") % {'id': id}
             LOG.info(msg)
@@ -1469,8 +1577,10 @@ class Controller(object):
             msg = _LI("Update denied for public host %(id)s") % {'id': id}
             LOG.info(msg)
             raise exc.HTTPForbidden()
-        except exception.Forbidden:
-            raise
+        except exception.Forbidden as e:
+            msg = (_("%s") % utils.exception_to_str(e))
+            LOG.error(msg)
+            raise exc.HTTPForbidden(msg)
         except exception.Conflict as e:
             LOG.info(utils.exception_to_str(e))
             raise exc.HTTPConflict(body='Host operation conflicts',
@@ -1479,8 +1589,7 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to update host %s") % id)
             raise
-            
-            
+
     @utils.mutating
     def update_cluster(self, req, id, body):
         """Updates an existing cluster with the registry.
@@ -1493,7 +1602,8 @@ class Controller(object):
         """
         cluster_data = body['cluster']
         try:
-            updated_cluster = self.db_api.cluster_update(req.context, id, cluster_data)
+            updated_cluster = self.db_api.cluster_update(
+                req.context, id, cluster_data)
 
             msg = _LI("Updating metadata for cluster %(id)s") % {'id': id}
             LOG.info(msg)
@@ -1531,7 +1641,7 @@ class Controller(object):
                                    content_type='text/plain')
         except Exception:
             LOG.exception(_LE("Unable to update cluster %s") % id)
-            raise            
+            raise
 
     @utils.mutating
     def host_roles(self, req, id):
@@ -1582,15 +1692,16 @@ class Controller(object):
         if 'role' not in role_data:
             role_data = dict(role=role_data)
         return role_data
-    
+
     @utils.mutating
     def update_role_hosts(self, req, id, body):
         """Return role hosts list in the host_roles."""
         role_data = body['role']
         try:
-            updated_role = self.db_api.role_host_update(req.context, id, role_data)
+            updated_role = self.db_api.role_host_update(
+                req.context, id, role_data)
 
-            msg = _LI("Updating metadata for role_host id %(id)s") % {'id': id}         
+            msg = _LI("Updating metadata for role_host id %(id)s") % {'id': id}
             return updated_role
         except exception.Invalid as e:
             msg = (_("Failed to update role host metadata. "
@@ -1624,7 +1735,7 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to update host_role %s") % id)
             raise
-            
+
     @utils.mutating
     def config_interface(self, req, body):
         """Registers a new config_interface with the registry.
@@ -1636,19 +1747,20 @@ class Controller(object):
                 which will include the newly-created host's internal id
                 in the 'id' field
         """
-        config_interface_meta=body
-        cluster_id = config_interface_meta.get('cluster-id')
-        role_name=config_interface_meta.get('role-name')
+        config_interface_meta = body
         try:
-            config_interface_meta = self.db_api.config_interface(req.context, config_interface_meta)
+            config_interface_meta = self.db_api.config_interface(
+                req.context, config_interface_meta)
         except exception.Invalid as e:
             msg = (_("Failed to add role metadata. "
                      "Got error: %s") % utils.exception_to_str(e))
             LOG.error(msg)
             return exc.HTTPBadRequest(msg)
         if 'config_interface_meta' not in config_interface_meta:
-            config_interface_meta = dict(config_interface_meta=config_interface_meta)
+            config_interface_meta = dict(
+                config_interface_meta=config_interface_meta)
         return config_interface_meta
+
 
 def _limit_locations(image):
     locations = image.pop('locations', [])
@@ -1658,7 +1770,8 @@ def _limit_locations(image):
         if loc['status'] == 'active':
             image['location'] = loc['url']
             break
-    
+
+
 def make_image_dict(image):
     """Create a dict representation of an image which we can use to
     serialize the image.
@@ -1666,7 +1779,7 @@ def make_image_dict(image):
 
     def _fetch_attrs(d, attrs):
         return dict([(a, d[a]) for a in attrs
-                    if a in d.keys()])
+                     if a in d.keys()])
 
     # TODO(sirp): should this be a dict, or a list of dicts?
     # A plain dict is more convenient, but list of dicts would provide
@@ -1679,6 +1792,7 @@ def make_image_dict(image):
     _limit_locations(image_dict)
 
     return image_dict
+
 
 def create_resource():
     """Images resource factory method."""

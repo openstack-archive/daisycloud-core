@@ -522,6 +522,7 @@ schema_fixtures = {
 
 
 class TestController(testtools.TestCase):
+
     def setUp(self):
         super(TestController, self).setUp()
         self.api = utils.FakeAPI(data_fixtures)
@@ -782,8 +783,8 @@ class TestController(testtools.TestCase):
         image_id = '606b0e88-7c5a-4d54-b5bb-046105d4de6f'
         self.controller.upload(image_id, image_data)
         expect = [('PUT', '/v2/images/%s/file' % image_id,
-                  {'Content-Type': 'application/octet-stream'},
-                  image_data)]
+                   {'Content-Type': 'application/octet-stream'},
+                   image_data)]
         self.assertEqual(expect, self.api.calls)
 
     def test_data_upload_w_size(self):
@@ -793,8 +794,8 @@ class TestController(testtools.TestCase):
         body = {'image_data': image_data,
                 'image_size': 3}
         expect = [('PUT', '/v2/images/%s/file' % image_id,
-                  {'Content-Type': 'application/octet-stream'},
-                  sorted(body.items()))]
+                   {'Content-Type': 'application/octet-stream'},
+                   sorted(body.items()))]
         self.assertEqual(expect, self.api.calls)
 
     def test_data_without_checksum(self):

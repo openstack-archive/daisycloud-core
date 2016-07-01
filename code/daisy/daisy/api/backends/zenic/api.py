@@ -16,46 +16,21 @@
 """
 /install endpoint for zenic API
 """
-import os
-import copy
-import subprocess
 import time
-import commands
 
-import traceback
-import webob.exc
-from oslo_config import cfg
 from oslo_log import log as logging
-from webob.exc import HTTPBadRequest
-from webob.exc import HTTPForbidden
-from webob.exc import HTTPServerError
 
 import threading
-from threading import Thread
-
 from daisy import i18n
-from daisy import notifier
-
-from daisy.api import policy
-import daisy.api.v1
 
 from daisy.common import exception
-import daisy.registry.client.v1.api as registry
-from daisy.api.backends.zenic import config
 from daisy.api.backends import driver
-from daisy.api.network_api import network as neutron
-from ironicclient import client as ironic_client
-import daisy.api.backends.os as os_handle
 import daisy.api.backends.common as daisy_cmn
 import daisy.api.backends.zenic.common as zenic_cmn
 import daisy.api.backends.zenic.install as instl
 import daisy.api.backends.zenic.uninstall as unstl
 import daisy.api.backends.zenic.upgrade as upgrd
 
-try:
-    import simplejson as json
-except ImportError:
-    import json
 
 LOG = logging.getLogger(__name__)
 _ = i18n._
@@ -65,12 +40,13 @@ _LW = i18n._LW
 
 zenic_state = zenic_cmn.ZENIC_STATE
 
+
 class API(driver.DeploymentDriver):
 
     def __init__(self):
         super(API, self).__init__()
         return
-        
+
     def install(self, req, cluster_id):
         """
         Install zenic to a cluster.
@@ -79,23 +55,26 @@ class API(driver.DeploymentDriver):
         cluster_id:cluster id
         """
 
-        #instl.pxe_server_build(req, install_meta)
+        # instl.pxe_server_build(req, install_meta)
         # get hosts config which need to install OS
-        #hosts_need_os = instl.get_cluster_hosts_config(req, cluster_id)
-        # if have hosts need to install os, ZENIC installataion executed in OSInstallTask
-        #if hosts_need_os:
-            #os_install_obj = instl.OSInstallTask(req, cluster_id, hosts_need_os)
-            #os_install_thread = Thread(target=os_install_obj.run)
-            #os_install_thread.start()
-        #else:
-        LOG.info(_("No host need to install os, begin install ZENIC for cluster %s." % cluster_id))
+        # hosts_need_os = instl.get_cluster_hosts_config(req, cluster_id)
+        # if have hosts need to install os, ZENIC installataion executed
+        #   in OSInstallTask
+        # if hosts_need_os:
+        # os_install_obj = instl.OSInstallTask(req, cluster_id, hosts_need_os)
+        # os_install_thread = Thread(target=os_install_obj.run)
+        # os_install_thread.start()
+        # else:
+        LOG.info(
+            _("No host need to install os, begin install ZENIC for cluster %s."
+              % cluster_id))
         zenic_install_task = instl.ZENICInstallTask(req, cluster_id)
         zenic_install_task.start()
-		
+
         LOG.info((_("begin install zenic, please waiting....")))
         time.sleep(5)
-        LOG.info((_("install zenic successfully"))) 
-        
+        LOG.info((_("install zenic successfully")))
+
     def uninstall(self, req, cluster_id):
         """
         Uninstall ZENIC to a cluster.
@@ -105,18 +84,22 @@ class API(driver.DeploymentDriver):
         :raises HTTPBadRequest if x-install-cluster is missing
         """
 
-        (role_id_list, hosts_list) = zenic_cmn.get_roles_and_hosts_list(req, cluster_id)
+        (role_id_list, hosts_list) = zenic_cmn.get_roles_and_hosts_list(
+            req, cluster_id)
         if role_id_list:
             if not hosts_list:
                 msg = _("there is no host in cluster %s") % cluster_id
                 raise exception.ThreadBinException(msg)
 
-            unstl.update_progress_to_db(req, role_id_list, zenic_state['UNINSTALLING'], 0.0)
-            uninstall_progress_percentage = round(1*1.0/len(hosts_list), 2)*100
-            
+            unstl.update_progress_to_db(
+                req, role_id_list, zenic_state['UNINSTALLING'], 0.0)
+            uninstall_progress_percentage =\
+                round(1 * 1.0 / len(hosts_list), 2) * 100
+
             threads = []
             for host in hosts_list:
-                t = threading.Thread(target=unstl.thread_bin,args=(req,host,role_id_list,uninstall_progress_percentage))
+                t = threading.Thread(target=unstl.thread_bin, args=(
+                    req, host, role_id_list, uninstall_progress_percentage))
                 t.setDaemon(True)
                 t.start()
                 threads.append(t)
@@ -132,16 +115,20 @@ class API(driver.DeploymentDriver):
                 for role_id in role_id_list:
                     role = daisy_cmn.get_role_detail(req, role_id)
                     if role['progress'] == 100:
-                        unstl.update_progress_to_db(req, role_id_list, zenic_state['UNINSTALL_FAILED'])
+                        unstl.update_progress_to_db(
+                            req, role_id_list, zenic_state['UNINSTALL_FAILED'])
                         uninstall_failed_flag = True
                         break
                     if role['status'] == zenic_state['UNINSTALL_FAILED']:
                         uninstall_failed_flag = True
                         break
                 if not uninstall_failed_flag:
-                    LOG.info(_("all uninstall threads have done, set all roles status to 'init'!"))
-                    unstl.update_progress_to_db(req, role_id_list, zenic_state['INIT'])
-                    
+                    LOG.info(
+                        _("all uninstall threads have done,\
+                            set all roles status to 'init'!"))
+                    unstl.update_progress_to_db(
+                        req, role_id_list, zenic_state['INIT'])
+
         LOG.info((_("begin uninstall zenic, please waiting....")))
         time.sleep(5)
         LOG.info((_("uninstall zenic successfully")))
@@ -153,19 +140,22 @@ class API(driver.DeploymentDriver):
         :param req: The WSGI/Webob Request object
 
         :raises HTTPBadRequest if x-install-cluster is missing
-        
+
         """
-        (role_id_list, hosts_list) = zenic_cmn.get_roles_and_hosts_list(req, cluster_id)
+        (role_id_list, hosts_list) = zenic_cmn.get_roles_and_hosts_list(
+            req, cluster_id)
         if not hosts_list:
             msg = _("there is no host in cluster %s") % cluster_id
-            raise exception.ThreadBinException(msg)            
+            raise exception.ThreadBinException(msg)
 
-        upgrd.update_progress_to_db(req, role_id_list, zenic_state['UPDATING'], 0.0)
-        update_progress_percentage = round(1*1.0/len(hosts_list), 2)*100
-        
+        upgrd.update_progress_to_db(
+            req, role_id_list, zenic_state['UPDATING'], 0.0)
+        update_progress_percentage = round(1 * 1.0 / len(hosts_list), 2) * 100
+
         threads = []
         for host in hosts_list:
-            t = threading.Thread(target=upgrd.thread_bin,args=(req,host,role_id_list,update_progress_percentage))
+            t = threading.Thread(target=upgrd.thread_bin, args=(
+                req, host, role_id_list, update_progress_percentage))
             t.setDaemon(True)
             t.start()
             threads.append(t)
@@ -181,14 +171,16 @@ class API(driver.DeploymentDriver):
             for role_id in role_id_list:
                 role = daisy_cmn.get_role_detail(req, role_id)
                 if role['progress'] == 0:
-                    upgrd.update_progress_to_db(req, role_id_list, zenic_state['UPDATE_FAILED'])
+                    upgrd.update_progress_to_db(
+                        req, role_id_list, zenic_state['UPDATE_FAILED'])
                     update_failed_flag = True
                     break
                 if role['status'] == zenic_state['UPDATE_FAILED']:
                     update_failed_flag = True
                     break
             if not update_failed_flag:
-                LOG.info(_("all update threads have done, set all roles status to 'active'!"))
-                upgrd.update_progress_to_db(req, role_id_list, zenic_state['ACTIVE'])
-                
-            
+                LOG.info(
+                    _("all update threads have done, \
+                        set all roles status to 'active'!"))
+                upgrd.update_progress_to_db(
+                    req, role_id_list, zenic_state['ACTIVE'])

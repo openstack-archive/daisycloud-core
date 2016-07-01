@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from datetime import datetime  # noqa
+
 from django import shortcuts
 import django.views.decorators.vary
 
@@ -42,4 +44,17 @@ def splash(request):
     response = shortcuts.redirect(horizon.get_user_home(request.user))
     if 'logout_reason' in request.COOKIES:
         response.delete_cookie('logout_reason')
+    return response
+
+
+def _one_year():
+    now = datetime.utcnow()
+    return datetime(now.year + 1, now.month, now.day, now.hour,
+                    now.minute, now.second, now.microsecond, now.tzinfo)
+
+
+def language(request, language):
+    last_url = request.META.get('HTTP_REFERER', "/")
+    response = shortcuts.redirect(last_url)
+    response.set_cookie("horizon_language", language, expires=_one_year())
     return response

@@ -44,8 +44,8 @@ def import_dashboard_config(modules):
             if hasattr(submodule, 'DASHBOARD'):
                 dashboard = submodule.DASHBOARD
                 config[dashboard].update(submodule.__dict__)
-            elif (hasattr(submodule, 'PANEL')
-                  or hasattr(submodule, 'PANEL_GROUP')):
+            elif (hasattr(submodule, 'PANEL') or
+                    hasattr(submodule, 'PANEL_GROUP')):
                 config[submodule.__name__] = submodule.__dict__
             else:
                 logging.warning("Skipping %s because it doesn't have DASHBOARD"
@@ -112,8 +112,8 @@ def update_dashboards(modules, horizon_config, installed_apps):
             continue
         apps.extend(config.get('ADD_INSTALLED_APPS', []))
         for category, exc_list in config.get('ADD_EXCEPTIONS', {}).iteritems():
-            exceptions[category] = tuple(set(exceptions.get(category, ())
-                                             + exc_list))
+            exceptions[category] = tuple(
+                set(exceptions.get(category, ()) + exc_list))
 
         angular_modules.extend(config.get('ADD_ANGULAR_MODULES', []))
         js_files.extend(config.get('ADD_JS_FILES', []))

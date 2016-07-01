@@ -32,6 +32,7 @@ from daisy.registry.api.v1 import config_sets
 from daisy.registry.api.v1 import configs
 from daisy.registry.api.v1 import networks
 from daisy.registry.api.v1 import template
+from daisy.registry.api.v1 import hwms
 
 LOG = logging.getLogger(__name__)
 _LE = i18n._LE
@@ -305,10 +306,14 @@ class RegistryClient(BaseClient):
         }
 
         # if 'host' not in host_metadata:
-            # host_metadata = dict(host=host_metadata)
+        # host_metadata = dict(host=host_metadata)
 
         body = jsonutils.dumps(host_metadata)
-        res = self.do_request("GET", "/host-interface", body=body, headers=headers)
+        res = self.do_request(
+            "GET",
+            "/host-interface",
+            body=body,
+            headers=headers)
         host_interface = jsonutils.loads(res.read())
 
         return host_interface
@@ -323,15 +328,19 @@ class RegistryClient(BaseClient):
             filters = dict(filters=kwargs)
 
         body = jsonutils.dumps(filters)
-        res = self.do_request("PUT", "/host-interfaces", body=body, headers=headers)
+        res = self.do_request(
+            "PUT",
+            "/host-interfaces",
+            body=body,
+            headers=headers)
         host_interface = jsonutils.loads(res.read())
 
         return host_interface
 
     def get_assigned_network(self, host_interface_id, network_id):
-        """Returns a mapping of host_assigned_network metadata from Registry."""
+        """Returns a mapping of host_assigned_network
+        metadata from Registry."""
 
-        
         body = None
         headers = {}
 
@@ -373,19 +382,26 @@ class RegistryClient(BaseClient):
 
         body = jsonutils.dumps(discover_host_meta)
 
-        res = self.do_request("POST", "/discover/nodes", body=body, headers=headers)
+        res = self.do_request(
+            "POST",
+            "/discover/nodes",
+            body=body,
+            headers=headers)
         # Registry returns a JSONified dict(image=image_info)
         data = jsonutils.loads(res.read())
         return data['discover_host']
-        
+
     def delete_discover_host(self, discover_host_id):
         """
         Deletes Registry's information about an host
         """
-        res = self.do_request("DELETE", "/discover/nodes/%s" % discover_host_id)
+        res = self.do_request(
+            "DELETE",
+            "/discover/nodes/%s" %
+            discover_host_id)
         data = jsonutils.loads(res.read())
         return data
-        
+
     def get_discover_hosts_detailed(self, **kwargs):
         """
         Returns a list of detailed host data mappings from Registry
@@ -400,7 +416,7 @@ class RegistryClient(BaseClient):
         res = self.do_request("GET", "/discover/nodes", params=params)
         host_list = jsonutils.loads(res.read())['nodes']
         return host_list
-        
+
     def update_discover_host(self, host_id, discover_host_meta):
         '''
         '''
@@ -413,11 +429,13 @@ class RegistryClient(BaseClient):
 
         body = jsonutils.dumps(discover_host_meta)
 
-        res = self.do_request("PUT", "/discover/nodes/%s" % host_id, body=body, headers=headers)
+        res = self.do_request(
+            "PUT", "/discover/nodes/%s" %
+            host_id, body=body, headers=headers)
         # Registry returns a JSONified dict(image=image_info)
         data = jsonutils.loads(res.read())
         return data['discover_host']
-        
+
     def get_discover_host_metadata(self, host_id):
         res = self.do_request("GET", "/discover/nodes/%s" % host_id)
         data = jsonutils.loads(res.read())['discover_host']
@@ -524,7 +542,9 @@ class RegistryClient(BaseClient):
     def get_cluster_hosts(self, cluster_id, host_id=None):
         """Return a list of membership associations from Registry."""
         if host_id:
-            res = self.do_request("GET", "/clusters/%s/nodes/%s" % (cluster_id, host_id))
+            res = self.do_request(
+                "GET", "/clusters/%s/nodes/%s" %
+                (cluster_id, host_id))
         else:
             res = self.do_request("GET", "/clusters/%s/nodes" % cluster_id)
         data = jsonutils.loads(res.read())['members']
@@ -551,7 +571,59 @@ class RegistryClient(BaseClient):
         # Registry returns a JSONified dict(image=image_info)
         data = jsonutils.loads(res.read())
         return data['template']
-        
+
+    def add_hwm(self, hwm):
+        """ """
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        if 'hwm' not in hwm:
+            hwm = dict(hwm=hwm)
+
+        body = jsonutils.dumps(hwm)
+
+        res = self.do_request("POST", "/hwm", body=body, headers=headers)
+        # Registry returns a JSONified dict(image=image_info)
+        data = jsonutils.loads(res.read())
+        return data['hwm']
+
+    def update_hwm(self, hwm_id, hwm):
+        headers = {
+            'Content-Type': 'application/json',
+        }
+        if 'hwm' not in hwm:
+            hwm = dict(hwm=hwm)
+
+        body = jsonutils.dumps(hwm)
+
+        res = self.do_request(
+            "PUT",
+            "/hwm/%s" %
+            hwm_id,
+            body=body,
+            headers=headers)
+        # Registry returns a JSONified dict(image=image_info)
+        data = jsonutils.loads(res.read())
+        return data['hwm']
+
+    def delete_hwm(self, hwm_id):
+        res = self.do_request("DELETE", "/hwm/%s" % hwm_id)
+        data = jsonutils.loads(res.read())
+        return data['hwm']
+
+    def list_hwm(self, **kwargs):
+        """ """
+        params = self._extract_params(kwargs, hwms.SUPPORTED_PARAMS)
+        res = self.do_request("GET", "/hwm", params=params)
+        data = jsonutils.loads(res.read())
+        return data
+
+    def get_hwm_detail(self, hwm_id):
+        res = self.do_request("GET", "/hwm/%s" % hwm_id)
+        data = jsonutils.loads(res.read())
+        return data['hwm']
+
     def add_host_template(self, template):
         """ """
         headers = {
@@ -563,11 +635,15 @@ class RegistryClient(BaseClient):
 
         body = jsonutils.dumps(template)
 
-        res = self.do_request("POST", "/host_template", body=body, headers=headers)
+        res = self.do_request(
+            "POST",
+            "/host_template",
+            body=body,
+            headers=headers)
         # Registry returns a JSONified dict(image=image_info)
         data = jsonutils.loads(res.read())
         return data['host_template']
-        
+
     def update_template(self, template_id, template):
         headers = {
             'Content-Type': 'application/json',
@@ -577,11 +653,16 @@ class RegistryClient(BaseClient):
 
         body = jsonutils.dumps(template)
 
-        res = self.do_request("PUT", "/template/%s" % template_id, body=body, headers=headers)
+        res = self.do_request(
+            "PUT",
+            "/template/%s" %
+            template_id,
+            body=body,
+            headers=headers)
         # Registry returns a JSONified dict(image=image_info)
         data = jsonutils.loads(res.read())
         return data['template']
-        
+
     def update_host_template(self, template_id, template):
         headers = {
             'Content-Type': 'application/json',
@@ -591,48 +672,50 @@ class RegistryClient(BaseClient):
 
         body = jsonutils.dumps(template)
 
-        res = self.do_request("PUT", "/host_template/%s" % template_id, body=body, headers=headers)
+        res = self.do_request(
+            "PUT",
+            "/host_template/%s" %
+            template_id,
+            body=body,
+            headers=headers)
         # Registry returns a JSONified dict(image=image_info)
         data = jsonutils.loads(res.read())
         return data['host_template']
-        
+
     def delete_template(self, template_id):
         res = self.do_request("DELETE", "/template/%s" % template_id)
         data = jsonutils.loads(res.read())
         return data['template']
-        
+
     def delete_host_template(self, template_id):
         res = self.do_request("DELETE", "/host_template/%s" % template_id)
         data = jsonutils.loads(res.read())
         return data['host_template']
-        
+
     def list_template(self, **kwargs):
         """ """
         params = self._extract_params(kwargs, template.SUPPORTED_PARAMS)
         res = self.do_request("GET", "/template/list", params=params)
         data = jsonutils.loads(res.read())
         return data
-        
+
     def list_host_template(self, **kwargs):
         """ """
         params = self._extract_params(kwargs, template.SUPPORTED_PARAMS)
         res = self.do_request("GET", "/host_template/list", params=params)
         data = jsonutils.loads(res.read())
         return data
-        
+
     def get_template_detail(self, template_id):
         res = self.do_request("GET", "/template/%s" % template_id)
         data = jsonutils.loads(res.read())
         return data['template']
-        
-        
+
     def get_host_template_detail(self, template_id):
         res = self.do_request("GET", "/host_template/%s" % template_id)
         data = jsonutils.loads(res.read())
-        return data['host_template']        
-        
-        
-        
+        return data['host_template']
+
     def get_component(self, component_id):
         """Returns a mapping of component metadata from Registry."""
         res = self.do_request("GET", "/components/%s" % component_id)
@@ -652,7 +735,11 @@ class RegistryClient(BaseClient):
 
         body = jsonutils.dumps(component_metadata)
 
-        res = self.do_request("POST", "/components", body=body, headers=headers)
+        res = self.do_request(
+            "POST",
+            "/components",
+            body=body,
+            headers=headers)
         # Registry returns a JSONified dict(image=image_info)
         data = jsonutils.loads(res.read())
         return data['component']
@@ -693,8 +780,8 @@ class RegistryClient(BaseClient):
             'Content-Type': 'application/json',
         }
 
-        res = self.do_request("PUT", "/components/%s" % component_id, body=body,
-                              headers=headers)
+        res = self.do_request("PUT", "/components/%s" % component_id,
+                              body=body, headers=headers)
         data = jsonutils.loads(res.read())
         return data['component']
 
@@ -847,8 +934,8 @@ class RegistryClient(BaseClient):
         res = self.do_request("DELETE", "/roles/%s/hosts" % role_id)
         data = jsonutils.loads(res.read())['role']
         return data
-        
-    def update_role_host(self, role_host_id,role_host):
+
+    def update_role_host(self, role_host_id, role_host):
         """Returns a mapping of role_host metadata from Registry."""
         if 'role' not in role_host:
             role_metadata = dict(role=role_host)
@@ -859,8 +946,8 @@ class RegistryClient(BaseClient):
             'Content-Type': 'application/json',
         }
 
-        res = self.do_request("PUT", "/roles/%s/hosts" % role_host_id, body=body,
-                              headers=headers)
+        res = self.do_request("PUT", "/roles/%s/hosts" % role_host_id,
+                              body=body, headers=headers)
         data = jsonutils.loads(res.read())
         return data
 
@@ -877,7 +964,11 @@ class RegistryClient(BaseClient):
 
         body = jsonutils.dumps(config_file_metadata)
 
-        res = self.do_request("POST", "/config_files", body=body, headers=headers)
+        res = self.do_request(
+            "POST",
+            "/config_files",
+            body=body,
+            headers=headers)
         # Registry returns a JSONified dict(image=image_info)
         data = jsonutils.loads(res.read())
         return data['config_file']
@@ -909,8 +1000,8 @@ class RegistryClient(BaseClient):
             'Content-Type': 'application/json',
         }
 
-        res = self.do_request("PUT", "/config_files/%s" % config_file_id, body=body,
-                              headers=headers)
+        res = self.do_request("PUT", "/config_files/%s" % config_file_id,
+                              body=body, headers=headers)
         data = jsonutils.loads(res.read())
         return data['config_file']
 
@@ -942,7 +1033,11 @@ class RegistryClient(BaseClient):
 
         body = jsonutils.dumps(config_set_metadata)
 
-        res = self.do_request("POST", "/config_sets", body=body, headers=headers)
+        res = self.do_request(
+            "POST",
+            "/config_sets",
+            body=body,
+            headers=headers)
         # Registry returns a JSONified dict(image=image_info)
         data = jsonutils.loads(res.read())
         return data['config_set']
@@ -974,8 +1069,8 @@ class RegistryClient(BaseClient):
             'Content-Type': 'application/json',
         }
 
-        res = self.do_request("PUT", "/config_sets/%s" % config_set_id, body=body,
-                              headers=headers)
+        res = self.do_request("PUT", "/config_sets/%s" % config_set_id,
+                              body=body, headers=headers)
         data = jsonutils.loads(res.read())
         return data['config_set']
 
@@ -1057,7 +1152,11 @@ class RegistryClient(BaseClient):
             'Content-Type': 'application/json',
         }
 
-        res = self.do_request("POST", "/configs/update_config_by_role_hosts", body=body, headers=headers)
+        res = self.do_request(
+            "POST",
+            "/configs/update_config_by_role_hosts",
+            body=body,
+            headers=headers)
         data = jsonutils.loads(res.read())
         return data['configs']
 
@@ -1110,7 +1209,11 @@ class RegistryClient(BaseClient):
             'Content-Type': 'application/json',
         }
 
-        self.do_request("POST", "/networks/update_phyname_of_network", body=body, headers=headers)
+        self.do_request(
+            "POST",
+            "/networks/update_phyname_of_network",
+            body=body,
+            headers=headers)
 
     def update_network(self, network_id, network_metadata):
         """
@@ -1128,7 +1231,7 @@ class RegistryClient(BaseClient):
         res = self.do_request("PUT", "/networks/%s" % network_id, body=body,
                               headers=headers)
         data = jsonutils.loads(res.read())
-        return data['network'] 
+        return data['network']
 
     def delete_network(self, network_id):
         """
@@ -1149,7 +1252,9 @@ class RegistryClient(BaseClient):
         :param sort_dir: direction in which to order results (asc, desc)
         """
         params = self._extract_params(kwargs, networks.SUPPORTED_PARAMS)
-        res = self.do_request("GET", "/clusters/%s/networks" % cluster_id, params=params)
+        res = self.do_request(
+            "GET", "/clusters/%s/networks" %
+            cluster_id, params=params)
         network_list = jsonutils.loads(res.read())['networks']
         return network_list
 
@@ -1168,8 +1273,12 @@ class RegistryClient(BaseClient):
         }
 
         body = jsonutils.dumps(config_interface)
-        res = self.do_request("POST", "/config_interface", body=body, headers=headers)
-        config_interface= jsonutils.loads(res.read())['config_interface_meta']
+        res = self.do_request(
+            "POST",
+            "/config_interface",
+            body=body,
+            headers=headers)
+        config_interface = jsonutils.loads(res.read())['config_interface_meta']
         return config_interface
 
     def add_service_disk(self, service_disk_metadata):
@@ -1185,11 +1294,15 @@ class RegistryClient(BaseClient):
 
         body = jsonutils.dumps(service_disk_metadata)
 
-        res = self.do_request("POST", "/service_disk", body=body, headers=headers)
+        res = self.do_request(
+            "POST",
+            "/service_disk",
+            body=body,
+            headers=headers)
         # Registry returns a JSONified dict(image=image_info)
         data = jsonutils.loads(res.read())
         return data['service_disk']
-        
+
     def delete_service_disk(self, service_disk_id):
         """
         Deletes Registry's information about an network
@@ -1197,8 +1310,7 @@ class RegistryClient(BaseClient):
         res = self.do_request("DELETE", "/service_disk/%s" % service_disk_id)
         data = jsonutils.loads(res.read())
         return data['service_disk']
-        
-   
+
     def update_service_disk(self, service_disk_id, service_disk_metadata):
         """
         Updates Registry's information about an service_disk
@@ -1212,17 +1324,17 @@ class RegistryClient(BaseClient):
             'Content-Type': 'application/json',
         }
 
-        res = self.do_request("PUT", "/service_disk/%s" % service_disk_id, body=body,
-                              headers=headers)
+        res = self.do_request("PUT", "/service_disk/%s" % service_disk_id,
+                              body=body, headers=headers)
         data = jsonutils.loads(res.read())
-        return data['service_disk'] 
-        
+        return data['service_disk']
+
     def get_service_disk_detail(self, service_disk_id):
         """Return a list of service_disk associations from Registry."""
         res = self.do_request("GET", "/service_disk/%s" % service_disk_id)
         data = jsonutils.loads(res.read())['service_disk']
-        return data  
-        
+        return data
+
     def list_service_disk(self, **kwargs):
         """
         Returns a list of service_disk data mappings from Registry
@@ -1231,7 +1343,7 @@ class RegistryClient(BaseClient):
         res = self.do_request("GET", "/service_disk/list", params=params)
         service_disk_list = jsonutils.loads(res.read())['service_disks']
         return service_disk_list
-        
+
     def add_cinder_volume(self, cinder_volume_metadata):
         """
         Tells registry about an network's metadata
@@ -1245,11 +1357,15 @@ class RegistryClient(BaseClient):
 
         body = jsonutils.dumps(cinder_volume_metadata)
 
-        res = self.do_request("POST", "/cinder_volume", body=body, headers=headers)
+        res = self.do_request(
+            "POST",
+            "/cinder_volume",
+            body=body,
+            headers=headers)
         # Registry returns a JSONified dict(image=image_info)
         data = jsonutils.loads(res.read())
         return data['cinder_volume']
-        
+
     def delete_cinder_volume(self, cinder_volume_id):
         """
         Deletes Registry's information about an network
@@ -1257,7 +1373,7 @@ class RegistryClient(BaseClient):
         res = self.do_request("DELETE", "/cinder_volume/%s" % cinder_volume_id)
         data = jsonutils.loads(res.read())
         return data['cinder_volume']
-        
+
     def update_cinder_volume(self, cinder_volume_id, cinder_volume_metadata):
         """
         Updates Registry's information about an cinder_volume
@@ -1271,18 +1387,17 @@ class RegistryClient(BaseClient):
             'Content-Type': 'application/json',
         }
 
-        res = self.do_request("PUT", "/cinder_volume/%s" % cinder_volume_id, body=body,
-                              headers=headers)
+        res = self.do_request("PUT", "/cinder_volume/%s" % cinder_volume_id,
+                              body=body, headers=headers)
         data = jsonutils.loads(res.read())
-        return data['cinder_volume'] 
-        
-        
+        return data['cinder_volume']
+
     def get_cinder_volume_detail(self, cinder_volume_id):
         """Return a list of cinder_volume associations from Registry."""
         res = self.do_request("GET", "/cinder_volume/%s" % cinder_volume_id)
         data = jsonutils.loads(res.read())['cinder_volume']
-        return data  
-        
+        return data
+
     def list_cinder_volume(self, **kwargs):
         """
         Returns a list of cinder_volume data mappings from Registry

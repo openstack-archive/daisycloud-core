@@ -12,7 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from sqlalchemy.schema import (Column, Index, MetaData, Table)
+from sqlalchemy.schema import (Column, MetaData, Table)
 from daisy.db.sqlalchemy.migrate_repo.schema import (
     Boolean, DateTime, String, Text,
     create_tables)
@@ -20,46 +20,48 @@ from daisy.db.sqlalchemy.migrate_repo.schema import (
 
 def define_template_table(meta):
     templates = Table('template',
-                     meta,
-                     Column('id', String(36), primary_key=True,
-                            nullable=False),
-                     Column('name', String(36), nullable=False),
-                     Column('description', Text()),
-                     Column('type', String(36), nullable=True),
-                     Column('hosts', Text(), nullable=True),
-                     Column('content', Text(), nullable=True),
-                     Column('updated_at', DateTime(), nullable=False),
-                     Column('deleted_at', DateTime()),
-                     Column('created_at', DateTime(), nullable=False),
-                     Column('deleted',
+                      meta,
+                      Column('id', String(36), primary_key=True,
+                             nullable=False),
+                      Column('name', String(36), nullable=False),
+                      Column('description', Text()),
+                      Column('type', String(36), nullable=True),
+                      Column('hosts', Text(), nullable=True),
+                      Column('content', Text(), nullable=True),
+                      Column('updated_at', DateTime(), nullable=False),
+                      Column('deleted_at', DateTime()),
+                      Column('created_at', DateTime(), nullable=False),
+                      Column('deleted',
                              Boolean(),
                              nullable=False,
                              default=False,
                              index=True),
-                     mysql_engine='InnoDB',
-                     extend_existing=True)
+                      mysql_engine='InnoDB',
+                      extend_existing=True)
 
     return templates
 
+
 def define_host_template_table(meta):
     host_templates = Table('host_templates',
-                     meta,
-                     Column('id', String(36), primary_key=True,
-                            nullable=False),
-                     Column('cluster_name', String(36), nullable=False),
-                     Column('hosts', Text(), nullable=True),
-                     Column('updated_at', DateTime(), nullable=False),
-                     Column('deleted_at', DateTime()),
-                     Column('created_at', DateTime(), nullable=False),
-                     Column('deleted',
-                             Boolean(),
-                             nullable=False,
-                             default=False,
-                             index=True),
-                     mysql_engine='InnoDB',
-                     extend_existing=True)
+                           meta,
+                           Column('id', String(36), primary_key=True,
+                                  nullable=False),
+                           Column('cluster_name', String(36), nullable=False),
+                           Column('hosts', Text(), nullable=True),
+                           Column('updated_at', DateTime(), nullable=False),
+                           Column('deleted_at', DateTime()),
+                           Column('created_at', DateTime(), nullable=False),
+                           Column('deleted',
+                                  Boolean(),
+                                  nullable=False,
+                                  default=False,
+                                  index=True),
+                           mysql_engine='InnoDB',
+                           extend_existing=True)
 
     return host_templates
+
 
 def upgrade(migrate_engine):
     meta = MetaData()

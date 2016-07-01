@@ -250,8 +250,8 @@ class QuotaImageLocationsProxy(object):
                                             self.image,
                                             locations)
         daisy.api.common.check_quota(self.context,
-                                      required_size,
-                                      self.db_api)
+                                     required_size,
+                                     self.db_api)
         _enforce_image_location_quota(self.image, locations)
 
     def __copy__(self):

@@ -12,7 +12,12 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import urllib2
 
+from oslo_log import log as logging
+
+from daisy.common import exception
+from daisy import i18n
 __all__ = [
     'get_task',
     'unpack_task_input',
@@ -20,14 +25,6 @@ __all__ = [
     'validate_location_uri',
     'get_image_data_iter',
 ]
-
-
-import urllib2
-
-from oslo_log import log as logging
-
-from daisy.common import exception
-from daisy import i18n
 
 
 LOG = logging.getLogger(__name__)
@@ -100,7 +97,7 @@ def validate_location_uri(location):
                 "source of image data.")
         # NOTE: raise Exception and let the encompassing block save
         # the error msg in the task.message.
-        raise StandardError(msg)
+        raise Exception(msg)
 
     else:
         # TODO(nikhil): add other supported uris

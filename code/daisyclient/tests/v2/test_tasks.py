@@ -194,6 +194,7 @@ schema_fixtures = {
 
 
 class TestController(testtools.TestCase):
+
     def setUp(self):
         super(TestController, self).setUp()
         self.api = utils.FakeAPI(fixtures)
@@ -201,7 +202,7 @@ class TestController(testtools.TestCase):
         self.controller = tasks.Controller(self.api, self.schema_api)
 
     def test_list_tasks(self):
-        #NOTE(flwang): cast to list since the controller returns a generator
+        # NOTE(flwang): cast to list since the controller returns a generator
         tasks = list(self.controller.list())
         self.assertEqual(tasks[0].id, '3a4560a1-e585-443e-9b39-553b46ec92d1')
         self.assertEqual(tasks[0].type, 'import')
@@ -211,7 +212,7 @@ class TestController(testtools.TestCase):
         self.assertEqual(tasks[1].status, 'processing')
 
     def test_list_tasks_paginated(self):
-        #NOTE(flwang): cast to list since the controller returns a generator
+        # NOTE(flwang): cast to list since the controller returns a generator
         tasks = list(self.controller.list(page_size=1))
         self.assertEqual(tasks[0].id, '3a4560a1-e585-443e-9b39-553b46ec92d1')
         self.assertEqual(tasks[0].type, 'import')

@@ -12,14 +12,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-__all__ = [
-    'list_api_opts',
-    'list_registry_opts',
-    'list_scrubber_opts',
-    'list_cache_opts',
-    'list_manage_opts'
-]
-
 import copy
 import itertools
 
@@ -38,6 +30,14 @@ import daisy.registry
 import daisy.registry.client
 import daisy.registry.client.v1.api
 import daisy.scrubber
+
+__all__ = [
+    'list_api_opts',
+    'list_registry_opts',
+    'list_scrubber_opts',
+    'list_cache_opts',
+    'list_manage_opts'
+]
 
 
 _api_opts = [

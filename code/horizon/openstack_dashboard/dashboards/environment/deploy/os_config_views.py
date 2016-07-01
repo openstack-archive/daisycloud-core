@@ -4,21 +4,10 @@
 #
 
 from django import http
-from django.http import HttpResponse
 from django.views import generic
 from django.views.decorators.csrf import csrf_exempt
-from django import shortcuts
-from django import template
 from django.core.urlresolvers import reverse
-from django.core.urlresolvers import reverse_lazy
-from django.utils.translation import ugettext_lazy as _
 
-import json
-
-from horizon import messages
-from horizon import exceptions
-from horizon import forms
-from horizon import tables
 
 from openstack_dashboard import api
 from openstack_dashboard.dashboards.environment.deploy import wizard_cache
@@ -45,8 +34,8 @@ class OSConfigView(generic.TemplateView):
         context['clusters'] = cluster_lists
         wizard_cache.set_cache(context['cluster_id'], "osconfig", 1)
         context['wizard'] = wizard_cache.get_cache(context['cluster_id'])
-        context["current_cluster"] = self.get_current_cluster(context['clusters'], context["cluster_id"])
-        
+        context["current_cluster"] = self.get_current_cluster(
+            context['clusters'], context["cluster_id"])
         return context
 
 

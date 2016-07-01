@@ -27,9 +27,9 @@
                 {% elif role.name == "CONTROLLER_LB" %}
                     <input type="hidden" id="lb_role_id" name="lb_role_id" value="{{ role.id }}">
                     <input type="hidden" id="lb_role_name" name="lb_role_name" value="{{ role.name }}">
-                {% elif role.name == "ZENIC_MDB" %}
-                    <input type="hidden" id="zenic_mdb_role_id" name="zenic_mdb_role_id" value="{{ role.id }}">
-                    <input type="hidden" id="zenic_mdb_role_name" name="zenic_mdb_role_name" value="{{ role.name }}">
+                {% elif role.name == "COMPUTER" %}
+                    <input type="hidden" id="{{ role.name|lower }}_role_id" name="{{ role.name|lower }}_role_id" value="{{ role.id }}">
+                    <input type="hidden" id="{{ role.name|lower }}_role_name" name="{{ role.name|lower }}_role_name" value="{{ role.name }}">
                 {% elif role.name == "ZENIC_NFM" %}
                     <input type="hidden" id="zenic_nfm_role_id" name="zenic_nfm_role_id" value="{{ role.id }}">
                     <input type="hidden" id="zenic_nfm_role_name" name="zenic_nfm_role_name" value="{{ role.name }}">
@@ -48,7 +48,7 @@
 
 <div class="pull-right">
     <a class="btn btn-primary" type="submit" onclick="modify_cluster_click()">{% trans 'Modify' %}</a>
-    <a class="btn btn-default cancel" href="{% url 'horizon:environment:overview:index' %}">{% trans "Cancel" %}</a>
+    <a class="btn btn-default cancel" href="{% url 'horizon:environment:cluster:overview' cluster_id %}">{% trans "Cancel" %}</a>
 </div>
 
 {% include "environment/cluster/_cinder.html" %}

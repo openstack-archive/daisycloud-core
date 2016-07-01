@@ -52,21 +52,28 @@ CONF.import_opt('container_formats', 'daisy.common.config',
                 group='image_format')
 CONF.import_opt('image_property_quota', 'daisy.common.config')
 
+
 class Controller(controller.BaseController):
     """
     WSGI controller for config_files resource in Daisy v1 API
 
-    The config_files resource API is a RESTful web service for config_file data. The API
+    The config_files resource API is a RESTful web service
+    for config_file data. The API
     is as follows::
 
-        GET  /config_files -- Returns a set of brief metadata about config_files
+        GET  /config_files --
+        Returns a set of brief metadata about config_files
         GET  /config_files/detail -- Returns a set of detailed metadata about
                               config_files
-        HEAD /config_files/<ID> -- Return metadata about an config_file with id <ID>
-        GET  /config_files/<ID> -- Return config_file data for config_file with id <ID>
-        POST /config_files -- Store config_file data and return metadata about the
+        HEAD /config_files/<ID> --
+        Return metadata about an config_file with id <ID>
+        GET  /config_files/<ID> --
+        Return config_file data for config_file with id <ID>
+        POST /config_files --
+        Store config_file data and return metadata about the
                         newly-stored config_file
-        PUT  /config_files/<ID> -- Update config_file metadata and/or upload config_file
+        PUT  /config_files/<ID> --
+        Update config_file metadata and/or upload config_file
                             data for a previously-reserved config_file
         DELETE /config_files/<ID> -- Delete the config_file with id <ID>
     """
@@ -132,13 +139,14 @@ class Controller(controller.BaseController):
         :raises HTTPBadRequest if x-config_file-name is missing
         """
         self._enforce(req, 'add_config_file')
-        #config_file_id=config_file_meta["id"]
+        # config_file_id=config_file_meta["id"]
         config_file_name = config_file_meta["name"]
         config_file_description = config_file_meta["description"]
-        #print config_file_id
+        # print config_file_id
         print config_file_name
         print config_file_description
-        config_file_meta = registry.add_config_file_metadata(req.context, config_file_meta)
+        config_file_meta = registry.add_config_file_metadata(
+            req.context, config_file_meta)
 
         return {'config_file_meta': config_file_meta}
 
@@ -171,14 +179,15 @@ class Controller(controller.BaseController):
                                 request=req,
                                 content_type="text/plain")
         except exception.InUseByStore as e:
-            msg = (_("config_file %(id)s could not be deleted because it is in use: "
+            msg = (_("config_file %(id)s could not be "
+                     "deleted because it is in use: "
                      "%(exc)s") % {"id": id, "exc": utils.exception_to_str(e)})
             LOG.warn(msg)
             raise HTTPConflict(explanation=msg,
                                request=req,
                                content_type="text/plain")
         else:
-            #self.notifier.info('config_file.delete', config_file)
+            # self.notifier.info('config_file.delete', config_file)
             return Response(body='', status=200)
 
     @utils.mutating
@@ -215,7 +224,8 @@ class Controller(controller.BaseController):
         self._enforce(req, 'get_config_files')
         params = self._get_query_params(req)
         try:
-            config_files = registry.get_config_files_detail(req.context, **params)
+            config_files = registry.get_config_files_detail(
+                req.context, **params)
         except exception.Invalid as e:
             raise HTTPBadRequest(explanation=e.msg, request=req)
         return dict(config_files=config_files)
@@ -241,9 +251,8 @@ class Controller(controller.BaseController):
                                 request=req,
                                 content_type="text/plain")
         try:
-            config_file_meta = registry.update_config_file_metadata(req.context,
-                                                                    id,
-                                                                    config_file_meta)
+            config_file_meta = registry.update_config_file_metadata(
+                req.context, id, config_file_meta)
 
         except exception.Invalid as e:
             msg = (_("Failed to update config_file metadata. Got error: %s") %
@@ -276,6 +285,7 @@ class Controller(controller.BaseController):
 
         return {'config_file_meta': config_file_meta}
 
+
 class Config_fileDeserializer(wsgi.JSONRequestDeserializer):
     """Handles deserialization of specific controller method requests."""
 
@@ -289,6 +299,7 @@ class Config_fileDeserializer(wsgi.JSONRequestDeserializer):
 
     def update_config_file(self, request):
         return self._deserialize(request)
+
 
 class Config_fileSerializer(wsgi.JSONResponseSerializer):
     """Handles serialization of specific controller method responses."""
@@ -317,9 +328,9 @@ class Config_fileSerializer(wsgi.JSONResponseSerializer):
         response.body = self.to_json(dict(config_file=config_file_meta))
         return response
 
+
 def create_resource():
     """config_files resource factory method"""
     deserializer = Config_fileDeserializer()
     serializer = Config_fileSerializer()
     return wsgi.Resource(Controller(), deserializer, serializer)
-

@@ -20,10 +20,12 @@ import logging
 import os
 import sys
 import warnings
-
+# Load the pluggable dashboard settings
+import openstack_dashboard.enabled
+import openstack_dashboard.local.enabled
+from openstack_dashboard.utils import settings
 import django
 from django.utils.translation import ugettext_lazy as _
-
 from openstack_dashboard import exceptions
 from openstack_dashboard.static_settings import get_staticfiles_dirs  # noqa
 
@@ -175,7 +177,7 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 SESSION_COOKIE_HTTPONLY = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_SECURE = False
-SESSION_TIMEOUT = 1800
+SESSION_TIMEOUT = 90000
 # A token can be near the end of validity when a page starts loading, and
 # invalid during the rendering which can cause errors when a page load.
 # TOKEN_TIMEOUT_MARGIN defines a time in seconds we retrieve from token
@@ -284,10 +286,6 @@ STATICFILES_DIRS.append(
     ('custom', CUSTOM_THEME),
 )
 
-# Load the pluggable dashboard settings
-import openstack_dashboard.enabled
-import openstack_dashboard.local.enabled
-from openstack_dashboard.utils import settings
 
 INSTALLED_APPS = list(INSTALLED_APPS)  # Make sure it's mutable
 settings.update_dashboards(
@@ -312,7 +310,7 @@ if not SECRET_KEY:
     SECRET_KEY = secret_key.generate_or_read_from_file(os.path.join(LOCAL_PATH,
                                                        '.secret_key_store'))
 
-from openstack_dashboard import policy_backend
+from openstack_dashboard import policy_backend  # noqa
 POLICY_CHECK_FUNCTION = policy_backend.check
 
 # Add HORIZON_CONFIG to the context information for offline compression
@@ -328,5 +326,6 @@ if DEBUG:
 # patch below will not otherwise be applied in time - resulting in developers
 # appearing to be logged out.  In typical production deployments this section
 # below may be omitted, though it should not be harmful
-from openstack_auth import utils as auth_utils
+
+from openstack_auth import utils as auth_utils  # noqa
 auth_utils.patch_middleware_get_user()

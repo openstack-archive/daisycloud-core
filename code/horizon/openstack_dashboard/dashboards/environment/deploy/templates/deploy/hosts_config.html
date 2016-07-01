@@ -28,82 +28,32 @@
 {% endblock %}
 
 {% block operate_region %}
-<div class="row" style="margin-top:20px;">
-    <div class="col-md-8 col-md-offset-4">
-        <form class="form-horizontal form-host-config">
-            <div class="form-group">
-                <label class="col-sm-2 control-label">{% trans "OS Version File" %}</label>
-                <div class="col-sm-4">
-                    {% if version_files %}
-                    <select name="os_version_file" class="form-control input_os_version_file">
-                        {% for version_file in version_files %}
-                        <option value="{{version_file}}">{{version_file}}</option>
-                        {% endfor %}
-                    </select>
-                    {% else %}
-                    <input name="os_version_file" type="text" class="form-control input_os_version_file" placeholder='{% trans "OS Version File" %}'>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="form-group">
-                <label for="input_root_disk" class="col-sm-2 control-label">{% trans "ROOT Disk" %}</label>
-                <div class="col-sm-4">
-                    <input name="root_disk" id="input_root_disk" type="text" class="form-control" placeholder='{% trans "ROOT Disk" %}'>
-                </div>
-            </div>
-            <div class="form-group">
-                <label for="input_root_lv_size" class="col-sm-2 control-label">{% trans "ROOT LV Size(GB)" %}</label>
-                <div class="col-sm-4">
-                    <input name="root_lv_disk" id="input_root_lv_size" type="text" class="form-control" placeholder='{% trans "ROOT LV Size(GB)" %}'>
-                </div>
-                <div class="col-sm-4">
-                    <span class="help-inline">{% trans "Cannot be less than 50G, and cannot be greater than the remaining disk size" %}</span>
-                </div>
-            </div>
-            <div class="form-group">
-                <label for="input_ipmi_user" class="col-sm-2 control-label">{% trans "IPMI User" %}</label>
-                <div class="col-sm-4">
-                    <input name="ipmi_user" id="input_ipmi_user" type="text" class="form-control" placeholder='{% trans "IPMI User" %}'>
-                </div>
-            </div>                        
-            <div class="form-group">
-                <label for="input_ipmi_passwd" class="col-sm-2 control-label">{% trans "IPMI Password" %}</label>
-                <div class="col-sm-4">
-                    <input name="ipmi_passwd" id="input_ipmi_passwd" type="password" class="form-control" placeholder='{% trans "IPMI Password" %}'>
-                </div>
-            </div>
-            <div class="form-group COMPUTER">
-                <label for="select_huge_page_size" class="col-sm-2 control-label">{% trans "Huge Page Size" %}</label>
-                <div class="col-sm-4">
-                    <select id="select_huge_page_size" class="form-control">
-                        <option value="1G">1G</option>
-                        <!--option value="2M">2M</option-->
-                    </select>
-                </div>
-            </div>
-            <div class="form-group COMPUTER">
-                <label for="input_huge_page_count" class="col-sm-2 control-label">{% trans "Huge Page Count" %}</label>
-                <div class="col-sm-4">
-                    <input name="huge_page_count" id="input_huge_page_count" type="text" class="form-control" placeholder='{% trans "Huge Page Count" %}'>
-                </div>
-            </div>
-            <div class="form-group COMPUTER">
-                <label for="input_isolation_cpu" class="col-sm-2 control-label">{% trans "Isolation CPU" %}</label>
-                <div class="col-sm-4">
-                    <input name="isolation_cpu" id="input_isolation_cpu" type="text" class="form-control" placeholder='{% trans "Isolation CPU" %}'>
-                </div>
-                <div class="col-sm-4">
-                    <span class="help-inline">{% trans "Format 1-3,5-9 or 1,2,3,4" %}</span>
-                </div>
-            </div>
-            <div class="form-group">
-                <div class="col-sm-offset-2 col-sm-10">
-                    <button type="button" class="btn btn-primary btn-host-config" disabled="disabled" onclick="SetHostConfig()">
-                        {% trans "Save changes" %}
-                    </button>
-                </div>
-            </div>
-        </form>
+<div>
+    <ul class="nav nav-tabs" id="host_config_region">
+        <li class="active" id="tab_baseinfo">
+            <a href="#host_baseinfo" data-toggle="tab" data-target="#host_baseinfo">{% trans "basic info" %}</a>
+        </li>
+        <li class="" id="tab_compute_role">
+            <a href="#host_compute_role" data-toggle="tab" data-target="#host_compute_role">{% trans "compute role info" %}</a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <div role="tab-panel" class="tab-pane active" id="host_baseinfo">
+            {% include "environment/deploy/_base.html" %}
+        </div>
+        <div role="tab-panel" class="tab-pane" id="host_compute_role">
+            {% include "environment/deploy/_compute_role.html" %}
+        </div>
+    </div>    
+
+    <div class="form-group" align="center">
+        <button type="button" class="btn btn-primary btn-default-config" disabled="disabled" onclick="DefaultCpuSetConfig()">
+            {% trans "Default CPUs Set" %}
+        </button>
+        <button type="button" class="btn btn-primary btn-host-config" disabled="disabled" onclick="SetHostConfig()">
+            {% trans "Save changes" %}
+        </button>
     </div>
 </div>
 {% endblock %}
@@ -117,6 +67,66 @@
     {% include "horizon/_scripts.html" %}
     <script src="{{ STATIC_URL }}dashboard/bootstrapValidator.js"></script>
     <script type='text/javascript' charset='utf-8'>
+    var cpu_list = new Array();
+    function split_cpuset_str(str){
+        cpu_list = [];
+        if (str.length == 0)
+            return true;
+
+        var cpuset_list = str.split(",");
+        for(var i = 0;i < cpuset_list.length;i++)
+        {
+            var cpu_start_end_list = cpuset_list[i].split("-");
+            if(cpu_start_end_list.length == 1)
+            {
+                cpu_list.push(cpu_start_end_list[0]);
+            }
+            else if(cpu_start_end_list.length == 2)
+            {
+                var cpu_start = parseInt(cpu_start_end_list[0]);
+                var cpu_end   = parseInt(cpu_start_end_list[1]);
+                if(cpu_start<= cpu_end)
+                {
+                    for(var cpu_index = cpu_start;cpu_index <= cpu_end;cpu_index++)
+                    {
+                        cpu_list.push(cpu_index.toString());
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+
+            }
+            else
+            {
+                 return false;
+            }
+        }
+        return true;
+    }
+
+    function ExistsSameValues(a1, a2) {
+        if(a1 instanceof Array && a2 instanceof Array)
+        {
+            if(a1.length == 0 || a2.length == 0)
+            {
+                return false;
+            }
+
+            for (var i=0,iLen=a1.length; i<iLen; i++)
+            {
+                for (var j=0,jLen=a2.length; j<jLen; j++)
+                {
+                    if (a1[i]==a2[j])
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    };
     function trim(str) {
         return str.replace(/(^\s*)|(\s*$)/g, "");
     }
@@ -173,31 +183,114 @@
                 root_lv_size = root_lv_size == "-" ? "" : root_lv_size;
                 var ipmi_user = $.trim(cur_tds.eq(i++).text());
                 var cpu_number = $.trim(cur_tds.eq(i++).text());
-                var isol_cpus = $.trim(cur_tds.eq(i++).text());
-                isol_cpus = isol_cpus == "-"?"":isol_cpus;
                 var memory_size = $.trim(cur_tds.eq(i++).text());
                 var huge_pages = $.trim(cur_tds.eq(i++).text());
                 huge_pages = huge_pages == "-"?"":huge_pages;
                 var huge_page_size = $.trim(cur_tds.eq(i++).text());
                 huge_page_size = huge_page_size == "-"?"1G":huge_page_size;
-                var ipmi_passwd = ""; //$.trim(cur_tds.eq(i++).text());
+                var ipmi_passwd = ""; 
+                $.trim(cur_tds.eq(i++).text());
+                var os_cpus = $.trim(cur_tds.eq(i++).text());
+                os_cpus = os_cpus == "-"?"":os_cpus;
+                var dvs_cpus = $.trim(cur_tds.eq(i++).text());
+                dvs_cpus = dvs_cpus == "-"?"":dvs_cpus;
+                var vcpu_pin_set = $.trim(cur_tds.eq(i++).text());
+                vcpu_pin_set = vcpu_pin_set == "-"?"":vcpu_pin_set;
+                var dvs_high_cpuset = $.trim(cur_tds.eq(i++).text());
+                dvs_high_cpuset = dvs_high_cpuset == "-"?"":dvs_high_cpuset;
+                var pci_high_cpuset = $.trim(cur_tds.eq(i++).text());
+                pci_high_cpuset = pci_high_cpuset == "-"?"":pci_high_cpuset;
+
+                var vswitch_type = $.trim(cur_tds.eq(i++).text());
+                vswitch_type = vswitch_type == "-"?"":vswitch_type;
+                var numa_node0 = $.trim(cur_tds.eq(i++).text());
+                numa_node0 = numa_node0 == "-"?"":numa_node0;
+                var numa_node1 = $.trim(cur_tds.eq(i++).text());
+                numa_node1 = numa_node1 == "-"?"":numa_node1;
+                var suggest_os_cpus = $.trim(cur_tds.eq(i++).text());
+                suggest_os_cpus = suggest_os_cpus == "-"?"":suggest_os_cpus;
+                var suggest_dvs_cpus = $.trim(cur_tds.eq(i++).text());
+                suggest_dvs_cpus = suggest_dvs_cpus == "-"?"":suggest_dvs_cpus;
+
 
                 var host_config = {
                     "role_list":role_list,
                     "os_version_file":os_version_file,
                     "root_disk":root_disk,
                     "root_lv_size":root_lv_size,
-                    "cpu_number":cpu_number,
-                    "isol_cpus": isol_cpus,
+                    "cpu_number":cpu_number,                    
                     "memory_size": memory_size,
                     "huge_pages": huge_pages,
                     "huge_page_size":huge_page_size,
                     "ipmi_user":ipmi_user,
-                    "ipmi_passwd":ipmi_passwd
+                    "ipmi_passwd":ipmi_passwd,
+
+                    "os_cpus": os_cpus,
+                    "dvs_cpus": dvs_cpus,
+                    "vcpu_pin_set": vcpu_pin_set,
+                    "dvs_high_cpuset": dvs_high_cpuset,
+                    "pci_high_cpuset": pci_high_cpuset,
+
+                    "vswitch_type": vswitch_type,
+                    "numa_node0": numa_node0,
+                    "numa_node1": numa_node1,
+                    "suggest_os_cpus": suggest_os_cpus,
+                    "suggest_dvs_cpus": suggest_dvs_cpus,
                 }
                 $(this).data("host_config", host_config);
             }
         })
+    }
+
+    function compute_pinset_value(){
+        vcpu_pin_set_list = [];
+        var last_checked_box = $(".table-row-multi-select:checked:last");
+        var cur_tr = last_checked_box.parent().parent();//定位当前行
+        var cur_tds = cur_tr.find("td");//定位当前行所有列
+        var cpu_number = parseInt($.trim(cur_tds.eq(8).text()));
+
+        if(split_cpuset_str($("#input_os_cpus").val()))
+            var os_cpus_list = cpu_list;
+        if(split_cpuset_str($("#input_dvs_cpus").val()))
+            var dvs_cpus_list = cpu_list;
+
+
+        if(os_cpus_list.length || dvs_cpus_list.length)
+        {
+            for (var i = 0;i < cpu_number;i++)
+            {
+                cpu_str = String(i);
+                if (($.inArray(cpu_str, os_cpus_list)==-1) && ($.inArray(cpu_str, dvs_cpus_list)==-1))
+                {
+                    vcpu_pin_set_list.push(cpu_str);
+                }
+            }
+            if(vcpu_pin_set_list.length)
+                $("#input_vcpu_pin_set").val(vcpu_pin_set_list.join(","));
+        }  
+    }
+    
+    $("body").on("propertychange input", "#input_os_cpus", function (){ 
+        compute_pinset_value();        
+    });
+    
+    $("body").on("propertychange input", "#input_dvs_cpus", function (){ 
+        compute_pinset_value();     
+    });
+
+
+    function DefaultCpuSetConfig()
+    {
+        var last_checked_box = $(".table-row-multi-select:checked:last");
+        var cur_tr = last_checked_box.parent().parent();//定位当前行
+        var cur_tds = cur_tr.find("td");//定位当前行所有列
+        var suggest_os_cpus = $.trim(cur_tds.eq(21).text());
+        var suggest_dvs_cpus = $.trim(cur_tds.eq(22).text());
+        suggest_os_cpus = suggest_os_cpus == "-"?"":suggest_os_cpus;
+        suggest_dvs_cpus = suggest_dvs_cpus == "-"?"":suggest_dvs_cpus;
+
+        $("#input_os_cpus").val(suggest_os_cpus);
+        $("#input_dvs_cpus").val(suggest_dvs_cpus);
     }
 
     function SetHostConfig()
@@ -206,14 +299,18 @@
         if (!$(".form-host-config").data('bootstrapValidator').isValid())
             return;
         var hosts = [];
+        var all_use_dvs = true;
         var $checkbox = $(".table-row-multi-select:checked");
         $checkbox.each(function(){
             var host_config = $(this).data("host_config");
             var host = {
                 "host_id": $(this).val(),
                 "roles": host_config["role_list"]
-            }
+            }            
             hosts.push(host);
+
+            if(host_config["vswitch_type"] != "dvs")
+                all_use_dvs = false;
         })
         var param = {
             "os_version_file": "/var/lib/daisy/tecs/" + trim($(".input_os_version_file").val()),
@@ -224,24 +321,62 @@
         };
         if (!($(".COMPUTER").is(":hidden")))
         {
-            param["isol_cpus"] = $("#input_isolation_cpu").val();
+            if (all_use_dvs && ($("#input_huge_page_count").val() < 10))
+            {
+                horizon.alert('error', '{% trans "Huge page count must greater than or equal to 10." %}');
+                return false; 
+            }
             param["huge_page_size"] = $("#select_huge_page_size").val();
             param["huge_pages"] = $("#input_huge_page_count").val();
+            if(split_cpuset_str($("#input_os_cpus").val()))
+                var os_cpus_list = cpu_list;
+            if(split_cpuset_str($("#input_dvs_cpus").val()))
+                var dvs_cpus_list = cpu_list;
+            if(split_cpuset_str($("#input_vcpu_pin_set").val()))
+                var vcpu_pin_set_list = cpu_list;
+            if(ExistsSameValues(os_cpus_list, dvs_cpus_list) || ExistsSameValues(os_cpus_list, vcpu_pin_set_list) || ExistsSameValues(vcpu_pin_set_list, dvs_cpus_list))
+            {
+                horizon.alert('error', '{% trans "CPU set cannot be repeated." %}');
+                return false;            
+            }
+
+            param["os_cpus"] = $("#input_os_cpus").val();
+            param["dvs_cpus"] = $("#input_dvs_cpus").val();
+            param["vcpu_pin_set"] = $("#input_vcpu_pin_set").val();
+            param["dvs_high_cpuset"] = $("#input_dvs_high_cpuset").val();
+            param["pci_high_cpuset"] = $("#input_pci_high_cpuset").val();
         }
         var url = "/dashboard/environment/deploy/" + $("#cluster_id").val() + '/set_host_config';
         var ret = do_post(url, JSON.stringify({'hosts': hosts, 'param': param}), OnReloadWindow);
     }
 
-    function CleanHostConfig()
+    function CleanHostConfig_base()
     {
         $(".input_os_version_file").val("");
         $("#input_root_disk").val("");
         $("#input_root_lv_size").val("");
-        $("#select_huge_page_size").val("1G");
-        $("#input_huge_page_count").val("");
-        $("#input_isolation_cpu").val("");
         $("#input_ipmi_user").val("");
         $("#input_ipmi_passwd").val("");
+    }
+
+    function CleanHostConfig_computer()
+    {
+        $("#select_huge_page_size").val("1G");
+        $("#input_huge_page_count").val("");
+        $("#input_os_cpus").val("");
+        $("#input_dvs_cpus").val("");
+        $("#input_vcpu_pin_set").val("");
+        $("#input_dvs_high_cpuset").val("");
+        $("#input_pci_high_cpuset").val("");
+    }
+
+    function CleanHostConfig_numa()
+    {
+        $("#input_os_cpus").val("");
+        $("#input_dvs_cpus").val("");
+        $("#input_vcpu_pin_set").val("");
+        $("#input_dvs_high_cpuset").val("");
+        $("#input_pci_high_cpuset").val("");
     }
 
     function IsAllComputerNode()
@@ -268,25 +403,131 @@
         return is_all_computer_node;
     }
 
+    function IsAllNumaCfgSame(cbk)
+    {
+        var $checkbox = $(".table-row-multi-select:checked");
+        var is_all_numacfg_same = true;
+        var cur_check_host_data = cbk.data("host_config");
+
+        $checkbox.each(function(){
+            var host_config = $(this).data("host_config");
+            if( cur_check_host_data["numa_node0"] != host_config["numa_node0"] ||
+                cur_check_host_data["numa_node1"] != host_config["numa_node1"] ||
+                cur_check_host_data["cpu_number"] != host_config["cpu_number"] ||
+                cur_check_host_data["dvs_high_cpuset"] != host_config["dvs_high_cpuset"] ||
+                cur_check_host_data["pci_high_cpuset"] != host_config["pci_high_cpuset"])
+            {
+                is_all_numacfg_same = false;
+                braak;
+            }
+        })
+        return is_all_numacfg_same;
+    }
+
     function ShowHostConfig(cbk)
     {
         var host_config = cbk.data("host_config");
-        $(".input_os_version_file").val(host_config["os_version_file"]);
+        var all_use_dvs = true;
+
+        if (host_config["os_version_file"] != ""){
+            $(".input_os_version_file").val(host_config["os_version_file"]);
+        }
         $("#input_root_disk").val(host_config["root_disk"]);
         $("#input_root_lv_size").val(host_config["root_lv_size"]);
         $("#select_huge_page_size").val(host_config["huge_page_size"]);
         $("#input_huge_page_count").val(host_config["huge_pages"]);
-        $("#input_isolation_cpu").val(host_config["isol_cpus"]);
         $("#input_ipmi_user").val(host_config["ipmi_user"]);
         $("#input_ipmi_passwd").val(host_config["ipmi_passwd"]);
+        if(host_config["os_cpus"] != "")
+            $("#input_os_cpus").val(host_config["os_cpus"]);
+        else
+            $("#input_os_cpus").val(host_config["suggest_os_cpus"]);
+            
+        if(host_config["dvs_cpus"] != "")
+            $("#input_dvs_cpus").val(host_config["dvs_cpus"]);
+        else
+            $("#input_dvs_cpus").val(host_config["suggest_dvs_cpus"]);
+            
+        compute_pinset_value();
+        $("#input_dvs_high_cpuset").val(host_config["dvs_high_cpuset"]);
+        $("#input_pci_high_cpuset").val(host_config["pci_high_cpuset"]);
+
+        var param = {
+            "os_version_file": "#input_os_version_file",
+            "root_disk": "#input_root_disk",
+            "root_lv_size": "#input_root_lv_size",
+            "huge_page_size": "#select_huge_page_size",
+            "huge_pages": "#input_huge_page_count",
+            "ipmi_user": "#input_ipmi_user",
+            "ipmi_passwd": "#input_ipmi_passwd",
+            "os_cpus": "#input_os_cpus",
+            "dvs_cpus": "#input_dvs_cpus",
+            "vcpu_pin_set": "#input_vcpu_pin_set",
+            "dvs_high_cpuset": "#input_dvs_high_cpuset",
+            "pci_high_cpuset": "#input_pci_high_cpuset"
+        };
+
+        for (var key in param)
+        {
+            $(param[key]).css("background-color", '');
+        }
+
+        var $checkbox = $(".table-row-multi-select:checked");
+        $checkbox.each(function(){
+            var eachhost_config = $(this).data("host_config");
+            if(eachhost_config["vswitch_type"] != "dvs")
+                all_use_dvs = false;
+
+            for (var key in param)
+            {
+                if(eachhost_config[key] != host_config[key])
+                {
+                    $(param[key]).val("");
+                    $(param[key]).css("background-color", "#F5F9A7");
+                }                
+            }
+        })
+        
+        document.getElementById("config_error_hint").innerHTML = ""
         if(IsAllComputerNode())
         {
-            $(".COMPUTER").show();
+            $(".COMPUTER").attr("disabled",false); 
+            
+            if(!IsAllNumaCfgSame(cbk))
+            {
+                CleanHostConfig_numa();
+                $(".NUMA").attr("disabled",true); 
+                $(".NUMA").css("background-color", '');
+                $(".btn-default-config").attr("disabled", true);
+                document.getElementById("config_error_hint").innerHTML = '{% trans "The NUMA configuration of the selected node is different." %}';
+            }
+            else
+            {                
+                if(!all_use_dvs)
+                {
+                    document.getElementById("config_error_hint").innerHTML = '{% trans "The selected nodes are not all using DVS." %}'; 
+                    $(".NUMA").attr("disabled",true); 
+                    $(".btn-default-config").attr("disabled", true);
+                    $(".NUMA").css("background-color", '');
+                }
+                else
+                    $(".btn-default-config").attr("disabled", false);
+                    
+            }
         }
         else
         {
-            $(".COMPUTER").hide();
+            CleanHostConfig_computer();
+            $(".COMPUTER").attr("disabled",true);
+            $(".COMPUTER").css("background-color", '');
+            $(".btn-default-config").attr("disabled", true);
+            document.getElementById("config_error_hint").innerHTML = '{% trans "The selected nodes are not all compute nodes." %}';
         }
+        
+        if ($('#tab_baseinfo').hasClass('active'))
+            $(".btn-default-config").hide();
+        else
+            $(".btn-default-config").show();
     }
 
     function ControlAllHostCheckbox()
@@ -299,8 +540,11 @@
             }
             else{
                 $(".table-row-multi-select").attr("checked", false);
-                CleanHostConfig();
+                CleanHostConfig_base();
+                CleanHostConfig_computer();
                 $(".btn-host-config").attr("disabled", true);
+                $(".btn-default-config").attr("disabled", true);
+                document.getElementById("config_error_hint").innerHTML = "";
             }
         })
     }
@@ -326,8 +570,11 @@
             if($(".table-row-multi-select:checked").length == 0)/*全不选*/
             {
                 $(".select_all").attr("checked", false);
+                $(".btn-default-config").attr("disabled", true);
                 $(".btn-host-config").attr("disabled", true);
-                CleanHostConfig();
+                CleanHostConfig_base();
+                CleanHostConfig_computer();
+                document.getElementById("config_error_hint").innerHTML = "";
             }
             else/*显示最后一项*/
             {
@@ -341,13 +588,6 @@
     }
 
     function DodeployCallback (argument) {
-        setTimeout(Timer_dodeploy_delay, 3000);
-        horizon.modals.modal_spinner("");
-    }
-
-    function Timer_dodeploy_delay()
-    {
-        horizon.modals.spinner.modal('hide');
         var next = '{% url "horizon:environment:cluster:overview" cluster_id %}';
         window.location = next;
     }
@@ -377,14 +617,25 @@
     function HostConfigIsChange()
     {
         var is_change = false;
+        var os_version_file = "";
+        if ($(".input_os_version_file").prop("tagName") == "SELECT"){
+            os_version_file = $(".input_os_version_file").text();
+        }
+        else{
+            os_version_file = $(".input_os_version_file").val();
+        }
         var param = {
-            "os_version_file": trim($(".input_os_version_file").val()),
+            "os_version_file": trim(os_version_file),
             "root_disk": $("#input_root_disk").val(),
             "root_lv_size": parseInt($("#input_root_lv_size").val(), 10)
         };
         if (!($(".COMPUTER").is(":hidden")))
         {
-            param["isol_cpus"] = $("#input_isolation_cpu").val();
+            param["os_cpus"] = $("#input_os_cpus").val();
+            param["dvs_cpus"] = $("#input_dvs_cpus").val();
+            param["vcpu_pin_set"] = $("#input_vcpu_pin_set").val();
+            param["dvs_high_cpuset"] = $("#input_dvs_high_cpuset").val();
+            param["pci_high_cpuset"] = $("#input_pci_high_cpuset").val();
             param["huge_page_size"] = $("#select_huge_page_size").val();
             param["huge_pages"] = $("#input_huge_page_count").val();
         }
@@ -432,7 +683,7 @@
                         },
                         regexp: {
                             regexp: '^[a-zA-Z][a-zA-Z0-9_]{0,15}$',
-                            message: '{% trans "Name must begin with letters, and consist of numbers,letters or underscores. The length of name is 1 to 16" %}'
+                            message: '{% trans "Name must begin with letters,and consist of numbers,letters or underscores. The length of name is 4 to 16." %}'
                         }
                     }
                 },
@@ -500,6 +751,12 @@
             {
                 do_post(url, "", DodeployCallback);
             }
+        });
+        $(document).on("click", "#host_config_region", function(){
+            if ($('#tab_baseinfo').hasClass('active'))
+                $(".btn-default-config").hide();
+            else
+                $(".btn-default-config").show();
         });
     }
     horizon.addInitFunction(OnInit);

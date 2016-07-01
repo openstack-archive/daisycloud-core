@@ -52,8 +52,8 @@ class ImageAsAnArtifact(v1_1.ImageAsAnArtifact):
                                    if service['name'] == 'glance')
             try:
                 client = daisyclient.Client(version=2,
-                                             endpoint=glance_endpoint,
-                                             token=context.auth_token)
+                                            endpoint=glance_endpoint,
+                                            token=context.auth_token)
                 legacy_image = client.images.get(self.legacy_image_id)
             except Exception:
                 raise exception.InvalidArtifactPropertyValue(

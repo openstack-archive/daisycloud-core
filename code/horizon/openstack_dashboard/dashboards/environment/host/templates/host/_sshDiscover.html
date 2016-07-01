@@ -1,0 +1,18 @@
+{% extends "horizon/common/_modal_form.html" %}
+{% load i18n %}
+{% load url from future %}
+
+{% block form_id %}ssh_discover_form{% endblock %}
+{% block form_action %}{% url "horizon:environment:host:sshdiscover" host_id %}{% endblock %}
+
+{% block modal_id %}ssh_discover_modal{% endblock %}
+{% block modal-header %}{% trans "SSH Discover Host" %}{% endblock %}
+
+{% block modal-body %}
+  {% include "horizon/common/_form_fields.html" %}
+{% endblock %}
+
+{% block modal-footer %}
+  <input class="btn btn-primary" type="submit" value="{% trans 'Start Discover' %}" />
+  <input type="button" class="btn btn-default cancel pull-right" onclick="operate_close()" value="{% trans 'Cancel' %}" />
+{% endblock %}

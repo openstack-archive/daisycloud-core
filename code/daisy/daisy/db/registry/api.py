@@ -607,4 +607,3 @@ def artifact_publish(client, artifact_id,
     return client.artifact_publish(artifact_id=artifact_id,
                                    type_name=type_name,
                                    type_version=type_version)
-

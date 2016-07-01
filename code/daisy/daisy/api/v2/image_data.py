@@ -33,6 +33,7 @@ _LE = i18n._LE
 
 
 class ImageDataController(object):
+
     def __init__(self, db_api=None, store_api=None,
                  policy_enforcer=None, notifier=None,
                  gateway=None):
@@ -42,7 +43,7 @@ class ImageDataController(object):
             policy = policy_enforcer or daisy.api.policy.Enforcer()
             notifier = notifier or daisy.notifier.Notifier()
             gateway = daisy.gateway.Gateway(db_api, store_api,
-                                             notifier, policy)
+                                            notifier, policy)
         self.gateway = gateway
 
     def _restore(self, image_repo, image):

@@ -23,8 +23,14 @@ Reference implementation server for Daisy orchestration
 
 import os
 import sys
-
 import eventlet
+from oslo_config import cfg
+from oslo_log import log as logging
+from daisy.common import exception
+from daisy.common import config
+from daisy.openstack.common import loopingcall
+from daisy.orchestration.manager import OrchestrationManager
+import six
 
 # Monkey patch socket and time
 eventlet.patcher.monkey_patch(all=False, socket=True, time=True, thread=True)
@@ -37,23 +43,12 @@ possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
 if os.path.exists(os.path.join(possible_topdir, 'daisy', '__init__.py')):
     sys.path.insert(0, possible_topdir)
 
-from oslo_config import cfg
-from oslo_log import log as logging
-import osprofiler.notifier
-import osprofiler.web
-from daisy.common import exception
-from daisy.common import config
-from daisy.common import utils
-from daisy.common import wsgi
-from daisy import notifier
-from daisy.openstack.common import systemd
-from daisy.openstack.common import loopingcall
-from daisy.orchestration.manager import OrchestrationManager
 
 CONF = cfg.CONF
 scale_opts = [
     cfg.StrOpt('auto_scale_interval', default=60,
-               help='Number of seconds between two checkings to compute auto scale status'),
+               help='Number of seconds between two '
+                    'checkings to compute auto scale status'),
 ]
 CONF.register_opts(scale_opts, group='orchestration')
 logging.register_options(CONF)
@@ -62,10 +57,11 @@ logging.register_options(CONF)
 def fail(returncode, e):
     sys.stderr.write("ERROR: %s\n" % six.text_type(e))
 
+
 def main():
     try:
         config.parse_args()
-        logging.setup(CONF,'daisy')
+        logging.setup(CONF, 'daisy')
         timer = loopingcall.FixedIntervalLoopingCall(
             OrchestrationManager.find_auto_scale_cluster)
         timer.start(float(CONF.orchestration.auto_scale_interval)).wait()

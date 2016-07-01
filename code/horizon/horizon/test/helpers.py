@@ -21,7 +21,9 @@ import logging
 import os
 import socket
 import time
+import mox
 
+from horizon import middleware
 from django.contrib.auth.middleware import AuthenticationMiddleware  # noqa
 from django.contrib.auth.models import Permission  # noqa
 from django.contrib.auth.models import User  # noqa
@@ -56,11 +58,6 @@ except ImportError as e:
     # Avoid import failure and force not running selenium tests.
     LOG.warning("{0}, force WITH_SELENIUM=False".format(str(e)))
     os.environ['WITH_SELENIUM'] = ''
-
-
-import mox
-
-from horizon import middleware
 
 
 # Makes output of failing mox tests much easier to read.

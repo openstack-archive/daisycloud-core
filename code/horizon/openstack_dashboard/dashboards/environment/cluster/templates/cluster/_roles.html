@@ -21,6 +21,85 @@
 
 <script src="{{ STATIC_URL }}dashboard/bootstrapValidator.js"></script>
 <script type='text/javascript' charset='utf-8'>
+    function AddNewFieldValidator(type_name, last_index){
+        var field_name = type_name + "_data_ip";
+        if (last_index != null){
+            field_name += last_index;
+        }
+        $('.form-roles-validator').bootstrapValidator('addField', field_name, {
+            validators: {
+
+                callback: {
+                    callback: function(value, validator){
+                        if((type_name == "db") && ($("#db_backend_type_sharecluster").attr('checked') == 'checked')) 
+                            return true;
+                        if(((type_name == "db1") ||(type_name == "db2")) && ($("#db_backend_type_share").attr('checked') == 'checked'))
+                            return true;
+                        if ($("#" + type_name +"_protocol_type").val() == 'FIBER'){
+                            var reg = new RegExp("^([0-9A-Fa-f]{2}[:]){7}([0-9A-Fa-f]{2})$");
+                            if (!reg.test(value))
+                                return false;
+                        }
+                        else{
+                            var reg = new RegExp("^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[0-9])$");
+                            if (!reg.test(value))
+                                return false;
+                        }
+                        return true;
+                    },
+                    message: '{% trans "Service address is error, ISCSI/CEPH format as: xxx.xxx.xxx.xxx,FIBER format as:xx:xx:xx:xx:xx:xx:xx:xx" %}'
+                }
+            }
+        });
+    }
+
+    function BackEndTypeClick(type_name){
+        $(".form-" + type_name).addClass("hide");
+        $(".form-" + type_name + "-lv-size").addClass("hide");
+        if(type_name == "db")
+        {            
+            $(".form-db1").addClass("hide");
+            $(".form-db2").addClass("hide");
+        }
+
+        if($("#" + type_name + "_backend_type_share").attr('checked') == 'checked') {
+            $(".form-" + type_name).removeClass('hide');
+            AddNewFieldValidator(type_name);
+        }
+        if($("#" + type_name + "_backend_type_local").attr('checked') == 'checked') {
+            $(".form-" + type_name + "-lv-size").removeClass('hide');
+            $('.form-roles-validator').bootstrapValidator('removeField', type_name + "_data_ip");
+        }
+        if((type_name == "db") && ($("#" + type_name + "_backend_type_sharecluster").attr('checked') == 'checked')) {
+            $(".form-db1").removeClass('hide');
+            $(".form-db2").removeClass('hide');
+            AddNewFieldValidator("db1");
+            AddNewFieldValidator("db2");
+        }
+    }
+
+    function AddServiceAddressClick(type_name){
+        $template = $("#" + type_name + "_data_ip_template");
+        $new_field = $template.clone().addClass('form-' + type_name).insertBefore("#" + type_name + "_data_ip_last_index").show();
+
+        var last_index = $("#" + type_name + "_data_ip_last_index").val();
+        $new_field
+            .find('input:first')
+                .attr('name', type_name + "_data_ip" + last_index)
+                .attr('value', "")
+                .attr('onkeydown', "if(event.keyCode==32||event.keyCode==188||event.keyCode==222){return false;}")
+                .end()
+            .on('click', '.delete_' + type_name + '_data_ip', function() {
+                // Remove field and validator
+                $('.form-roles-validator').bootstrapValidator('removeField', type_name + "_data_ip" + last_index);
+                $(this).parent().remove();
+            });
+
+        // Add new field validator
+        AddNewFieldValidator(type_name, last_index);
+        $("#" + type_name + "_data_ip_last_index").val((parseInt(last_index, 10) + 1).toString());
+    }
+
     $(function(){
         $('.form-roles-validator').bootstrapValidator({
             message: 'This value is not valid',
@@ -31,37 +110,41 @@
                 validating: 'glyphicon glyphicon-refresh'
             },
             fields: {
-{% if not has_zenic %}
                 ha_float_ip: {
                     validators: {
-                        notEmpty: {
-                            message: '{% trans "Float IP address can not be empty, please input" %}'
-                        },
-                        ip: {
-                            message: '{% trans "Float IP address format is wrong,correct format is:xxx.xxx.xxx.xxx" %}'
+                        callback: {
+                            callback: function(value, validator) {
+                                if ($(".ha_float_ip_auto").attr('checked') != 'checked'){
+                                    var reg = new RegExp("^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[0-9])$");
+                                    if (!reg.test(value))
+                                        return false;
+                                    }
+                                return true;
+                            },
+                            message: '{% trans "Float IP address can not be empty, correct format is:xxx.xxx.xxx.xxx" %}'
                         }
                     }
                 },
                 glance_float_ip: {
                     validators: {
-                        callback: {
-                            callback: CheckIP,
+                        ip: {
                             message: "{% trans 'Float IP address format is wrong,correct format is:xxx.xxx.xxx.xxx' %}"
                         }
                     }
                 },
                 db_float_ip: {
                     validators: {
-                        callback: {
-                            callback: CheckIP,
+                        ip: {
                             message: "{% trans 'Float IP address format is wrong,correct format is:xxx.xxx.xxx.xxx' %}"
                         }
                     }
                 },
                 public_float_ip: {
                     validators: {
-                        callback: {
-                            callback: CheckIP,
+                        notEmpty: {
+                            message: '{% trans "Float IP address can not be empty, please input" %}'
+                        },
+                        ip: {
                             message: "{% trans 'Float IP address format is wrong,correct format is:xxx.xxx.xxx.xxx' %}"
                         }
                     }
@@ -79,8 +162,9 @@
                             callback: function(value, validator) {
                                 if ($("#glance_backend_type_share").attr('checked') == 'checked'){
                                     if (value == "")
-                                        return true;
-                                    if ((isNaN(value)) || (parseInt(value, 10) < 0))
+                                        return false;
+                                    var reg = new RegExp("^[0-9]*$");
+                                    if (!reg.test(value))
                                         return false;
                                 }
                                 return true;
@@ -95,13 +179,14 @@
                             callback: function(value, validator) {
                                 if ($("#glance_backend_type_local").attr('checked') == 'checked'){
                                     if (value == "")
-                                        return true;
-                                    if ((isNaN(value)) || (parseInt(value, 10) < 0))
+                                        return false;
+                                    var reg = new RegExp("^[1-9][0-9]*$");
+                                    if (!reg.test(value))
                                         return false;
                                 }
                                 return true;
                             },
-                            message: '{% trans "Glance disk size is error, must be an integer not less than 0" %}'
+                            message: '{% trans "Glance disk size is error, must be an integer greater than 0" %}'
                         }
                     }
                 },
@@ -111,13 +196,48 @@
                             callback: function(value, validator) {
                                 if ($("#db_backend_type_share").attr('checked') == 'checked'){
                                     if (value == "")
-                                        return true;
-                                    if ((isNaN(value)) || (parseInt(value, 10) < 0))
+                                        return false;
+                                    var reg = new RegExp("^[0-9]*$");
+                                    if (!reg.test(value))
                                         return false;
                                 }
                                 return true;
                             },
                             message: '{% trans "Db LUN is error, must be an integer not less than 0" %}'
+                        }
+                    }
+                },
+                db1_lun: {
+                    validators: {
+                        callback: {
+                            callback: function(value, validator) {
+                                if ($("#db_backend_type_sharecluster").attr('checked') == 'checked'){
+                                    if (value == "")
+                                        return false;
+                                    var reg = new RegExp("^[0-9]*$");
+                                    if (!reg.test(value))
+                                        return false;
+                                }
+                                return true;
+                            },
+                            message: '{% trans "Db1 LUN is error, must be an integer not less than 0" %}'
+                        }
+                    }
+                },
+                db2_lun: {
+                    validators: {
+                        callback: {
+                            callback: function(value, validator) {
+                                if ($("#db_backend_type_sharecluster").attr('checked') == 'checked'){
+                                    if (value == "")
+                                        return false;
+                                    var reg = new RegExp("^[0-9]*$");
+                                    if (!reg.test(value))
+                                        return false;
+                                }
+                                return true;
+                            },
+                            message: '{% trans "Db2 LUN is error, must be an integer not less than 0" %}'
                         }
                     }
                 },
@@ -127,8 +247,9 @@
                             callback: function(value, validator) {
                                 if ($("#db_backend_type_local").attr('checked') == 'checked'){
                                     if (value == "")
-                                        return true;
-                                    if ((isNaN(value)) || (parseInt(value, 10) < 0))
+                                        return false;
+                                    var reg = new RegExp("^[0-9]*$");
+                                    if (!reg.test(value))
                                         return false;
                                 }
                                 return true;
@@ -137,17 +258,89 @@
                         }
                     }
                 },
-                lb_float_ip: {
+                mongodb_lun: {
                     validators: {
-                        notEmpty: {
-                            message: '{% trans "Float IP address can not be empty, please input" %}'
-                        },
-                        ip: {
-                            message: '{% trans "Float IP address format is wrong,correct format is:xxx.xxx.xxx.xxx" %}'
+                        callback: {
+                            callback: function(value, validator) {
+                                if ($("#mongodb_backend_type_share").attr('checked') == 'checked'){
+                                    if (value == "")
+                                        return false;
+                                    var reg = new RegExp("^[0-9]*$");
+                                    if (!reg.test(value))
+                                        return false;
+                                }
+                                return true;
+                            },
+                            message: '{% trans "MongoDB LUN is error, must be an integer not less than 0" %}'
                         }
                     }
-                }
-{% else %}
+                },
+                mongodb_lv_size: {
+                    validators: {
+                        callback: {
+                            callback: function(value, validator) {
+                                if ($("#mongodb_backend_type_local").attr('checked') == 'checked'){
+                                    if (value == "")
+                                        return false;
+                                    var reg = new RegExp("^[0-9]*$");
+                                    if (!reg.test(value))
+                                        return false;
+                                }
+                                return true;
+                            },
+                            message: '{% trans "MongoDB disk size is error, must be an integer not less than 0" %}'
+                        }
+                    }
+                },
+                dbbackup_lun: {
+                    validators: {
+                        callback: {
+                            callback: function(value, validator) {
+                                if ($("#dbbackup_backend_type_share").attr('checked') == 'checked'){
+                                    if (value == "")
+                                        return false;
+                                    var reg = new RegExp("^[0-9]*$");
+                                    if (!reg.test(value))
+                                        return false;
+                                }
+                                return true;
+                            },
+                            message: '{% trans "dbbackup LUN is error, must be an integer not less than 0" %}'
+                        }
+                    }
+                },
+                dbbackup_lv_size: {
+                    validators: {
+                        callback: {
+                            callback: function(value, validator) {
+                                if ($("#dbbackup_backend_type_local").attr('checked') == 'checked'){
+                                    if (value == "")
+                                        return false;
+                                    var reg = new RegExp("^[0-9]*$");
+                                    if (!reg.test(value))
+                                        return false;
+                                }
+                                return true;
+                            },
+                            message: '{% trans "dbbackup disk size is error, must be an integer not less than 0" %}'
+                        }
+                    }
+                },                
+                lb_float_ip: {
+                    validators: {
+                        callback: {
+                            callback: function(value, validator) {
+                                if ($(".ha_float_ip_auto").attr('checked') != 'checked'){
+                                    var reg = new RegExp("^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[0-9])$");
+                                    if (!reg.test(value))
+                                        return false;
+                                    }
+                                return true;
+                            },
+                            message: '{% trans "Float IP address can not be empty, correct format is:xxx.xxx.xxx.xxx" %}'
+                        }
+                    }
+                },
                 zenic_nfm_float_ip: {
                     validators: {
                         notEmpty: {
@@ -174,89 +367,45 @@
                             message: '{% trans "Float IP address format is wrong,correct format is:xxx.xxx.xxx.xxx" %}'
                         }
                     }
+                },
+                nova_lv_size: {
+                    validators: {
+                        notEmpty: {
+                            message: '{% trans "Nova disk size can not be empty, please input" %}'
+                        },
+                        greaterThan: {
+                            value: 0,
+                            message: '{% trans "Nova disk size cannot be less than 0" %}'
+                        }
+                    }
                 }
-{% endif %}
             }
         }).on('error.form.bv', function(e) {
             // Active the panel element containing the first invalid element
             var $form         = $(e.target),
                 validator     = $form.data('bootstrapValidator'),
                 $invalidField = validator.getInvalidFields().eq(0),
-                $collapse     = $invalidField.parents('.collapse');        
-
-            $collapse.collapse('show');
+                $collapse     = $invalidField.parents('.collapse');
+            if (!$collapse.hasClass("in")){
+                $collapse.collapse('show');
+            }
         });
         
         $(".glance_backend_type").on("click", function(){
-            $(".form-glance").addClass("hide");
-            $(".form-glance-lv-size").addClass("hide");
-    
-            if($("#glance_backend_type_share").attr('checked') == 'checked') {
-                $(".form-glance").removeClass('hide');
-                $('.form-roles-validator').bootstrapValidator('addField', "glance_data_ip", {
-                        validators: {
-                            notEmpty: {
-                                message: '{% trans "Glance service IP can not be empty, please input" %}'
-                            },
-                            ip: {
-                                message: '{% trans "Glance service IP is error, format as: xxx.xxx.xxx.xxx" %}'
-                            }
-                        }
-                    });
-            }
-            if($("#glance_backend_type_local").attr('checked') == 'checked') {
-                $(".form-glance-lv-size").removeClass('hide');
-                $('.form-roles-validator').bootstrapValidator('removeField', "glance_data_ip");
-            }
+            BackEndTypeClick("glance");
         });
     
         $(".db_backend_type").on("click", function(){
-            $(".form-db").addClass("hide");
-            $(".form-db-lv-size").addClass("hide");
-    
-            if($("#db_backend_type_share").attr('checked') == 'checked') {
-                $(".form-db").removeClass('hide');
-                $('.form-roles-validator').bootstrapValidator('addField', "db_data_ip", {
-                        validators: {
-                            notEmpty: {
-                                message: '{% trans "Db service IP can not be empty, please input" %}'
-                            },
-                            ip: {
-                                message: '{% trans "Db service IP is error, format as: xxx.xxx.xxx.xxx" %}'
-                            }
-                        }
-                    });
-            }
-            if($("#db_backend_type_local").attr('checked') == 'checked') {
-                $(".form-db-lv-size").removeClass('hide');
-                $('.form-roles-validator').bootstrapValidator('removeField', "db_data_ip");
-            }
+            BackEndTypeClick("db");
         });
     
         $(".mongodb_backend_type").on("click", function(){
-            $(".form-mongodb").addClass("hide");
-            $(".form-mongodb-lv-size").addClass("hide");
-    
-            if($("#mongodb_backend_type_share").attr('checked') == 'checked') {
-                $(".form-mongodb").removeClass('hide');
-                $('.form-roles-validator').bootstrapValidator('addField', "mongodb_data_ip", {
-                        validators: {
-                            notEmpty: {
-                                    message: '{% trans "Db service IP can not be empty, please input" %}'
-                                },
-                            callback: {
-                                callback: checkIP,
-                                message: '{% trans "Db service IP is error, format as: x.x.x.x,x.x.x.x ..." %}'
-                            }
-                        }
-                    });
-            }
-    
-            if($("#mongodb_backend_type_local").attr('checked') == 'checked') {
-                $(".form-mongodb-lv-size").removeClass('hide');
-                $('.form-roles-validator').bootstrapValidator('removeField', "mongodb_data_ip");
-            }
-        })
+            BackEndTypeClick("mongodb");
+        });
+
+        $(".dbbackup_backend_type").on("click", function(){
+            BackEndTypeClick("dbbackup");
+        });
     
         $(".cinder_backend_type").on("click", function(){
             $(".form-cinder").addClass("hide");
@@ -271,96 +420,33 @@
         })
         
         $(".add_glance_data_ip").on('click', function() {
-            $template = $("#glance_data_ip_template");
-            $new_field = $template.clone().addClass('form-glance').insertBefore($template).show();
-
-            var last_index = $("#glance_data_ip_last_index").val();
-            $new_field
-                .find('input:first')
-                    .attr('name', "glance_data_ip" + last_index)
-                    .attr('value', "")
-                    .attr('onkeydown', "if(event.keyCode==32||event.keyCode==188||event.keyCode==222){return false;}")
-                    .end()
-                .on('click', '.delete_glance_data_ip', function() {
-                    // Remove field and validator
-                    $('.form-roles-validator').bootstrapValidator('removeField', "glance_data_ip" + last_index);
-                    $(this).parent().remove();
-                });
-
-            // Add new field validator
-            $('.form-roles-validator').bootstrapValidator('addField', "glance_data_ip" + last_index, {
-                validators: {
-                    notEmpty: {
-                        message: '{% trans "Glance service IP can not be empty, please input" %}'
-                    },
-                    ip: {
-                        message: '{% trans "Glance service IP is error, format as: xxx.xxx.xxx.xxx" %}'
-                    }
-                }
-            });
-            $("#glance_data_ip_last_index").val((parseInt(last_index, 10) + 1).toString());
+            AddServiceAddressClick("glance");
         });
         
         $(".add_db_data_ip").on('click', function() {
-            $template = $("#db_data_ip_template");
-            $new_field = $template.clone().addClass('form-db').insertBefore($template).show();
+            AddServiceAddressClick("db");
+        });
 
-            var last_index = $("#db_data_ip_last_index").val();
-            $new_field
-                .find('input:first')
-                    .attr('name', "db_data_ip" + last_index)
-                    .attr('value', "")
-                    .attr('onkeydown', "if(event.keyCode==32||event.keyCode==188||event.keyCode==222){return false;}")
-                    .end()
-                .on('click', '.delete_db_data_ip', function() {
-                    // Remove field and validator
-                    $('.form-roles-validator').bootstrapValidator('removeField', "db_data_ip" + last_index);
-                    $(this).parent().remove();
-                });
+        $(".add_db1_data_ip").on('click', function() {
+            AddServiceAddressClick("db1");
+        });
 
-            // Add new field validator
-            $('.form-roles-validator').bootstrapValidator('addField', "db_data_ip" + last_index, {
-                validators: {
-                    notEmpty: {
-                        message: '{% trans "Db service IP can not be empty, please input" %}'
-                    },
-                    ip: {
-                        message: '{% trans "Db service IP is error, format as: xxx.xxx.xxx.xxx" %}'
-                    }
-                }
-            });
-            $("#db_data_ip_last_index").val((parseInt(last_index, 10) + 1).toString());
+        $(".add_db2_data_ip").on('click', function() {
+            AddServiceAddressClick("db2");
         });
 
         $(".add_mongodb_data_ip").on('click', function() {
-            $template = $("#mongodb_data_ip_template");
-            $new_field = $template.clone().addClass('form-mongodb').insertBefore($template).show();
-
-            var last_index = $("#mongodb_data_ip_last_index").val();
-            $new_field
-                .find('input:first')
-                    .attr('name', "mongodb_data_ip" + last_index)
-                    .end()
-                .on('click', '.delete_mongodb_data_ip', function() {
-                    // Remove field and validator
-                    $('.form-roles-validator').bootstrapValidator('removeField', "mongodb_data_ip" + last_index);
-                    $(this).parent().remove();
-                });
-
-            // Add new field validator
-            $('.form-roles-validator').bootstrapValidator('addField', "mongodb_data_ip" + last_index, {
-                validators: {
-                    notEmpty: {
-                            message: '{% trans "Db service IP can not be empty, please input" %}'
-                        },
-                    callback: {
-                        callback: checkIP,
-                        message: '{% trans "Db service IP is error, format as: x.x.x.x,x.x.x.x ..." %}'
-                    }
-                }
-            });
-            $("#mongodb_data_ip_last_index").val((parseInt(last_index, 10) + 1).toString());
+            AddServiceAddressClick("mongodb");
         });
+
+        $(".add_dbbackup_data_ip").on('click', function() {
+            AddServiceAddressClick("dbbackup");
+        });
+        
+        var $panel_collapse = $("form.form-roles-validator div.panel-default:first div.panel-collapse");
+        if (!$panel_collapse.hasClass("in")){
+            $panel_collapse.addClass("in");
+        }
     });
     
     function AddCinderVolume(cinder_volume){
@@ -486,7 +572,7 @@
         $("#cinder_data_ip_last_index").val("1");
         $("#cinder_data_ip").val("");
         $('.form-cinder-validator').bootstrapValidator('removeField', "cinder_data_ip");
-        $(".form-fujistu").addClass('hide');
+        $(".form-fujitsu").addClass('hide');
         
         $("#cinder_volume_type").val("");
         $("#cinder_pools").val("");
@@ -537,12 +623,14 @@
             $("#cinder_volume_driver").val(0);
         else if (cinder_info["cinder_volume_driver"] == "KS3200_FCSAN")
             $("#cinder_volume_driver").val(1);
-        else if (cinder_info["cinder_volume_driver"] == "FUJISTU_ETERNUS")
+        else if (cinder_info["cinder_volume_driver"] == "FUJITSU_ETERNUS")
             $("#cinder_volume_driver").val(2);
+        else if (cinder_info["cinder_volume_driver"] == "HP3PAR_FCSAN")
+            $("#cinder_volume_driver").val(3);
         else
             $("#cinder_volume_driver").val(0);
         if (cinder_info["cinder_data_ips"].length > 0){
-            $(".form-fujistu").removeClass('hide');
+            $(".form-fujitsu").removeClass('hide');
             $('.form-cinder-validator').bootstrapValidator('addField', "cinder_data_ip", {
                     validators: {
                         notEmpty: {
@@ -601,17 +689,32 @@
         $("#CinderModal").modal('toggle');
     }
     
+    function GetDiskSizeForComponet(name){
+        var lv_size = -1;
+        var checked = $(".auto_assgign_" + name).attr("checked") == "checked";
+        if (!checked){
+            lv_size = parseInt($("#" + name + "_lv_size").val(), 10) * 1024;
+        }
+        return lv_size;
+    }
+    
     function get_ha_role_values(){
         var glance_lv_size = 0;
         var db_lv_size = 0;
         var mongodb_lv_size = -1;
+        var dbbackup_lv_size = -1;
 
-        if ($(".glance_backend_type:checked").val() == 0)
-            glance_lv_size = parseInt($("#glance_lv_size").val(), 10);
-        if ($(".db_backend_type:checked").val() == 0)
-            db_lv_size = parseInt($("#db_lv_size").val(), 10);
-        if($("#mongodb_backend_type_local").attr('checked') == 'checked') {
-            mongodb_lv_size = parseInt($("#mongodb_lv_size").val(), 10);
+        if ($(".glance_backend_type:checked").val() == 0){
+            glance_lv_size = GetDiskSizeForComponet("glance");
+        }
+        if ($(".db_backend_type:checked").val() == 0){
+            db_lv_size = GetDiskSizeForComponet("db");
+        }
+        if($("#mongodb_backend_type_local").attr('checked') == 'checked'){
+            mongodb_lv_size = GetDiskSizeForComponet("mongodb");
+        }
+        if($("#dbbackup_backend_type_local").attr('checked') == 'checked'){
+            dbbackup_lv_size = GetDiskSizeForComponet("dbbackup");
         }
         
         var cinder_volume_array = new Array();
@@ -633,32 +736,59 @@
         var param = {
             'role_id':                  $("#ha_role_id").val(),
             'name':                     $("#ha_role_name").val(),
-            "vip":                      $("#ha_float_ip").val(),
-            "glance_vip":               $("#glance_float_ip").val(),
-            "db_vip":                   $("#db_float_ip").val(),
             "public_vip":               $("#public_float_ip").val(),
             "ntp_ip":                   $("#ha_ntp_ip").val(),    
 
             "glance_service_id":        $("#glance_service_id").val(),
             "glance_disk_location":     "local",
+            "glance_protocol_type":     $("#glance_protocol_type").val(),
             "glance_lun":               parseInt($("#glance_lun").val(), 10),
             "glance_data_ips":          $("#glance_data_ip").val(),
-            "glance_lv_size":           glance_lv_size * 1024,
+            "glance_lv_size":           glance_lv_size,
             
-            "db_service_id":            $("#db_service_id").val(),
             "db_disk_location":         "local",
+
+            "db_service_id":            $("#db_service_id").val(),
+            "db_protocol_type":         $("#db_protocol_type").val(),
             "db_lun":                   parseInt($("#db_lun").val(), 10),
             "db_data_ips":              $("#db_data_ip").val(),
-            "db_lv_size":               db_lv_size * 1024,
+            "db_lv_size":               db_lv_size,
+
+            "db1_service_id":            $("#db1_service_id").val(),
+            "db1_protocol_type":         $("#db1_protocol_type").val(),
+            "db1_lun":                   parseInt($("#db1_lun").val(), 10),
+            "db1_data_ips":              $("#db1_data_ip").val(),
+
+            "db2_service_id":            $("#db2_service_id").val(),
+            "db2_protocol_type":         $("#db2_protocol_type").val(),
+            "db2_lun":                   parseInt($("#db2_lun").val(), 10),
+            "db2_data_ips":              $("#db2_data_ip").val(),
            
             "mongodb_service_id":       $("#mongodb_service_id").val(),
             "mongodb_disk_location":    "local",
+            "mongodb_protocol_type":    $("#mongodb_protocol_type").val(),
             "mongodb_lun":              parseInt($("#mongodb_lun").val(), 10),
             "mongodb_data_ips":         $("#mongodb_data_ip").val(),
-            "mongodb_lv_size":          mongodb_lv_size >= 0 ? mongodb_lv_size * 1024: -1,
+            "mongodb_lv_size":          mongodb_lv_size,
+
+            "dbbackup_service_id":       $("#dbbackup_service_id").val(),
+            "dbbackup_disk_location":    "local",
+            "dbbackup_protocol_type":    $("#dbbackup_protocol_type").val(),
+            "dbbackup_lun":              parseInt($("#dbbackup_lun").val(), 10),
+            "dbbackup_data_ips":         $("#dbbackup_data_ip").val(),
+            "dbbackup_lv_size":          dbbackup_lv_size,
 
             "cinder_volume_array":      cinder_volume_array,
             }
+        if ($(".ha_float_ip_auto").attr("checked") != 'checked'){
+            param['vip'] = $("#ha_float_ip").val();
+        }
+        if ($(".glance_float_ip_auto").attr("checked") != 'checked'){
+            param['glance_vip'] = $("#glance_float_ip").val();   
+        }
+        if ($(".db_float_ip_auto").attr("checked") != 'checked'){
+            param['db_vip'] = $("#db_float_ip").val();
+        }
         for(var i=parseInt($("#glance_data_ip_last_index").val()) -1 ; i >= 1; i--){
             var input_ip = "glance_data_ip" + i.toString();
             var input_ip_val = $("input[name='" + input_ip + "']").val();
@@ -671,24 +801,50 @@
             if (input_ip_val != undefined)
                 param["db_data_ips"] += "," + input_ip_val;
         }
+        for(var i=parseInt($("#db1_data_ip_last_index").val()) -1 ; i >= 1; i--){
+            var input_ip = "db1_data_ip" + i.toString();
+            var input_ip_val = $("input[name='" + input_ip + "']").val();
+            if (input_ip_val != undefined)
+                param["db1_data_ips"] += "," + input_ip_val;
+        }
+        for(var i=parseInt($("#db2_data_ip_last_index").val()) -1 ; i >= 1; i--){
+            var input_ip = "db2_data_ip" + i.toString();
+            var input_ip_val = $("input[name='" + input_ip + "']").val();
+            if (input_ip_val != undefined)
+                param["db2_data_ips"] += "," + input_ip_val;
+        }
         for(var i=parseInt($("#mongodb_data_ip_last_index").val()) -1 ; i >= 1; i--){
             var input_ip = "mongodb_data_ip" + i.toString();
             var input_ip_val = $("input[name='" + input_ip + "']").val();
             if (input_ip_val != undefined)
                 param["mongodb_data_ips"] += "," + input_ip_val;
         }        
+        
+        for(var i=parseInt($("#dbbackup_data_ip_last_index").val()) -1 ; i >= 1; i--){
+            var input_ip = "dbbackup_data_ip" + i.toString();
+            var input_ip_val = $("input[name='" + input_ip + "']").val();
+            if (input_ip_val != undefined)
+                param["dbbackup_data_ips"] += "," + input_ip_val;
+        }
+        
         if ($("#glance_backend_type_share").attr('checked') == 'checked') 
             param["glance_disk_location"] = "share";
         if ($("#glance_backend_type_ceph").attr('checked') == 'checked') 
             param["glance_disk_location"] = "ceph";
         if ($("#db_backend_type_share").attr('checked') == 'checked') 
             param["db_disk_location"] = "share";
+        if ($("#db_backend_type_sharecluster").attr('checked') == 'checked') 
+            param["db_disk_location"] = "share_cluster";
         if ($("#db_backend_type_ceph").attr('checked') == 'checked') 
             param["db_disk_location"] = "ceph";
         if ($("#mongodb_backend_type_share").attr('checked') == 'checked') 
             param["mongodb_disk_location"] = "share";
         if ($("#mongodb_backend_type_ceph").attr('checked') == 'checked') 
             param["mongodb_disk_location"] = "ceph";
+        if ($("#dbbackup_backend_type_share").attr('checked') == 'checked') 
+            param["dbbackup_disk_location"] = "share";
+        if ($("#dbbackup_backend_type_ceph").attr('checked') == 'checked') 
+            param["dbbackup_disk_location"] = "ceph";
 
         return param
     }
@@ -696,9 +852,10 @@
     function get_lb_role_values(){
         var param = {
             'role_id': $("#lb_role_id").val(),
-            'name': $("#lb_role_name").val(),
-            "vip": $("#lb_float_ip").val()}
-
+            'name': $("#lb_role_name").val()}
+        if ($(".lb_float_ip_auto").attr("checked") != "checked"){
+            param["vip"] = $("#lb_float_ip").val();
+        }
         return param
     }
     
@@ -720,12 +877,35 @@
 
         return param
     }
+
+    function get_computer_info(){
+        var param = {
+            "nova_lv_size": GetDiskSizeForComponet("nova")
+        }
+        return param;
+    }
+
+    function AutoAssignedIP(bind_input_name){
+        var bind_input = $("#" + bind_input_name);
+        var is_disabled = bind_input.attr("disabled");
+        bind_input.attr("disabled", !is_disabled);
+    }
+
+    function AutoAssignedDisk2Componet(name){
+        var checked = $(".auto_assgign_" + name).attr("checked") == "checked";
+        if (checked){
+            $("#" + name + "_lv_size").val("");
+        }
+        $("#" + name + "_lv_size").attr("disabled", checked); 
+    }
+
 </script>
 
 <div class="panel-group" role="tablist" aria-multiselectable="true">
     <form class="form-horizontal form-roles-validator">
-{% if not has_zenic %}
-        <div class="panel panel-default" style="border-left: 3px solid {{0|get_color}}">
+{% for role in roles %}
+    {% ifequal role.name "CONTROLLER_HA" %}        
+        <div class="panel panel-default panel_{{role.name}}" style="border-left: 3px solid {{0|get_color}}">
             <div class="panel-heading" role="tab" id="heading_ha">
                 <h3 class="panel-title">
                     <a role="button" data-toggle="collapse" data-parent="#selector" href="#collapse_ha" aria-expanded="true" aria-controls="collapse_ha">
@@ -739,7 +919,12 @@
                         <div style="clear:both" class="form-group">
                             <label for="ha_float_ip" class="col-sm-3 control-label" style="text-align:right;">{% trans "Float IP" %}</label>
                             <div class="col-sm-4">
-                                <input type="text" class="form-control" id="ha_float_ip" name="ha_float_ip" placeholder="{% trans 'Float IP' %}" onkeydown="if(event.keyCode==32||event.keyCode==188||event.keyCode==222){return false;}" >
+                                <input type="text" class="form-control" id="ha_float_ip" name="ha_float_ip" placeholder="{% trans 'Float IP' %}">
+                            </div>
+                            <div class="col-sm-4 checkbox dv_ha_float_ip_auto">
+                                <label>
+                                    <input type="checkbox" class="auto_assgign_ip ha_float_ip_auto" onclick="AutoAssignedIP('ha_float_ip')">{% trans 'Automatically assigned' %}
+                                </label>
                             </div>
                         </div>
                         <div style="clear:both" class="form-group">
@@ -747,11 +932,21 @@
                             <div class='col-sm-4'>
                                 <input type="text" class="form-control" id="glance_float_ip" name="glance_float_ip" placeholder='Glance {% trans "Float IP" %}'>
                             </div>
+                            <div class="col-sm-4 checkbox dv_glance_float_ip_auto">
+                                <label>
+                                    <input type="checkbox" class="auto_assgign_ip glance_float_ip_auto" onclick="AutoAssignedIP('glance_float_ip')">{% trans 'Automatically assigned' %}
+                                </label>
+                            </div>
                         </div>
                         <div style="clear:both" class="form-group">
                             <label for="db_float_ip" class="col-sm-3 control-label" style="text-align:right;">DB {% trans "Float IP" %}</label>
                             <div class='col-sm-4'>
                                 <input type="text" class="form-control" id="db_float_ip" name="db_float_ip" placeholder='DB {% trans "Float IP" %}'>
+                            </div>
+                            <div class="col-sm-4 checkbox dv_db_float_ip_auto">
+                                <label>
+                                    <input type="checkbox" class="auto_assgign_ip db_float_ip_auto" onclick="AutoAssignedIP('db_float_ip')">{% trans 'Automatically assigned' %}
+                                </label>
                             </div>
                         </div>
                         <div style="clear:both" class="form-group">
@@ -763,7 +958,7 @@
                         <div style="clear:both" class="form-group">
                             <label for="ha_ntp_ip" class="col-sm-3 control-label" style="text-align:right;">{% trans "NTP IP" %}</label>
                             <div class="col-sm-4">
-                                <input type="text" class="form-control" id="ha_ntp_ip" name="ha_ntp_ip" placeholder="{% trans 'NTP IP' %}" onkeydown="if(event.keyCode==32||event.keyCode==188||event.keyCode==222){return false;}">
+                                <input type="text" class="form-control" id="ha_ntp_ip" name="ha_ntp_ip" placeholder="{% trans 'NTP IP' %}">
                             </div>
                         </div>
                     </div>
@@ -787,6 +982,17 @@
                         <div style="clear:both" class="form-group form-glance hide">
                             <label class="col-sm-3"></label>
                             <div class="col-sm-4">
+                                <label for="glance_lun" class="control-label" style="text-align:left; width:35%; ">{% trans "Protocol Type" %}</label>
+                                <select id="glance_protocol_type" class="form-control" style="float:right; width:60%;">
+                                    <option value="ISCSI">ISCSI</option>
+                                    <option value="FIBER">FIBER</option>
+                                    <option value="CEPH">CEPH</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="clear:both" class="form-group form-glance hide">
+                            <label class="col-sm-3"></label>
+                            <div class="col-sm-4">
                                 <label for="glance_lun" class="control-label" style="text-align:left; width:35%; ">{% trans "LUN" %}</label>
                                 <input type="text" class="form-control" id="glance_lun" name="glance_lun" value="0" style="float:right; width:60%;" placeholder="{% trans 'LUN id' %}">
                             </div>
@@ -794,8 +1000,8 @@
                         <div style="clear:both" class="form-group form-glance hide">
                             <label class="col-sm-3"></label>
                             <div class="col-sm-4">
-                                <label for="glance_data_ip" class="control-label" style="text-align:left; width:35%; ">{% trans "Service IPs" %}</label>
-                                <input type="text" class="form-control" id="glance_data_ip" name="glance_data_ip" style="float:right; width:60%;" placeholder="{% trans 'Service IP' %}" onkeydown="if(event.keyCode==32||event.keyCode==188||event.keyCode==222){return false;}">
+                                <label for="glance_data_ip" class="control-label" style="text-align:left; width:35%; ">{% trans "Service Address" %}</label>
+                                <input type="text" class="form-control" id="glance_data_ip" name="glance_data_ip" style="float:right; width:60%;" placeholder="{% trans 'Service Address' %}">
                             </div>
                             <a href="#" class="add_glance_data_ip" style="line-height:28px;">
                                 <span class="glyphicon glyphicon-plus"></span>
@@ -817,13 +1023,17 @@
                             <label class="col-sm-3"></label>
                             <div class="col-sm-4">
                                 <label for="glance_lv_size" class="control-label" style="text-align:left; width:35%; ">{% trans "Glance LV Size(GB)" %}</label>
-                                <input type="text" class="form-control" id="glance_lv_size" name="glance_lv_size" value="0" style="float:right; width:60%;" placeholder="{% trans 'Glance LV Size(GB)' %}">
+                                <input type="text" class="form-control" id="glance_lv_size" name="glance_lv_size" value="50" style="float:right; width:60%;" placeholder="{% trans 'Glance LV Size(GB)' %}">
+                            </div>
+                            <div class="col-sm-4 checkbox">
+                                <label>
+                                    <input type="checkbox" class="auto_assgign_glance" onclick="AutoAssignedDisk2Componet('glance')">{% trans 'The remaining hard disk space allocated to glance' %}
+                                </label>
                             </div>
                         </div>
                     </div>
     
                     <div id="set_role_db">
-                        <input type="hidden" id="db_service_id" name="db_service_id">
                         <div style="clear:both" class="form-group">
                             <label class="col-sm-3 control-label" style="text-align:right;">DB {% trans "Backend type" %}</label>
                             <div class="col-sm-4">
@@ -833,9 +1043,24 @@
                                 <label class="radio-inline">
                                     <input type="radio" id="db_backend_type_share" name="db_backend_type" class="db_backend_type" value="1">{% trans "Share disk" %}
                                 </label>
+                                <label class="radio-inline">
+                                    <input type="radio" id="db_backend_type_sharecluster" name="db_backend_type" class="db_backend_type" value="2">{% trans "Share cluster" %}
+                                </label>
                                 <label class="radio-inline hide">
                                     <input type="radio" id="db_backend_type_ceph" name="db_backend_type" class="db_backend_type" value="2">{% trans "Ceph" %}
                                 </label>
+                            </div>
+                        </div>
+                        <input type="hidden" id="db_service_id" name="db_service_id">
+                        <div style="clear:both" class="form-group form-db hide">
+                            <label class="col-sm-3"></label>
+                            <div class="col-sm-4">
+                                <label class="control-label" style="text-align:left; width:35%; ">{% trans "Protocol Type" %}</label>
+                                <select id="db_protocol_type" class="form-control" style="float:right; width:60%;">
+                                    <option value="ISCSI">ISCSI</option>
+                                    <option value="FIBER">FIBER</option>
+                                    <option value="CEPH">CEPH</option>
+                                </select>
                             </div>
                         </div>
                         <div style="clear:both" class="form-group form-db hide">
@@ -848,8 +1073,8 @@
                         <div style="clear:both" class="form-group form-db hide">
                             <label class="col-sm-3"></label>
                             <div class="col-sm-4">
-                                <label for="db_data_ip" class="control-label" style="text-align:left; width:35%; ">{% trans "Service IPs" %}</label>
-                                <input type="text" class="form-control" id="db_data_ip" name="db_data_ip" style="float:right; width:60%;" placeholder="{% trans 'Service IP' %}" onkeydown="if(event.keyCode==32||event.keyCode==188||event.keyCode==222){return false;}">
+                                <label for="db_data_ip" class="control-label" style="text-align:left; width:35%; ">{% trans "Service Address" %}</label>
+                                <input type="text" class="form-control" id="db_data_ip" name="db_data_ip" style="float:right; width:60%;" placeholder="{% trans 'Service Address' %}">
                             </div>
                             <a href="#" class="add_db_data_ip" style="line-height:28px;">
                                 <span class="glyphicon glyphicon-plus"></span>
@@ -867,14 +1092,180 @@
                                 <span class="glyphicon glyphicon-minus"></span>
                             </a>
                         </div>
+
+
+                        <div style = "clear:both; border:1px dashed #2C99DA; margin-left:320px; width:33%" class="form-db1 hide";>
+                            <input type="hidden" id="db1_service_id" name="db1_service_id">
+                            <div style="clear:both; margin-top:15px" class="form-group form-db1 hide">
+                                <label class="col-sm-2"></label>
+                                <div class="col-sm-8">
+                                    <label class="control-label" style="text-align:left; width:35%; ">{% trans "Protocol Type" %}1</label>
+                                    <select id="db1_protocol_type" class="form-control" style="float:right; width:60%;">
+                                        <option value="ISCSI">ISCSI</option>
+                                        <option value="FIBER">FIBER</option>
+                                        <option value="CEPH">CEPH</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div style="clear:both" class="form-group form-db1 hide">
+                                <label class="col-sm-2"></label>
+                                <div class="col-sm-8">
+                                    <label for="db1_lun" class="control-label" style="text-align:left; width:35%; ">{% trans "LUN" %}1</label>
+                                    <input type="text" class="form-control" id="db1_lun" name="db1_lun" value="0" style="float:right; width:60%;" placeholder="{% trans 'LUN id' %}">
+                                </div>
+                            </div>
+                            <div style="clear:both" class="form-group form-db1 hide">
+                                <label class="col-sm-2"></label>
+                                <div class="col-sm-8">
+                                    <label for="db1_data_ip" class="control-label" style="text-align:left; width:35%; ">{% trans "Service Address" %}1</label>
+                                    <input type="text" class="form-control" id="db1_data_ip" name="db1_data_ip" style="float:right; width:60%;" placeholder="{% trans 'Service Address' %}">
+                                </div>
+                                <a href="#" class="add_db1_data_ip" style="line-height:28px;">
+                                    <span class="glyphicon glyphicon-plus"></span>
+                                </a>
+                            </div>
+                            <!-- Template for dynamic field -->
+                            <input type='hidden' id='db1_data_ip_last_index' value="1"/>
+                            <div style="display:none; clear:both" class="form-group" id="db1_data_ip_template">
+                                <label class="col-sm-2"></label>
+                                <div class="col-sm-8">
+                                    <label class="control-label" style="text-align:left; width:35%; "></label>
+                                    <input type="text" class="form-control" style="float:right; width:60%;" placeholder="{% trans 'Service IP' %}">
+                                </div>
+                                <a href="#" class="delete_db1_data_ip"  style="line-height:28px;">
+                                    <span class="glyphicon glyphicon-minus"></span>
+                                </a>
+                            </div>
+                        </div>
+
+
+                        <div style = "clear:both; border:1px dashed #2C99DA; margin-left:320px; margin-top:15px;width:33%" class="form-db2 hide";>
+                            <input type="hidden" id="db2_service_id" name="db2_service_id">
+                            <div style="clear:both; margin-top:15px" class="form-group form-db2 hide">
+                                <label class="col-sm-2"></label>
+                                <div class="col-sm-8">
+                                    <label class="control-label" style="text-align:left; width:35%; ">{% trans "Protocol Type" %}2</label>
+                                    <select id="db2_protocol_type" class="form-control" style="float:right; width:60%;">
+                                        <option value="ISCSI">ISCSI</option>
+                                        <option value="FIBER">FIBER</option>
+                                        <option value="CEPH">CEPH</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div style="clear:both" class="form-group form-db2 hide">
+                                <label class="col-sm-2"></label>
+                                <div class="col-sm-8">
+                                    <label for="db2_lun" class="control-label" style="text-align:left; width:35%; ">{% trans "LUN" %}2</label>
+                                    <input type="text" class="form-control" id="db2_lun" name="db2_lun" value="0" style="float:right; width:60%;" placeholder="{% trans 'LUN id' %}">
+                                </div>
+                            </div>
+                            <div style="clear:both" class="form-group form-db2 hide">
+                                <label class="col-sm-2"></label>
+                                <div class="col-sm-8">
+                                    <label for="db2_data_ip" class="control-label" style="text-align:left; width:35%; ">{% trans "Service Address" %}2</label>
+                                    <input type="text" class="form-control" id="db2_data_ip" name="db2_data_ip" style="float:right; width:60%;" placeholder="{% trans 'Service Address' %}">
+                                </div>
+                                <a href="#" class="add_db2_data_ip" style="line-height:28px;">
+                                    <span class="glyphicon glyphicon-plus"></span>
+                                </a>
+                            </div>
+                            <!-- Template for dynamic field -->
+                            <input type='hidden' id='db2_data_ip_last_index' value="1"/>
+                            <div style="display:none; clear:both" class="form-group" id="db2_data_ip_template">
+                                <label class="col-sm-2"></label>
+                                <div class="col-sm-8">
+                                    <label class="control-label" style="text-align:left; width:35%; "></label>
+                                    <input type="text" class="form-control" style="float:right; width:60%;" placeholder="{% trans 'Service IP' %}">
+                                </div>
+                                <a href="#" class="delete_db2_data_ip"  style="line-height:28px;">
+                                    <span class="glyphicon glyphicon-minus"></span>
+                                </a>
+                            </div>
+                        </div>
+
                         <div style="clear:both" class="form-group form-db-lv-size">
                             <label class="col-sm-3"></label>
                             <div class="col-sm-4">
                                 <label for="db_lv_size" class="control-label" style="text-align:left; width:35%; ">{% trans "DB LV Size(GB)" %}</label>
                                 <input type="text" class="form-control" id="db_lv_size" name="db_lv_size" value="0" style="float:right; width:60%;" placeholder="{% trans 'DB LV Size(GB)' %}">
                             </div>
+                            <div class="col-sm-4 checkbox">
+                                <label>
+                                    <input type="checkbox" class="auto_assgign_db" onclick="AutoAssignedDisk2Componet('db')">{% trans 'The remaining hard disk space allocated to db' %}
+                                </label>
+                            </div>
                         </div>
                     </div>
+
+                    <div id="set_role_dbbackup">
+                        <input type="hidden" id="dbbackup_service_id" name="dbbackup_service_id">
+                        <div style="clear:both" class="form-group">
+                            <label class="col-sm-3 control-label" style="text-align:right;">DBBackup {% trans "Backend type" %}</label>
+                            <div class="col-sm-4">
+                                <label class="radio-inline">
+                                    <input type="radio" id="dbbackup_backend_type_local" name="dbbackup_backend_type" class="dbbackup_backend_type" value="0" checked="checked">{% trans "Local disk" %}
+                                </label>
+                                <label class="radio-inline">
+                                    <input type="radio" id="dbbackup_backend_type_share" name="dbbackup_backend_type" class="dbbackup_backend_type" value="1">{% trans "Share disk" %}
+                                </label>
+                                <label class="radio-inline hide">
+                                    <input type="radio" id="dbbackup_backend_type_ceph" name="dbbackup_backend_type" class="dbbackup_backend_type" value="2">{% trans "Ceph" %}
+                                </label>
+                            </div>
+                        </div>
+                        <div style="clear:both" class="form-group form-dbbackup hide">
+                            <label class="col-sm-3"></label>
+                            <div class="col-sm-4">
+                                <label class="control-label" style="text-align:left; width:35%; ">{% trans "Protocol Type" %}</label>
+                                <select id="dbbackup_protocol_type" class="form-control" style="float:right; width:60%;">
+                                    <option value="ISCSI">ISCSI</option>
+                                    <option value="FIBER">FIBER</option>
+                                    <option value="CEPH">CEPH</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="clear:both" class="form-group form-dbbackup hide">
+                            <label class="col-sm-3"></label>
+                            <div class="col-sm-4">
+                                <label for="dbbackup_lun" class="control-label" style="text-align:left; width:35%; ">{% trans "LUN" %}</label>
+                                <input type="text" class="form-control" id="dbbackup_lun" name="dbbackup_lun" value="0" style="float:right; width:60%;" placeholder="{% trans 'LUN id' %}">
+                            </div>
+                        </div>
+                        <div style="clear:both" class="form-group form-dbbackup hide">
+                            <label class="col-sm-3"></label>
+                            <div class="col-sm-4">
+                                <label for="dbbackup_data_ip" class="control-label" style="text-align:left; width:35%; ">{% trans "Service Address" %}</label>
+                                <input type="text" class="form-control" id="dbbackup_data_ip" name="dbbackup_data_ip" style="float:right; width:60%;" placeholder="{% trans 'Service Address' %}">
+                            </div>
+                            <a href="#" class="add_dbbackup_data_ip" style="line-height:28px;">
+                                <span class="glyphicon glyphicon-plus"></span>
+                            </a>
+                        </div>
+                        <!-- Template for dynamic field -->
+                        <input type='hidden' id='dbbackup_data_ip_last_index' value="1"/>
+                        <div style="display:none; clear:both" class="form-group" id="dbbackup_data_ip_template">
+                            <label class="col-sm-3"></label>
+                            <div class="col-sm-4">
+                                <label class="control-label" style="text-align:left; width:35%; "></label>
+                                <input type="text" class="form-control" style="float:right; width:60%;" placeholder="{% trans 'Service IP' %}">
+                            </div>
+                            <a href="#" class="delete_dbbackup_data_ip"  style="line-height:28px;">
+                                <span class="glyphicon glyphicon-minus"></span>
+                            </a>
+                        </div>
+                        <div style="clear:both" class="form-group form-dbbackup-lv-size">
+                            <label class="col-sm-3"></label>
+                            <div class="col-sm-4">
+                                <label for="dbbackup_lv_size" class="control-label" style="text-align:left; width:35%; ">{% trans "DBBackup LV Size(GB)" %}</label>
+                                <input type="text" class="form-control" id="dbbackup_lv_size" name="dbbackup_lv_size" value="0" style="float:right; width:60%;" placeholder="{% trans 'DBBackup LV Size(GB)' %}">
+                            </div>
+                            <div class="col-sm-4 checkbox">
+                                <label>
+                                    <input type="checkbox" class="auto_assgign_dbbackup" onclick="AutoAssignedDisk2Componet('dbbackup')">{% trans 'The remaining hard disk space allocated to dbbackup' %}
+                                </label>
+                            </div>
+                        </div>
+                    </div> 
 
                     <div id="set_role_mongodb">
                         <input type="hidden" id="mongodb_service_id" name="mongodb_service_id">
@@ -895,6 +1286,17 @@
                         <div style="clear:both" class="form-group form-mongodb hide">
                             <label class="col-sm-3"></label>
                             <div class="col-sm-4">
+                                <label class="control-label" style="text-align:left; width:35%; ">{% trans "Protocol Type" %}</label>
+                                <select id="mongodb_protocol_type" class="form-control" style="float:right; width:60%;">
+                                    <option value="ISCSI">ISCSI</option>
+                                    <option value="FIBER">FIBER</option>
+                                    <option value="CEPH">CEPH</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="clear:both" class="form-group form-mongodb hide">
+                            <label class="col-sm-3"></label>
+                            <div class="col-sm-4">
                                 <label for="mongodb_lun" class="control-label" style="text-align:left; width:35%; ">{% trans "LUN" %}</label>
                                 <input type="text" class="form-control" id="mongodb_lun" name="mongodb_lun" value="0" style="float:right; width:60%;" placeholder="{% trans 'LUN id' %}">
                             </div>
@@ -902,8 +1304,8 @@
                         <div style="clear:both" class="form-group form-mongodb hide">
                             <label class="col-sm-3"></label>
                             <div class="col-sm-4">
-                                <label for="mongodb_data_ip" class="control-label" style="text-align:left; width:35%; ">{% trans "Service IPs" %}</label>
-                                <input type="text" class="form-control" id="mongodb_data_ip" name="db_data_ip" style="float:right; width:60%;" placeholder="{% trans 'Service IP' %}">
+                                <label for="mongodb_data_ip" class="control-label" style="text-align:left; width:35%; ">{% trans "Service Address" %}</label>
+                                <input type="text" class="form-control" id="mongodb_data_ip" name="mongodb_data_ip" style="float:right; width:60%;" placeholder="{% trans 'Service Address' %}">
                             </div>
                             <a href="#" class="add_mongodb_data_ip" style="line-height:28px;">
                                 <span class="glyphicon glyphicon-plus"></span>
@@ -926,6 +1328,11 @@
                             <div class="col-sm-4">
                                 <label for="mongodb_lv_size" class="control-label" style="text-align:left; width:35%; ">{% trans "MongoDB LV Size(GB)" %}</label>
                                 <input type="text" class="form-control" id="mongodb_lv_size" name="mongodb_lv_size" value="0" style="float:right; width:60%;" placeholder="{% trans 'MongoDB LV Size(GB)' %}">
+                            </div>
+                            <div class="col-sm-4 checkbox">
+                                <label>
+                                    <input type="checkbox" class="auto_assgign_mongodb" onclick="AutoAssignedDisk2Componet('mongodb')">{% trans 'The remaining hard disk space allocated to mongodb' %}
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -976,8 +1383,9 @@
                 </div>
             </div>
         </div>
-    
-        <div class="panel panel-default" style="border-left: 3px solid {{1|get_color}}">
+    {% endifequal %}
+    {% ifequal role.name "CONTROLLER_LB" %}
+        <div class="panel panel-default panel_{{role.name}}" style="border-left: 3px solid {{1|get_color}}">
             <div class="panel-heading" role="tab" id="heading_lb">
                 <h3 class="panel-title">
                     <a role="button" data-toggle="collapse" data-parent="#selector" href="#collapse_lb" aria-expanded="false" aria-controls="collapse_lb">
@@ -992,12 +1400,44 @@
                         <div class="col-sm-4">
                             <input type="text" class="form-control" id="lb_float_ip" name="lb_float_ip" placeholder="{% trans 'Float IP' %}">
                         </div>
+                        <div class="col-sm-4 checkbox dv_lb_float_ip_auto">
+                            <label>
+                                <input type="checkbox" class="auto_assgign_ip lb_float_ip_auto" onclick="AutoAssignedIP('lb_float_ip')">{% trans 'Automatically assigned' %}
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-{% else %}
-        <div class="panel panel-default" style="border-left: 3px solid {{2|get_color}}">
+    {% endifequal %}
+    {% ifequal role.name "COMPUTER" %}
+        <div class="panel panel-default panel_{{ role.name|lower }}" style="border-left: 3px solid {{2|get_color}}">
+            <div class="panel-heading" role="tab" id="heading_{{ role.name|lower }}">
+                <h3 class="panel-title">
+                    <a role="button" data-toggle="collapse" data-parent="#selector" href="#collapse_{{ role.name|lower }}" aria-expanded="false" aria-controls="collapse_{{ role.name|lower }}">
+                        {{role.name}}
+                    </a>
+                </h3>
+            </div>
+            <div id="collapse_{{ role.name|lower }}" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading_{{ role.name|lower }}">
+                <div class="panel-body">
+                    <div style="clear:both" class="form-group">
+                        <label for="nova_lv_size" class="col-sm-3 control-label" style="text-align:right;">{% trans "Nova Disk Size" %}(GB)</label>
+                        <div class="col-sm-4">
+                            <input type="text" class="form-control" id="nova_lv_size" name="nova_lv_size" placeholder="{% trans 'Nova Disk Size' %}(GB)" value="0">
+                        </div>
+                        <div class="col-sm-4 checkbox">
+                            <label>
+                                <input type="checkbox" class="auto_assgign_nova" onclick="AutoAssignedDisk2Componet('nova')">{% trans 'The remaining hard disk space allocated to Nova' %}
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endifequal %}
+    {% ifequal role.name "ZENIC_NFM" %}
+        <div class="panel panel-default panel_{{role.name}}" style="border-left: 3px solid {{3|get_color}}">
             <div class="panel-heading" role="tab" id="heading_zenic_nfm">
                 <h3 class="panel-title">
                     <a role="button" data-toggle="collapse" data-parent="#selector" href="#collapse_zenic_nfm" aria-expanded="false" aria-controls="collapse_zenic_nfm">
@@ -1005,7 +1445,7 @@
                     </a>
                 </h3>
             </div>
-            <div id="collapse_zenic_nfm" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="heading_zenic_nfm">
+            <div id="collapse_zenic_nfm" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading_zenic_nfm">
                 <div class="panel-body">
                     <div style="clear:both" class="form-group">
                         <label for="zenic_nfm_float_ip" class="col-sm-3 control-label" style="text-align:right;">{% trans "Float IP" %}</label>
@@ -1022,8 +1462,10 @@
                 </div>
             </div>
         </div>
+    {% endifequal %}
 
-        <div class="panel panel-default" style="border-left: 3px solid {{3|get_color}}">
+    {% ifequal role.name "ZENIC_CTL" %}
+        <div class="panel panel-default panel_{{role.name}}" style="border-left: 3px solid {{4|get_color}}">
             <div class="panel-heading" role="tab" id="heading_zenic_ctl">
                 <h3 class="panel-title">
                     <a role="button" data-toggle="collapse" data-parent="#selector" href="#collapse_zenic_ctl" aria-expanded="false" aria-controls="collapse_zenic_ctl">
@@ -1042,6 +1484,7 @@
                 </div>
             </div>
         </div>
-{% endif %}
+    {% endifequal %}
+{% endfor %}
     </form>
 </div>

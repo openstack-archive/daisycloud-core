@@ -55,8 +55,8 @@ def parse_starttag_patched(self, i):
         lineno, offset = self.getpos()
         if "\n" in self.__starttag_text:
             lineno = lineno + self.__starttag_text.count("\n")
-            offset = (len(self.__starttag_text)
-                      - self.__starttag_text.rfind("\n"))
+            offset = \
+                (len(self.__starttag_text) - self.__starttag_text.rfind("\n"))
         else:
             offset = offset + len(self.__starttag_text)
         self.error("junk characters in start tag: %r"

@@ -1,7 +1,7 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-#
+# 
 # Translators:
 # ChangBo Guo(gcb) <glongwave@gmail.com>, 2014
 # LIU Yulong <dragon889@163.com>, 2014-2015
@@ -13,16 +13,14 @@ msgstr ""
 "Project-Id-Version: Horizon\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-04-06 21:07-0500\n"
-"PO-Revision-Date: 2016-03-03 09:51+0800\n"
+"PO-Revision-Date: 2015-04-01 22:52+0000\n"
 "Last-Translator: 颜海峰 <yanheven@gmail.com>\n"
-"Language-Team: Chinese (China) (http://www.transifex.com/projects/p/horizon/"
-"language/zh_CN/)\n"
+"Language-Team: Chinese (China) (http://www.transifex.com/projects/p/horizon/language/zh_CN/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Language: zh_CN\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Poedit 1.6.7\n"
 
 #: base.py:475
 msgid "Other"
@@ -192,12 +190,9 @@ msgstr "退出"
 #: templates/auth/_description.html:9
 msgid ""
 "\n"
-"      If you are not sure which authentication method to use, contact your "
-"administrator.\n"
+"      If you are not sure which authentication method to use, contact your administrator.\n"
 "    "
-msgstr ""
-"\n"
-"如果你不确定使用哪种认证方式，请联系管理员。"
+msgstr "\n如果你不确定使用哪种认证方式，请联系管理员。"
 
 #: templates/auth/_login.html:5
 msgid "Log In"
@@ -210,7 +205,8 @@ msgstr "你没有被授权访问这些资源："
 #: templates/auth/_login.html:29
 #, python-format
 msgid ""
-"Login as different user or go back to <a href=\"%(home_url)s\"> home page</a>"
+"Login as different user or go back to <a href=\"%(home_url)s\"> home "
+"page</a>"
 msgstr "使用其他用户登录或返回 <a href=\"%(home_url)s\">首页</a>"
 
 #: templates/auth/_login.html:45
@@ -354,18 +350,14 @@ msgstr "选择一段时间来查询其用量："
 msgid ""
 "\n"
 "      <label>From:</label> %(start)s"
-msgstr ""
-"\n"
-"<label>从:</label> %(start)s"
+msgstr "\n<label>从:</label> %(start)s"
 
 #: templates/horizon/common/_usage_summary.html:13
 #, python-format
 msgid ""
 "\n"
 "      <label>To:</label>%(end)s"
-msgstr ""
-"\n"
-"<label>到:</label>%(end)s"
+msgstr "\n<label>到:</label>%(end)s"
 
 #: templates/horizon/common/_usage_summary.html:17
 msgid "The date should be in YYYY-mm-dd format."

@@ -84,6 +84,8 @@
     }
    
     horizon.addInitFunction(function(){
+        if("{{hwm_ip}}")
+            document.getElementById("fade_btn").style.visibility="hidden";
         $(document).on("click", "#config_discover_info", function(){
             cluster_id = $("#cluster_id_for_select_hosts").attr("cluster_id");
             var url = "/dashboard/environment/deploy/" + cluster_id + '/ipmiconf';
@@ -162,13 +164,32 @@
                     var hosts = new Array();
                     $checkboxs.each(function(){
                         if($(this).attr("checked")){
-                            hosts.push($(this).val());
+                            var cur_tr = $(this).parent().parent();
+                            var cur_tds = cur_tr.find("td");
+                            var discover_status = $.trim(cur_tds.eq(4).text());
+                            if (("{{hwm_ip}}") && (discover_status != "PXE:DISCOVERY_SUCCESSFUL") && (discover_status != "SSH:DISCOVERY_SUCCESSFUL"))
+                            {
+                                horizon.alert("error","all hosts added to cluster should be discovered successful.");
+                                return false;
+                            }                      
+                            else
+                            {
+                                hosts.push($(this).val());
+                            }                            
                         }
                     })
-                    var url = "/dashboard/environment/deploy/"+ cluster_id + "/allocatehost";
-                    do_post(url, JSON.stringify({'hosts': hosts,
-                                                 'roles': [],
-                                                 'cluster_id': cluster_id}), AddHostsCallback);
+                    
+                    if(hosts.length > 0)
+                    {
+                        var url = "/dashboard/environment/deploy/"+ cluster_id + "/allocatehost";
+                        do_post(url, JSON.stringify({'hosts': hosts,
+                                                     'roles': [],
+                                                     'cluster_id': cluster_id}), AddHostsCallback);
+                    }
+                    else
+                    {
+                        return;
+                    }
                 }
             }
         })
@@ -277,7 +298,7 @@
                 'hosts': hosts,
                 'host_template_name': $("#sl_host_template").val()
             }
-            var url = "/dashboard/environment/deploy/"+ '{{ cluster_id }}' + "/batch_instance_template";
+            var url = "/dashboard/environment/template/"+ '{{ cluster_id }}' + "/batch_instance_template";
             do_post(url, JSON.stringify(instance_config), ReloadWindow);
         })
     })
@@ -330,7 +351,7 @@
 {% block operate_region %}
 <div class="row">
    <form class="col-xs-4" style="margin-left:10px;">
-     <div class="form-group input-sm">
+     <div class="form-group input-sm" style="display:none;">
        <label class="control-label col-sm-3">{% trans 'Select Protocol' %}:</label>
        <div class="col-sm-6">
        <select class="form-control" id="protocol_type" data-toggle="tooltip" data-placement="right" data-original-title="{% trans "SSH protocol can discover hosts installed os" %}">
@@ -342,7 +363,7 @@
      <div class="form-group input-sm" id="ip_block">
       <label class="control-label col-sm-3" for="ip">{% trans "IP" %}</label>
       <div class="col-sm-6">
-      <input class="form-control" type="text" id="ip" autocomplete="off" data-toggle="tooltip" data-placement="right" data-original-title="{% trans "IP address of the host to be discover" %}">
+      <input class="form-control" type="text" id="ip" autocomplete="off" data-toggle="tooltip" data-placement="right" data-original-title="{% trans "Management port IP address of the host to be discover" %}">
       </div>
      </div>
      <div class="form-group input-sm">
@@ -387,10 +408,10 @@
     </div>
     <div class="col-xs-3" style="margin-top:5px;" id="ssh_hint">
         <div>
-        {% trans "ssh hint1" %}
+        {% trans "1. binding network port: host network interface binding already installed system, advance manually on the host network interface binding." %}
         </div>        
         <div>
-        {% trans "ssh hint2" %}
+        {% trans "2.lv_mysql and lv_glance: If you have already installed the operating system install tecs control node, the user must manually create two logical volumes, size set by the user,/dev/mapper/vg_data-lv_glance and/dev/mapper/vg_db-lv_db." %}
         </div>
     </div>
 </div>

@@ -247,7 +247,8 @@ class VerifiedHTTPSConnection(HTTPSConnection):
         # List of exceptions reported by Python3 instead of
         # SSLConfigurationError
         if six.PY3:
-            excp_lst = (TypeError, FileNotFoundError, ssl.SSLError)
+            excp_lst = (TypeError, IOError, ssl.SSLError)
+            # https.py:250:36: F821 undefined name 'FileNotFoundError'
         else:
             # NOTE(jamespage)
             # Accomodate changes in behaviour for pep-0467, introduced

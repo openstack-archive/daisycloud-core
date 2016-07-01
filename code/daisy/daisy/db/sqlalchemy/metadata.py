@@ -184,8 +184,8 @@ def _populate_metadata(meta, metadata_path=None, merge=False,
             json_schema_files = [metadata_path]
         else:
             json_schema_files = [f for f in os.listdir(metadata_path)
-                                 if isfile(join(metadata_path, f))
-                                 and f.endswith('.json')]
+                                 if isfile(join(metadata_path, f)) and
+                                 f.endswith('.json')]
     except OSError as e:
         LOG.error(utils.exception_to_str(e))
         return

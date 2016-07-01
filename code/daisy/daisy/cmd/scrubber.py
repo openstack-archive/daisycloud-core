@@ -21,6 +21,13 @@ Glance Scrub Service
 
 import os
 import sys
+import glance_store
+from oslo_config import cfg
+from oslo_log import log as logging
+
+from daisy.common import config
+from daisy.openstack.common import systemd
+from daisy import scrubber
 
 # If ../glance/__init__.py exists, add ../ to Python search path, so that
 # it will override what happens to be installed in /usr/(local/)lib/python...
@@ -29,14 +36,6 @@ possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
                                    os.pardir))
 if os.path.exists(os.path.join(possible_topdir, 'glance', '__init__.py')):
     sys.path.insert(0, possible_topdir)
-
-import glance_store
-from oslo_config import cfg
-from oslo_log import log as logging
-
-from daisy.common import config
-from daisy.openstack.common import systemd
-from daisy import scrubber
 
 
 CONF = cfg.CONF

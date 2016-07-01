@@ -21,7 +21,7 @@ class OperateRegionAction(actions.LinkAction):
         self.verbose_name = kwargs.get('verbose_name', self.name.title())
         self.action_type = kwargs.get('action_type', "operate_region")
         self.icon = kwargs.get('icon', None)
-        
+
 
 class AutofillAction(actions.LinkAction):
     def __init__(self, attrs=None, **kwargs):

@@ -36,28 +36,32 @@
         }
     });
 
-    function do_post(location, params, success_callback, error_callback){
+    function do_post_ex(location, params, async, success_callback, error_callback){
         var ret = false;
         $.ajax({
             type: 'POST',
             url:  location,
             data: params,
             dataType: 'json',
-            async: false,
+            async: async,
             success: function (data) {
                 if (success_callback != null){
                     success_callback(data);
                 }
                 ret = true;
             },
-            error: function(data) {
-                if (error_callback != null){
-                    error_callback(data);
+            error: function(XmlHttpRequest,textStatus,errorThrown){
+                /*UNAUTHORIZED -- reload current page*/
+                if (XmlHttpRequest.status == "401"){
+                    window.location.reload();
                 }
-                //horizon.alert("error", data.responseText);
             }
         });
         return ret;
+    }    
+
+    function do_post(location, params, success_callback, error_callback){
+        return do_post_ex(location, params, false, success_callback, error_callback);
     }    
 
     function getArgs( ) {

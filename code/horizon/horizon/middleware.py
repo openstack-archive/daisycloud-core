@@ -63,9 +63,9 @@ class HorizonMiddleware(object):
         last_activity = request.session.get('last_activity', None)
         timestamp = int(time.time())
         if (
-            hasattr(request, "user")
-            and hasattr(request.user, "token")
-            and not auth_utils.is_token_valid(request.user.token)
+            hasattr(request, "user") and
+                hasattr(request.user, "token") and not
+                auth_utils.is_token_valid(request.user.token)
         ):
             # The user was logged in, but his keystone token expired.
             has_timed_out = True

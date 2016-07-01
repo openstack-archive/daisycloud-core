@@ -36,6 +36,7 @@ from daisy.common import wsgi
 from daisy import i18n
 from daisy import notifier
 import daisy.registry.client.v1.api as registry
+from functools import reduce
 
 LOG = logging.getLogger(__name__)
 _ = i18n._
@@ -52,9 +53,16 @@ CONF.import_opt('container_formats', 'daisy.common.config',
                 group='image_format')
 CONF.import_opt('image_property_quota', 'daisy.common.config')
 
-SUPPORT_NETWORK_TYPE = ('PUBLIC', 'PRIVATE', 'STORAGE', 'MANAGEMENT', 'EXTERNAL', 'DEPLOYMENT', 'VXLAN')
-SUPPORT_NETWORK_TEMPLATE_TYPE = ('custom', 'template', 'default')
-SUPPORT_ML2_TYPE = ('ovs', 'sriov(direct)', 'sriov(macvtap)', 
+SUPPORT_NETWORK_TYPE = (
+    'PUBLICAPI',
+    'DATAPLANE',
+    'STORAGE',
+    'MANAGEMENT',
+    'EXTERNAL',
+    'DEPLOYMENT',
+    'HEARTBEAT')
+SUPPORT_NETWORK_TEMPLATE_TYPE = ('custom', 'template', 'default', 'system')
+SUPPORT_ML2_TYPE = ('ovs', 'sriov(direct)', 'sriov(macvtap)',
                     'ovs,sriov(direct)', 'ovs,sriov(macvtap)')
 SUPPORT_NETWORK_CAPABILITY = ('high', 'low')
 
@@ -99,12 +107,15 @@ class Controller(controller.BaseController):
     def _raise_404_if_network_deleted(self, req, network_id):
         network = self.get_network_meta_or_404(req, network_id)
         if network['deleted']:
-            msg = _("Network with identifier %s has been deleted.") % network_id
+            msg = _("Network with identifier %s has been deleted.") % \
+                network_id
             raise HTTPNotFound(msg)
+
     def _raise_404_if_cluster_delete(self, req, cluster_id):
         cluster_id = self.get_cluster_meta_or_404(req, cluster_id)
         if cluster_id['deleted']:
-            msg = _("cluster_id with identifier %s has been deleted.") % cluster_id
+            msg = _("cluster_id with identifier %s has been deleted.") % \
+                cluster_id
             raise HTTPNotFound(msg)
 
     def _get_network_name_by_cluster_id(self, context, cluster_id):
@@ -113,7 +124,6 @@ class Controller(controller.BaseController):
         for network in networks:
             network_name_list.append(network['name'])
         return network_name_list
-
 
     def _get_filters(self, req):
         """
@@ -146,7 +156,7 @@ class Controller(controller.BaseController):
             if PARAM in req.params:
                 params[PARAM] = req.params.get(PARAM)
         return params
-        
+
     def validate_ip_format(self, ip_str):
         '''
         valid ip_str format = '10.43.178.9'
@@ -157,21 +167,21 @@ class Controller(controller.BaseController):
                                 '10.43.1789', invalid format
         '''
         valid_fromat = False
-        if ip_str.count('.') == 3 and \
-            all(num.isdigit() and 0<=int(num)<256 for num in ip_str.rstrip().split('.')):
+        if ip_str.count('.') == 3 and all(num.isdigit() and 0 <= int(
+                num) < 256 for num in ip_str.rstrip().split('.')):
             valid_fromat = True
-        if valid_fromat == False:
+        if not valid_fromat:
             msg = (_("%s invalid ip format!") % ip_str)
             LOG.warn(msg)
             raise HTTPForbidden(msg)
-    
+
     def _ip_into_int(self, ip):
         """
         Switch ip string to decimalism integer..
         :param ip: ip string
         :return: decimalism integer
         """
-        return reduce(lambda x, y: (x<<8)+y, map(int, ip.split('.')))
+        return reduce(lambda x, y: (x << 8) + y, map(int, ip.split('.')))
 
     def _is_in_network_range(self, ip, network):
         """
@@ -182,9 +192,13 @@ class Controller(controller.BaseController):
         """
         network = network.split('/')
         mask = ~(2**(32 - int(network[1])) - 1)
-        return (self._ip_into_int(ip) & mask) == (self._ip_into_int(network[0]) & mask)
+        return (
+            self._ip_into_int(ip) & mask) == (
+            self._ip_into_int(
+                network[0]) & mask)
 
-    def _verify_uniqueness_of_network_name(self, req, network_list, network_meta, is_update = False):
+    def _verify_uniqueness_of_network_name(
+            self, req, network_list, network_meta, is_update=False):
         """
         Network name is match case and uniqueness in cluster.
         :param req:
@@ -192,50 +206,137 @@ class Controller(controller.BaseController):
         :param network_meta: network plane need be verified
         :return:
         """
-        if not network_list or not  network_meta or not network_meta.get('name', None):
-            msg = _("Input params invalid for verifying uniqueness of network name.")
+        if not network_list or not network_meta or not network_meta.get(
+                'name', None):
+            msg = _("Input params invalid for verifying uniqueness of "
+                    "network name.")
             raise HTTPBadRequest(msg, request=req, content_type="text/plain")
 
         network_name = network_meta['name']
         for network in network_list['networks']:
-            if (is_update and 
-                network_name == network['name'] and 
-                network_meta['id'] == network['id']):
+            if (is_update and
+                    network_name == network['name'] and
+                    network_meta['id'] == network['id']):
                 return
 
         # network name don't match case
         network_name_list = [network['name'].lower() for network in
-                             network_list['networks'] if network.get('name', None)]
+                             network_list['networks'] if
+                             network.get('name', None)]
         if network_name.lower() in network_name_list:
-            msg = _("Name of network isn't match case and %s already exits in the cluster." % network_name)
+            msg = _(
+                "Name of network isn't match case and %s already exits "
+                "in the cluster." %
+                network_name)
             raise HTTPConflict(msg, request=req, content_type="text/plain")
 
         if not is_update:
-            # Input networks type can't be same with db record which is all ready exit,
+            # Input networks type can't be same with db record
+            # which is all ready exit,
             # except PRIVATE network.
             network_type_exist_list = \
-                [network['network_type'] for network in network_list['networks']
-                 if network.get('network_type', None) and network['network_type'] != "PRIVATE"
-                    and network['network_type'] != "STORAGE"]
-            if  network_meta.get("network_type", None) in network_type_exist_list:
-                msg = _("The %s network plane %s must be only, except PRIVATE network." %
-                        (network_meta['network_type'], network_name))
+                [network['network_type'] for network in
+                 network_list['networks']
+                 if network.get('network_type', None) and
+                 network['network_type'] != "DATAPLANE" and
+                 network['network_type'] != "STORAGE" and
+                 network['network_type'] != "HEARTBEAT"]
+            if network_meta.get(
+                    "network_type",
+                    None) in network_type_exist_list:
+                msg = _(
+                    "The %s network plane %s must be unique, "
+                    "except DATAPLANE/STORAGE/HEARTBEAT network." %
+                    (network_meta['network_type'], network_name))
                 raise HTTPConflict(msg, request=req, content_type="text/plain")
 
-    def _valid_vlan_range(self, req, network_meta):
-        if ((network_meta.has_key('vlan_start') and not network_meta.has_key('vlan_end')) or
-            (not network_meta.has_key('vlan_start') and network_meta.has_key('vlan_end'))):
-             raise HTTPBadRequest(explanation="vlan-start and vlan-end must be appeared at the same time", request=req)
-        if network_meta.has_key('vlan_start'):
-            if not (int(network_meta['vlan_start']) >= 1 and 
+    def _valid_network_range(self, req, network_meta):
+        if (('vlan_start' in network_meta and 'vlan_end' not in
+            network_meta) or (
+                'vlan_start' not in network_meta and
+                'vlan_end' in network_meta)):
+            msg = "vlan-start and vlan-end must be appeared "\
+                  "at the same time"
+            LOG.error(msg)
+            raise HTTPBadRequest(explanation=msg, request=req)
+        if 'vlan_start' in network_meta:
+            if not (int(network_meta['vlan_start']) >= 1 and
                     int(network_meta['vlan_start']) <= 4094):
-                raise HTTPBadRequest(explanation="vlan-start must be a integer in '1~4096'", request=req)
-        if network_meta.has_key('vlan_end'):
-            if not (int(network_meta['vlan_end']) >= 1 and 
+                msg = "vlan_start must be a integer in 1~4096"
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg, request=req)
+        if 'vlan_end' in network_meta:
+            if not (int(network_meta['vlan_end']) >= 1 and
                     int(network_meta['vlan_end']) <= 4094):
-                raise HTTPBadRequest(explanation="vlan-end must be a integer in '1~4096'", request=req)
+                msg = "vlan_end must be a integer in 1~4096"
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg, request=req)
             if int(network_meta['vlan_start']) > int(network_meta['vlan_end']):
-                raise HTTPBadRequest(explanation="vlan-start must be less than vlan-end", request=req)
+                msg = "vlan_start must be less than vlan_end"
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg, request=req)
+
+        if (('vni_start' in network_meta and 'vni_end' not in
+            network_meta) or (
+                'vni_start' not in network_meta and
+                'vni_end' in network_meta)):
+
+            msg = "vni_start and vni_end must be appeared at the same time"
+            LOG.error(msg)
+            raise HTTPBadRequest(explanation=msg, request=req)
+        if 'vni_start' in network_meta:
+            if not (int(network_meta['vni_start']) >= 1 and
+                    int(network_meta['vni_start']) <= 16777216):
+                msg = "vni_start must be a integer in 1~16777216"
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg, request=req)
+        if 'vni_end' in network_meta:
+            if not (int(network_meta['vni_end']) >= 1 and
+                    int(network_meta['vni_end']) <= 16777216):
+                msg = "vni_end must be a integer in 1~16777216"
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg, request=req)
+            if int(network_meta['vni_start']) > int(network_meta['vni_end']):
+                msg = "vni_start must be less than vni_end"
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg, request=req)
+
+        if (('gre_id_start' in network_meta and 'gre_id_end' not in
+            network_meta) or (
+                'gre_id_start' not in network_meta and
+                'gre_id_end' in network_meta)):
+            msg = "gre_id_start and gre_id_end must"\
+                "be appeared at the same time"
+            LOG.error(msg)
+            raise HTTPBadRequest(explanation=msg, request=req)
+        if 'gre_id_start' in network_meta:
+            if not (int(network_meta['gre_id_start']) >= 1 and
+                    int(network_meta['gre_id_start']) <= 4094):
+                msg = "gre_id_start must be a integer in 1~4094"
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg, request=req)
+        if 'gre_id_end' in network_meta:
+            if not (int(network_meta['gre_id_end']) >= 1 and
+                    int(network_meta['gre_id_end']) <= 4094):
+                msg = "gre_id_end must be a integer in 1~4094"
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg, request=req)
+            if int(network_meta['gre_id_start']) >\
+                    int(network_meta['gre_id_end']):
+                msg = "gre_id_start must be less than gre_id_end"
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg, request=req)
+
+    def _verify_heartbeat_network(self, req, network_list, network_meta):
+        heartbeat_networks = [
+            network for network in network_list['networks'] if network.get(
+                'network_type',
+                None) and network['network_type'] == "HEARTBEAT"]
+        if len(heartbeat_networks) >= 2:
+            raise HTTPBadRequest(
+                explanation="HEARTBEAT network plane number must be "
+                            "less than two",
+                request=req)
 
     @utils.mutating
     def add_network(self, req, network_meta):
@@ -248,46 +349,62 @@ class Controller(controller.BaseController):
         :raises HTTPBadRequest if x-host-name is missing
         """
         self._enforce(req, 'add_network')
-        cluster_id = network_meta.get('cluster_id',None)
+        cluster_id = network_meta.get('cluster_id', None)
         if cluster_id:
             self._raise_404_if_cluster_delete(req, cluster_id)
             network_list = self.detail(req, cluster_id)
-            self._verify_uniqueness_of_network_name(req, network_list, network_meta)
+            self._verify_uniqueness_of_network_name(
+                req, network_list, network_meta)
+            if 'network_type' in network_meta and network_meta[
+                    'network_type'] == "HEARTBEAT":
+                self._verify_heartbeat_network(req, network_list, network_meta)
         # else:
         #     if network_meta.get('type',None) != "template":
-        #         raise HTTPBadRequest(explanation="cluster id must be given", request=req)
-        network_name=network_meta.get('name',None)
+        #         raise HTTPBadRequest(explanation="cluster id must be given",
+        # request=req)
+        network_name = network_meta.get('name', None)
         network_name_split = network_name.split('_')
-        for network_name_info in network_name_split :
-            if not network_name_info.isalnum(): 
-                raise ValueError('network name must be numbers or letters or underscores !')
-        if not network_meta.has_key('network_type'):
-            raise HTTPBadRequest(explanation="network-type must be given", request=req)
-        if  network_meta['network_type'] not in SUPPORT_NETWORK_TYPE:
-             raise HTTPBadRequest(explanation="unsupported network-type", request=req)
-             
-             
-        if (network_meta.has_key('type') and 
-            network_meta['type'] not in SUPPORT_NETWORK_TEMPLATE_TYPE):
-             raise HTTPBadRequest(explanation="unsupported type", request=req)
-        
-        if (network_meta.has_key('capability') and 
-            network_meta['capability'] not in SUPPORT_NETWORK_CAPABILITY):
-             raise HTTPBadRequest(explanation="unsupported capability type", request=req)
-            
-        self._valid_vlan_range(req, network_meta)
+        for network_name_info in network_name_split:
+            if not network_name_info.isalnum():
+                raise ValueError(
+                    'network name must be numbers or letters or underscores !')
+        if 'network_type' not in network_meta:
+            raise HTTPBadRequest(
+                explanation="network-type must be given",
+                request=req)
+        if network_meta['network_type'] not in SUPPORT_NETWORK_TYPE:
+            raise HTTPBadRequest(
+                explanation="unsupported network-type",
+                request=req)
 
-        if network_meta.get('ip_ranges', None):
+        if ('type' in network_meta and
+                network_meta['type'] not in SUPPORT_NETWORK_TEMPLATE_TYPE):
+            raise HTTPBadRequest(explanation="unsupported type", request=req)
+
+        if ('capability' in network_meta and
+                network_meta['capability'] not in SUPPORT_NETWORK_CAPABILITY):
+            raise HTTPBadRequest(
+                explanation="unsupported capability type",
+                request=req)
+
+        self._valid_network_range(req, network_meta)
+
+        if network_meta.get('ip_ranges', None) and \
+                eval(network_meta['ip_ranges']):
             cidr = None
-            if not network_meta.has_key('cidr'):
-                msg = (_("When ip range was specified, the CIDR parameter can not be empty."))
+            if 'cidr' not in network_meta:
+                msg = (
+                    _("When ip range was specified, the CIDR parameter "
+                      "can not be empty."))
                 LOG.warn(msg)
                 raise HTTPForbidden(msg)
             else:
                 cidr = network_meta['cidr']
                 cidr_division = cidr.split('/')
-                if len(cidr_division) != 2 or ( cidr_division[1] \
-                    and int(cidr_division[1]) > 32 or int(cidr_division[1]) < 0):
+                if len(cidr_division) != 2 or (
+                    cidr_division[1] and int(
+                        cidr_division[1]) > 32 or int(
+                        cidr_division[1]) < 0):
                     msg = (_("Wrong CIDR format."))
                     LOG.warn(msg)
                     raise HTTPForbidden(msg)
@@ -299,39 +416,50 @@ class Controller(controller.BaseController):
                 sorted_int_ip_ranges_list = list()
                 for ip_pair in ip_ranges:
                     if ['start', 'end'] != ip_pair.keys():
-                        msg = (_("IP range was not start with 'start:' or end with 'end:'."))
+                        msg = (
+                            _("IP range was not start with 'start:' or "
+                              "end with 'end:'."))
                         LOG.warn(msg)
                         raise HTTPForbidden(msg)
-                    ip_start = ip_pair['start'] 
+                    ip_start = ip_pair['start']
                     ip_end = ip_pair['end']
-                    self.validate_ip_format(ip_start)   #check ip format
+                    self.validate_ip_format(ip_start)  # check ip format
                     self.validate_ip_format(ip_end)
-                    
+
                     if not self._is_in_network_range(ip_start, cidr):
-                        msg = (_("IP address %s was not in the range of CIDR %s." % (ip_start, cidr)))
+                        msg = (
+                            _("IP address %s was not in the range "
+                              "of CIDR %s." % (ip_start, cidr)))
                         LOG.warn(msg)
                         raise HTTPForbidden(msg)
-                    
+
                     if not self._is_in_network_range(ip_end, cidr):
-                        msg = (_("IP address %s was not in the range of CIDR %s." % (ip_end, cidr)))
+                        msg = (
+                            _("IP address %s was not in the range "
+                              "of CIDR %s." % (ip_end, cidr)))
                         LOG.warn(msg)
                         raise HTTPForbidden(msg)
-                    
-                    #transform ip format to int when the string format is valid
+
+                    # transform ip format to int when the string format is
+                    # valid
                     int_ip_start = self._ip_into_int(ip_start)
                     int_ip_end = self._ip_into_int(ip_end)
-                    
+
                     if int_ip_start > int_ip_end:
                         msg = (_("Wrong ip range format."))
                         LOG.warn(msg)
                         raise HTTPForbidden(msg)
                     int_ip_ranges_list.append([int_ip_start, int_ip_end])
-                sorted_int_ip_ranges_list = sorted(int_ip_ranges_list, key=lambda x : x[0])
-                
+                sorted_int_ip_ranges_list = sorted(
+                    int_ip_ranges_list, key=lambda x: x[0])
+
                 for int_ip_range in sorted_int_ip_ranges_list:
-                    if last_ip_range_end and last_ip_range_end >= int_ip_range[0]:
+                    if last_ip_range_end and last_ip_range_end >= int_ip_range[
+                            0]:
                         msg = (_("Between ip ranges can not be overlap."))
-                        LOG.warn(msg)  # such as "[10, 15], [12, 16]", last_ip_range_end >= int_ip_range[0], this ip ranges were overlap
+                        # such as "[10, 15], [12, 16]", last_ip_range_end >=
+                        # int_ip_range[0], this ip ranges were overlap
+                        LOG.warn(msg)
                         raise HTTPForbidden(msg)
                     else:
                         last_ip_range_end = int_ip_range[1]
@@ -353,16 +481,33 @@ class Controller(controller.BaseController):
                                  'have the same cidr'))
                         raise HTTPBadRequest(explanation=msg)
 
-        if network_meta.get('gateway', None) and network_meta.get('cidr', None):
+        if network_meta.get(
+                'gateway',
+                None) and network_meta.get(
+                'cidr',
+                None):
             gateway = network_meta['gateway']
             cidr = network_meta['cidr']
-            
+
             self.validate_ip_format(gateway)
             return_flag = self._is_in_network_range(gateway, cidr)
             if not return_flag:
-                msg = (_('The gateway %s was not in the same segment with the cidr %s of management network.' % (gateway, cidr)))
+                msg = (
+                    _(
+                        'The gateway %s was not in the same segment '
+                        'with the cidr %s of management network.' %
+                        (gateway, cidr)))
                 raise HTTPBadRequest(explanation=msg)
 
+        if network_meta.get('cluster_id') and network_meta.get('gateway'):
+            networks = registry.get_networks_detail(req.context, cluster_id)
+            gateways = [network['gateway'] for network in networks
+                        if network['name'] != network_meta['name'] and
+                        network['gateway']]
+            if gateways:
+                msg = (_('More than one gateway found in cluster.'))
+                LOG.error(msg)
+                raise HTTPConflict(explanation=msg)
         network_meta = registry.add_network_metadata(req.context, network_meta)
         return {'network_meta': network_meta}
 
@@ -377,14 +522,16 @@ class Controller(controller.BaseController):
         :raises HTTPBadRequest if x-host-name is missing
         """
         self._enforce(req, 'delete_network')
-        #self._raise_404_if_cluster_deleted(req, cluster_id)
-        #self._raise_404_if_network_deleted(req, network_id)
+        # self._raise_404_if_cluster_deleted(req, cluster_id)
+        # self._raise_404_if_network_deleted(req, network_id)
         network = self.get_network_meta_or_404(req, network_id)
         if network['deleted']:
-            msg = _("Network with identifier %s has been deleted.") % network_id
+            msg = _("Network with identifier %s has been deleted.") % \
+                network_id
             raise HTTPNotFound(msg)
         if network['type'] != 'custom':
-            msg = _("Type of network was not custom, can not delete this network.")
+            msg = _("Type of network was not custom, can not "
+                    "delete this network.")
             raise HTTPForbidden(msg)
         try:
             registry.delete_network_metadata(req.context, network_id)
@@ -403,14 +550,15 @@ class Controller(controller.BaseController):
                                 request=req,
                                 content_type="text/plain")
         except exception.InUseByStore as e:
-            msg = (_("Network %(id)s could not be deleted because it is in use: "
+            msg = (_("Network %(id)s could not be deleted "
+                     "because it is in use: "
                      "%(exc)s") % {"id": id, "exc": utils.exception_to_str(e)})
             LOG.warn(msg)
             raise HTTPConflict(explanation=msg,
                                request=req,
                                content_type="text/plain")
         else:
-            #self.notifier.info('host.delete', host)
+            # self.notifier.info('host.delete', host)
             return Response(body='', status=200)
 
     @utils.mutating
@@ -436,10 +584,19 @@ class Controller(controller.BaseController):
         """
         self._enforce(req, 'get_all_network')
         params = self._get_query_params(req)
+        filters = params.get('filters')
+        if filters and filters.get('type'):
+            if filters['type'] not in SUPPORT_NETWORK_TEMPLATE_TYPE:
+                msg = "type '%s' is not support." % filters['type']
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg, request=req)
+
         try:
-            networks = registry.get_all_networks(req.context,**params)
+            networks = registry.get_all_networks(req.context, **params)
         except Exception:
-            raise HTTPBadRequest(explanation="Get all networks failed.", request=req)
+            raise HTTPBadRequest(
+                explanation="Get all networks failed.",
+                request=req)
         return dict(networks=networks)
 
     def detail(self, req, id):
@@ -458,15 +615,15 @@ class Controller(controller.BaseController):
                  'deleted_at': <TIMESTAMP>|<NONE>,}, ...
             ]}
         """
-        cluster_id = self._raise_404_if_cluster_delete(req, id)
+        self._raise_404_if_cluster_delete(req, id)
         self._enforce(req, 'get_networks')
         params = self._get_query_params(req)
         try:
-            networks = registry.get_networks_detail(req.context, id,**params)
+            networks = registry.get_networks_detail(req.context, id, **params)
         except exception.Invalid as e:
             raise HTTPBadRequest(explanation=e.msg, request=req)
         return dict(networks=networks)
-             
+
     @utils.mutating
     def update_network(self, req, network_id, network_meta):
         """
@@ -477,14 +634,16 @@ class Controller(controller.BaseController):
 
         :retval Returns the updated image information as a mapping
         """
-        if network_meta.has_key('name'):
-            network_name=network_meta.get('name',None)
+        if 'name' in network_meta:
+            network_name = network_meta.get('name', None)
             network_name_split = network_name.split('_')
-            for network_name_info in network_name_split :
-                if not network_name_info.isalnum(): 
-                    raise ValueError('network name must be numbers or letters or underscores !')
+            for network_name_info in network_name_split:
+                if not network_name_info.isalnum():
+                    raise ValueError(
+                        'network name must be numbers or '
+                        'letters or underscores !')
         self._enforce(req, 'update_network')
-        #orig_cluster_meta = self.get_cluster_meta_or_404(req, cluster_id)
+        # orig_cluster_meta = self.get_cluster_meta_or_404(req, cluster_id)
         orig_network_meta = self.get_network_meta_or_404(req, network_id)
         # Do not allow any updates on a deleted network.
         if orig_network_meta['deleted']:
@@ -492,23 +651,27 @@ class Controller(controller.BaseController):
             raise HTTPForbidden(explanation=msg,
                                 request=req,
                                 content_type="text/plain")
-        if (network_meta.has_key('network_type') and 
-            network_meta['network_type'] not in SUPPORT_NETWORK_TYPE):
-             raise HTTPBadRequest(explanation="unsupported network-type", request=req)
-        if (network_meta.has_key('type') and 
-            network_meta['type'] not in SUPPORT_NETWORK_TEMPLATE_TYPE):
-             raise HTTPBadRequest(explanation="unsupported type", request=req)
-        if (network_meta.has_key('type') and 
-            network_meta['type'] == 'template'):
-             raise HTTPBadRequest(explanation="network template type is not allowed to update", request=req)
-             
-           
-             
-        if (network_meta.has_key('capability') and 
-            network_meta['capability'] not in SUPPORT_NETWORK_CAPABILITY):
-             raise HTTPBadRequest(explanation="unsupported capability type", request=req)
+        if ('network_type' in network_meta and
+                network_meta['network_type'] not in SUPPORT_NETWORK_TYPE):
+            raise HTTPBadRequest(
+                explanation="unsupported network-type",
+                request=req)
+        if ('type' in network_meta and
+                network_meta['type'] not in SUPPORT_NETWORK_TEMPLATE_TYPE):
+            raise HTTPBadRequest(explanation="unsupported type", request=req)
+        if ('type' in network_meta and
+                network_meta['type'] == 'template'):
+            raise HTTPBadRequest(
+                explanation="network template type is not allowed to update",
+                request=req)
 
-        self._valid_vlan_range(req, network_meta)
+        if ('capability' in network_meta and
+                network_meta['capability'] not in SUPPORT_NETWORK_CAPABILITY):
+            raise HTTPBadRequest(
+                explanation="unsupported capability type",
+                request=req)
+
+        self._valid_network_range(req, network_meta)
 
         network_name = network_meta.get('name', None)
         cluster_id = orig_network_meta['cluster_id']
@@ -516,17 +679,20 @@ class Controller(controller.BaseController):
             network_updated = copy.deepcopy(network_meta)
             network_updated['id'] = network_id
             network_type = network_meta.get('network_type', None)
-            network_updated['network_type'] = \
-                orig_network_meta['network_type'] if not network_type else network_type
+            network_updated['network_type'] = orig_network_meta[
+                'network_type'] if not network_type else network_type
             network_list = self.detail(req, cluster_id)
-            self._verify_uniqueness_of_network_name(req, network_list, network_updated, True)
-            
+            self._verify_uniqueness_of_network_name(
+                req, network_list, network_updated, True)
+
         cidr = network_meta.get('cidr', orig_network_meta['cidr'])
         vlan_id = network_meta.get('vlan_id', orig_network_meta['vlan_id'])
         if cidr:
             cidr_division = cidr.split('/')
-            if len(cidr_division) != 2 or ( cidr_division[1] \
-                and int(cidr_division[1]) > 32 or int(cidr_division[1]) < 0):
+            if len(cidr_division) != 2 or (
+                cidr_division[1] and int(
+                    cidr_division[1]) > 32 or int(
+                    cidr_division[1]) < 0):
                 msg = (_("Wrong CIDR format."))
                 LOG.warn(msg)
                 raise HTTPForbidden(msg)
@@ -549,9 +715,12 @@ class Controller(controller.BaseController):
                                  'have the same cidr'))
                         raise HTTPBadRequest(explanation=msg)
 
-        if network_meta.get('ip_ranges', None):
+        if network_meta.get('ip_ranges', None) and \
+                eval(network_meta['ip_ranges']):
             if not cidr:
-                msg = (_("When ip range was specified, the CIDR parameter can not be empty."))
+                msg = (
+                    _("When ip range was specified, "
+                      "the CIDR parameter can not be empty."))
                 LOG.warn(msg)
                 raise HTTPForbidden(msg)
             ip_ranges = eval(network_meta['ip_ranges'])
@@ -560,52 +729,80 @@ class Controller(controller.BaseController):
             sorted_int_ip_ranges_list = list()
             for ip_pair in ip_ranges:
                 if ['start', 'end'] != ip_pair.keys():
-                    msg = (_("IP range was not start with 'start:' or end with 'end:'."))
+                    msg = (
+                        _("IP range was not start with 'start:' "
+                          "or end with 'end:'."))
                     LOG.warn(msg)
                     raise HTTPForbidden(msg)
-                ip_start = ip_pair['start'] 
+                ip_start = ip_pair['start']
                 ip_end = ip_pair['end']
-                self.validate_ip_format(ip_start)   #check ip format
+                self.validate_ip_format(ip_start)  # check ip format
                 self.validate_ip_format(ip_end)
-                
+
                 if not self._is_in_network_range(ip_start, cidr):
-                    msg = (_("IP address %s was not in the range of CIDR %s." % (ip_start, cidr)))
+                    msg = (
+                        _("IP address %s was not in the "
+                          "range of CIDR %s." % (ip_start, cidr)))
                     LOG.warn(msg)
                     raise HTTPForbidden(msg)
-                    
+
                 if not self._is_in_network_range(ip_end, cidr):
-                    msg = (_("IP address %s was not in the range of CIDR %s." % (ip_end, cidr)))
+                    msg = (
+                        _("IP address %s was not in the "
+                          "range of CIDR %s." % (ip_end, cidr)))
                     LOG.warn(msg)
                     raise HTTPForbidden(msg)
-                
-                #transform ip format to int when the string format is valid
+
+                # transform ip format to int when the string format is valid
                 int_ip_start = self._ip_into_int(ip_start)
                 int_ip_end = self._ip_into_int(ip_end)
-                
+
                 if int_ip_start > int_ip_end:
                     msg = (_("Wrong ip range format."))
                     LOG.warn(msg)
                     raise HTTPForbidden(msg)
                 int_ip_ranges_list.append([int_ip_start, int_ip_end])
-            sorted_int_ip_ranges_list = sorted(int_ip_ranges_list, key=lambda x : x[0])
-            LOG.warn("sorted_int_ip_ranges_list: "% sorted_int_ip_ranges_list)
-            #check ip ranges overlap
+            sorted_int_ip_ranges_list = sorted(
+                int_ip_ranges_list, key=lambda x: x[0])
+            LOG.warn("sorted_int_ip_ranges_list: " % sorted_int_ip_ranges_list)
+            # check ip ranges overlap
             for int_ip_range in sorted_int_ip_ranges_list:
                 if last_ip_range_end and last_ip_range_end >= int_ip_range[0]:
                     msg = (_("Between ip ranges can not be overlap."))
-                    LOG.warn(msg)  # such as "[10, 15], [12, 16]", last_ip_range_end >= int_ip_range[0], this ip ranges were overlap
+                    # such as "[10, 15], [12, 16]", last_ip_range_end >=
+                    # int_ip_range[0], this ip ranges were overlap
+                    LOG.warn(msg)
                     raise HTTPForbidden(msg)
                 else:
                     last_ip_range_end = int_ip_range[1]
-        
-        if network_meta.get('gateway', orig_network_meta['gateway']) and network_meta.get('cidr', orig_network_meta['cidr']):
+
+        if network_meta.get(
+                'gateway',
+                orig_network_meta['gateway']) and network_meta.get(
+                'cidr',
+                orig_network_meta['cidr']):
             gateway = network_meta.get('gateway', orig_network_meta['gateway'])
             cidr = network_meta.get('cidr', orig_network_meta['cidr'])
             self.validate_ip_format(gateway)
             return_flag = self._is_in_network_range(gateway, cidr)
             if not return_flag:
-                msg = (_('The gateway %s was not in the same segment with the cidr %s of management network.' % (gateway, cidr)))
+                msg = (
+                    _(
+                        'The gateway %s was not in the same '
+                        'segment with the cidr %s of management network.' %
+                        (gateway, cidr)))
                 raise HTTPBadRequest(explanation=msg)
+
+        # allow one gateway in one cluster
+        if network_meta.get('cluster_id') and (network_meta.get('gateway')):
+            networks = registry.get_networks_detail(req.context, cluster_id)
+            gateways = [network['gateway'] for network in networks
+                        if network['name'] != orig_network_meta['name'] and
+                        network['gateway']]
+            if gateways:
+                msg = (_('More than one gateway found in cluster.'))
+                LOG.error(msg)
+                raise HTTPConflict(explanation=msg)
 
         try:
             network_meta = registry.update_network_metadata(req.context,
@@ -626,12 +823,8 @@ class Controller(controller.BaseController):
                                request=req,
                                content_type="text/plain")
         except exception.Forbidden as e:
-            msg = (_("Forbidden to update network: %s") %
-                   utils.exception_to_str(e))
-            LOG.warn(msg)
-            raise HTTPForbidden(explanation=msg,
-                                request=req,
-                                content_type="text/plain")
+            LOG.warn(e)
+            raise HTTPForbidden(e)
         except (exception.Conflict, exception.Duplicate) as e:
             LOG.warn(utils.exception_to_str(e))
             raise HTTPConflict(body=_('Network operation conflicts'),
@@ -641,6 +834,7 @@ class Controller(controller.BaseController):
             self.notifier.info('network.update', network_meta)
 
         return {'network_meta': network_meta}
+
 
 class HostDeserializer(wsgi.JSONRequestDeserializer):
     """Handles deserialization of specific controller method requests."""
@@ -655,6 +849,7 @@ class HostDeserializer(wsgi.JSONRequestDeserializer):
 
     def update_network(self, request):
         return self._deserialize(request)
+
 
 class HostSerializer(wsgi.JSONResponseSerializer):
     """Handles serialization of specific controller method responses."""
@@ -683,9 +878,9 @@ class HostSerializer(wsgi.JSONResponseSerializer):
         response.body = self.to_json(dict(network=network_meta))
         return response
 
+
 def create_resource():
     """Hosts resource factory method"""
     deserializer = HostDeserializer()
     serializer = HostSerializer()
     return wsgi.Resource(Controller(), deserializer, serializer)
-

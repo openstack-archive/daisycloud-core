@@ -19,22 +19,23 @@ from oslo_utils import encodeutils
 from oslo_utils import strutils
 import six
 import six.moves.urllib.parse as urlparse
-from webob.exc import HTTPBadRequest
 from daisyclient.common import utils
 from daisyclient.openstack.common.apiclient import base
 
-UPDATE_PARAMS = ('name', 'description','status','progress','config_set_id',
-                 'nodes','services', 'cluster_id','type','vip', 'glance_lv_size',
-				 'deployment_backend',
-                 #NOTE(bcwaldon: an attempt to update 'deleted' will be
+UPDATE_PARAMS = ('name', 'description', 'status', 'progress', 'config_set_id',
+                 'nodes', 'services', 'cluster_id', 'type', 'vip',
+                 'glance_lv_size', 'deployment_backend',
+                 # NOTE(bcwaldon: an attempt to update 'deleted' will be
                  # ignored, but we need to support it for backwards-
                  # compatibility with the legacy client library
                  'deleted', 'db_lv_size', 'nova_lv_size', 'disk_location',
-                 'ntp_server', 'role_type', 'db_vip', 'glance_vip', 'public_vip', 'mongodb_vip')
+                 'ntp_server', 'role_type', 'db_vip', 'glance_vip',
+                 'public_vip', 'mongodb_vip')
 
-CREATE_PARAMS = ('id', 'name','description','status','progress','config_set_id',
-                 'nodes', 'services', 'cluster_id', 'type', 'vip',
-                 'glance_lv_size', 'db_vip', 'glance_vip', 'public_vip', 'mongodb_vip', 'deployment_backend',
+CREATE_PARAMS = ('id', 'name', 'description', 'status', 'progress',
+                 'config_set_id', 'nodes', 'services', 'cluster_id', 'type',
+                 'vip', 'glance_lv_size', 'db_vip', 'glance_vip', 'public_vip',
+                 'mongodb_vip', 'deployment_backend',
                  'db_lv_size', 'nova_lv_size', 'disk_location', 'role_type')
 
 DEFAULT_PAGE_SIZE = 20
@@ -46,6 +47,7 @@ OS_REQ_ID_HDR = 'x-openstack-request-id'
 
 
 class Role(base.Resource):
+
     def __repr__(self):
         return "<Role %s>" % self._info
 
@@ -89,7 +91,7 @@ class RoleManager(base.ManagerWithFind):
                 meta[key] = strutils.bool_from_string(meta[key])
 
         return self._format_role_meta_for_user(meta)
-        
+
     def _role_meta_to_headers(self, fields):
         headers = {}
         fields_copy = copy.deepcopy(fields)
@@ -102,7 +104,7 @@ class RoleManager(base.ManagerWithFind):
         for key, value in six.iteritems(fields_copy):
             headers['%s' % key] = utils.to_str(value)
         return headers
-        
+
     @staticmethod
     def _format_image_meta_for_user(meta):
         for key in ['size', 'min_ram', 'min_disk']:
@@ -131,12 +133,12 @@ class RoleManager(base.ManagerWithFind):
         """
         role_id = base.getid(role)
         resp, body = self.client.get('/v1/roles/%s'
-                                      % urlparse.quote(str(role_id)))
-        #meta = self._role_meta_from_headers(resp.headers)
+                                     % urlparse.quote(str(role_id)))
+        # meta = self._role_meta_from_headers(resp.headers)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
-        #return Host(self, meta)
+        # return Host(self, meta)
         return Role(self, self._format_role_meta_for_user(body['role']))
 
     def data(self, image, do_checksum=True, **kwargs):
@@ -265,7 +267,7 @@ class RoleManager(base.ManagerWithFind):
 
         TODO(bcwaldon): document accepted params
         """
-        
+
         fields = {}
         for field in kwargs:
             if field in CREATE_PARAMS:
@@ -275,7 +277,7 @@ class RoleManager(base.ManagerWithFind):
             else:
                 msg = 'create() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
-                
+
         hdrs = self._role_meta_to_headers(fields)
         resp, body = self.client.post('/v1/roles',
                                       headers=hdrs,
@@ -293,7 +295,7 @@ class RoleManager(base.ManagerWithFind):
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
-            
+
     def update(self, role, **kwargs):
         """Update an role
 

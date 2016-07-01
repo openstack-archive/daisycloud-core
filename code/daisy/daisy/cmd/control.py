@@ -30,6 +30,12 @@ import subprocess
 import sys
 import tempfile
 import time
+from oslo_config import cfg
+from oslo_utils import units
+# NOTE(jokke): simplified transition to py3, behaves like py2 xrange
+from six.moves import range
+from daisy.common import config
+from daisy import i18n
 
 # If ../glance/__init__.py exists, add ../ to Python search path, so that
 # it will override what happens to be installed in /usr/(local/)lib/python...
@@ -39,13 +45,6 @@ possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
 if os.path.exists(os.path.join(possible_topdir, 'glance', '__init__.py')):
     sys.path.insert(0, possible_topdir)
 
-from oslo_config import cfg
-from oslo_utils import units
-# NOTE(jokke): simplified transition to py3, behaves like py2 xrange
-from six.moves import range
-
-from daisy.common import config
-from daisy import i18n
 
 _ = i18n._
 

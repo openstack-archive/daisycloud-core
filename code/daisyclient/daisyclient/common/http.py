@@ -16,9 +16,13 @@
 import copy
 import logging
 import socket
-
+from oslo_utils import encodeutils
+from daisyclient.common import https
+from daisyclient.common.utils import safe_header
+from daisyclient import exc
 from oslo_utils import importutils
 from oslo_utils import netutils
+
 import requests
 try:
     from requests.packages.urllib3.exceptions import ProtocolError
@@ -37,11 +41,6 @@ if not hasattr(parse, 'parse_qsl'):
     import cgi
     parse.parse_qsl = cgi.parse_qsl
 
-from oslo_utils import encodeutils
-
-from daisyclient.common import https
-from daisyclient.common.utils import safe_header
-from daisyclient import exc
 
 osprofiler_web = importutils.try_import("osprofiler.web")
 

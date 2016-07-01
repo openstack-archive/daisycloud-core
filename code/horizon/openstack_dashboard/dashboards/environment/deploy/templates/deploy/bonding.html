@@ -295,12 +295,13 @@
         return true;
     }
 
-    function CheckBondName(str)
+    function CheckBondName(bond_port_name)
     {
         var $first_net_port = $(".net_port_name:checked:first");
         if($first_net_port.hasClass("ether_config"))
         {
-            return str != "";
+            var reg = new RegExp("^[a-zA-Z0-9]{1,8}$");
+            return reg.test(bond_port_name)
         }
         return true;
     }
@@ -513,7 +514,7 @@
                     validators: {
                         callback: {
                             callback: CheckBondName,
-                            message: "{% trans 'Name can not be empty' %}"
+                            message: "{% trans 'Name must consist of letters, numbers. The length of name is 2 to 8' %}"
                         }
                     }
                 }

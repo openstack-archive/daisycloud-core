@@ -146,6 +146,7 @@ schema_fixtures = {
 
 
 class TestResoureTypeController(testtools.TestCase):
+
     def setUp(self):
         super(TestResoureTypeController, self).setUp()
         self.api = utils.FakeAPI(data_fixtures)

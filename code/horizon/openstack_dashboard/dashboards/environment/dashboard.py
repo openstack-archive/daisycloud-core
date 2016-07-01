@@ -24,9 +24,11 @@ class BasePanels(horizon.PanelGroup):
     panels = ('overview',
               'deploy',
               'configure',
-              'network',
               'cluster',
-              'version',)
+              'version',
+              'host',
+              'template',
+              'system',)
 
 
 class Environment(horizon.Dashboard):

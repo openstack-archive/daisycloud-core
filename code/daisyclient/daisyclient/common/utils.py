@@ -23,21 +23,19 @@ import re
 import sys
 import threading
 import uuid
-
-from oslo_utils import importutils
-import six
-
-if os.name == 'nt':
-    import msvcrt
-else:
-    msvcrt = None
-
 from oslo_utils import encodeutils
 from oslo_utils import strutils
 import prettytable
 import six
 
 from daisyclient import exc
+from oslo_utils import importutils
+
+if os.name == 'nt':
+    import msvcrt
+else:
+    msvcrt = None
+
 
 _memoized_property_lock = threading.Lock()
 
@@ -130,7 +128,8 @@ def pretty_choice_list(l):
     return ', '.join("'%s'" % i for i in l)
 
 
-def print_list(objs, fields, formatters=None, field_settings=None):
+def print_list(objs, fields, formatters=None, field_settings=None,
+               conver_field=True):
     formatters = formatters or {}
     field_settings = field_settings or {}
     pt = prettytable.PrettyTable([f for f in fields], caching=False)
@@ -147,8 +146,11 @@ def print_list(objs, fields, formatters=None, field_settings=None):
             if field in formatters:
                 row.append(formatters[field](o))
             else:
-                field_name = field.lower().replace(' ', '_')
-                data = getattr(o, field_name, None) 
+                if conver_field:
+                    field_name = field.lower().replace(' ', '_')
+                else:
+                    field_name = field.replace(' ', '_')
+                data = getattr(o, field_name, None)
                 row.append(data)
         pt.add_row(row)
 
@@ -162,7 +164,7 @@ def print_dict(d, max_column_width=80):
     for k, v in six.iteritems(d):
         if isinstance(v, (dict, list)):
             v = json.dumps(v)
-        pt.add_row([k, v ])
+        pt.add_row([k, v])
     print(encodeutils.safe_decode(pt.get_string(sortby='Property')))
 
 

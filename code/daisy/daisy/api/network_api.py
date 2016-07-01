@@ -24,10 +24,12 @@ from neutronclient.v2_0 import client as clientv20
 from daisy.common import exception
 LOG = logging.getLogger(__name__)
 
+
 class network(object):
     """
     network config
     """
+
     def __init__(self, req, neutron_host, keystone_host, cluster_id):
         registry.configure_registry_client()
         auth_url = 'http://' + keystone_host + ':35357/v2.0'
@@ -49,10 +51,12 @@ class network(object):
         except exception.Invalid as e:
             LOG.exception(e.msg)
             raise HTTPBadRequest(explanation=e.msg, request=req)
-        LOG.info("<<<CLUSTER:%s,NEUTRON HOST:%s,KEYSTOEN:%s>>>", cluster, neutron_host, keystone_host)
-        if 'logic_networks' in cluster and cluster['logic_networks'] is not None:
+        LOG.info("<<<CLUSTER:%s,NEUTRON HOST:%s,KEYSTOEN:%s>>>",
+                 cluster, neutron_host, keystone_host)
+        if 'logic_networks' in cluster and cluster[
+                'logic_networks'] is not None:
             self.nets = cluster['logic_networks']
-            #self._flat_network_uniqueness_check()
+            # self._flat_network_uniqueness_check()
             if 'routers' in cluster and cluster['routers'] is not None:
                 self.routers = cluster['routers']
             else:
@@ -83,7 +87,9 @@ class network(object):
         for router in self.routers:
             router_id = self._router_create(router['name'])
             if 'external_logic_network' in router:
-                body = {'network_id': self.name_mappings[router['external_logic_network']]}
+                body = {
+                    'network_id': self.name_mappings[
+                        router['external_logic_network']]}
                 self.neutron.add_gateway_router(router_id, body)
             if 'subnets' in router:
                 for i in router['subnets']:
@@ -92,7 +98,8 @@ class network(object):
 
     def _net_subnet_same_router_check(self, ex_network, subnet):
         for router in self.routers:
-            if 'external_logic_network' in router and router['external_logic_network'] == ex_network:
+            if 'external_logic_network' in router and router[
+                    'external_logic_network'] == ex_network:
                 if 'subnets' in router:
                     for i in router['subnets']:
                         if i == subnet:
@@ -155,18 +162,25 @@ class network(object):
         for net in self.nets:
             body = {}
             if net['type'] == 'external':
-                body['network'] = {'name': net['name'],
-                                   'router:external': True,
-                                   'provider:network_type': net['segmentation_type']}
+                body['network'] = {
+                    'name': net['name'],
+                    'router:external': True,
+                    'provider:network_type': net['segmentation_type']}
                 if net['segmentation_type'].strip() == 'flat':
-                    body['network']['provider:physical_network'] = net['physnet_name']
+                    body['network']['provider:physical_network'] = net[
+                        'physnet_name']
                 elif net['segmentation_type'].strip() == 'vxlan':
-                    if 'segmentation_id' in net and net['segmentation_id'] is not None:
-                        body['network']['provider:segmentation_id'] = net['segmentation_id']
+                    if 'segmentation_id' in net and net[
+                            'segmentation_id'] is not None:
+                        body['network']['provider:segmentation_id'] = net[
+                            'segmentation_id']
                 else:
-                    if 'segmentation_id' in net and net['segmentation_id'] is not None:
-                        body['network']['provider:segmentation_id'] = net['segmentation_id']
-                    body['network']['provider:physical_network'] = net['physnet_name']
+                    if 'segmentation_id' in net and net[
+                            'segmentation_id'] is not None:
+                        body['network']['provider:segmentation_id'] = net[
+                            'segmentation_id']
+                    body['network']['provider:physical_network'] = net[
+                        'physnet_name']
                 if net['shared']:
                     body['network']['shared'] = True
                 else:
@@ -175,21 +189,28 @@ class network(object):
                 self.name_mappings[net['name']] = external['network']['id']
                 last_create_subnet = []
                 for subnet in net['subnets']:
-                    if self._net_subnet_same_router_check(net['name'], subnet['name']):
+                    if self._net_subnet_same_router_check(
+                            net['name'], subnet['name']):
                         last_create_subnet.append(subnet)
                     else:
-                        subnet_id = self._subnet_check_and_create(external['network']['id'], subnet)
+                        subnet_id = self._subnet_check_and_create(
+                            external['network']['id'], subnet)
                         self.name_mappings[subnet['name']] = subnet_id
                 for subnet in last_create_subnet:
-                    subnet_id = self._subnet_check_and_create(external['network']['id'], subnet)
+                    subnet_id = self._subnet_check_and_create(
+                        external['network']['id'], subnet)
                     self.name_mappings[subnet['name']] = subnet_id
             else:
-                body['network'] = {'name': net['name'],
-                                   'provider:network_type': net['segmentation_type']}
+                body['network'] = {
+                    'name': net['name'],
+                    'provider:network_type': net['segmentation_type']}
                 if net['segmentation_type'].strip() == 'vlan':
-                    body['network']['provider:physical_network'] = net['physnet_name']
-                if 'segmentation_id' in net and net['segmentation_id'] is not None:
-                    body['network']['provider:segmentation_id'] = net['segmentation_id']
+                    body['network']['provider:physical_network'] = net[
+                        'physnet_name']
+                if 'segmentation_id' in net and net[
+                        'segmentation_id'] is not None:
+                    body['network']['provider:segmentation_id'] = net[
+                        'segmentation_id']
                 if net['shared']:
                     body['network']['shared'] = True
                 else:
@@ -197,6 +218,7 @@ class network(object):
                 inner = self.neutron.create_network(body)
                 self.name_mappings[net['name']] = inner['network']['id']
                 for subnet in net['subnets']:
-                    subnet_id = self._subnet_check_and_create(inner['network']['id'], subnet)
+                    subnet_id = self._subnet_check_and_create(
+                        inner['network']['id'], subnet)
                     self.name_mappings[subnet['name']] = subnet_id
         self._router_link()

@@ -201,63 +201,77 @@ def delete_member(context, image_id, member_id):
     c = get_registry_client(context)
     return c.delete_member(image_id, member_id)
 
+
 def add_host_metadata(context, host_meta):
     LOG.debug("Adding host...")
     c = get_registry_client(context)
     return c.add_host(host_meta)
+
 
 def delete_host_metadata(context, host_id):
     LOG.debug("Deleting host metadata for host %s...", host_id)
     c = get_registry_client(context)
     return c.delete_host(host_id)
 
+
 def update_host_metadata(context, host_id, host_meta):
     LOG.debug("Updating host metadata for host %s...", host_id)
     c = get_registry_client(context)
     return c.update_host(host_id, host_meta)
 
+
 def get_host_metadata(context, host_id):
     c = get_registry_client(context)
     return c.get_host(host_id)
+
 
 def get_host_interface(context, host_meta):
     c = get_registry_client(context)
     return c.get_host_interface(host_meta)
 
+
 def get_all_host_interfaces(context, params):
     c = get_registry_client(context)
     return c.get_all_host_interfaces(params)
+
 
 def get_assigned_network(context, host_interface_id, network_id):
     c = get_registry_client(context)
     return c.get_assigned_network(host_interface_id, network_id)
 
+
 def add_discover_host_metadata(context, discover_host_meta):
     LOG.debug("Adding discover host...")
     c = get_registry_client(context)
-    return c.add_discover_host(discover_host_meta)   
+    return c.add_discover_host(discover_host_meta)
+
 
 def delete_discover_host_metadata(context, discover_host_id):
     LOG.debug("Deleting host metadata for host %s...", discover_host_id)
     c = get_registry_client(context)
     return c.delete_discover_host(discover_host_id)
-    
+
+
 def get_discover_hosts_detail(context, **kwargs):
     c = get_registry_client(context)
     return c.get_discover_hosts_detailed(**kwargs)
-    
+
+
 def update_discover_host_metadata(context, host_id, host_meta):
     c = get_registry_client(context)
     return c.update_discover_host(host_id, host_meta)
-    
+
+
 def get_discover_host_metadata(context, host_id):
     c = get_registry_client(context)
     return c.get_discover_host_metadata(host_id)
+
 
 def add_cluster_metadata(context, cluster_meta):
     LOG.debug("Adding cluster...")
     c = get_registry_client(context)
     return c.add_cluster(cluster_meta)
+
 
 def update_cluster_metadata(context, cluster_id, cluster_meta):
     LOG.debug("Updating cluster metadata for cluster %s...", cluster_id)
@@ -266,30 +280,37 @@ def update_cluster_metadata(context, cluster_id, cluster_meta):
     print cluster_meta
     return c.update_cluster(cluster_id, cluster_meta)
 
+
 def delete_cluster_metadata(context, cluster_id):
     LOG.debug("Deleting cluster metadata for cluster %s...", cluster_id)
     c = get_registry_client(context)
     return c.delete_cluster(cluster_id)
 
+
 def get_cluster_metadata(context, cluster_id):
     c = get_registry_client(context)
     return c.get_cluster(cluster_id)
+
 
 def add_cluster_host(context, cluster_id, host_id):
     c = get_registry_client(context)
     return c.add_cluster_host(cluster_id, host_id)
 
+
 def delete_cluster_host(context, cluster_id, host_id):
     c = get_registry_client(context)
     return c.delete_cluster_host(cluster_id, host_id)
+
 
 def get_hosts_detail(context, **kwargs):
     c = get_registry_client(context)
     return c.get_hosts_detailed(**kwargs)
 
+
 def get_clusters_detail(context, **kwargs):
     c = get_registry_client(context)
     return c.get_clusters_detailed(**kwargs)
+
 
 def get_cluster_hosts(context, cluster_id, host_id=None):
     c = get_registry_client(context)
@@ -300,283 +321,383 @@ def get_host_clusters(context, host_id):
     c = get_registry_client(context)
     return c.get_host_clusters(host_id)
 
+
 def add_component_metadata(context, component_meta):
     LOG.debug("Adding component...")
     c = get_registry_client(context)
     return c.add_component(component_meta)
 
+
+def add_hwm_metadata(context, hwm):
+    c = get_registry_client(context)
+    return c.add_hwm(hwm)
+
+
+def update_hwm_metadata(context, hwm_id, hwm):
+    c = get_registry_client(context)
+    return c.update_hwm(hwm_id, hwm)
+
+
+def delete_hwm_metadata(context, hwm_id):
+    c = get_registry_client(context)
+    return c.delete_hwm(hwm_id)
+
+
+def hwm_list_metadata(context, **kwargs):
+    c = get_registry_client(context)
+    return c.list_hwm(**kwargs)
+
+
+def hwm_detail_metadata(context, hwm_id):
+    c = get_registry_client(context)
+    return c.get_hwm_detail(hwm_id)
+
+
 def add_template_metadata(context, template):
     c = get_registry_client(context)
     return c.add_template(template)
-    
+
+
 def update_template_metadata(context, template_id, template):
     c = get_registry_client(context)
     return c.update_template(template_id, template)
-    
+
+
 def delete_template_metadata(context, template_id):
     c = get_registry_client(context)
     return c.delete_template(template_id)
-    
+
 
 def template_lists_metadata(context, **kwargs):
     c = get_registry_client(context)
     return c.list_template(**kwargs)
 
+
 def template_detail_metadata(context, template_id):
     c = get_registry_client(context)
     return c.get_template_detail(template_id)
 
+
 def add_host_template_metadata(context, template):
     c = get_registry_client(context)
     return c.add_host_template(template)
-    
+
+
 def update_host_template_metadata(context, template_id, template):
     c = get_registry_client(context)
     return c.update_host_template(template_id, template)
-    
+
+
 def delete_host_template_metadata(context, template_id):
     c = get_registry_client(context)
     return c.delete_host_template(template_id)
-    
+
 
 def host_template_lists_metadata(context, **kwargs):
     c = get_registry_client(context)
     return c.list_host_template(**kwargs)
 
+
 def host_template_detail_metadata(context, template_id):
     c = get_registry_client(context)
     return c.get_host_template_detail(template_id)
-    
+
+
 def delete_component_metadata(context, component_id):
     LOG.debug("Deleting component metadata for component %s...", component_id)
     c = get_registry_client(context)
     return c.delete_component(component_id)
 
+
 def get_components_detail(context, **kwargs):
     c = get_registry_client(context)
     return c.get_components_detailed(**kwargs)
 
+
 def get_component_metadata(context, component_id):
     c = get_registry_client(context)
     return c.get_component(component_id)
+
 
 def update_component_metadata(context, component_id, component_meta):
     LOG.debug("Updating component metadata for component %s...", component_id)
     c = get_registry_client(context)
     return c.update_component(component_id, component_meta)
 
+
 def add_service_metadata(context, service_meta):
     LOG.debug("Adding service...")
     c = get_registry_client(context)
     return c.add_service(service_meta)
+
 
 def delete_service_metadata(context, service_id):
     LOG.debug("Deleting service metadata for service %s...", service_id)
     c = get_registry_client(context)
     return c.delete_service(service_id)
 
+
 def get_services_detail(context, **kwargs):
     c = get_registry_client(context)
     return c.get_services_detailed(**kwargs)
 
+
 def get_service_metadata(context, service_id):
     c = get_registry_client(context)
     return c.get_service(service_id)
+
 
 def update_service_metadata(context, service_id, service_meta):
     LOG.debug("Updating service metadata for service %s...", service_id)
     c = get_registry_client(context)
     return c.update_service(service_id, service_meta)
 
+
 def add_role_metadata(context, role_meta):
     LOG.debug("Adding role...")
     c = get_registry_client(context)
     return c.add_role(role_meta)
+
 
 def delete_role_metadata(context, role_id):
     LOG.debug("Deleting role metadata for role %s...", role_id)
     c = get_registry_client(context)
     return c.delete_role(role_id)
 
+
 def get_roles_detail(context, **kwargs):
     c = get_registry_client(context)
     return c.get_roles_detailed(**kwargs)
 
+
 def get_role_metadata(context, role_id):
     c = get_registry_client(context)
     return c.get_role(role_id)
+
 
 def update_role_metadata(context, role_id, role_meta):
     LOG.debug("Updating role metadata for role %s...", role_id)
     c = get_registry_client(context)
     return c.update_role(role_id, role_meta)
 
+
 def get_role_services(context, role_id):
     c = get_registry_client(context)
     return c.get_role_services(role_id)
+
 
 def get_role_host_metadata(context, role_id):
     LOG.debug("get role_host metadata for role %s...", role_id)
     c = get_registry_client(context)
     return c.get_role_host(role_id)
 
+
 def delete_role_host_metadata(context, role_id):
     LOG.debug("delete role_host metadata for role %s...", role_id)
     c = get_registry_client(context)
     return c.delete_role_host(role_id)
+
 
 def update_role_host_metadata(context, role_host_id, role_meta):
     LOG.debug("update role_host metadata for role %s...", role_host_id)
     c = get_registry_client(context)
     return c.update_role_host(role_host_id, role_meta)
 
+
 def add_config_file_metadata(context, config_file_meta):
     LOG.debug("Adding config_file...")
     c = get_registry_client(context)
     return c.add_config_file(config_file_meta)
 
+
 def delete_config_file_metadata(context, config_file_id):
-    LOG.debug("Deleting config_file metadata for config_file %s...", config_file_id)
+    LOG.debug(
+        "Deleting config_file metadata for config_file %s...",
+        config_file_id)
     c = get_registry_client(context)
     return c.delete_config_file(config_file_id)
 
+
 def update_config_file_metadata(context, config_file_id, config_file_meta):
-    LOG.debug("Updating config_file metadata for config_file %s...", config_file_id)
+    LOG.debug(
+        "Updating config_file metadata for config_file %s...",
+        config_file_id)
     c = get_registry_client(context)
     return c.update_config_file(config_file_id, config_file_meta)
+
 
 def get_config_file_metadata(context, config_file_id):
     c = get_registry_client(context)
     return c.get_config_file(config_file_id)
 
+
 def get_config_files_detail(context, **kwargs):
     c = get_registry_client(context)
     return c.get_config_files_detailed(**kwargs)
+
+
 def add_config_set_metadata(context, config_set_meta):
     LOG.debug("Adding config_set...")
     c = get_registry_client(context)
     return c.add_config_set(config_set_meta)
 
+
 def delete_config_set_metadata(context, config_set_id):
-    LOG.debug("Deleting config_set metadata for config_set %s...", config_set_id)
+    LOG.debug(
+        "Deleting config_set metadata for config_set %s...",
+        config_set_id)
     c = get_registry_client(context)
     return c.delete_config_set(config_set_id)
 
+
 def update_config_set_metadata(context, config_set_id, config_set_meta):
-    LOG.debug("Updating config_set metadata for config_file %s...", config_set_id)
+    LOG.debug(
+        "Updating config_set metadata for config_file %s...",
+        config_set_id)
     c = get_registry_client(context)
     return c.update_config_set(config_set_id, config_set_meta)
+
 
 def get_config_set_metadata(context, config_set_id):
     c = get_registry_client(context)
     return c.get_config_set(config_set_id)
 
+
 def get_config_sets_detail(context, **kwargs):
     c = get_registry_client(context)
     return c.get_config_sets_detailed(**kwargs)
+
 
 def add_config_metadata(context, config_meta):
     LOG.debug("Adding config...")
     c = get_registry_client(context)
     return c.add_config(config_meta)
 
+
 def delete_config_metadata(context, config_id):
     LOG.debug("Deleting config metadata for config %s...", config_id)
     c = get_registry_client(context)
     return c.delete_config(config_id)
+
 
 def update_config_metadata(context, config_id, config_meta):
     LOG.debug("Updating config metadata for config_file %s...", config_id)
     c = get_registry_client(context)
     return c.update_config(config_id, config_meta)
 
+
 def update_configs_metadata_by_role_hosts(context, config_metas):
     c = get_registry_client(context)
     return c.update_config_by_role_hosts(config_metas)
+
 
 def get_config_metadata(context, config_id):
     c = get_registry_client(context)
     return c.get_config(config_id)
 
+
 def get_configs_detail(context, **kwargs):
     c = get_registry_client(context)
     return c.get_configs_detailed(**kwargs)
+
 
 def add_network_metadata(context, network_meta):
     LOG.debug("Adding network...")
     c = get_registry_client(context)
     return c.add_network(network_meta)
 
+
 def update_phyname_of_network(context, network_phyname_set):
     c = get_registry_client(context)
     return c.update_phyname_of_network(network_phyname_set)
+
 
 def update_network_metadata(context, network_id, network_meta):
     LOG.debug("Updating cluster metadata for cluster %s...", network_id)
     c = get_registry_client(context)
     return c.update_network(network_id, network_meta)
 
+
 def delete_network_metadata(context, network_id):
     LOG.debug("Deleting cluster metadata for cluster %s...", network_id)
     c = get_registry_client(context)
     return c.delete_network(network_id)
 
+
 def get_network_metadata(context, network_id):
     c = get_registry_client(context)
     return c.get_networks(network_id)
+
 
 def get_networks_detail(context, cluster_id, **kwargs):
     c = get_registry_client(context)
     return c.get_networks_detailed(cluster_id, **kwargs)
 
+
 def get_all_networks(context, **kwargs):
     c = get_registry_client(context)
     return c.get_all_networks(**kwargs)
+
 
 def config_interface_metadata(context, config_interface_meta):
     c = get_registry_client(context)
     return c.config_interface(config_interface_meta)
 
+
 def add_service_disk_metadata(context, service_disk_meta):
     c = get_registry_client(context)
     return c.add_service_disk(service_disk_meta)
+
 
 def delete_service_disk_metadata(context, service_disk_id):
     LOG.debug("Deleting service_disk metadata %s...", service_disk_id)
     c = get_registry_client(context)
     return c.delete_service_disk(service_disk_id)
 
+
 def update_service_disk_metadata(context, service_disk_id, service_disk_meta):
-    LOG.debug("Updating config metadata for config_file %s...", service_disk_id)
+    LOG.debug(
+        "Updating config metadata for config_file %s...",
+        service_disk_id)
     c = get_registry_client(context)
     return c.update_service_disk(service_disk_id, service_disk_meta)
-    
+
+
 def get_service_disk_detail_metadata(context, service_disk_id):
     c = get_registry_client(context)
     return c.get_service_disk_detail(service_disk_id)
-    
+
+
 def list_service_disk_metadata(context, **kwargs):
     c = get_registry_client(context)
     return c.list_service_disk(**kwargs)
-    
+
+
 def add_cinder_volume_metadata(context, cinder_volume_meta):
     c = get_registry_client(context)
     return c.add_cinder_volume(cinder_volume_meta)
-    
+
+
 def delete_cinder_volume_metadata(context, cinder_volume_id):
     LOG.debug("Deleting cinder_volume metadata %s...", cinder_volume_id)
     c = get_registry_client(context)
     return c.delete_cinder_volume(cinder_volume_id)
 
-def update_cinder_volume_metadata(context, cinder_volume_id, cinder_volume_meta):
-    LOG.debug("Updating config metadata for cinder_volume %s...", cinder_volume_id)
+
+def update_cinder_volume_metadata(
+        context, cinder_volume_id, cinder_volume_meta):
+    LOG.debug(
+        "Updating config metadata for cinder_volume %s...",
+        cinder_volume_id)
     c = get_registry_client(context)
     return c.update_cinder_volume(cinder_volume_id, cinder_volume_meta)
-    
+
+
 def get_cinder_volume_detail_metadata(context, cinder_volume_id):
     c = get_registry_client(context)
     return c.get_cinder_volume_detail(cinder_volume_id)
-    
+
+
 def list_cinder_volume_metadata(context, **kwargs):
     c = get_registry_client(context)
     return c.list_cinder_volume(**kwargs)

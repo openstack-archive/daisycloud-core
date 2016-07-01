@@ -744,7 +744,6 @@ def keystone_backend_name():
     else:
         return 'unknown'
 
+
 def log_list(request):
-    domain_context = request.session.get('domain_context', None)
-    kwargs = {"domain": domain_context}
-    return keystoneclient(request,admin=True).recordlogs.list()
+    return keystoneclient(request, admin=True).recordlogs.list()

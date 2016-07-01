@@ -50,6 +50,7 @@ schema_fixtures = {
 
 
 class TestController(testtools.TestCase):
+
     def setUp(self):
         super(TestController, self).setUp()
         self.api = utils.FakeAPI(data_fixtures)

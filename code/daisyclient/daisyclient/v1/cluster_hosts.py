@@ -17,6 +17,7 @@ from daisyclient.openstack.common.apiclient import base
 
 
 class ClusterHost(base.Resource):
+
     def __repr__(self):
         return "<ClusterHost %s>" % self._info
 
@@ -36,28 +37,30 @@ class ClusterHostManager(base.ManagerWithFind):
 
     def list(self, cluster=None, host=None):
         pass
-  #      out = []
-  #      if cluster and host:
- #           out.extend(self._list_by_cluster_and_host(cluster, host))
- #       elif cluster:
- #           out.extend(self._list_by_cluster(cluster))
- #       elif host:
- #           out.extend(self._list_by_host(host))
-  #      else:
-  #          pass
-  #      return out
+#      out = []
+#      if cluster and host:
+#           out.extend(self._list_by_cluster_and_host(cluster, host))
+#       elif cluster:
+#           out.extend(self._list_by_cluster(cluster))
+#       elif host:
+#           out.extend(self._list_by_host(host))
+#      else:
+#          pass
+#      return out
 
-  #  def _list_by_cluster_and_host(self, cluster, host):
- #       url = '/v1/clusters/%s/nodes/%s' % (cluster, host)
- #       resp, body = self.client.get(url)
+#  def _list_by_cluster_and_host(self, cluster, host):
+#       url = '/v1/clusters/%s/nodes/%s' % (cluster, host)
+#       resp, body = self.client.get(url)
+
 #        out = []
 #        for member in body['members']:
 #            member['cluster'] = cluster
- #           out.append(ClusterHost(self, member, loaded=True))
- #       return out
- #       
- #   def _list_by_cluster(self, cluster):
- #       url = '/v1/clusters/%s/nodes' % cluster
+#         out.append(ClusterHost(self, member, loaded=True))
+#     return out
+
+# def _list_by_cluster(self, cluster):
+#     url = '/v1/clusters/%s/nodes' % cluster
+
 #        resp, body = self.client.get(url)
 #        out = []
 #        for member in body['members']:
@@ -66,15 +69,13 @@ class ClusterHostManager(base.ManagerWithFind):
 #        return out
 
 #    def _list_by_host(self, host):
- #       url = '/v1/multi-clusters/nodes/%s' % host
- #       resp, body = self.client.get(url)
- #       out = []
- #       for member in body['multi-clusters']:
- #           member['host_id'] = host
- #           out.append(ClusterHost(self, member, loaded=True))
- #       return out
+#       url = '/v1/multi-clusters/nodes/%s' % host
+#       resp, body = self.client.get(url)
+#       out = []
+#       for member in body['multi-clusters']:
+#           member['host_id'] = host
+#           out.append(ClusterHost(self, member, loaded=True))
+#       return out
 
     def delete(self, cluster_id, host_id):
         self._delete("/v1/clusters/%s/nodes/%s" % (cluster_id, host_id))
-
-

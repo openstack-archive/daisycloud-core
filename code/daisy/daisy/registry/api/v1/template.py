@@ -38,9 +38,24 @@ _LW = i18n._LW
 CONF = cfg.CONF
 DISPLAY_FIELDS_IN_INDEX = ['id', 'name', 'type', 'hosts', 'content']
 SUPPORTED_FILTERS = ['name', 'type', 'cluster_name', 'hosts', 'content']
-SUPPORTED_SORT_KEYS = ('name', 'type', 'hosts', 'content', 'id', 'created_at', 'updated_at')
+SUPPORTED_SORT_KEYS = (
+    'name',
+    'type',
+    'hosts',
+    'content',
+    'id',
+    'created_at',
+    'updated_at')
 SUPPORTED_SORT_DIRS = ('asc', 'desc')
-SUPPORTED_PARAMS = ('limit', 'marker', 'sort_key', 'sort_dir', 'name', 'type', 'cluster_name')
+SUPPORTED_PARAMS = (
+    'limit',
+    'marker',
+    'sort_key',
+    'sort_dir',
+    'name',
+    'type',
+    'cluster_name')
+
 
 class Controller(object):
 
@@ -64,7 +79,7 @@ class Controller(object):
         for key, value in params.items():
             if value is None:
                 del params[key]
-                
+
         return params
 
     def _get_filters(self, req):
@@ -188,16 +203,18 @@ class Controller(object):
         # add id and role
         # if role
         # self.db_api.get_role(req.context,role)
-        
+
         if id and not utils.is_uuid_like(id):
-            msg = _LI("Rejecting template creation request for invalid template "
+            msg = _LI("Rejecting template creation request for "
+                      "invalid template "
                       "id '%(bad_id)s'") % {'bad_id': id}
             LOG.info(msg)
             msg = _("Invalid template id format")
             return exc.HTTPBadRequest(explanation=msg)
 
         try:
-            template_data = self.db_api.template_add(req.context, template_data)
+            template_data = self.db_api.template_add(
+                req.context, template_data)
             msg = (_LI("Successfully created template %s") %
                    template_data["id"])
             LOG.info(msg)
@@ -230,14 +247,16 @@ class Controller(object):
         """
         template_data = body["template"]
         if template_id and not utils.is_uuid_like(template_id):
-            msg = _LI("Rejecting cluster template creation request for invalid template "
+            msg = _LI("Rejecting cluster template creation request for "
+                      "invalid template "
                       "id '%(bad_id)s'") % {'bad_id': template_id}
             LOG.info(msg)
             msg = _("Invalid template id format")
             return exc.HTTPBadRequest(explanation=msg)
 
         try:
-            template_data = self.db_api.template_update(req.context, template_id, template_data)
+            template_data = self.db_api.template_update(
+                req.context, template_id, template_data)
             msg = (_LI("Successfully updated template %s") %
                    template_data["id"])
             LOG.info(msg)
@@ -245,7 +264,8 @@ class Controller(object):
                 template_data = dict(template=template_data)
             return template_data
         except exception.Duplicate:
-            msg = _("template with identifier %s already exists!") % template_id
+            msg = _("template with identifier %s already exists!") % \
+                template_id
             LOG.warn(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
@@ -256,7 +276,7 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to update template %s"), template_id)
             raise
-            
+
     @utils.mutating
     def template_delete(self, req, template_id):
         """Registers a new template with the registry.
@@ -276,8 +296,9 @@ class Controller(object):
             return exc.HTTPBadRequest(explanation=msg)
 
         try:
-            template_data = self.db_api.template_destroy(req.context, template_id)
-            #template_data = dict(template=make_image_dict(template_data))
+            template_data = self.db_api.template_destroy(
+                req.context, template_id)
+            # template_data = dict(template=make_image_dict(template_data))
             msg = (_LI("Successfully deleted template %s") % template_id)
             LOG.info(msg)
             if 'template' not in template_data:
@@ -291,18 +312,20 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to delete template %s"), template_id)
             raise
-    
+
     @utils.mutating
     def template_list(self, req):
         params = self._get_query_params(req)
         try:
-            filters=params.pop('filters')
-            marker=params.get('marker')
-            limit=params.get('limit')
-            sort_key=params.get('sort_key')
-            sort_dir=params.get('sort_dir')
-            return self.db_api.template_get_all(req.context, filters=filters,\
-                marker=marker,limit=limit,sort_key=sort_key,sort_dir=sort_dir)
+            filters = params.pop('filters')
+            marker = params.get('marker')
+            limit = params.get('limit')
+            sort_key = params.get('sort_key')
+            sort_dir = params.get('sort_dir')
+            return self.db_api.template_get_all(req.context, filters=filters,
+                                                marker=marker, limit=limit,
+                                                sort_key=sort_key,
+                                                sort_dir=sort_dir)
         except exception.NotFound:
             LOG.warn(_LW("Invalid marker. template %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
@@ -328,7 +351,7 @@ class Controller(object):
                 which will include the newly-created template's internal id
                 in the 'id' field
         """
-        
+
         if template_id and not utils.is_uuid_like(template_id):
             msg = _LI("Rejecting template delete request for invalid template "
                       "id '%(bad_id)s'") % {'bad_id': template_id}
@@ -338,8 +361,11 @@ class Controller(object):
 
         try:
             template_data = self.db_api.template_get(req.context, template_id)
-            #service_disk_data = dict(service_disk=make_image_dict(service_disk_data))
-            msg = (_LI("Successfully get template information:%s") % template_id)
+            # service_disk_data = dict(service_disk=make_image_dict(
+            # service_disk_data))
+            msg = (
+                _LI("Successfully get template information:%s") %
+                template_id)
             LOG.info(msg)
             if 'template' not in template_data:
                 template_data = dict(template=template_data)
@@ -352,7 +378,7 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to get template %s"), template_id)
             raise
-            
+
     @utils.mutating
     def host_template_add(self, req, body):
         """Registers a new service_disk with the registry.
@@ -360,7 +386,8 @@ class Controller(object):
         :param req: wsgi Request object
         :param body: Dictionary of information about the service_disk
 
-        :retval Returns the newly-created service_disk information as a mapping,
+        :retval Returns the newly-created service_disk information
+        as a mapping,
                 which will include the newly-created service_disk's internal id
                 in the 'id' field
         """
@@ -372,17 +399,20 @@ class Controller(object):
         # add id and role
         # if role
         # self.db_api.get_role(req.context,role)
-        
+
         if id and not utils.is_uuid_like(id):
-            msg = _LI("Rejecting service_disk creation request for invalid service_disk "
+            msg = _LI("Rejecting service_disk creation request for "
+                      "invalid service_disk "
                       "id '%(bad_id)s'") % {'bad_id': id}
             LOG.info(msg)
             msg = _("Invalid service_disk id format")
             return exc.HTTPBadRequest(explanation=msg)
 
         try:
-            template_data = self.db_api.host_template_add(req.context, template_data)
-            #service_disk_data = dict(service_disk=make_image_dict(service_disk_data))
+            template_data = self.db_api.host_template_add(
+                req.context, template_data)
+            # service_disk_data = dict(service_disk=make_image_dict(
+            # service_disk_data))
             msg = (_LI("Successfully created node %s") %
                    template_data["id"])
             LOG.info(msg)
@@ -409,22 +439,26 @@ class Controller(object):
         :param req: wsgi Request object
         :param body: Dictionary of information about the service_disk
 
-        :retval Returns the newly-created service_disk information as a mapping,
+        :retval Returns the newly-created service_disk information
+        as a mapping,
                 which will include the newly-created service_disk's internal id
                 in the 'id' field
         """
         template_data = body["template"]
-        #template_id = template_data.get('template_id')
+        # template_id = template_data.get('template_id')
         if template_id and not utils.is_uuid_like(template_id):
-            msg = _LI("Rejecting cluster template creation request for invalid template "
+            msg = _LI("Rejecting cluster template creation request for "
+                      "invalid template "
                       "id '%(bad_id)s'") % {'bad_id': template_id}
             LOG.info(msg)
             msg = _("Invalid template id format")
             return exc.HTTPBadRequest(explanation=msg)
 
         try:
-            template_data = self.db_api.host_template_update(req.context, template_id, template_data)
-            #service_disk_data = dict(service_disk=make_image_dict(service_disk_data))
+            template_data = self.db_api.host_template_update(
+                req.context, template_id, template_data)
+            # service_disk_data = dict(service_disk=make_image_dict(
+            # service_disk_data))
             msg = (_LI("Successfully updated template %s") %
                    template_data["id"])
             LOG.info(msg)
@@ -432,7 +466,8 @@ class Controller(object):
                 template_data = dict(host_template=template_data)
             return template_data
         except exception.Duplicate:
-            msg = _("template with identifier %s already exists!") % template_id
+            msg = _("template with identifier %s already exists!") % \
+                template_id
             LOG.warn(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
@@ -443,7 +478,7 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to update template %s"), template_id)
             raise
-            
+
     @utils.mutating
     def host_template_delete(self, req, template_id):
         """Registers a new service_disk with the registry.
@@ -451,7 +486,8 @@ class Controller(object):
         :param req: wsgi Request object
         :param body: Dictionary of information about the service_disk
 
-        :retval Returns the newly-created service_disk information as a mapping,
+        :retval Returns the newly-created service_disk information
+        as a mapping,
                 which will include the newly-created service_disk's internal id
                 in the 'id' field
         """
@@ -463,8 +499,10 @@ class Controller(object):
             return exc.HTTPBadRequest(explanation=msg)
 
         try:
-            template_data = self.db_api.host_template_destroy(req.context, template_id)
-            #service_disk_data = dict(service_disk=make_image_dict(service_disk_data))
+            template_data = self.db_api.host_template_destroy(
+                req.context, template_id)
+            # service_disk_data = dict(service_disk=make_image_dict(
+            # service_disk_data))
             msg = (_LI("Successfully deleted template %s") % template_id)
             LOG.info(msg)
             if 'template' not in template_data:
@@ -478,18 +516,22 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to delete template %s"), template_id)
             raise
-    
+
     @utils.mutating
     def host_template_list(self, req):
         params = self._get_query_params(req)
         try:
-            filters=params.pop('filters')
-            marker=params.get('marker')
-            limit=params.get('limit')
-            sort_key=params.get('sort_key')
-            sort_dir=params.get('sort_dir')
-            return self.db_api.host_template_get_all(req.context, filters=filters,\
-                marker=marker,limit=limit,sort_key=sort_key,sort_dir=sort_dir)
+            filters = params.pop('filters')
+            marker = params.get('marker')
+            limit = params.get('limit')
+            sort_key = params.get('sort_key')
+            sort_dir = params.get('sort_dir')
+            return self.db_api.host_template_get_all(req.context,
+                                                     filters=filters,
+                                                     marker=marker,
+                                                     limit=limit,
+                                                     sort_key=sort_key,
+                                                     sort_dir=sort_dir)
         except exception.NotFound:
             LOG.warn(_LW("Invalid marker. template %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
@@ -511,11 +553,12 @@ class Controller(object):
         :param req: wsgi Request object
         :param body: Dictionary of information about the service_disk
 
-        :retval Returns the newly-created service_disk information as a mapping,
+        :retval Returns the newly-created service_disk information
+        as a mapping,
                 which will include the newly-created service_disk's internal id
                 in the 'id' field
         """
-        
+
         if template_id and not utils.is_uuid_like(template_id):
             msg = _LI("Rejecting template delete request for invalid template "
                       "id '%(bad_id)s'") % {'bad_id': template_id}
@@ -524,9 +567,13 @@ class Controller(object):
             return exc.HTTPBadRequest(explanation=msg)
 
         try:
-            template_data = self.db_api.host_template_get(req.context, template_id)
-            #service_disk_data = dict(service_disk=make_image_dict(service_disk_data))
-            msg = (_LI("Successfully get template information:%s") % template_id)
+            template_data = self.db_api.host_template_get(
+                req.context, template_id)
+            # service_disk_data = dict(service_disk=make_image_dict(
+            # service_disk_data))
+            msg = (
+                _LI("Successfully get template information:%s") %
+                template_id)
             LOG.info(msg)
             if 'template' not in template_data:
                 template_data = dict(host_template=template_data)
@@ -539,6 +586,7 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to get template %s"), template_id)
             raise
+
 
 def create_resource():
     """Images resource factory method."""

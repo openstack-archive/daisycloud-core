@@ -52,7 +52,7 @@ class TestClient(testtools.TestCase):
             'X-Identity-Status': 'Confirmed',
             'X-Service-Catalog': 'service_catalog',
         }
-        #with token
+        # with token
         kwargs = {'token': u'fake-token',
                   'identity_headers': identity_headers}
         http_client_object = http.HTTPClient(self.endpoint, **kwargs)
@@ -68,7 +68,7 @@ class TestClient(testtools.TestCase):
             'X-Identity-Status': 'Confirmed',
             'X-Service-Catalog': 'service_catalog',
         }
-        #without X-Auth-Token in identity headers
+        # without X-Auth-Token in identity headers
         kwargs = {'token': u'fake-token',
                   'identity_headers': identity_headers}
         http_client_object = http.HTTPClient(self.endpoint, **kwargs)
@@ -133,14 +133,14 @@ class TestClient(testtools.TestCase):
         self.mock.ReplayAll()
         try:
             self.client.get('/v1/images/detail?limit=20')
-            #NOTE(alaski) We expect exc.CommunicationError to be raised
+            # NOTE(alaski) We expect exc.CommunicationError to be raised
             # so we should never reach this point.  try/except is used here
             # rather than assertRaises() so that we can check the body of
             # the exception.
             self.fail('An exception should have bypassed this line.')
         except glanceclient.exc.CommunicationError as comm_err:
             fail_msg = ("Exception message '%s' should contain '%s'" %
-                       (comm_err.message, self.endpoint))
+                        (comm_err.message, self.endpoint))
             self.assertTrue(self.endpoint in comm_err.message, fail_msg)
 
     def test_http_encoding(self):
@@ -284,6 +284,7 @@ class TestClient(testtools.TestCase):
 
 
 class TestVerifiedHTTPSConnection(testtools.TestCase):
+
     """Test fixture for glanceclient.common.http.VerifiedHTTPSConnection."""
 
     def test_setcontext_unable_to_load_cacert(self):

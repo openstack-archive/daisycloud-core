@@ -244,6 +244,7 @@ class Server(object):
     This class requires initialize_glance_store set to True if
     glance store needs to be initialized.
     """
+
     def __init__(self, threads=1000, initialize_glance_store=False):
         os.umask(0o27)  # ensure files are created with the correct privileges
         self._logger = logging.getLogger("eventlet.wsgi.server")
@@ -638,6 +639,7 @@ class APIMapper(routes.Mapper):
 
 
 class RejectMethodController(object):
+
     def reject(self, req, allowed_methods, *args, **kwargs):
         LOG.debug("The method %s is not allowed for this resource" %
                   req.environ['REQUEST_METHOD'])

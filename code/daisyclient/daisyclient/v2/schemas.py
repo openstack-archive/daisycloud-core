@@ -35,8 +35,8 @@ class SchemaBasedModel(warlock.Model):
             tags_patch = []
         else:
             tags_patch = [{"path": "/tags",
-                          "value": self.get('tags'),
-                          "op": "replace"}]
+                           "value": self.get('tags'),
+                           "op": "replace"}]
 
         patch_string = jsonpatch.make_patch(original, new).to_string()
         patch = json.loads(patch_string)

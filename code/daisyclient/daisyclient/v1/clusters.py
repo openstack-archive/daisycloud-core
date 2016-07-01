@@ -24,30 +24,33 @@ from daisyclient.common import utils
 from daisyclient.openstack.common.apiclient import base
 
 UPDATE_PARAMS = (
-    'name', 'description', 'networks', 'deleted', 'nodes','floating_ranges',
-    'dns_nameservers','net_l23_provider','base_mac','internal_gateway',
-    'internal_cidr', 'external_cidr','gre_id_range', 'vlan_range',
+    'name', 'description', 'networks', 'deleted', 'nodes', 'floating_ranges',
+    'dns_nameservers', 'net_l23_provider', 'base_mac', 'internal_gateway',
+    'internal_cidr', 'external_cidr', 'gre_id_range', 'vlan_range',
     'vni_range', 'segmentation_type', 'public_vip', 'logic_networks',
-    'networking_parameters', 'routers', 'auto_scale', 'use_dns'
+    'networking_parameters', 'routers', 'auto_scale', 'use_dns',
+    'hwm_ip'
 )
 
 CREATE_PARAMS = (
-    'id', 'name', 'nodes', 'description', 'networks','floating_ranges',
-    'dns_nameservers','net_l23_provider','base_mac','internal_gateway',
+    'id', 'name', 'nodes', 'description', 'networks', 'floating_ranges',
+    'dns_nameservers', 'net_l23_provider', 'base_mac', 'internal_gateway',
     'internal_cidr', 'external_cidr', 'gre_id_range', 'vlan_range',
     'vni_range', 'segmentation_type', 'public_vip', 'logic_networks',
-    'networking_parameters', 'routers', 'auto_scale', 'use_dns'
+    'networking_parameters', 'routers', 'auto_scale', 'use_dns',
+    'hwm_ip'
 )
 
 DEFAULT_PAGE_SIZE = 20
 
 SORT_DIR_VALUES = ('asc', 'desc')
-SORT_KEY_VALUES = ('name','auto_scale', 'id', 'created_at', 'updated_at')
+SORT_KEY_VALUES = ('name', 'auto_scale', 'id', 'created_at', 'updated_at')
 
 OS_REQ_ID_HDR = 'x-openstack-request-id'
 
 
 class Cluster(base.Resource):
+
     def __repr__(self):
         return "<Cluster %s>" % self._info
 
@@ -91,7 +94,7 @@ class ClusterManager(base.ManagerWithFind):
                 meta[key] = strutils.bool_from_string(meta[key])
 
         return self._format_cluster_meta_for_user(meta)
-        
+
     def _cluster_meta_to_headers(self, fields):
         headers = {}
         fields_copy = copy.deepcopy(fields)
@@ -104,7 +107,7 @@ class ClusterManager(base.ManagerWithFind):
         for key, value in six.iteritems(fields_copy):
             headers['%s' % key] = utils.to_str(value)
         return headers
-        
+
     @staticmethod
     def _format_image_meta_for_user(meta):
         for key in ['size', 'min_ram', 'min_disk']:
@@ -133,13 +136,14 @@ class ClusterManager(base.ManagerWithFind):
         """
         cluster_id = base.getid(cluster)
         resp, body = self.client.get('/v1/clusters/%s'
-                                      % urlparse.quote(str(cluster_id)))
-        #meta = self._cluster_meta_from_headers(resp.headers)
+                                     % urlparse.quote(str(cluster_id)))
+        # meta = self._cluster_meta_from_headers(resp.headers)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
-        #return Host(self, meta)
-        return Cluster(self, self._format_cluster_meta_for_user(body['cluster']))
+        # return Host(self, meta)
+        return Cluster(self, self._format_cluster_meta_for_user(
+            body['cluster']))
 
     def data(self, image, do_checksum=True, **kwargs):
         """Get the raw data for a specific image.
@@ -193,7 +197,8 @@ class ClusterManager(base.ManagerWithFind):
 
         :param page_size: number of items to request in each paginated request
         :param limit: maximum number of clusters to return
-        :param marker: begin returning clusters that appear later in the cluster
+        :param marker: begin returning clusters that
+                       appear later in the cluster
                        list than that represented by this cluster id
         :param filters: dict of direct comparison filters that mimics the
                         structure of an cluster object
@@ -267,7 +272,7 @@ class ClusterManager(base.ManagerWithFind):
 
         TODO(bcwaldon): document accepted params
         """
-        
+
         fields = {}
         for field in kwargs:
             if field in CREATE_PARAMS:
@@ -277,7 +282,7 @@ class ClusterManager(base.ManagerWithFind):
             else:
                 msg = 'create() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
-                
+
         hdrs = self._cluster_meta_to_headers(fields)
         resp, body = self.client.post('/v1/clusters',
                                       headers=hdrs,
@@ -286,7 +291,8 @@ class ClusterManager(base.ManagerWithFind):
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
-        return Cluster(self, self._format_cluster_meta_for_user(body['cluster']))
+        return Cluster(self, self._format_cluster_meta_for_user(
+            body['cluster']))
 
     def delete(self, cluster, **kwargs):
         """Delete an cluster."""
@@ -295,7 +301,7 @@ class ClusterManager(base.ManagerWithFind):
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
-            
+
     def update(self, cluster, **kwargs):
         """Update an cluster
 
@@ -308,7 +314,7 @@ class ClusterManager(base.ManagerWithFind):
                 fields[field] = kwargs[field]
             elif field == 'return_req_id':
                 continue
-            #else:
+            # else:
             #    msg = 'update() got an unexpected keyword argument \'%s\''
             #    raise TypeError(msg % field)
 
@@ -319,4 +325,5 @@ class ClusterManager(base.ManagerWithFind):
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
-        return Cluster(self, self._format_cluster_meta_for_user(body['cluster']))
+        return Cluster(self, self._format_cluster_meta_for_user(
+            body['cluster']))

@@ -48,6 +48,7 @@ CONF.register_opts(plugins_opts)
 
 
 class ArtifactsPluginLoader(object):
+
     def __init__(self, namespace):
         self.mgr = enabled.EnabledExtensionManager(
             check_func=self._gen_check_func(),

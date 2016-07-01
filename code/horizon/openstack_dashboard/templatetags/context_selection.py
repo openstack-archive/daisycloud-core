@@ -93,4 +93,4 @@ def show_region_list(context):
 @register.filter("get_color")
 def get_color(index):
     colors = ['#5cb85c', '#428bca', '#5bc0de', '#f0ad4e', '#d9534f']
-    return colors[index%5]
+    return colors[index % 5]

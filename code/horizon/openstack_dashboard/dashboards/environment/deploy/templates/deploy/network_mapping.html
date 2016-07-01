@@ -19,7 +19,7 @@
     .dv_drag_STORAGE{
         background-color:rgb(51, 122, 183);
     }
-    .dv_drag_PUBLIC{
+    .dv_drag_PUBLICAPI{
         background-color:rgb(92, 184, 92);
     }
     .dv_drag_EXTERNAL{
@@ -28,7 +28,7 @@
     .dv_drag_DEPLOYMENT{
         background-color:rgb(240, 173, 78);
     }
-    .dv_drag_PRIVATE{
+    .dv_drag_physnet1{
         background-color:rgb(198, 140, 164);
     }
     .dv_drag_MANAGEMENT{
@@ -48,7 +48,7 @@
     .dv_drop_STORAGE{
         background-color:rgb(51, 122, 183);
     }
-    .dv_drop_PUBLIC{
+    .dv_drop_PUBLICAPI{
         background-color:rgb(92, 184, 92);
     }
     .dv_drop_EXTERNAL{
@@ -57,7 +57,7 @@
     .dv_drop_DEPLOYMENT{
         background-color:rgb(240, 173, 78);
     }
-    .dv_drop_PRIVATE{
+    .dv_drop_physnet1{
         background-color:rgb(198, 140, 164);
     }
     .dv_drop_MANAGEMENT{
@@ -126,7 +126,7 @@
         <div class="panel panel-default">
             <div class="row drag_role_container">
                 {% for network in networks %}
-                <div class="dv_drag_base drag_net_plane dv_drag_{{network.name}} {{network.id}}">
+                <div class="dv_drag_base drag_net_plane dv_drag_{{network.name}} {{network.id}} dv_drag_type_{{network.type}}">
                     <span class="glyphicon glyphicon-move icon_drag_move" aria-hidden="true"></span>
                     <span class="net_plane_text">{{ network.name }}</span>
                 </div>
@@ -202,15 +202,11 @@
         $('#modeML2Type').modal('hide');
     }
 
-    function IsPrivateOrVxlan(netplane){
-        if (netplane == "PRIVATE" || netplane == "VXLAN"){
+    function IsDataNetPlane(netplane){
+        var net_plane_type = $("#hidden_input_" + netplane).val();
+        if (net_plane_type == "DATAPLANE"){
             return true;
         }
-
-        if ($("#hidden_input_" + netplane).val() == "PRIVATE"){
-            return true;
-        }
-
         return false;
     }
 
@@ -231,14 +227,19 @@
         button.append(icon);        
         div.append(button);
 
-        if(IsPrivateOrVxlan(name)){
+        if(IsDataNetPlane(name)){
             var modify = $('<button type="button" class="close button_remove"> \
                                 <span class="glyphicon glyphicon-edit" style=" font-size: xx-small;top: -2px;" aria-hidden="true"></span> \
                             </button>');
             modify.on("click", function(){
                 $("#modeML2Type").data("netplane", name);
                 var segment_type = $(".dv_drop_" + name).data("segment_type");
-                $("#selectML2Type").val(segment_type);
+                if (segment_type == null){
+                    $("#selectML2Type option[value='OVS']").attr("selected", true);
+                }
+                else{
+                    $("#selectML2Type").val(segment_type);
+                }
                 $('#modeML2Type').modal({
                     backdrop: "static"
                 });            
@@ -268,12 +269,12 @@
         ResetDropperSize(dropper);
     }
 
-    function AddHostNetPlane(dropper, net_port_name, net_plane_name)
+    function AddHostNetPlane(dropper, net_port_name, net_plane_name, net_plane_type)
     {
         ResetDropperSize(dropper);
         var div = CreateDropDiv(net_plane_name, DeleteNetPlane, net_port_name, net_plane_name);
         var class_name = net_port_name + "_" + net_plane_name;
-        div.addClass(class_name);
+        div.addClass(class_name).addClass("dv_drop_type_"+net_plane_type);
         div.appendTo(dropper);
         $(".dv_drag_" + net_plane_name).hide();
     }
@@ -288,8 +289,11 @@
         {
             host_id += "-1" + "_";
         }
-        host_id = host_id.substr(0, host_id.length - 1);
-        var url = "/dashboard/environment/deploy/" + $("#cluster_id").val() + "/networkmapping?host_id=" + host_id;
+        var url = "/dashboard/environment/deploy/" + $("#cluster_id").val() + "/networkmapping";
+        if (host_id.length > 0){
+            host_id = host_id.substr(0, host_id.length - 1);
+            url += "?host_id=" + host_id;
+        }
         window.location.href = url;
     }
 
@@ -311,7 +315,7 @@
         for(var i = 0;i < dv_drop_containers.length;i++)
         {
             var dv_drop_container = dv_drop_containers.eq(i);
-            var eth_name = dv_drop_container[0].className.split(" ")[0];
+            var eth_name = dv_drop_container.attr("class").split(" ")[0];
             var assigned_networks = [];
             var vswitch_type = "";
             var dv_net_planes = dv_drop_container.find("div");
@@ -320,8 +324,12 @@
                 var it_net_plane_name = dv_net_planes.eq(j).find("span:first").text();
                 assigned_networks.push({
                     "name":$.trim(it_net_plane_name)});
-                if(IsPrivateOrVxlan(it_net_plane_name)){
+                if(IsDataNetPlane(it_net_plane_name)){
                     vswitch_type = dv_net_planes.eq(j).data("segment_type");
+                    if (vswitch_type == null || vswitch_type == ''){
+                        horizon.alert('error', "Please select vswitch type.");
+                        return;
+                    }
                 }
             }
             eth_ports.push({
@@ -341,7 +349,7 @@
             var j = 0;
             for(;j < net_plane_2.length;j++)
             {
-                if(net_plane_1[i] == net_plane_2[j])
+                if(net_plane_1[i]["name"] == net_plane_2[j]["name"])
                 {
                     break;
                 }
@@ -395,6 +403,20 @@
         }
     }
 
+    function GetDragNetworkType(draggable)
+    {
+        var network_type_list = ["DEPLOYMENT", "EXTERNAL", "MANAGEMENT", "DATAPLANE", "PUBLICAPI", "STORAGE", "HEARTBEAT"]
+        var class_name_prefix = "dv_drag_type_";
+        for(var i = 0;i < network_type_list.length;i++)
+        {
+            var class_name = class_name_prefix + network_type_list[i];
+            if (draggable.hasClass(class_name)){
+                return network_type_list[i];
+            }
+        }
+        return null;
+    }
+
     function ShowHostNetPlaneTable(eth_port_list)
     {
         var tbody = $(".table_eth tbody");
@@ -425,9 +447,12 @@
             var segment_type = "";
             for(var j = 0;j < eth_port_list[i]["net_planes"].length;j++)
             {
-                AddHostNetPlane(div, eth_port_list[i]["name"], eth_port_list[i]["net_planes"][j]);
-                if (IsPrivateOrVxlan(eth_port_list[i]["net_planes"][j])) {
-                    net_plane_name = ".dv_drop_" + eth_port_list[i]["net_planes"][j]; 
+                AddHostNetPlane(div, 
+                                eth_port_list[i]["name"], 
+                                eth_port_list[i]["net_planes"][j]["name"],
+                                eth_port_list[i]["net_planes"][j]["network_type"]);
+                if (IsDataNetPlane(eth_port_list[i]["net_planes"][j]["name"])) {
+                    net_plane_name = ".dv_drop_" + eth_port_list[i]["net_planes"][j]["name"]; 
                     segment_type = eth_port_list[i]["vswitch_type"];
                 }              
             }
@@ -443,24 +468,35 @@
             drop: function( event, ui ) {
                 var net_plane_name = $.trim(ui.draggable.text());
                 var net_port_name = this.className.split(" ")[0];
+                var net_plane_type = GetDragNetworkType(ui.draggable);
 
-                if ($(this).find(".dv_drop_PRIVATE").length > 0 ||
-                     $(this).find(".dv_drop_VXLAN").length > 0){
+                if ($(this).find(".dv_drop_type_DATAPLANE").length > 0){
+                    ui.draggable.animate({left: "0px", top: "0px"},"slow");
+                    return;
+                }
+                
+                if(ui.draggable.hasClass("dv_drag_type_HEARTBEAT") &&
+                    $(this).find(".dv_drop_net_plane_base").length > 0){
+                    ui.draggable.animate({left: "0px", top: "0px"},"slow");
+                    return;
+                }
+
+                if ($(this).find(".dv_drop_type_HEARTBEAT").length > 0){
                     ui.draggable.animate({left: "0px", top: "0px"},"slow");
                     return;
                 }
                 
                 if ( $(this).find(".dv_drop_net_plane_base").length > 0
-                     && IsPrivateOrVxlan(net_plane_name == "PRIVATE")) {
+                     && IsDataNetPlane(net_plane_name)) {
                     ui.draggable.animate({left: "0px", top: "0px"},"slow");
                     return;                
                 }
 
-                AddHostNetPlane($(this), net_port_name, net_plane_name);
+                AddHostNetPlane($(this), net_port_name, net_plane_name, net_plane_type);
 
-                if (IsPrivateOrVxlan(net_plane_name)){
+                if (IsDataNetPlane(net_plane_name)){
                     $("#modeML2Type").data("netplane", net_plane_name);
-                    $("#selectML2Type").val("OVS");
+                    $("#selectML2Type option[value='OVS']").attr("selected", true);
                     $('#modeML2Type').modal({
                         backdrop: "static"
                     })
@@ -517,27 +553,48 @@
         $checkbox.each(function(){
             var cur_tr = $(this).parent().parent();//定位当前行
             var cur_tds = cur_tr.find("td");//定位当前行所有列
+            var host_name_td = cur_tds.eq(1);
+            $(this).data("host_name", $.trim(host_name_td.text()));
+            var role_list = [];
+            var role_td = cur_tds.eq(2);
+            var dv_drop_role_container = role_td.find("div.dv_drop_role_container");
+            var dv_drop_roles = dv_drop_role_container.find("div.dv_drop_base");
+            for (var index = 0;index < dv_drop_roles.length;index++)
+            {
+                var role_name = "";
+                if (dv_drop_roles.eq(index).find("span.role_text").length > 0){
+                    role_name = $.trim(dv_drop_roles.eq(index).find("span.role_text").text());
+                }
+                else{
+                    role_name = $.trim(dv_drop_roles.eq(index).find("a").text());
+                }
+                role_list.push(role_name);
+            }
+            $(this).data("role_list", role_list);
             var eth_port_list = [];
             for(var i = 3;i < cur_tds.length;i++)
             {
                 var td = cur_tds.eq(i);
                 var eth_name = td.find(".interface_name:first").val();
-                var net_plane_text = $.trim(td.find(".interface_assigned_networks:first").val());
                 var vswitch_type = td.find(".interface_vswitch_type:first").val();
-                var net_planes_full = [];
-                var net_planes = [];
                 if (eth_name == null)
                 {
                     continue;
                 }
-                if (net_plane_text != "")
+                var net_plane_list = [];
+                var net_plane_info = $.trim(td.find(".interface_assigned_networks:first").val());
+                if (net_plane_info != "")
                 {
-                    net_planes_full = net_plane_text.split(" ");
+                    net_plane_list = net_plane_info.split(" ");
                 }
-                for (var j = 0;j < net_planes_full.length;j++)
+                var net_planes = [];
+                for (var j = 0;j < net_plane_list.length;j++)
                 {
-                    var net_plane = net_planes_full[j].split(":")[0];
-                    net_planes.push(net_plane);
+                    var net_plane = net_plane_list[j].split(":");
+                    net_planes.push({
+                        "name": net_plane[0],
+                        "network_type": net_plane[1]
+                    });
                 }
                 eth_port_list.push({
                     "name": eth_name,
@@ -586,6 +643,19 @@
         })
     }
 
+    function CheckIsConfigNetPlane(eth_port_list, in_net_plane_type){
+        for(var i = 0;i < eth_port_list.length;i++){
+            for(var j = 0;j < eth_port_list[i]["net_planes"].length;j++){
+                var net_plane_name = eth_port_list[i]["net_planes"][j]["name"];
+                var net_plane_type = $("#hidden_input_" + net_plane_name).val();
+                if (net_plane_type == in_net_plane_type){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     function CheckNetPlaneIsUpdate()
     {
         var ret = false;
@@ -599,8 +669,10 @@
             var dv_net_planes = dv_drop_container.find("div");
             for(var j = 0;j < dv_net_planes.length;j++)
             {
-                var it_role_name = dv_net_planes.eq(j).find("span:first").text();
-                assigned_networks.push($.trim(it_role_name));
+                var it_net_plane_name = dv_net_planes.eq(j).find("span:first").text();
+                assigned_networks.push({
+                    "name": $.trim(it_net_plane_name)
+                });
             }
             update_eth_port_list.push({
                 "name": eth_name,
@@ -626,15 +698,9 @@
         return ret;
     }
 
-    function NetMappingNext()
-    {
+    function CallBackNetMappingNext(){
         var url = "/dashboard/environment/deploy/" + $("#cluster_id").val() + "/net_mapping_next";
-        if (!CheckNetPlaneIsUpdate())
-        {
-            window.location.href = url;
-        }
-        else
-        {
+        if (CheckNetPlaneIsUpdate()){
             var title = '{% trans "Confirm to Discard" %}';
             var body = '{% trans "Changes in the network plane, is discarded?" %}';
             var action = '{% trans "Confirm" %}'
@@ -644,7 +710,15 @@
                 modal.modal('hide');
                 window.location.href = url;
             });
+            return;
         }
+        window.location.href = url;
+    }
+
+    function NetMappingNext()
+    {
+        var url = "/dashboard/environment/deploy/" + $("#cluster_id").val() + "/net_mapping_check";
+        do_post(url, JSON.stringify({}), CallBackNetMappingNext);
     }
 
     function OnInit()
@@ -684,37 +758,28 @@
             revert: "invalid",
             start: function(){
                 $(this).data("origPosition",$(this).position());
+            },
+            drag: function() {
+                var $drag = $(this);
+                $(".drop_net_plane").each(function(){
+                    if ($(this).hasClass("dv_drop_net_plane_hover")){
+                        //同一个端口下心跳面不能和其他网络平面混合一起(包括自己)
+                        if ($drag.hasClass("dv_drag_type_HEARTBEAT") &&
+                            $(this).find(".dv_drop_net_plane_base").length > 0){
+                            $(this).css("border-color", "red");
+                            return;
+                        }
+                        //已有心跳平面的端口不能再配置其他网络平面(包括自己)
+                        if ($(this).find(".dv_drop_type_HEARTBEAT").length > 0){
+                            $(this).css("border-color", "red");
+                            return;
+                        }
+                    }
+                });
+            },
+            stop: function() {
+                $( ".drop_net_plane" ).css("border-color", "#000");
             }            
-        });
-        $( ".drop_net_plane" ).droppable({
-            hoverClass: "dv_drop_net_plane_hover",
-            accept: ".drag_net_plane",
-            drop: function( event, ui ) {
-                var net_plane_name = $.trim(ui.draggable.text());
-                var net_port_name = this.className.split(" ")[0];
-
-                if ($(this).find(".dv_drop_PRIVATE").length > 0 ||
-                     $(this).find(".dv_drop_VXLAN").length > 0){
-                    ui.draggable.animate({left: "0px", top: "0px"},"slow");
-                    return;
-                }
-                
-                if ( $(this).find(".dv_drop_net_plane_base").length > 0
-                     && IsPrivateOrVxlan(net_plane_name)) {
-                    ui.draggable.animate({left: "0px", top: "0px"},"slow");
-                    return;
-                }
-
-                AddHostNetPlane($(this), net_port_name, net_plane_name);
-
-                if (IsPrivateOrVxlan(net_plane_name)){
-                    $("#modeML2Type").data("netplane", net_plane_name);
-                    $("#selectML2Type").val("OVS");
-                    $('#modeML2Type').modal({
-                        backdrop: "static"
-                    });
-                }
-            }
         });
     }
     horizon.addInitFunction(OnInit);

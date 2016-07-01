@@ -234,6 +234,7 @@ schema_fixtures = {
 
 
 class TestPropertyController(testtools.TestCase):
+
     def setUp(self):
         super(TestPropertyController, self).setUp()
         self.api = utils.FakeAPI(data_fixtures)

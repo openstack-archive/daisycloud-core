@@ -53,7 +53,7 @@ class TasksController(object):
         self.notifier = notifier or daisy.notifier.Notifier()
         self.store_api = store_api or glance_store
         self.gateway = daisy.gateway.Gateway(self.db_api, self.store_api,
-                                              self.notifier, self.policy)
+                                             self.notifier, self.policy)
 
     def create(self, req, task):
         task_factory = self.gateway.get_task_factory(req.context)
@@ -229,8 +229,8 @@ class ResponseSerializer(wsgi.JSONResponseSerializer):
     def __init__(self, task_schema=None, partial_task_schema=None):
         super(ResponseSerializer, self).__init__()
         self.task_schema = task_schema or get_task_schema()
-        self.partial_task_schema = (partial_task_schema
-                                    or _get_partial_task_schema())
+        self.partial_task_schema = (partial_task_schema or
+                                    _get_partial_task_schema())
 
     def _inject_location_header(self, response, task):
         location = self._get_task_location(task)

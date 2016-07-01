@@ -23,13 +23,13 @@ import six.moves.urllib.parse as urlparse
 from daisyclient.common import utils
 from daisyclient.openstack.common.apiclient import base
 
-UPDATE_PARAMS = ('name', 'description', 
-                 #NOTE(bcwaldon: an attempt to update 'deleted' will be
+UPDATE_PARAMS = ('name', 'description',
+                 # NOTE(bcwaldon: an attempt to update 'deleted' will be
                  # ignored, but we need to support it for backwards-
                  # compatibility with the legacy client library
                  'deleted')
 
-CREATE_PARAMS = ('id', 'name','description')
+CREATE_PARAMS = ('id', 'name', 'description')
 
 DEFAULT_PAGE_SIZE = 20
 
@@ -40,6 +40,7 @@ OS_REQ_ID_HDR = 'x-openstack-request-id'
 
 
 class Component(base.Resource):
+
     def __repr__(self):
         return "<Component %s>" % self._info
 
@@ -83,7 +84,7 @@ class ComponentManager(base.ManagerWithFind):
                 meta[key] = strutils.bool_from_string(meta[key])
 
         return self._format_component_meta_for_user(meta)
-        
+
     def _component_meta_to_headers(self, fields):
         headers = {}
         fields_copy = copy.deepcopy(fields)
@@ -96,7 +97,7 @@ class ComponentManager(base.ManagerWithFind):
         for key, value in six.iteritems(fields_copy):
             headers['%s' % key] = utils.to_str(value)
         return headers
-        
+
     @staticmethod
     def _format_image_meta_for_user(meta):
         for key in ['size', 'min_ram', 'min_disk']:
@@ -125,13 +126,14 @@ class ComponentManager(base.ManagerWithFind):
         """
         component_id = base.getid(component)
         resp, body = self.client.get('/v1/components/%s'
-                                      % urlparse.quote(str(component_id)))
-        #meta = self._component_meta_from_headers(resp.headers)
+                                     % urlparse.quote(str(component_id)))
+        # meta = self._component_meta_from_headers(resp.headers)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
-        #return Host(self, meta)
-        return Component(self, self._format_component_meta_for_user(body['component']))
+        # return Host(self, meta)
+        return Component(self, self._format_component_meta_for_user(
+            body['component']))
 
     def data(self, image, do_checksum=True, **kwargs):
         """Get the raw data for a specific image.
@@ -185,7 +187,8 @@ class ComponentManager(base.ManagerWithFind):
 
         :param page_size: number of items to request in each paginated request
         :param limit: maximum number of components to return
-        :param marker: begin returning components that appear later in the component
+        :param marker: begin returning components that
+                       appear later in the component
                        list than that represented by this component id
         :param filters: dict of direct comparison filters that mimics the
                         structure of an component object
@@ -259,7 +262,7 @@ class ComponentManager(base.ManagerWithFind):
 
         TODO(bcwaldon): document accepted params
         """
-        
+
         fields = {}
         for field in kwargs:
             if field in CREATE_PARAMS:
@@ -269,7 +272,7 @@ class ComponentManager(base.ManagerWithFind):
             else:
                 msg = 'create() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
-                
+
         hdrs = self._component_meta_to_headers(fields)
         resp, body = self.client.post('/v1/components',
                                       headers=hdrs,
@@ -278,7 +281,8 @@ class ComponentManager(base.ManagerWithFind):
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
-        return Component(self, self._format_component_meta_for_user(body['component']))
+        return Component(self, self._format_component_meta_for_user(
+            body['component']))
 
     def delete(self, component, **kwargs):
         """Delete an component."""
@@ -287,7 +291,7 @@ class ComponentManager(base.ManagerWithFind):
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
-            
+
     def update(self, component, **kwargs):
         """Update an component
 
@@ -312,4 +316,5 @@ class ComponentManager(base.ManagerWithFind):
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
-        return Component(self, self._format_component_meta_for_user(body['component_meta']))
+        return Component(self, self._format_component_meta_for_user(
+            body['component_meta']))

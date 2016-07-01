@@ -24,17 +24,19 @@ from glanceclient.v2 import shell as test_shell
 
 
 class ShellV2Test(testtools.TestCase):
+
     def setUp(self):
         super(ShellV2Test, self).setUp()
         self._mock_utils()
         self.gc = self._mock_glance_client()
 
     def _make_args(self, args):
-        #NOTE(venkatesh): this conversion from a dict to an object
+        # NOTE(venkatesh): this conversion from a dict to an object
         # is required because the test_shell.do_xxx(gc, args) methods
         # expects the args to be attributes of an object. If passed as
         # dict directly, it throws an AttributeError.
         class Args():
+
             def __init__(self, entries):
                 self.__dict__.update(entries)
 

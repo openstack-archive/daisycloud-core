@@ -51,8 +51,9 @@ class HorizonReporterFilter(SafeExceptionReporterFilter):
         current_frame = tb_frame.f_back
         sensitive_variables = None
         while current_frame is not None:
-            if (current_frame.f_code.co_name == 'sensitive_variables_wrapper'
-                    and 'sensitive_variables_wrapper'
+            if (current_frame.f_code.co_name ==
+                    'sensitive_variables_wrapper' and
+                    'sensitive_variables_wrapper'
                     in current_frame.f_locals):
                 # The sensitive_variables decorator was used, so we take note
                 # of the sensitive variables' names.

@@ -46,6 +46,7 @@ CONF.import_opt('container_formats', 'daisy.common.config',
 
 
 class ImagesController(object):
+
     def __init__(self, db_api=None, policy_enforcer=None, notifier=None,
                  store_api=None):
         self.db_api = db_api or daisy.db.get_api()
@@ -53,7 +54,7 @@ class ImagesController(object):
         self.notifier = notifier or daisy.notifier.Notifier()
         self.store_api = store_api or glance_store
         self.gateway = daisy.gateway.Gateway(self.db_api, self.store_api,
-                                              self.notifier, self.policy)
+                                             self.notifier, self.policy)
 
     @utils.mutating
     def create(self, req, image, extra_properties, tags):
@@ -188,8 +189,8 @@ class ImagesController(object):
             self._do_add_locations(image, path[1], value)
         else:
             if ((hasattr(image, path_root) or
-                    path_root in image.extra_properties)
-                    and json_schema_version == 4):
+                    path_root in image.extra_properties) and
+                    json_schema_version == 4):
                 msg = _("Property %s already present.")
                 raise webob.exc.HTTPConflict(msg % path_root)
             if hasattr(image, path_root):
@@ -681,6 +682,7 @@ class RequestDeserializer(wsgi.JSONRequestDeserializer):
 
 
 class ResponseSerializer(wsgi.JSONResponseSerializer):
+
     def __init__(self, schema=None):
         super(ResponseSerializer, self).__init__()
         self.schema = schema or get_schema()

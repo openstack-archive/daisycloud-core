@@ -23,7 +23,7 @@
 # serve to show the default.
 
 from __future__ import print_function
-
+import horizon.version
 import os
 import sys
 
@@ -34,8 +34,6 @@ sys.path.insert(0, ROOT)
 
 # This is required for ReadTheDocs.org, but isn't a bad idea anyway.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'openstack_dashboard.settings')
-
-import horizon.version
 
 
 def write_autodoc_index():

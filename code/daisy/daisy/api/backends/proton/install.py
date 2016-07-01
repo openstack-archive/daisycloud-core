@@ -54,7 +54,6 @@ def get_proton_ip(req, role_hosts):
     return proton_ip_list
 
 
-
 def get_proton_hosts(req, cluster_id):
     all_roles = proton_cmn.get_roles_detail(req)
     for role in all_roles:

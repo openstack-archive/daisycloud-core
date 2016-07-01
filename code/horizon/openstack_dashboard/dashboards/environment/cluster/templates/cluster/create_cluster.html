@@ -15,24 +15,54 @@
     $("#cluster_create_modal a:first").tab("show");
 
     function create_cluster_commit(){
+        var hwm_ip = "";
+        if(document.getElementById("select_hwm_ip")){ 
+            hwm_ip = $("#select_hwm_ip").children("option:selected").text();
+        } 
         var cluster_info = {
             "cluster_name": $("#cluster_name").val(),
             "networking_parameters": get_network_values(),
             "use_dns": $("#use_dns").val(),
+            "hwm_ip": hwm_ip,
             "description":$("#description").val()
         }
-
-        var role_info = {
-{% if not has_zenic %}
-            "ha": get_ha_role_values(),
-            "lb": get_lb_role_values()
-{% else %}
-            "zenic_nfm": get_zenic_nfm_info(),
-            "zenic_ctl": get_zenic_ctl_info()
-{% endif %}
+        var role_info = {};
+        var role_contexts = [
+            {
+                "name" : "ha",
+                "panel_name": "CONTROLLER_HA",
+                "callback": get_ha_role_values
+            },
+            {
+                "name" : "lb",
+                "panel_name": "CONTROLLER_LB",
+                "callback": get_lb_role_values
+            },
+            {
+                "name": "computer",
+                "panel_name": "computer",
+                "callback": get_computer_info,
+            },
+            {
+                "name" : "zenic_nfm",
+                "panel_name": "ZENIC_NFM",
+                "callback": get_zenic_nfm_info
+            },
+            {
+                "name" : "zenic_ctl",
+                "panel_name": "ZENIC_CTL",
+                "callback": get_zenic_ctl_info
+            }
+        ]
+        for (var i = 0;i < role_contexts.length;i++){
+            var role_context = role_contexts[i];
+            var $panel = $(".form-roles-validator div.panel_" + role_context["panel_name"]);
+            if ($panel.length > 0){
+                role_info[role_context["name"]] = role_context["callback"]();
+            }
         }
 
-        var netplane_info = get_netplane_info();
+        var netplane_info = get_net_plane_info();
 
         var params = {
             "cluster_id": $("#cluster_create_modal").data("cluster_id"),
@@ -60,6 +90,10 @@
     }
 
     function operate_cluster(){
+        $(".form-cluster-validator").data('bootstrapValidator').resetForm();
+        $(".form-roles-validator").data('bootstrapValidator').resetForm();
+        $(".form-net-plane").data('bootstrapValidator').resetForm();
+        
         $(".form-cluster-validator").data('bootstrapValidator').validate()
         if (!$(".form-cluster-validator").data('bootstrapValidator').isValid()){
             $('#cluster_create_modal a[href="#cluster_baseinfo"]').tab('show')
@@ -80,9 +114,10 @@
 
         create_cluster_commit();
     }
-    
     $(function(){
-        $("#collapse_ha").collapse('show');
+        $(".auto_assgign_ip").each(function(){
+            $(this).trigger("click");
+        })
     });
     </script>
 {% endblock %}

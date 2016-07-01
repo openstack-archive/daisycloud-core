@@ -27,6 +27,7 @@ _ = i18n._
 
 
 class BaseController(object):
+
     def get_image_meta_or_404(self, request, image_id):
         """
         Grabs the image metadata for an image with a supplied
@@ -101,6 +102,7 @@ class BaseController(object):
             raise webob.exc.HTTPForbidden(msg,
                                           request=request,
                                           content_type='text/plain')
+
     def get_component_meta_or_404(self, request, component_id):
         """
         Grabs the component metadata for an component with a supplied
@@ -175,7 +177,7 @@ class BaseController(object):
             raise webob.exc.HTTPForbidden(msg,
                                           request=request,
                                           content_type='text/plain')
-                                          
+
     def get_network_meta_or_404(self, request, network_id):
         """
         Grabs the network metadata for an network with a supplied
@@ -199,7 +201,7 @@ class BaseController(object):
             LOG.debug(msg)
             raise webob.exc.HTTPForbidden(msg,
                                           request=request,
-                                          content_type='text/plain')                                          
+                                          content_type='text/plain')
 
     def get_active_image_meta_or_error(self, request, image_id):
         """
@@ -242,7 +244,7 @@ class BaseController(object):
                 raise webob.exc.HTTPBadRequest(explanation=msg,
                                                request=req,
                                                content_type='text/plain')
-											   
+
     def get_config_file_meta_or_404(self, request, config_file_id):
         """
         Grabs the config_file metadata for an config_file with a supplied
@@ -291,7 +293,7 @@ class BaseController(object):
             LOG.debug(msg)
             raise webob.exc.HTTPForbidden(msg,
                                           request=request,
-                                          content_type='text/plain')    
+                                          content_type='text/plain')
 
     def get_config_meta_or_404(self, request, config_id):
         """
@@ -342,7 +344,7 @@ class BaseController(object):
             raise webob.exc.HTTPForbidden(msg,
                                           request=request,
                                           content_type='text/plain')
-                                          
+
     def get_cinder_volume_meta_or_404(self, request, id):
         """
         Grabs the config metadata for an config with a supplied

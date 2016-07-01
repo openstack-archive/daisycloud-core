@@ -36,6 +36,7 @@ OS_REQ_ID_HDR = 'x-openstack-request-id'
 
 
 class Config_file(base.Resource):
+
     def __repr__(self):
         return "<Config_file %s>" % self._info
 
@@ -79,7 +80,7 @@ class Config_fileManager(base.ManagerWithFind):
                 meta[key] = strutils.bool_from_string(meta[key])
 
         return self._format_config_file_meta_for_user(meta)
-        
+
     def _config_file_meta_to_headers(self, fields):
         headers = {}
         fields_copy = copy.deepcopy(fields)
@@ -111,13 +112,14 @@ class Config_fileManager(base.ManagerWithFind):
         """
         config_file_id = base.getid(config_file)
         resp, body = self.client.get('/v1/config_files/%s'
-                                      % urlparse.quote(str(config_file_id)))
-        #meta = self._config_file_meta_from_headers(resp.headers)
+                                     % urlparse.quote(str(config_file_id)))
+        # meta = self._config_file_meta_from_headers(resp.headers)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
-        #return Config_file(self, meta)
-        return Config_file(self, self._format_config_file_meta_for_user(body['config_file']))
+        # return Config_file(self, meta)
+        return Config_file(self, self._format_config_file_meta_for_user(
+            body['config_file']))
 
     def _build_params(self, parameters):
         params = {'limit': parameters.get('page_size', DEFAULT_PAGE_SIZE)}
@@ -151,7 +153,8 @@ class Config_fileManager(base.ManagerWithFind):
 
         :param page_size: number of items to request in each paginated request
         :param limit: maximum number of config_files to return
-        :param marker: begin returning config_files that appear later in the config_file
+        :param marker: begin returning config_files that
+                       appear later in the config_file
                        list than that represented by this config_file id
         :param filters: dict of direct comparison filters that mimics the
                         structure of an config_file object
@@ -225,7 +228,7 @@ class Config_fileManager(base.ManagerWithFind):
 
         TODO(bcwaldon): document accepted params
         """
-        
+
         fields = {}
         for field in kwargs:
             if field in CREATE_PARAMS:
@@ -235,7 +238,7 @@ class Config_fileManager(base.ManagerWithFind):
             else:
                 msg = 'create() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
-                
+
         hdrs = self._config_file_meta_to_headers(fields)
         resp, body = self.client.post('/v1/config_files',
                                       headers=hdrs,
@@ -244,7 +247,8 @@ class Config_fileManager(base.ManagerWithFind):
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
-        return Config_file(self, self._format_config_file_meta_for_user(body['config_file']))
+        return Config_file(self, self._format_config_file_meta_for_user(
+            body['config_file']))
 
     def delete(self, config_file, **kwargs):
         """Delete an config_file."""
@@ -253,7 +257,7 @@ class Config_fileManager(base.ManagerWithFind):
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
-            
+
     def update(self, config_file, **kwargs):
         """Update an config_file
 
@@ -278,5 +282,5 @@ class Config_fileManager(base.ManagerWithFind):
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
-        return Config_file(self, self._format_config_file_meta_for_user(body['config_file_meta']))
-        
+        return Config_file(self, self._format_config_file_meta_for_user(
+            body['config_file_meta']))

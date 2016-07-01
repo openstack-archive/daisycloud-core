@@ -19,6 +19,7 @@ meta = MetaData()
 message = Column('message', Text(), nullable=True)
 host_id = Column('host_id', String(36), nullable=True)
 
+
 def upgrade(migrate_engine):
     meta.bind = migrate_engine
 
