@@ -16,8 +16,12 @@ code/horizon: The web interface code. TODO: To be splited out as another project
 
 ## Build Daisy artifact
 
-``` 
-# cd make 
+```
+# yum install -y epel-release
+# yum install -y centos-release-openstack-mitaka
+# cd tools
+# ./daisy-compile-rpm.sh 
+# cd ../make 
 # make allrpm
 ```
 
