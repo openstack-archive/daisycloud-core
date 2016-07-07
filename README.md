@@ -16,8 +16,10 @@ code/horizon: The web interface code. TODO: To be splited out as another project
 
 ## Build Daisy artifact
 
-``` 
-# cd make 
+```
+# cd tools
+# ./daisy-compile-rpm.sh 
+# cd ../make 
 # make allrpm
 ```
 
