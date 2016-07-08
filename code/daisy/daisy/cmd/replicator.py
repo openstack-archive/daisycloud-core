@@ -22,8 +22,8 @@ import httplib
 import os
 import sys
 
-from oslo.config import cfg
-from oslo.serialization import jsonutils
+from oslo_config import cfg
+from oslo_serialization import jsonutils
 from oslo_log import log as logging
 import six.moves.urllib.parse as urlparse
 from webob import exc

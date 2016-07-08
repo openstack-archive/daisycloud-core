@@ -18,7 +18,7 @@ Simple client class to speak with any RESTful service that implements
 the Glance Registry API
 """
 
-from oslo.serialization import jsonutils
+from oslo_serialization import jsonutils
 from oslo_log import log as logging
 from oslo_utils import excutils
 
