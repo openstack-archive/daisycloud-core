@@ -225,10 +225,6 @@ install -d -m 755 %{buildroot}%{_localstatedir}/log/daisy
 
 
 mkdir -p %{buildroot}/var/lib/daisy
-#install -p -D -m 640 ../tecs/tecs.conf %{buildroot}/var/lib/daisy/tecs/tecs.conf
-cp -Rf ../tecs %{buildroot}/var/lib/daisy
-cp -Rf ../zenic %{buildroot}/var/lib/daisy
-cp -Rf ../proton %{buildroot}/var/lib/daisy
 
 %pre
 id daisy
@@ -267,15 +263,6 @@ if [ $1 -eq 0 ] ; then
 fi
 
 %files
-/var/lib/daisy/tecs/tecs.conf
-/var/lib/daisy/tecs/HA.conf
-/var/lib/daisy/tecs/trustme.sh
-/var/lib/daisy/tecs/tfg_upgrade.sh
-/var/lib/daisy/tecs/network-configuration-*.x86_64.rpm
-/var/lib/daisy/zenic/zenic.conf
-/var/lib/daisy/proton/.gitignore
-/var/lib/daisy/tecs/getnodeinfo.sh
-/var/lib/daisy/tecs/jq-1.3-2.el7.x86_64.rpm
 /etc/daisy/daisy-api-paste.ini
 /etc/daisy/daisy-registry-paste.ini
 %doc README.rst
@@ -322,11 +309,6 @@ fi
 %dir %attr(0750, daisy, daisy) %{_localstatedir}/log/daisy
 %dir %attr(0755, daisy, daisy) %{_localstatedir}/run/daisy
 %dir %attr(0755, daisy, daisy) /var/lib/daisy/*
-%dir %attr(0777, all, all) /var/lib/daisy/tecs/
-%attr(0755, daisy, daisy) /var/lib/daisy/tecs/*
-%attr(0755, daisy, daisy) /var/lib/daisy/zenic/*
-%dir %attr(0777, all, all) /var/lib/daisy/zenic/
-%dir %attr(0777, all, all) /var/lib/daisy/proton/
 
 %files -n python-daisy
 %doc README.rst
