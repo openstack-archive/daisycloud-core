@@ -2,7 +2,7 @@ CHANGES
 =======
 
 2015.1.0
---------
+-------- 
 
 * Metadef JSON files need to be updated
 * Plugin types are not exposed to the client
