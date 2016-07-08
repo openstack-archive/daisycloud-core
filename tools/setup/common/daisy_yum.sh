@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# 提供yum设置相关函数
-
 if [ ! "$_DAISY_YUM_FILE" ];then
 
 function make_yum_server
@@ -11,14 +9,12 @@ function make_yum_server
     [ "$?" -ne 0 ] && { echo "createrepo in $path failed"; exit 1; }
     patch_path="/home/daisy_patch/"
     if [ -d $patch_path ];then
-        #避免旧的repodata被破坏，导致createrepo命令失败
         [ -d $patch_path/repodata ] && rm -rf $patch_path/repodata
         createrepo --update $patch_path &>/dev/null
         [ "$?" -ne 0 ] && { echo "createrepo in $patch_path failed"; exit 1; }
     fi
 }
 
-# 产生REPO客户端的文件
 function make_yum_client
 {
     path=`pwd`
@@ -56,6 +52,10 @@ function yum_set
     echo "creating yum repo, please wait for several seconds..."
     make_yum_server
     make_yum_client
+    echo "creating epel yum repo, please wait for several seconds..."
+    yum install epel-release
+    echo "creating openstack mitaka yum repo, please wait for several seconds..."
+    yum install centos-release-openstack-mitaka
 }
 
 fi

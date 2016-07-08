@@ -1,5 +1,5 @@
 #!/bin/bash
-# 提供和yum安装相关的公共函数和变量
+# provide yum related public functions and variables
 if [ ! "$_INSTALL_INTERFACE_FILE" ];then
 _INSTALL_INTERFACE_DIR=`pwd`
 cd $_INSTALL_INTERFACE_DIR/../common/
@@ -17,14 +17,14 @@ keystone_admin_token="e93e9abf42f84be48e0996e5bd44f096"
 daisy_install="/var/log/daisy/daisy_install"
 installdatefile=`date -d "today" +"%Y%m%d-%H%M%S"`
 install_logfile=$daisy_install/daisyinstall_$installdatefile.log
-#输出的内容既显示在屏幕上又输出到指定文件中
+#the contents of the output is displayed on the screen and output to the specified file
 function write_install_log
 {
     local promt="$1"
     echo -e "$promt"
     echo -e "`date -d today +"%Y-%m-%d %H:%M:%S"`  $promt" >> $install_logfile
 }
-#安装
+#install function
 function all_install
 {
     echo "*******************************************************************************"
@@ -59,25 +59,31 @@ function all_install
     write_install_log "install ironic rpm"
     install_rpm_by_yum "openstack-ironic-api openstack-ironic-common openstack-ironic-conductor python-ironicclient" 
     
+    write_install_log "install ironic-discoverd depend rpm"
+    install_rpm_by_yum "python-flask"
+    
     write_install_log "install ironic-discoverd rpm"
-    install_rpm_by_yum "openstack-ironic-discoverd python-ironic-discoverd"
+    install_rpm_by_daisy_yum "openstack-ironic-discoverd python-ironic-discoverd"
     
     write_install_log "install daisy rpm"
     install_rpm_by_yum "daisy"
     
     write_install_log "install daisy dashboard rpm"
-    install_rpm_by_yum "python-django-horizon-doc"
+    install_rpm_by_daisy_yum "python-django-horizon-doc"
     install_rpm_by_yum "daisy-dashboard"
+    
+    write_install_log "install clustershell rpm"
+    install_rpm_by_yum "clustershell"
     
     if [ -f "/etc/zte-docker" ];then
         write_install_log "install pxe_docker_install rpm"
         install_rpm_by_yum pxe_docker_install
     else
         write_install_log "install pxe server rpm"
-        install_rpm_by_yum pxe_server_install
+        install_rpm_by_daisy_yum pxe_server_install
     fi
 
-    # 获取管理网ip地址，然后把数据库的daisy用户更新到配置文件中
+    #get management network IP address, and then update the database of Daisy user to the configuration file
     get_public_ip
     if [ -z $public_ip ];then
         write_install_log "Error:default gateway is not set!!!"
@@ -109,7 +115,7 @@ function all_install
     mysql_cmd="mysql"
     local mariadb_result=`systemctl is-active mariadb.service`
     if [ $? -eq 0 ];then
-        # 创建keystone数据库
+        # creat keystone datebase
         local create_keystone_sql="create database IF NOT EXISTS $keystone_db_name default charset=utf8"
         write_install_log "create $keystone_db_name database in mariadb"
         echo ${create_keystone_sql} | ${mysql_cmd}
@@ -118,7 +124,7 @@ function all_install
             exit 1
         fi
         
-        # 创建daisy数据库
+        # creat daisy datebase
         local create_db_sql="create database IF NOT EXISTS $db_name default charset=utf8"
         write_install_log "create $db_name database in mariadb"
         echo ${create_db_sql} | ${mysql_cmd}
@@ -127,7 +133,7 @@ function all_install
             exit 1
         fi
         
-        # 创建ironic数据库
+        # creat ironic datebase
         local create_ironic_sql="create database IF NOT EXISTS $ironic_name default charset=utf8"
         write_install_log "create $ironic_name database in mariadb"
         echo ${create_ironic_sql} | ${mysql_cmd}
@@ -136,7 +142,7 @@ function all_install
             exit 1
         fi
         
-        # 创建keystone用户
+        # create keystone user
         write_install_log "create keystone user in mariadb"
         echo "grant all privileges on *.* to 'keystone'@'localhost' identified by 'keystone'" | ${mysql_cmd}
         if [ $? -ne 0 ];then
@@ -144,7 +150,7 @@ function all_install
             exit 1
         fi
 
-        # 创建daisy用户
+        # create daisy user
         write_install_log "create daisy user in mariadb"
         echo "grant all privileges on *.* to 'daisy'@'localhost' identified by 'daisy'" | ${mysql_cmd}
         if [ $? -ne 0 ];then
@@ -152,7 +158,7 @@ function all_install
             exit 1
         fi
         
-        # 创建ironic用户
+        # create ironic user
         write_install_log "create ironic user in mariadb"
         echo "grant all privileges on ironic.* to 'ironic'@'localhost' identified by 'ironic'" | ${mysql_cmd}
         if [ $? -ne 0 ];then
@@ -160,7 +166,7 @@ function all_install
             exit 1
         fi
 
-        # 给keystone数据库赋予主机访问权限
+        # give the host access to keystone database
         write_install_log "Give the host access to the keystone database"
         echo "grant all privileges on keystone.* to 'keystone'@'%' identified by 'keystone'"| ${mysql_cmd}
         if [ $? -ne 0 ];then
@@ -168,7 +174,7 @@ function all_install
             exit 1
         fi
         
-        # 给daisy数据库赋予主机访问权限
+        # give the host access to daisy database
         write_install_log "Give the host access to the daisy database"
         echo "grant all privileges on daisy.* to 'daisy'@'%' identified by 'daisy'"| ${mysql_cmd}
         if [ $? -ne 0 ];then
@@ -176,7 +182,7 @@ function all_install
             exit 1
         fi
         
-        # 给ironic数据库赋予主机访问权限
+        # give the host access to ironic database
         write_install_log "Give the host access to the ironic database"
         echo "grant all privileges on ironic.* to 'ironic'@'%' identified by 'ironic'"| ${mysql_cmd}
         if [ $? -ne 0 ];then
@@ -192,14 +198,14 @@ function all_install
     fi
     
     
-    #创建keystone数据库的表
+    #creat keystone datebase tables
     which keystone-manage >> $install_logfile 2>&1
     if [ "$?" == 0 ];then
         write_install_log "start keystone-manage db_sync..." 
         keystone-manage db_sync
         [ "$?" -ne 0 ] && { write_install_log "Error:keystone-manage db_sync command failed"; exit 1; } 
     fi
-    #创建horizon admin账户
+    #creat horizon admin account
     export OS_SERVICE_TOKEN=$keystone_admin_token
     export OS_SERVICE_ENDPOINT=http://$public_ip:35357/v2.0
     keystone user-create --name=admin --pass=keystone  >> $install_logfile 2>&1
@@ -220,7 +226,7 @@ function all_install
     fi
     keystone endpoint-create --service-id=$service_id --region=RegionOne --publicurl=http://$public_ip:5000/v2.0 --internalurl=http://$public_ip:5000/v2.0 --adminurl=http://$public_ip:35357/v2.0 >> $install_logfile 2>&1
     [ "$?" -ne 0 ] && { write_install_log "Error:keystone endpoint-create command failed"; exit 1; }
-    #创建daisy数据库的表
+    #creat daisy datebase tables
     which daisy-manage >> $install_logfile 2>&1
     if [ "$?" == 0 ];then
         write_install_log "start daisy-manage db_sync..." 
@@ -228,20 +234,20 @@ function all_install
         [ "$?" -ne 0 ] && { write_install_log "Error:daisy-manage db_sync command failed"; exit 1; } 
     fi
     
-    #增加rabbitmq相关的配置文件
+    #add rabbitmq related configuration
     config_rabbitmq_env
     config_rabbitmq_config    
     
-    #配置ironic相关的配置项
+    #Configure ironic related configuration items
     config_ironic "/etc/ironic/ironic.conf"    
     config_ironic_discoverd "/etc/ironic-discoverd/discoverd.conf" "$public_ip"
     
-    #修改clustershell的配置文件
+    #modify clustershell configuration
     clustershell_conf="/etc/clustershell/clush.conf"
     sed  -i "s/connect_timeout:[[:space:]]*.*/connect_timeout: 360/g" $clustershell_conf
     sed  -i "s/command_timeout:[[:space:]]*.*/command_timeout: 3600/g" $clustershell_conf
     
-    #创建ironic数据库的表
+    #creat ironic datebase tables
     which ironic-dbsync >> $install_logfile 2>&1
     if [ "$?" == 0 ];then
         write_install_log "start ironic-dbsync ..." 
@@ -270,7 +276,7 @@ function all_install
     systemctl enable openstack-ironic-conductor.service >> $install_logfile 2>&1
     systemctl enable openstack-ironic-discoverd.service >> $install_logfile 2>&1
     
-    #daisy初始化，创建组件、服务、角色以及网络平面
+    #init daisy
     daisy_init_func
     
     modify_sudoers /etc/sudoers requiretty
