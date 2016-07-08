@@ -1,10 +1,10 @@
 #!/bin/bash
-# 最高全局公用函数，可能会被所有其他脚本调用
+# 脳卯赂脽脠芦戮脰鹿芦脫脙潞炉脢媒拢卢驴脡脛脺禄谩卤禄脣霉脫脨脝盲脣没陆脜卤戮碌梅脫脙
 
-#防止脚本重复被包含
+#路脌脰鹿陆脜卤戮脰脴赂麓卤禄掳眉潞卢
 if [ ! "$_DAISY_COMMON_FUNC_FILE" ];then
 
-#######################问答交互相关基本函数############################
+#######################脦脢麓冒陆禄禄楼脧脿鹿脴禄霉卤戮潞炉脢媒############################
 # get 'yes' or 'no' answer from user
 function read_bool
 {
@@ -49,7 +49,7 @@ function read_string_input_null_check
     fi
 }
 
-# 获取读取一个IP列表的功能
+# 禄帽脠隆露脕脠隆脪禄赂枚IP脕脨卤铆碌脛鹿娄脛脺
 function read_iplist
 {
     local prompt=$1
@@ -65,7 +65,7 @@ function read_iplist
     [ -z $answer ] && answer="$recommend"
 }
 
-#######################配置读写相关基本函数############################
+#######################脜盲脰脙露脕脨麓脧脿鹿脴禄霉卤戮潞炉脢媒############################
 
 function get_config
 {
@@ -73,12 +73,12 @@ function get_config
     local key=$2
 
     [ ! -e $file ] && return
-    #忽略井号开头的注释行以及空行之后再grep过滤"key"所在的行
+    #潞枚脗脭戮庐潞脜驴陋脥路碌脛脳垄脢脥脨脨脪脭录掳驴脮脨脨脰庐潞贸脭脵grep鹿媒脗脣"key"脣霉脭脷碌脛脨脨
     local line=`sed '/^[[:space:]]*#/d' $file | sed /^[[:space:]]*$/d | grep -w "$key"| grep "$key[[:space:]]*=" -m1`
     if [ -z "$line" ]; then
         config_answer=""
     else
-        #将第一个=号替换为空格，再删除第一个单词得到value
+        #陆芦碌脷脪禄赂枚=潞脜脤忙禄禄脦陋驴脮赂帽拢卢脭脵脡戮鲁媒碌脷脪禄赂枚碌楼麓脢碌脙碌陆value
         config_answer=`echo $line | sed 's/=/ /' | sed -e 's/^\w*\ *//'`
     fi
 }
@@ -94,7 +94,7 @@ function update_config
 
     #echo update key $key to value $value in file $file ...
     local exist=`grep "^[[:space:]]*[^#]" $file | grep -c "$key[[:space:]]*=[[:space:]]*.*"`
-    #注意：如果某行是注释，开头第一个字符必须是#号!!!
+    #脳垄脪芒拢潞脠莽鹿没脛鲁脨脨脢脟脳垄脢脥拢卢驴陋脥路碌脷脪禄赂枚脳脰路没卤脴脨毛脢脟#潞脜!!!
     local comment=`grep -c "^[[:space:]]*#[[:space:]]*$key[[:space:]]*=[[:space:]]*.*"  $file`
     
     if [[ $value == "#" ]];then
@@ -105,20 +105,20 @@ function update_config
     fi
 
     if [ $exist -gt 0 ];then
-        #如果已经存在未注释的有效配置行，直接更新value
+        #脠莽鹿没脪脩戮颅麓忙脭脷脦麓脳垄脢脥碌脛脫脨脨搂脜盲脰脙脨脨拢卢脰卤陆脫赂眉脨脗value
         sed  -i "/^[^#]/s#$key[[:space:]]*=.*#$key=$value#" $file
         
     elif [ $comment -gt 0 ];then
-        #如果存在已经注释掉的对应配置行，则去掉注释，更新value
+        #脠莽鹿没麓忙脭脷脪脩戮颅脳垄脢脥碌么碌脛露脭脫娄脜盲脰脙脨脨拢卢脭貌脠楼碌么脳垄脢脥拢卢赂眉脨脗value
         sed -i "s@^[[:space:]]*#[[:space:]]*$key[[:space:]]*=[[:space:]]*.*@$key=$value@" $file
     else
-        #否则在末尾追加有效配置行
+        #路帽脭貌脭脷脛漏脦虏脳路录脫脫脨脨搂脜盲脰脙脨脨
         echo "$key=$value" >> $file
     fi
 }
 
-#可以根据[section]的位置在后面插入key=value，或者只有key的字段
-#某些配置文件中存在value为空的开关量，此函数试用于value为空的情况，不会把value为空时时设置为错误。
+#驴脡脪脭赂霉戮脻[section]碌脛脦禄脰脙脭脷潞贸脙忙虏氓脠毛key=value拢卢禄貌脮脽脰禄脫脨key碌脛脳脰露脦
+#脛鲁脨漏脜盲脰脙脦脛录镁脰脨麓忙脭脷value脦陋驴脮碌脛驴陋鹿脴脕驴拢卢麓脣潞炉脢媒脢脭脫脙脫脷value脦陋驴脮碌脛脟茅驴枚拢卢虏禄禄谩掳脩value脦陋驴脮脢卤脢卤脡猫脰脙脦陋麓铆脦贸隆拢
 function update_section_config
 {
     local file=$1
@@ -128,7 +128,7 @@ function update_section_config
 
     [ ! -e $file ] && return
 
-    #根据section搜寻文件中是否有某个key
+    #赂霉戮脻section脣脩脩掳脦脛录镁脰脨脢脟路帽脫脨脛鲁赂枚key
     if [ -z $value ];then
         local exist=`sed  -n "/\[$section\]/,/\[*\]/p" $file | grep "^[[:space:]]*[^#]" |grep -c "[[:space:]]*$key[[:space:]]*"`
         if [ $exist -eq 0 ];then
@@ -146,19 +146,19 @@ function update_section_config
     fi
 }
 
-#获取文件中string的数量
+#禄帽脠隆脦脛录镁脰脨string碌脛脢媒脕驴
 function get_string_num
 {
     local file=$1
     local string=$2
 
     [ ! -e $file ] && { echo "$file doesn't exist."; exit 1; }
-    #忽略井号开头的注释行以及空行之后再grep过滤"key"所在的行
+    #潞枚脗脭戮庐潞脜驴陋脥路碌脛脳垄脢脥脨脨脪脭录掳驴脮脨脨脰庐潞贸脭脵grep鹿媒脗脣"key"脣霉脭脷碌脛脨脨
     string_num=`sed '/^[[:space:]]*#/d' $file | sed /^[[:space:]]*$/d | grep -cw "$string"`
 }
 
-#保存配置信息,指定配置文件安装方式和卸载不需要保存
-#调用本函数时应保证同一模块的配置参数一次性配置完，如不能先配置部分tc，然后配置cc，又回头配置tc
+#卤拢麓忙脜盲脰脙脨脜脧垄,脰赂露篓脜盲脰脙脦脛录镁掳虏脳掳路陆脢陆潞脥脨露脭脴虏禄脨猫脪陋卤拢麓忙
+#碌梅脫脙卤戮潞炉脢媒脢卤脫娄卤拢脰陇脥卢脪禄脛拢驴茅碌脛脜盲脰脙虏脦脢媒脪禄麓脦脨脭脜盲脰脙脥锚拢卢脠莽虏禄脛脺脧脠脜盲脰脙虏驴路脰tc拢卢脠禄潞贸脜盲脰脙cc拢卢脫脰禄脴脥路脜盲脰脙tc
 function user_config_save
 {  
     local component="$1"
@@ -166,7 +166,7 @@ function user_config_save
     local value="$3"
 
     if [ "$operation" = "install" ];then
-        #如果用户配置文件已经存在则备份旧的配置
+        #脠莽鹿没脫脙禄搂脜盲脰脙脦脛录镁脪脩戮颅麓忙脭脷脭貌卤赂路脻戮脡碌脛脜盲脰脙
         if [ ! -f $user_config_save_file ];then
             mkdir -p ${user_config_save_path}     
             touch $user_config_save_file 
@@ -175,7 +175,7 @@ function user_config_save
             echo -e "## global configration section\nmode=$mode\n">>$user_config_save_file
             echo -e "## component configration section">>$user_config_save_file
         fi
-        # 如果，没有组件归属，则放在mode后
+        # 脠莽鹿没拢卢脙禄脫脨脳茅录镁鹿茅脢么拢卢脭貌路脜脭脷mode潞贸
         if [ "$component" = "" ];then
             [ "$key" = "" ] && { echo -e "\nkey is null, please check!"; exit 1; }
             sed -i "/mode=$mode/a $key=$value" $user_config_save_file
@@ -186,9 +186,9 @@ function user_config_save
     fi
 }
 
-#######################rpm包处理相关基本函数############################
+#######################rpm掳眉麓娄脌铆脧脿鹿脴禄霉卤戮潞炉脢媒############################
 
-#判断某rpm包是否已安装
+#脜脨露脧脛鲁rpm掳眉脢脟路帽脪脩掳虏脳掳
 function check_installed
 {
     has_installed="no"
@@ -200,18 +200,31 @@ function check_installed
     fi    
 }
 
-# 检查rpm包是否被依赖
+# 录矛虏茅rpm掳眉脢脟路帽卤禄脪脌脌碌
 function check_depend
 {
     local rpm_name=$1
-    # 检测依赖包是否被别人使用
+    # 录矛虏芒脪脌脌碌掳眉脢脟路帽卤禄卤冒脠脣脢鹿脫脙
     rpm -q --whatrequires $rpm_name &>/dev/null
-    # 当查询不到被依赖的关系或rpm未安装，返回的是1，否则为0
+    # 碌卤虏茅脩炉虏禄碌陆卤禄脪脌脌碌碌脛鹿脴脧碌禄貌rpm脦麓掳虏脳掳拢卢路碌禄脴碌脛脢脟1拢卢路帽脭貌脦陋0
     return "$?"
 }
 
-# 安装包的函数
+# 掳虏脳掳掳眉碌脛潞炉脢媒
 function install_rpm_by_yum
+{
+    local rpm_name=$1
+
+    yum install -y $rpm_name
+
+    local result=$?
+    if [ $result -ne 0 ];then
+        echo -e "\ninstall $rpm_name failed!"
+        exit $result
+    fi    
+}
+
+function install_rpm_by_daisy_yum
 {
     local rpm_name=$1
 
@@ -222,10 +235,9 @@ function install_rpm_by_yum
     if [ $result -ne 0 ];then
         echo -e "\ninstall $rpm_name failed!"
         exit $result
-    fi    
+    fi
 }
-
-# 检测要安装的包是否存在，如果不存在，则提示是否需要安装
+# 录矛虏芒脪陋掳虏脳掳碌脛掳眉脢脟路帽麓忙脭脷拢卢脠莽鹿没虏禄麓忙脭脷拢卢脭貌脤谩脢戮脢脟路帽脨猫脪陋掳虏脳掳
 function check_and_install_rpm
 {
     local rpm_name=$1
@@ -240,7 +252,7 @@ function check_and_install_rpm
     fi
 }
 
-# 检测要安装的包是否存在，如果不存在，则提示是否需要安装，如果存在，则需要升级
+# 录矛虏芒脪陋掳虏脳掳碌脛掳眉脢脟路帽麓忙脭脷拢卢脠莽鹿没虏禄麓忙脭脷拢卢脭貌脤谩脢戮脢脟路帽脨猫脪陋掳虏脳掳拢卢脠莽鹿没麓忙脭脷拢卢脭貌脨猫脪陋脡媒录露
 function install_or_upgrade_rpm
 {
     local rpm_name=$1
@@ -260,7 +272,7 @@ function install_or_upgrade_rpm
     fi
 }
 
-# 检测是否协助RPM包，如果已经安装过了，提示是否要卸载
+# 录矛虏芒脢脟路帽脨颅脰煤RPM掳眉拢卢脠莽鹿没脪脩戮颅掳虏脳掳鹿媒脕脣拢卢脤谩脢戮脢脟路帽脪陋脨露脭脴
 function check_uninstall_tecs_rpm
 {
     local rpm_name=$1
@@ -290,7 +302,7 @@ function remove_rpms_by_yum
 
 }
 
-# 检测指定包是否需要升级
+# 录矛虏芒脰赂露篓掳眉脢脟路帽脨猫脪陋脡媒录露
 function check_app_is_upgrade
 { 
     local app=$1
@@ -302,7 +314,7 @@ function check_app_is_upgrade
     fi
 }
 
-# 升级包的函数
+# 脡媒录露掳眉碌脛潞炉脢媒
 function upgrade_rpms_by_yum
 {
     local app_list="$1"
@@ -311,8 +323,8 @@ function upgrade_rpms_by_yum
         echo -e "\nsorry, there is no rpm need to upgrade"!
         exit 0
     fi    
-    #此处如果把app_list作为upgrade的参数，如果有一个不需要升级或已被升级
-    #过的daisy服务，会导致整个升级失败，因此这里写为把每个服务单独判断是否升级
+    #麓脣麓娄脠莽鹿没掳脩app_list脳梅脦陋upgrade碌脛虏脦脢媒拢卢脠莽鹿没脫脨脪禄赂枚虏禄脨猫脪陋脡媒录露禄貌脪脩卤禄脡媒录露
+    #鹿媒碌脛daisy路镁脦帽拢卢禄谩碌录脰脗脮没赂枚脡媒录露脢搂掳脺拢卢脪貌麓脣脮芒脌茂脨麓脦陋掳脩脙驴赂枚路镁脦帽碌楼露脌脜脨露脧脢脟路帽脡媒录露
     [ "$daisy_yum" = "" ] && { echo "opencos yum doesn't set, update rpms failed!"; exit 1; }
     for app in $app_list
     do
@@ -332,8 +344,8 @@ function upgrade_rpms_by_yum
 }
 
 
-#######################服务处理相关基本函数############################
-# 停止服务
+#######################路镁脦帽麓娄脌铆脧脿鹿脴禄霉卤戮潞炉脢媒############################
+# 脥拢脰鹿路镁脦帽
 function service_stop
 {
     local app=$1
@@ -359,13 +371,13 @@ function service_stop
     done		
 }
 
-# 启动服务服务
+# 脝么露炉路镁脦帽路镁脦帽
 function service_start
 {
     local app=$1
     [ ! -f ${systemd_path}/$app.service ] && return
 
-    #此处cd /与cd -不可去掉，为了处理安装后启动临时目录/tmp/selfgzxxxxxxxx删除的问题
+    #麓脣麓娄cd /脫毛cd -虏禄驴脡脠楼碌么拢卢脦陋脕脣麓娄脌铆掳虏脳掳潞贸脝么露炉脕脵脢卤脛驴脗录/tmp/selfgzxxxxxxxx脡戮鲁媒碌脛脦脢脤芒
     cd /
     systemctl start $app.service >/dev/null
     cd - >/dev/null
@@ -381,7 +393,7 @@ function service_start
     done
 }
 
-# 重启动服务服务
+# 脰脴脝么露炉路镁脦帽路镁脦帽
 function service_restart
 {
     local app=$1
@@ -392,7 +404,7 @@ function service_restart
     cd - >/dev/null
 }
 
-# 根据询问结果来停止服务
+# 赂霉戮脻脩炉脦脢陆谩鹿没脌麓脥拢脰鹿路镁脦帽
 function ask_service_stop
 {
     local app=$1
@@ -402,7 +414,7 @@ function ask_service_stop
     [ "$answer" == "yes" ] && systemctl stop $app.service >/dev/null 
 }
 
-# 根据询问结果来启动服务
+# 赂霉戮脻脩炉脦脢陆谩鹿没脌麓脝么露炉路镁脦帽
 function ask_service_start
 {
     local app=$1
@@ -427,7 +439,7 @@ function stop_service_all
     service_stop  "daisy-orchestration"
 }
 
-# 自动打开所有服务
+# 脳脭露炉麓貌驴陋脣霉脫脨路镁脦帽
 function start_service_all
 {
     service_start  "mariadb"

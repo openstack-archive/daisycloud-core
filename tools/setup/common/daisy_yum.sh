@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Ìá¹©yumÉèÖÃÏà¹Øº¯Êı
+# ÃŒÃ¡Â¹Â©yumÃ‰Ã¨Ã–ÃƒÃÃ Â¹Ã˜ÂºÂ¯ÃŠÃ½
 
 if [ ! "$_DAISY_YUM_FILE" ];then
 
@@ -11,14 +11,14 @@ function make_yum_server
     [ "$?" -ne 0 ] && { echo "createrepo in $path failed"; exit 1; }
     patch_path="/home/daisy_patch/"
     if [ -d $patch_path ];then
-        #±ÜÃâ¾ÉµÄrepodata±»ÆÆ»µ£¬µ¼ÖÂcreaterepoÃüÁîÊ§°Ü
+        #Â±ÃœÃƒÃ¢Â¾Ã‰ÂµÃ„repodataÂ±Â»Ã†Ã†Â»ÂµÂ£Â¬ÂµÂ¼Ã–Ã‚createrepoÃƒÃ¼ÃÃ®ÃŠÂ§Â°Ãœ
         [ -d $patch_path/repodata ] && rm -rf $patch_path/repodata
         createrepo --update $patch_path &>/dev/null
         [ "$?" -ne 0 ] && { echo "createrepo in $patch_path failed"; exit 1; }
     fi
 }
 
-# ²úÉúREPO¿Í»§¶ËµÄÎÄ¼ş
+# Â²ÃºÃ‰ÃºREPOÂ¿ÃÂ»Â§Â¶Ã‹ÂµÃ„ÃÃ„Â¼Ã¾
 function make_yum_client
 {
     path=`pwd`
@@ -56,6 +56,10 @@ function yum_set
     echo "creating yum repo, please wait for several seconds..."
     make_yum_server
     make_yum_client
+    echo "creating epel yum repo, please wait for several seconds..."
+    yum install epel-release
+    echo "creating openstack mitaka yum repo, please wait for several seconds..."
+    yum install centos-release-openstack-mitaka
 }
 
 fi
