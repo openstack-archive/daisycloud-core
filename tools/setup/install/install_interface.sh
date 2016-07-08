@@ -59,14 +59,17 @@ function all_install
     write_install_log "install ironic rpm"
     install_rpm_by_yum "openstack-ironic-api openstack-ironic-common openstack-ironic-conductor python-ironicclient" 
     
+    write_install_log "install ironic-discoverd depend rpm"
+    install_rpm_by_yum "python-flask"
+    
     write_install_log "install ironic-discoverd rpm"
-    install_rpm_by_yum "openstack-ironic-discoverd python-ironic-discoverd"
+    install_rpm_by_daisy_yum "openstack-ironic-discoverd python-ironic-discoverd"
     
     write_install_log "install daisy rpm"
     install_rpm_by_yum "daisy"
     
     write_install_log "install daisy dashboard rpm"
-    install_rpm_by_yum "python-django-horizon-doc"
+    install_rpm_by_daisy_yum "python-django-horizon-doc"
     install_rpm_by_yum "daisy-dashboard"
     
     if [ -f "/etc/zte-docker" ];then
@@ -74,7 +77,7 @@ function all_install
         install_rpm_by_yum pxe_docker_install
     else
         write_install_log "install pxe server rpm"
-        install_rpm_by_yum pxe_server_install
+        install_rpm_by_daisy_yum pxe_server_install
     fi
 
     # 获取管理网ip地址，然后把数据库的daisy用户更新到配置文件中

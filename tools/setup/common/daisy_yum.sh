@@ -56,6 +56,10 @@ function yum_set
     echo "creating yum repo, please wait for several seconds..."
     make_yum_server
     make_yum_client
+    echo "creating epel yum repo, please wait for several seconds..."
+    rpm -ivh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-7.noarch.rpm
+    echo "creating openstack mitaka yum repo, please wait for several seconds..."
+    yum install centos-release-openstack-mitaka
 }
 
 fi

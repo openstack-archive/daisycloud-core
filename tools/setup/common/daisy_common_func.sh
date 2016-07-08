@@ -215,8 +215,7 @@ function install_rpm_by_yum
 {
     local rpm_name=$1
 
-    [[ $daisy_yum = "" ]] && { echo "yum repository doesn't create!"; exit 1; }
-    $daisy_yum install $rpm_name
+    yum install $rpm_name
 
     local result=$?
     if [ $result -ne 0 ];then
@@ -225,6 +224,19 @@ function install_rpm_by_yum
     fi    
 }
 
+function install_rpm_by_daisy_yum
+{
+    local rpm_name=$1
+
+    [[ $daisy_yum = "" ]] && { echo "yum repository doesn't create!"; exit 1; }
+    $daisy_yum install $rpm_name
+
+    local result=$?
+    if [ $result -ne 0 ];then
+        echo -e "\ninstall $rpm_name failed!"
+        exit $result
+    fi
+}
 # 检测要安装的包是否存在，如果不存在，则提示是否需要安装
 function check_and_install_rpm
 {
