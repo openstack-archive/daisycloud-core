@@ -27,7 +27,7 @@ import sys
 import eventlet
 
 from daisy.common import utils
-from oslo.config import cfg
+from oslo_config import cfg
 from oslo_log import log as logging
 import osprofiler.notifier
 import osprofiler.web

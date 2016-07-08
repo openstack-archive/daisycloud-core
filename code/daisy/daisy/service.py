@@ -19,7 +19,7 @@ import os
 import socket
 import sys
 
-from oslo.config import cfg
+from oslo_config import cfg
 from oslo import i18n
 import oslo.messaging
 from oslo_log import log
