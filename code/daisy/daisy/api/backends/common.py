@@ -36,6 +36,7 @@ daisy_path = '/var/lib/daisy/'
 tecs_backend_name = "tecs"
 zenic_backend_name = "zenic"
 proton_backend_name = "proton"
+kolla_backend_name = "kolla"
 os_install_start_time = 0.0
 
 
