@@ -1834,7 +1834,7 @@ class Controller(controller.BaseController):
         with open(var_log_path, "w+") as fp:
             try:
                 trustme_result = subprocess.check_output(
-                    '/var/lib/daisy/tecs/trustme.sh %s %s' %
+                    '/var/lib/daisy/kolla/trustme.sh %s %s' %
                     (discover_host_meta['ip'], discover_host_meta['passwd']),
                     shell=True, stderr=subprocess.STDOUT)
                 if 'Permission denied' in trustme_result:
@@ -1910,8 +1910,8 @@ class Controller(controller.BaseController):
 
             try:
                 subprocess.check_output(
-                    'clush -S -w %s -c /var/lib/daisy/tecs/getnodeinfo.sh'
-                    ' /var/lib/daisy/tecs/jq-1.3-2.el7.x86_64.rpm '
+                    'clush -S -w %s -c /var/lib/daisy/kolla/getnodeinfo.sh'
+                    ' /var/lib/daisy/kolla/jq-1.3-2.el7.x86_64.rpm '
                     '--dest=/home/daisy/discover_host' %
                     (discover_host_meta['ip'],),
                     shell=True, stderr=subprocess.STDOUT)
@@ -2088,9 +2088,9 @@ class Controller(controller.BaseController):
         daisy_management_ip = config.get("DEFAULT", "daisy_management_ip")
         if daisy_management_ip:
             cmd = 'dhcp_linenumber=`grep -n "dhcp_ip="' \
-                  ' /var/lib/daisy/tecs/getnodeinfo.sh|cut -d ":" -f 1` && ' \
+                  ' /var/lib/daisy/kolla/getnodeinfo.sh|cut -d ":" -f 1` && ' \
                   'sed -i "${dhcp_linenumber}c dhcp_ip=\'%s\'" ' \
-                  '/var/lib/daisy/tecs/getnodeinfo.sh' % (daisy_management_ip,)
+                  '/var/lib/daisy/kolla/getnodeinfo.sh' % (daisy_management_ip,)
             daisy_cmn.subprocess_call(cmd)
 
         config_discoverd = ConfigParser.ConfigParser(
@@ -2099,9 +2099,9 @@ class Controller(controller.BaseController):
         listen_port = config_discoverd.get("discoverd", "listen_port")
         if listen_port:
             cmd = 'port_linenumber=`grep -n "listen_port="' \
-                  ' /var/lib/daisy/tecs/getnodeinfo.sh|cut -d ":" -f 1` && ' \
+                  ' /var/lib/daisy/kolla/getnodeinfo.sh|cut -d ":" -f 1` && ' \
                   'sed -i "${port_linenumber}c listen_port=\'%s\'" ' \
-                  '/var/lib/daisy/tecs/getnodeinfo.sh' % (listen_port,)
+                  '/var/lib/daisy/kolla/getnodeinfo.sh' % (listen_port,)
             daisy_cmn.subprocess_call(cmd)
 
         discovery_host_thread = threading.Thread(
