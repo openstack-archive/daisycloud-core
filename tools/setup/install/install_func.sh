@@ -476,6 +476,16 @@ function create_daisy_role_with_proton
     [ "$?" -ne 0 ] && { write_install_log "create the role of proton failed"; exit 1; }
 }
 
+function create_daisy_role_with_kolla
+{
+    write_install_log "Daisy init and create the role with kolla"
+    daisy --os-endpoint="http://${public_ip}:$bind_port" role-add "CONTROLLER" "Controller Role for kolla." --type template --deployment-backend kolla --role-type CONTROLLER_LB >> $install_logfile 2>&1
+    [ "$?" -ne 0 ] && { write_install_log "create the controller role of KOLLA failed"; exit 1; }
+    daisy --os-endpoint="http://${public_ip}:$bind_port" role-add "COMPUTER" "Computer Role for kolla." --type template --deployment-backend kolla --role-type COMPUTER >> $install_logfile 2>&1
+    [ "$?" -ne 0 ] && { write_install_log "create the computer role of KOLLA failed"; exit 1; }
+    
+}
+
 function create_daisy_service_role_with_cell
 {
     write_install_log "Daisy init and create component and role with cell"
@@ -538,6 +548,10 @@ function daisy_init_func
         proton=`echo $default_backend_types_params|grep 'proton'|wc -l`
         if [ $proton -ne 0 ];then
             create_daisy_role_with_proton
+        fi
+        kolla=`echo $default_backend_types_params|grep 'kolla'|wc -l`
+        if [ $kolla -ne 0 ];then
+            create_daisy_role_with_kolla
         fi
 }
 
