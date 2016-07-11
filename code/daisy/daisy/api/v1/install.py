@@ -55,8 +55,8 @@ ACTIVE_IMMUTABLE = daisy.api.v1.ACTIVE_IMMUTABLE
 # if some backends have order constraint, please add here
 # if backend not in the next three order list, we will be
 # think it does't have order constraint.
-BACKENDS_INSTALL_ORDER = ['proton', 'zenic', 'tecs']
-BACKENDS_UPGRADE_ORDER = ['proton', 'zenic', 'tecs']
+BACKENDS_INSTALL_ORDER = ['proton', 'zenic', 'tecs', 'kolla']
+BACKENDS_UPGRADE_ORDER = ['proton', 'zenic', 'tecs', 'kolla']
 BACKENDS_UNINSTALL_ORDER = []
 
 

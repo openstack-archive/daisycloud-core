@@ -1834,7 +1834,7 @@ class Controller(controller.BaseController):
         with open(var_log_path, "w+") as fp:
             try:
                 trustme_result = subprocess.check_output(
-                    '/var/lib/daisy/tecs/trustme.sh %s %s' %
+                    '/var/lib/daisy/kolla/trustme.sh %s %s' %
                     (discover_host_meta['ip'], discover_host_meta['passwd']),
                     shell=True, stderr=subprocess.STDOUT)
                 if 'Permission denied' in trustme_result:
@@ -1910,40 +1910,54 @@ class Controller(controller.BaseController):
 
             try:
                 subprocess.check_output(
-                    'clush -S -w %s -c /var/lib/daisy/tecs/getnodeinfo.sh'
-                    ' /var/lib/daisy/tecs/jq-1.3-2.el7.x86_64.rpm '
+                    'clush -S -w %s -c /var/lib/daisy/kolla/getnodeinfo.sh '
                     '--dest=/home/daisy/discover_host' %
                     (discover_host_meta['ip'],),
                     shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as e:
                 update_info = {}
                 update_info['status'] = 'DISCOVERY_FAILED'
-                update_info['message'] = "scp getnodeinfo.sh and " \
-                                         "jq-1.3-2.el7.x86_64.rpm for %s" \
+                update_info['message'] = "scp getnodeinfo.sh" \
                                          " failed!" % discover_host_meta['ip']
                 self.update_progress_to_db(req, update_info,
                                            discover_host_meta)
-                LOG.error(_("scp getnodeinfo.sh and"
-                            " jq-1.3-2.el7.x86_64.rpm for %s failed!"
+                LOG.error(_("scp getnodeinfo.sh for %s failed!"
                             % discover_host_meta['ip']))
                 fp.write(e.output.strip())
                 return
 
             try:
                 subprocess.check_output(
-                    'clush -S -w %s rpm -ivh --force '
-                    '/home/daisy/discover_host/jq-1.3-2.el7.x86_64.rpm'
+                    'clush -S -w %s yum install epel-release'
                     % (discover_host_meta['ip'],),
                     shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as e:
                 update_info = {}
                 update_info['status'] = 'DISCOVERY_FAILED'
                 update_info['message'] = \
-                    "install jq-1.3-2.el7.x86_64.rpm for %s failed!"\
+                    "creat repo epel for %s failed!"\
                     % discover_host_meta['ip']
                 self.update_progress_to_db(req, update_info,
                                            discover_host_meta)
-                LOG.error(_("install jq-1.3-2.el7.x86_64.rpm for %s failed!"
+                LOG.error(_("creat repo epel for %s failed!"
+                            % discover_host_meta['ip']))
+                fp.write(e.output.strip())
+                return
+
+            try:
+                subprocess.check_output(
+                    'clush -S -w %s yum install jq'
+                    % (discover_host_meta['ip'],),
+                    shell=True, stderr=subprocess.STDOUT)
+            except subprocess.CalledProcessError as e:
+                update_info = {}
+                update_info['status'] = 'DISCOVERY_FAILED'
+                update_info['message'] = \
+                    "install jq rpm for %s failed!"\
+                    % discover_host_meta['ip']
+                self.update_progress_to_db(req, update_info,
+                                           discover_host_meta)
+                LOG.error(_("install jq rpm for %s failed!"
                             % discover_host_meta['ip']))
                 fp.write(e.output.strip())
                 return
@@ -2088,9 +2102,10 @@ class Controller(controller.BaseController):
         daisy_management_ip = config.get("DEFAULT", "daisy_management_ip")
         if daisy_management_ip:
             cmd = 'dhcp_linenumber=`grep -n "dhcp_ip="' \
-                  ' /var/lib/daisy/tecs/getnodeinfo.sh|cut -d ":" -f 1` && ' \
+                  ' /var/lib/daisy/kolla/getnodeinfo.sh|cut -d ":" -f 1` && ' \
                   'sed -i "${dhcp_linenumber}c dhcp_ip=\'%s\'" ' \
-                  '/var/lib/daisy/tecs/getnodeinfo.sh' % (daisy_management_ip,)
+                  '/var/lib/daisy/kolla/getnodeinfo.sh' \
+                  % (daisy_management_ip,)
             daisy_cmn.subprocess_call(cmd)
 
         config_discoverd = ConfigParser.ConfigParser(
@@ -2099,9 +2114,9 @@ class Controller(controller.BaseController):
         listen_port = config_discoverd.get("discoverd", "listen_port")
         if listen_port:
             cmd = 'port_linenumber=`grep -n "listen_port="' \
-                  ' /var/lib/daisy/tecs/getnodeinfo.sh|cut -d ":" -f 1` && ' \
+                  ' /var/lib/daisy/kolla/getnodeinfo.sh|cut -d ":" -f 1` && ' \
                   'sed -i "${port_linenumber}c listen_port=\'%s\'" ' \
-                  '/var/lib/daisy/tecs/getnodeinfo.sh' % (listen_port,)
+                  '/var/lib/daisy/kolla/getnodeinfo.sh' % (listen_port,)
             daisy_cmn.subprocess_call(cmd)
 
         discovery_host_thread = threading.Thread(
