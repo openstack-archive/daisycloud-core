@@ -1,0 +1,410 @@
+# Copyright 2013 OpenStack Foundation
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
+"""
+/install endpoint for kolla API
+"""
+import subprocess
+import time
+from oslo_config import cfg
+from oslo_log import log as logging
+from webob.exc import HTTPForbidden
+from threading import Thread
+import threading
+from daisy import i18n
+import daisy.api.v1
+from daisy.common import exception
+from daisy.api.backends.kolla import config
+import daisy.api.backends.common as daisy_cmn
+import daisy.api.backends.kolla.common as kolla_cmn
+import re
+import commands
+
+
+LOG = logging.getLogger(__name__)
+_ = i18n._
+_LE = i18n._LE
+_LI = i18n._LI
+_LW = i18n._LW
+SUPPORTED_PARAMS = daisy.api.v1.SUPPORTED_PARAMS
+SUPPORTED_FILTERS = daisy.api.v1.SUPPORTED_FILTERS
+ACTIVE_IMMUTABLE = daisy.api.v1.ACTIVE_IMMUTABLE
+
+CONF = cfg.CONF
+install_opts = [
+    cfg.StrOpt('max_parallel_os_number', default=10,
+               help='Maximum number of hosts install os at the same time.'),
+]
+CONF.register_opts(install_opts)
+
+CONF.import_opt('disk_formats', 'daisy.common.config', group='image_format')
+CONF.import_opt('container_formats', 'daisy.common.config',
+                group='image_format')
+CONF.import_opt('image_property_quota', 'daisy.common.config')
+
+
+host_os_status = {
+    'INIT': 'init',
+    'INSTALLING': 'installing',
+    'ACTIVE': 'active',
+    'FAILED': 'install-failed'
+}
+
+kolla_state = kolla_cmn.KOLLA_STATE
+daisy_kolla_path = kolla_cmn.daisy_kolla_path
+install_kolla_progress = 0.0
+install_mutex = threading.Lock()
+
+
+def update_progress_to_db(req, role_id_list,
+                          status, progress=0.0):
+    """
+    Write install progress and status to db, we use global lock object
+    'install_mutex' to make sure this function is thread safety.
+    :param req: http req.
+    :param role_id_list: Column neeb be update in role table.
+    :param status: install status.
+    :return:
+    """
+
+    global install_mutex
+    install_mutex.acquire(True)
+    role = {}
+    for role_id in role_id_list:
+        role['status'] = status
+        role['progress'] = progress
+        daisy_cmn.update_role(req, role_id, role)
+    install_mutex.release()
+
+
+def update_host_progress_to_db(req, role_id_list, host,
+                               status, message, progress=0.0):
+    for role_id in role_id_list:
+        role_hosts = daisy_cmn.get_hosts_of_role(req, role_id)
+        for role_host in role_hosts:
+            if role_host['host_id'] == host['id']:
+                role_host['status'] = status
+                role_host['progress'] = progress
+                role_host['messages'] = message
+                daisy_cmn.update_role_host(req, role_host['id'], role_host)
+
+
+def update_all_host_progress_to_db(req, role_id_list, host_id_list,
+                               status, message, progress=0.0):
+    for host_id in host_id_list:
+        for role_id in role_id_list:
+            role_hosts = daisy_cmn.get_hosts_of_role(req, role_id)
+            for role_host in role_hosts:
+                if role_host['host_id'] == host_id:
+                    role_host['status'] = status
+                    role_host['progress'] = progress
+                    role_host['messages'] = message
+                    daisy_cmn.update_role_host(req, role_host['id'], role_host)
+
+
+def _ping_hosts_test(ips):
+    ping_cmd = 'fping'
+    for ip in set(ips):
+        ping_cmd = ping_cmd + ' ' + ip
+    obj = subprocess.Popen(ping_cmd, shell=True,
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (stdoutput, erroutput) = obj.communicate()
+    _returncode = obj.returncode
+    if _returncode == 0 or _returncode == 1:
+        ping_result = stdoutput.split('\n')
+        unreachable_hosts = [result.split()[0] for
+                             result in ping_result if
+                             result and result.split()[2] != 'alive']
+    else:
+        msg = "ping failed beaceuse there is invlid ip in %s" % ips
+        raise exception.InvalidIP(msg)
+    return unreachable_hosts
+
+
+def _check_ping_hosts(ping_ips, max_ping_times):
+    if not ping_ips:
+        LOG.info(_("no ip got for ping test"))
+        return ping_ips
+    ping_count = 0
+    time_step = 5
+    LOG.info(_("begin ping test for %s" % ','.join(ping_ips)))
+    while True:
+        if ping_count == 0:
+            ips = _ping_hosts_test(ping_ips)
+        else:
+            ips = _ping_hosts_test(ips)
+        ping_count += 1
+        if ips:
+            LOG.debug(_("ping host %s for %s times"
+                        % (','.join(ips), ping_count)))
+            if ping_count >= max_ping_times:
+                LOG.info(_("ping host %s timeout for %ss"
+                           % (','.join(ips), ping_count*time_step)))
+                return ips
+            time.sleep(time_step)
+        else:
+            LOG.info(_("ping host %s success" % ','.join(ping_ips)))
+            time.sleep(120)
+            LOG.info(_("120s after ping host %s success" % ','.join(ping_ips)))
+            return ips
+
+
+def _get_local_ip():
+    (status, output) = commands.getstatusoutput('ifconfig')
+    netcard_pattern = re.compile('\S*: ')
+    ip_str = '([0-9]{1,3}\.){3}[0-9]{1,3}'
+    # ip_pattern = re.compile('(inet %s)' % ip_str)
+    pattern = re.compile(ip_str)
+    local_ip = ''
+    nic_ip = {}
+    for netcard in re.finditer(netcard_pattern, str(output)):
+        nic_name = netcard.group().split(': ')[0]
+        if nic_name == "lo":
+            continue
+        ifconfig_nic_cmd = "ifconfig %s" % nic_name
+        (status, output) = commands.getstatusoutput(ifconfig_nic_cmd)
+        if status:
+            continue
+        ip = pattern.search(str(output))
+        if ip and ip.group().split('.')[0] != "172" and \
+                ip.group() != "127.0.0.1":
+            nic_ip[nic_name] = ip.group()
+            local_ip = nic_ip[nic_name]
+    return local_ip
+
+
+def get_cluster_kolla_config(req, cluster_id):
+    LOG.info(_("get kolla config from database..."))
+    params = dict(limit=1000000)
+    host_name_ip_list = []
+    mgt_ip_list = []
+    kolla_config = {}
+    controller_ip_list = []
+    computer_ip_list = []
+    mgt_macname_list = []
+    pub_macname_list = []
+    host_name_ip = {}
+    docker_registry_ip = _get_local_ip()
+    docker_registry = docker_registry_ip + ':4000'
+    cluster_networks = daisy_cmn.get_cluster_networks_detail(req, cluster_id)
+    all_roles = kolla_cmn.get_roles_detail(req)
+    roles = [role for role in all_roles if
+             (role['cluster_id'] == cluster_id and
+              role['deployment_backend'] == daisy_cmn.kolla_backend_name)]
+    for role in roles:
+        if role['name'] == 'CONTROLLER_LB':
+            kolla_vip = role['vip']
+            role_hosts = kolla_cmn.get_hosts_of_role(req, role['id'])
+            for role_host in role_hosts:
+                host_detail = kolla_cmn.get_host_detail(
+                    req, role_host['host_id'])
+                deploy_host_cfg = kolla_cmn.get_deploy_node_cfg(
+                    req, host_detail, cluster_networks)
+                mgt_ip = deploy_host_cfg['mgtip']
+                host_name_ip = {deploy_host_cfg['host_name']:deploy_host_cfg['mgtip']}
+                controller_ip_list.append(mgt_ip)
+                mgt_macname = deploy_host_cfg['mgt_macname']
+                pub_macname = deploy_host_cfg['pub_macname']
+                mgt_macname_list.append(mgt_macname)
+                pub_macname_list.append(pub_macname)
+                if host_name_ip not in host_name_ip_list:
+                    host_name_ip_list.append(host_name_ip)
+            if len(set(mgt_macname_list)) != 1 or \
+                    len(set(pub_macname_list)) != 1:
+                msg = (_("hosts interface name of public and \
+                         management must be same!"))
+                LOG.error(msg)
+                raise HTTPForbidden(msg)
+            kolla_config.update({'VIP': kolla_vip})
+            kolla_config.update({'IntIfMac': mgt_macname})
+            kolla_config.update({'ExtIfMac': pub_macname})
+            kolla_config.update({'LocalIP': docker_registry})
+            kolla_config.update({'Controller_ips': controller_ip_list})
+            kolla_config.update({'Network_ips': controller_ip_list})
+            kolla_config.update({'Storage_ips': controller_ip_list})
+        if role['name'] == 'COMPUTER':
+            role_hosts = kolla_cmn.get_hosts_of_role(req, role['id'])
+            for role_host in role_hosts:
+                host_detail = kolla_cmn.get_host_detail(
+                    req, role_host['host_id'])
+                deploy_host_cfg = kolla_cmn.get_deploy_node_cfg(
+                    req, host_detail, cluster_networks)
+                mgt_ip = deploy_host_cfg['mgtip']
+                host_name_ip = {deploy_host_cfg['host_name']:deploy_host_cfg['mgtip']}
+                computer_ip_list.append(mgt_ip)
+                if host_name_ip not in host_name_ip_list:
+                    host_name_ip_list.append(host_name_ip)
+            kolla_config.update({'Computer_ips': computer_ip_list})
+    mgt_ip_list = set(controller_ip_list + computer_ip_list)
+    return (kolla_config, mgt_ip_list, host_name_ip_list)
+
+
+def generate_kolla_config_file(cluster_id, kolla_config):
+    LOG.info(_("generate kolla config..."))
+    if kolla_config:
+        config.update_globals_yml(kolla_config)
+        config.update_password_yml()
+        config.add_role_to_inventory(self.kolla_file, kolla_config)
+
+def config_nodes_hosts(host_name_ip_list, host_ip):
+    config_scripts = []
+    hosts_file = "/etc/hosts"
+    for name_ip in host_name_ip_list:
+        config_scripts.append("linenumber=`grep -n '%s$' %s | "
+                              "awk -F ':' '{print $1}'` && "
+                              "[ ! -z $linenumber ] && "
+                              "sed -i ${linenumber}d %s" %
+                              (name_ip.keys()[0],
+                               hosts_file, hosts_file))
+        config_scripts.append("echo '%s %s' >> %s" % (name_ip.values()[0],
+                                                      name_ip.keys()[0],
+                                                      hosts_file))
+    kolla_cmn.run_scrip(config_scripts, host_ip, "ossdbg1",
+                           msg='Failed to config /etc/hosts on %s' % host_ip)
+
+
+class KOLLAInstallTask(Thread):
+    """
+    Class for install tecs bin.
+    """
+    """ Definition for install states."""
+    INSTALL_STATES = {
+        'INIT': 'init',
+        'INSTALLING': 'installing',
+        'ACTIVE': 'active',
+        'FAILED': 'install-failed'
+    }
+
+    def __init__(self, req, cluster_id):
+        super(KOLLAInstallTask, self).__init__()
+        self.req = req
+        self.cluster_id = cluster_id
+        self.progress = 0
+        self.state = KOLLAInstallTask.INSTALL_STATES['INIT']
+        self.message = ""
+        self.kolla_config_file = ''
+        self.mgt_ip_list = ''
+        self.install_log_fp = None
+        self.last_line_num = 0
+        self.need_install = False
+        self.ping_times = 36
+        self.log_file = "/var/log/daisy/kolla_%s_deploy.log" % self.cluster_id
+        self.host_prepare_file = "/home/kolla"
+        self.kolla_file = "/home/kolla_install/"
+
+    def run(self):
+        try:
+            self._run()
+        except (exception.InstallException,
+                exception.NotFound,
+                exception.InstallTimeoutException) as e:
+            LOG.exception(e.message)
+        else:
+            if not self.need_install:
+                return
+            self.progress = 100
+            self.state = kolla_state['ACTIVE']
+            self.message = "Kolla install successfully"
+            LOG.info(_("install Kolla for cluster %s successfully."
+                       % self.cluster_id))
+
+    def _run(self):
+        (kolla_config, self.mgt_ip_list, host_name_ip_list) = get_cluster_kolla_config(
+            self.req, self.cluster_id)
+        if not self.mgt_ip_list:
+            msg = _("there is no host in cluster %s") % self.cluster_id
+            raise exception.ThreadBinException(msg)
+        unreached_hosts = _check_ping_hosts(self.mgt_ip_list, self.ping_times)
+        if unreached_hosts:
+            self.state = kolla_state['INSTALL_FAILED']
+            self.message = "hosts %s ping failed" % unreached_hosts
+            raise exception.NotFound(message=self.message)
+        generate_kolla_config_file(self.cluster_id, kolla_config)
+        (role_id_list, host_id_list, hosts_list) = kolla_cmn.get_roles_and_hosts_list(
+            self.req, self.cluster_id)
+        self.message = "Begin install"
+        update_all_host_progress_to_db(self.req, role_id_list, host_id_list,
+                              kolla_state['INSTALLING'], self.message, 0)
+        with open(self.log_file, "w+") as fp:
+            for host in hosts_list:
+                host_ip = host['mgtip']
+                config_nodes_hosts(host_name_ip_list, host_ip)
+                cmd = 'sshpass -p ossdbg1 ssh -o StrictHostKeyChecking=no %s \
+                      "if [ ! -d %s ];then mkdir %s;fi" ' \
+                      % (host_ip, self.host_prepare_file, self.host_prepare_file)
+                daisy_cmn.subprocess_call(cmd, fp)
+                cmd = "scp -o ConnectTimeout=10 \
+                       /var/lib/daisy/kolla/prepare.sh \
+                       root@%s:%s" % (host_ip, self.host_prepare_file)
+                daisy_cmn.subprocess_call(cmd, fp)
+                cmd = 'sshpass -p ossdbg1 ssh -o StrictHostKeyChecking=no %s \
+                       chmod u+x %s/prepare.sh' % (host_ip, self.host_prepare_file)
+                daisy_cmn.subprocess_call(cmd, fp)
+                try:
+                    exc_result=subprocess.check_output(
+                        'sshpass -p ossdbg1 ssh -o \
+                        StrictHostKeyChecking=no %s %s/prepare.sh' \
+                        % (host_ip, self.host_prepare_file), \
+                        shell=True, stderr=subprocess.STDOUT)
+                except subprocess.CalledProcessError as e:
+                    self.message = "Prepare install failed!"
+                    update_host_progress_to_db(self.req, role_id_list, host,
+                                          kolla_state['INSTALL_FAILED'], self.message)
+                    LOG.info(_("prepare for %s failed!" % host_ip))
+                    fp.write(e.output.strip())
+                    exit()
+                else:
+                    LOG.info(_("prepare for %s successfully!" % host_ip))
+                    fp.write(exc_result)
+                    self.message = "Preparing for installation successful!"
+                    update_host_progress_to_db(self.req, role_id_list, host,
+                                          kolla_state['INSTALLING'], self.message, 10)
+            try:
+                exc_result = subprocess.check_output(
+                    '%s/kolla/tools/kolla-ansible \
+                    prechecks' % self.kolla_file, shell=True, stderr=subprocess.STDOUT) 
+            except subprocess.CalledProcessError as e:
+                self.message = "kolla-ansible preckecks failed!"
+                update_all_host_progress_to_db(req, role_id_list, host_id_list,
+                                      kolla_state['INSTALL_FAILED'], self.message)
+                LOG.info(_("kolla-ansible preckecks %s failed!" % host_ip))
+                fp.write(e.output.strip())
+                exit()
+            else:
+                LOG.info(_("kolla-ansible preckecks for %s successfully!"
+                           % host_ip))
+                fp.write(exc_result)
+                self.message = "Precheck for installation successfully!"
+                update_all_host_progress_to_db(self.req, role_id_list, host_id_list,
+                                               kolla_state['INSTALLING'], self.message, 30)
+            try:
+                exc_result = subprocess.check_output(
+                    '%s/kolla/tools/kolla-ansible deploy -i \
+                    %s/kolla/ansible/inventory/multinode' % (self.kolla_file, self.kolla_file),
+                    shell=True, stderr=subprocess.STDOUT)
+            except subprocess.CalledProcessError as e:
+                self.message = "kolla-ansible deploy failed!"
+                update_all_host_progress_to_db(self.req, role_id_list, host_id_list,
+                                      kolla_state['INSTALL_FAILED'], self.message)
+                LOG.info(_("kolla-ansible deploy %s failed!" % host_ip))
+                fp.write(e.output.strip())
+                exit()
+            else:
+                LOG.info(_("kolla-ansible deploy for %s successfully!"
+                           % host_ip))
+                fp.write(exc_result)
+                self.message = "install successfully!"
+                update_all_host_progress_to_db(self.req, role_id_list, host_id_list,
+                                               kolla_state['ACTIVE'], self.message, 100)
