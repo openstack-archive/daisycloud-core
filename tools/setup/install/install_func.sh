@@ -59,6 +59,57 @@ function ip_to_cidr()
     cidr="$cidr_ip/$cidr_int"
 }
 
+function kolla_install
+{
+  write_install_log "Begin install kolla depends..."
+  curl -sSL https://get.docker.io | bash
+  mkdir -p /etc/systemd/system/docker.service.d
+  config_path=/etc/systemd/system/docker.service.d/kolla.conf
+  echo -e "[Service]\nMountFlags=shared" > $config_path
+  systemctl daemon-reload
+  systemctl restart docker
+  yum install -y python-docker-py
+  yum -y install ntp
+  systemctl enable ntpd.service
+  systemctl stop libvirtd.service
+  systemctl disable libvirtd.service
+  systemctl start ntpd.service
+  yum -y install ansible1.9
+  yum install -y python-setuptools.noarch
+  yum install -y https://kojipkgs.fedoraproject.org//packages/python-jinja2/2.8/2.fc23/noarch/python-jinja2-2.8-2.fc23.noarch.rpm
+  yum install -y python2-crypto
+  yum install -y ansible1.9.noarch
+  yum install -y python-docker-py.noarch
+  yum install -y python-gitdb
+  yum install -y GitPython.noarch
+  yum install -y python-pbr.noarch
+  yum install -y python2-oslo-config.noarch
+  yum install -y python-six.noarch
+  yum install -y python-beautifulsoup4.noarch
+
+  write_install_log "Begin clone kolla..."
+  if [ -e "/home/kolla_install/" ];then
+      echo "kolla code and images already exit!" 
+      exit 0
+  else
+      mkdir /home/kolla_install
+  fi
+  cd /home/kolla_install
+  git clone https://git.openstack.org/openstack/kolla
+  cd kolla
+  git checkout stable/mitaka
+  cp -r etc/kolla /etc/
+
+  write_install_log "Begin copy images..."
+  mkdir /home/kolla_install/docker
+  cd /home/kolla_install/docker
+  scp 10.43.114.89:/home/pub/daisy_kolla_images/registry.tar /home/kolla_install/docker
+  tar mxvf registry.tar
+  scp 10.43.114.89:/home/pub/daisy_kolla_images/daisy_docker_registry2.tar  /home/kolla_install/docker
+  docker load < ./daisy_docker_registry2.tar
+  docker run -d -p 4000:5000 --restart=always -e REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/tmp/registry -v /home/kolla_install/docker/registry:/tmp/registry  --name registry registry:2
+
+}
 #rm daisy yum config file
 function delete_unused_repo_file
 {
