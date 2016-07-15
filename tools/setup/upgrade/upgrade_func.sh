@@ -32,7 +32,7 @@ function get_daisy_services
     python-ironic-discoverd
     pxe_server_install
     pxe_docker_install
-    python-django-horizon-doc
+    python-django-horizon
     daisy-dashboard
     " 
 }
