@@ -290,20 +290,21 @@ cd openstack_dashboard && django-admin compilemessages && cd ..
 
 # compress css, js etc.
 cp openstack_dashboard/local/local_settings.py.example openstack_dashboard/local/local_settings.py
+mkdir -p /var/log/horizon
 
 # get it ready for compressing later in puppet-horizon
 %{__python} manage.py collectstatic --noinput
 
 
 # build docs
-export PYTHONPATH="$( pwd ):$PYTHONPATH"
-sphinx-build -b html doc/source html
+# export PYTHONPATH="$( pwd ):$PYTHONPATH"
+# sphinx-build -b html doc/source html
 
 # undo hack
 cp openstack_dashboard/local/local_settings.py.example openstack_dashboard/local/local_settings.py
 
 # Fix hidden-file-or-dir warnings
-rm -fr html/.doctrees html/.buildinfo
+# rm -fr html/.doctrees html/.buildinfo
 
 %install
 %{__python} setup.py install -O1 --skip-build --root %{buildroot}
@@ -446,7 +447,7 @@ systemctl daemon-reload >/dev/null 2>&1 || :
 %config(noreplace) %{_unitdir}/httpd.service.d/openstack-dashboard.conf
 
 %files doc
-%doc html
+# %doc html
 
 # %files -n openstack-dashboard-theme
 # %{_datadir}/openstack-dashboard/openstack_dashboard/dashboards/theme
