@@ -15,7 +15,7 @@
 
 import httplib
 
-from oslo.serialization import jsonutils
+from oslo_serialization import jsonutils
 from oslo_config import cfg
 import webob.dec
 
