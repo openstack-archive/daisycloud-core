@@ -41,7 +41,7 @@ yum install -y python-iso8601
 yum install -y python-jinja2
 yum install -y python-keystoneclient
 yum install -y python-kombu
-yum install -y python--0.9j
+yum install -y python-lesscpy
 yum install -y python-lockfile
 yum install -y python-migrate
 yum install -y python-oslo-concurrency
