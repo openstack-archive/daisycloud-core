@@ -19,7 +19,7 @@ function uninstall_daisy
     # 先停止所有服务
     echo "stop all service..."
     stop_service_all
-    remove_rpms_by_yum "openstack-keystone python-django-horizon python-keystoneclient python-keystone python-keystonemiddleware python-django-horizon-doc daisy-dashboard"
+    remove_rpms_by_yum "openstack-keystone python-django-horizon python-keystoneclient python-keystone python-keystonemiddleware  daisy-dashboard"
     remove_rpms_by_yum "daisy python-daisyclient  python-daisy"
     remove_rpms_by_yum "openstack-ironic-api openstack-ironic-common openstack-ironic-conductor python-ironicclient"
     remove_rpms_by_yum "openstack-ironic-discoverd python-ironic-discoverd"
