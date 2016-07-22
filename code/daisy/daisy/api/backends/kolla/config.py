@@ -23,8 +23,8 @@ from Crypto.PublicKey import RSA
 
 
 # generate kolla's ansible inventory multinode file
-def clean_inventory_file(filename):
-    fp = open('/home/kolla_install/kolla/ansible/inventory/%s' % filename)
+def clean_inventory_file(file_path,filename):
+    fp = open('%s/kolla/ansible/inventory/%s' % (file_path,filename))
     txt = fp.read()
     fp.close()
     node_names = ['control', 'network', 'compute',
@@ -36,14 +36,14 @@ def clean_inventory_file(filename):
             node_names[next_name_index+1]),
             txt, re.S)
         txt = txt.replace(match.group(1), '\n\n')
-    fp = file('/home/kolla_install/kolla/ansible/inventory/%s' % filename, 'w')
+    fp = file('%s/kolla/ansible/inventory/%s' % (file_path,filename), 'w')
     fp.write(txt)
     fp.close()
 
 
-def update_inventory_file(filename, node_name, host_name,
+def update_inventory_file(file_path,filename, node_name, host_name,
                           num_of_host, connection_type):
-    fp = file('/home/kolla_install/kolla/ansible/inventory/%s' % filename)
+    fp = file('%s/kolla/ansible/inventory/%s' % (file_path,filename))
     lines = []
     for line in fp:
         lines.append(line)
@@ -53,34 +53,34 @@ def update_inventory_file(filename, node_name, host_name,
                  '%s       ansible_connection=%s\n' %
                  (host_name, connection_type))
     s = ''.join(lines)
-    fp = file('/home/kolla_install/kolla/ansible/inventory/%s' % filename, 'w')
+    fp = file('%s/kolla/ansible/inventory/%s' % (file_path,filename), 'w')
     fp.write(s)
     fp.close()
 
 
-def add_role_to_inventory(config_data):
-    clean_inventory_file('multinode')
+def add_role_to_inventory(file_path,config_data):
+    clean_inventory_file(file_path,'multinode')
     host_sequence = 1
     for control_ip in config_data['Controller_ips']:
-        update_inventory_file('multinode', 'control',
+        update_inventory_file(file_path,'multinode', 'control',
                               control_ip.encode(), host_sequence, 'ssh')
         host_sequence = host_sequence + 1
 
     host_sequence = 1
     for network_ip in config_data['Network_ips']:
-        update_inventory_file('multinode', 'network',
+        update_inventory_file(file_path,'multinode', 'network',
                               network_ip.encode(), host_sequence, 'ssh')
         host_sequence = host_sequence + 1
 
     host_sequence = 1
     for compute_ip in config_data['Computer_ips']:
-        update_inventory_file('multinode', 'compute',
+        update_inventory_file(file_path,'multinode', 'compute',
                               compute_ip.encode(), host_sequence, 'ssh')
         host_sequence = host_sequence + 1
 
     host_sequence = 1
     for storage_ip in config_data['Storage_ips']:
-        update_inventory_file('multinode', 'storage',
+        update_inventory_file(file_path,'multinode', 'storage',
                               storage_ip.encode(), host_sequence, 'ssh')
         host_sequence = host_sequence + 1
 
