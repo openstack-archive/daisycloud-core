@@ -35,7 +35,9 @@ class DaisyConfigFileTest(base.BaseDaisyTest):
         add_config_file = self.add_config_file(**config_file_meta)
 
         update_config_file_meta = {'name': 'update_config_file'}
-        update_config_file = self.update_config_file(add_config_file.id, **update_config_file_meta)
+        update_config_file = self.update_config_file(
+            add_config_file.id,
+            **update_config_file_meta)
 
         self.assertEqual('update_config_file', update_config_file.name)
 

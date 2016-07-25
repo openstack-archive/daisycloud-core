@@ -49,33 +49,56 @@ class DaisyDiscoverHostTest(base.BaseDaisyTest):
         self.assertEqual(2, host_count, "list discover host failed")
 
     def test_update_discover_host(self):
-        add_host_meta = {'ip': '127.0.0.2', 'passwd': 'ossdbg2', 'user': 'root'}
+        add_host_meta = {'ip': '127.0.0.2',
+                         'passwd': 'ossdbg2',
+                         'user': 'root'}
         host_1 = self.add_discover_host(**add_host_meta)
         self.assertEqual("root", host_1.user, "add discover host failed")
 
-        update_host_meta = {'ip': '127.0.0.2', 'passwd': 'ossdbg1', 'user': 'root2'}
-        update_host = self.update_discover_host(host_1.id, **update_host_meta)
-        self.assertEqual("ossdbg1", update_host.passwd, "update discover host failed")
-        self.assertEqual("root2", update_host.user, "update discover host failed")
+        update_host_meta = {'ip': '127.0.0.2',
+                            'passwd': 'ossdbg1',
+                            'user': 'root2'}
+        update_host = self.update_discover_host(host_1.id,
+                                                **update_host_meta)
+        self.assertEqual("ossdbg1",
+                         update_host.passwd,
+                         "update discover host failed")
+        self.assertEqual("root2",
+                         update_host.user,
+                         "update discover host failed")
 
     def test_get_discover_host_detail(self):
-        add_host_meta = {'ip': '127.0.0.2', 'passwd': 'ossdbg2', 'user': 'root'}
+        add_host_meta = {'ip': '127.0.0.2',
+                         'passwd': 'ossdbg2',
+                         'user': 'root'}
         host_1 = self.add_discover_host(**add_host_meta)
         host_info = self.get_discover_host_detail(host_1.id)
-        self.assertEqual("root", host_info.user, "get discover host failed")
-        self.assertEqual("ossdbg2", host_info.passwd, "get discover host failed")
-        self.assertEqual("127.0.0.2", host_info.ip, "get discover host failed")
+        self.assertEqual("root",
+                         host_info.user,
+                         "get discover host failed")
+        self.assertEqual("ossdbg2",
+                         host_info.passwd,
+                         "get discover host failed")
+        self.assertEqual("127.0.0.2",
+                         host_info.ip,
+                         "get discover host failed")
 
     def test_add_discover_host_without_passwd(self):
         add_host_meta = {'ip': '127.0.0.2', 'user': 'root'}
-        ex = self.assertRaises(client_exc.HTTPBadRequest, self.add_discover_host, **add_host_meta)
+        ex = self.assertRaises(client_exc.HTTPBadRequest,
+                               self.add_discover_host,
+                               **add_host_meta)
         self.assertIn("PASSWD parameter can not be None.", str(ex))
 
     def test_add_discover_host_with_repeat_ip(self):
-        # add_host_meta = {'ip': '127.0.0.2', 'passwd': 'ossdbg2', 'user': 'root'}
+        # add_host_meta = {'ip': '127.0.0.2',
+        #                  'passwd': 'ossdbg2',
+        #                  'user': 'root'}
         # host_1 = self.add_discover_host(**add_host_meta)
-        # ex = self.assertRaises(client_exc.HTTPForbidden, self.add_discover_host, **add_host_meta)
-        # self.assertIn("403 Forbidden: ip %s already existed." % add_host_meta['ip'], str(ex))
+        # ex = self.assertRaises(client_exc.HTTPForbidden,
+        #                        self.add_discover_host, **add_host_meta)
+        # self.assertIn("403 Forbidden: ip %s already existed."
+        #               % add_host_meta['ip'], str(ex))
         pass
 
     def test_discover_host(self):
@@ -103,7 +126,8 @@ class DaisyDiscoverHostTest(base.BaseDaisyTest):
             if discover_flag == 'true':
                 break
             discovery_host_list_generator = self.list_discover_host()
-            discovery_host_list = [discover_host_tmp for discover_host_tmp in discovery_host_list_generator]
+            discovery_host_list = [discover_host_tmp for discover_host_tmp
+                                   in discovery_host_list_generator]
             for host in discovery_host_list:
                 if host.status == 'DISCOVERY_SUCCESSFUL':
                     discover_flag = 'true'
