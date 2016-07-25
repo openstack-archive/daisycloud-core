@@ -69,6 +69,7 @@ function all_install
     install_rpm_by_yum "daisy"
 
     write_install_log "install daisy dashboard rpm"
+    install_rpm_by_yum "python-django"
     install_rpm_by_daisy_yum "python-django-horizon"
     install_rpm_by_yum "daisy-dashboard"
 

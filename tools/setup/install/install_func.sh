@@ -101,7 +101,7 @@ function get_public_ip
 {
     local_ip_list=`ifconfig  | grep "inet " | grep -v "127.0.0.1" | awk -F' ' {'print $2'} `
 
-    local def_gw_if=`route | grep default | awk -F' ' '{print $8}'|uniq`
+    local def_gw_if=`route | grep default | awk -F' ' '{print $8}'|uniq|head -1`
     public_ip=""
     if [[ -n "$def_gw_if" ]];then
         public_ip=`ifconfig "$def_gw_if" | grep 'inet ' | cut -d: -f2 | awk '{ print $2}'`

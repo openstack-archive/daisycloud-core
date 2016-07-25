@@ -1946,7 +1946,7 @@ class Controller(controller.BaseController):
 
             try:
                 subprocess.check_output(
-                    'clush -S -w %s yum install jq'
+                    'clush -S -w %s yum install -y jq'
                     % (discover_host_meta['ip'],),
                     shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as e:
