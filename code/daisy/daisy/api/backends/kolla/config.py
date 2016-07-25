@@ -92,7 +92,7 @@ def update_globals_yml(config_data):
     ExtIfMac = config_data['ExtIfMac']
     local_ip = config_data['LocalIP']
     # kolla_yml = yaml.load(file('/etc/kolla/globals.yml'))
-    kolla_yml = {'openstack_release': '2.0.1',
+    kolla_yml = {'openstack_release': '2.0.3',
                  'docker_registry': '127.0.0.1:4000',
                  'docker_namespace': 'kollaglue',
                  'kolla_internal_vip_address': '10.10.10.254',
