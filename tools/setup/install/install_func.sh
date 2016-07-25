@@ -59,6 +59,61 @@ function ip_to_cidr()
     cidr="$cidr_ip/$cidr_int"
 }
 
+function kolla_install
+{
+  write_install_log "Begin install kolla depends..."
+  curl -sSL https://get.docker.io | bash
+  mkdir -p /etc/systemd/system/docker.service.d
+  config_path=/etc/systemd/system/docker.service.d/kolla.conf
+  echo -e "[Service]\nMountFlags=shared" > $config_path
+  systemctl daemon-reload
+  systemctl restart docker
+  yum install -y python-docker-py
+  yum -y install ntp
+  systemctl enable ntpd.service
+  systemctl stop libvirtd.service
+  systemctl disable libvirtd.service
+  systemctl start ntpd.service
+  yum -y install ansible1.9
+  yum install -y python-setuptools.noarch
+  yum install -y https://kojipkgs.fedoraproject.org//packages/python-jinja2/2.8/2.fc23/noarch/python-jinja2-2.8-2.fc23.noarch.rpm
+  yum install -y python2-crypto
+  yum install -y python-docker-py.noarch
+  yum install -y python-gitdb
+  yum install -y GitPython.noarch
+  yum install -y python-pbr.noarch
+  yum install -y python2-oslo-config.noarch
+  yum install -y python-six.noarch
+  yum install -y python-beautifulsoup4.noarch
+
+  write_install_log "Begin clone kolla..."
+  if [ -e "/home/kolla_install/kolla" ];then
+      echo "kolla code already exit!" 
+  else
+      rm -rf /home/kolla_install
+      mkdir /home/kolla_install
+      cd /home/kolla_install
+      git clone https://git.openstack.org/openstack/kolla
+      cd kolla
+      git checkout stable/mitaka
+  fi
+  cp -r /home/kolla_install/kolla/etc/kolla /etc 
+  write_install_log "Begin copy images..."
+  if [ -f "/home/kolla_install/kolla/docker/registry-2.0.3.tgz" ] && [ -f "/home/kolla_install/kolla/docker/registry-2.0.3.tgz" ];then
+      echo "images already exit!"
+  else
+      rm -rf /home/kolla_install/docker
+      mkdir /home/kolla_install/docker
+      cd /home/kolla_install/docker
+      wget "ftp://openuser:123@120.76.145.166/registry-2.0.3.tgz"
+      tar mxvf registry-2.0.3.tgz
+      wget "ftp://openuser:123@120.76.145.166/registry-server.tar"
+  fi
+  cd /home/kolla_install/docker
+  docker load < ./registry-server.tar
+  docker run -d -p 4000:5000 --restart=always -e REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/tmp/registry -v /home/kolla_install/docker/registry:/tmp/registry  --name registry registry:2
+
+}
 #rm daisy yum config file
 function delete_unused_repo_file
 {
