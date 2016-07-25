@@ -167,7 +167,8 @@ class BaseDaisyTest(tempest.test.BaseTestCase):
 
     @classmethod
     def get_discover_host_detail(self, host_meta):
-        host_detail = self.daisy_client.hosts.get_discover_host_detail(host_meta)
+        host_detail = self.daisy_client.hosts.get_discover_host_detail(
+            host_meta)
         return host_detail
 
     @classmethod
@@ -178,7 +179,8 @@ class BaseDaisyTest(tempest.test.BaseTestCase):
     @classmethod
     def _clean_all_discover_host(self):
         host_meta = {}
-        hosts_list_generator = self.daisy_client.hosts.list_discover_host(**host_meta)
+        hosts_list_generator = self.daisy_client.hosts.list_discover_host(
+            **host_meta)
         hosts_list = [hosts for hosts in hosts_list_generator]
         if hosts_list:
             for host in hosts_list:
@@ -315,7 +317,8 @@ class BaseDaisyTest(tempest.test.BaseTestCase):
 
     @classmethod
     def cluster_config_set_progress(self, **config_set):
-        config_set = self.daisy_client.config_sets.cluster_config_set_progress(**config_set)
+        config_set = self.daisy_client.config_sets.\
+            cluster_config_set_progress(**config_set)
         return config_set
 
     @classmethod
@@ -344,7 +347,8 @@ class BaseDaisyTest(tempest.test.BaseTestCase):
     @classmethod
     def _clean_all_config_set(self):
         config_set_list_generator = self.daisy_client.config_sets.list()
-        config_set_list = [config_set for config_set in config_set_list_generator]
+        config_set_list = [config_set for config_set
+                           in config_set_list_generator]
         if config_set_list:
             for config_set in config_set_list:
                 self.daisy_client.config_sets.delete(config_set.id)
@@ -375,7 +379,8 @@ class BaseDaisyTest(tempest.test.BaseTestCase):
     @classmethod
     def _clean_all_config_file(self):
         config_file_list_generator = self.daisy_client.config_files.list()
-        config_file_list = [config_file for config_file in config_file_list_generator]
+        config_file_list = [config_file for config_file
+                            in config_file_list_generator]
         if config_file_list:
             for config_file in config_file_list:
                 self.daisy_client.config_files.delete(config_file.id)
@@ -438,7 +443,9 @@ class BaseDaisyTest(tempest.test.BaseTestCase):
 
     @classmethod
     def update_cinder_volume(self, cinder_volume_id, **cinder_volume_meta):
-        cinder_volume_info = self.daisy_client.disk_array.cinder_volume_update(cinder_volume_id, **cinder_volume_meta)
+        cinder_volume_info = self.daisy_client.
+            disk_array.cinder_volume_update(cinder_volume_id,
+                                            **cinder_volume_meta)
         return cinder_volume_info
 
     @classmethod
@@ -454,7 +461,8 @@ class BaseDaisyTest(tempest.test.BaseTestCase):
 
     @classmethod
     def get_cinder_volume_detail(self, cinder_volume_id):
-        cinder_volume_info = self.daisy_client.disk_array.cinder_volume_detail(cinder_volume_id)
+        cinder_volume_info = self.daisy_client.\
+            disk_array.cinder_volume_detail(cinder_volume_id)
         return cinder_volume_info
 
     @classmethod
@@ -482,13 +490,15 @@ class BaseDaisyTest(tempest.test.BaseTestCase):
 
     @classmethod
     def get_service_disk_detail(self, service_disk_id):
-        service_disk_detail = self.daisy_client.disk_array.service_disk_detail(service_disk_id)
+        service_disk_detail = self.daisy_client.\
+            disk_array.service_disk_detail(service_disk_id)
         return service_disk_detail
 
     @classmethod
     def _clean_all_physical_node(self):
         physical_node_list_generator = self.ironic_client.physical_node.list()
-        physical_node_list = [physical_node for physical_node in physical_node_list_generator]
+        physical_node_list = [physical_node for physical_node
+                              in physical_node_list_generator]
         if physical_node_list:
             for physical_node in physical_node_list:
                 self.ironic_client.physical_node.delete(physical_node.uuid)
@@ -525,7 +535,8 @@ class BaseDaisyTest(tempest.test.BaseTestCase):
 
     @classmethod
     def import_json_to_template(self, **kwargs):
-        template = self.daisy_client.template.import_json_to_template(**kwargs)
+        template = \
+            self.daisy_client.template.import_json_to_template(**kwargs)
         return template
 
     @classmethod
@@ -553,7 +564,8 @@ class BaseDaisyTest(tempest.test.BaseTestCase):
 
     @classmethod
     def host_template_list(self, **kwargs):
-        host_templates = self.daisy_client.template.host_template_list(**kwargs)
+        host_templates = \
+            self.daisy_client.template.host_template_list(**kwargs)
         return host_templates
 
     @classmethod
