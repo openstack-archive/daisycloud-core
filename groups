@@ -1,2 +1,6 @@
-6b2b308329f4b68615829ce48c528ad2242a1d8d	daisycloud-core-release
+# UUID                                  	Group Name
+#
 3944e2da3f8a049ca2ee5237aafb2f0dd725ea66	daisycloud-core-core
+6b2b308329f4b68615829ce48c528ad2242a1d8d	daisycloud-core-release
+user:zhifeng.jiang                      	user/zte-opnfv-ci (zhifeng.jiang)
+user:zteopenstackCI                     	user/ZTE cinder2 CI (zteopenstackCI)
