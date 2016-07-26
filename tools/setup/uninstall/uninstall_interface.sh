@@ -15,18 +15,24 @@ function uninstall_daisy
     echo "Will uninstall daisy rpm which has been install in the machines"
     echo "clean all hosts discovery information..." 
     pxe_os_install_clean all
-    
-    # 先停止所有服务
     echo "stop all service..."
     stop_service_all
-    remove_rpms_by_yum "openstack-keystone python-django-horizon python-keystoneclient python-keystone python-keystonemiddleware  daisy-dashboard"
+    remove_rpms_by_yum "python-django-horizon  daisy-dashboard"
     remove_rpms_by_yum "daisy python-daisyclient  python-daisy"
-    remove_rpms_by_yum "openstack-ironic-api openstack-ironic-common openstack-ironic-conductor python-ironicclient"
     remove_rpms_by_yum "openstack-ironic-discoverd python-ironic-discoverd"
-    remove_rpms_by_yum "rabbitmq-server"
-    remove_rpms_by_yum "mariadb-galera-server mariadb-galera-common mariadb"
-    remove_rpms_by_yum "pxe_server_install"
-    remove_rpms_by_yum "fping"
+    rpm -e --nodeps fping
+    rpm -e --nodeps mariadb-server-galera
+    rpm -e --nodeps mariadb
+    rpm -e --nodeps rabbitmq-server
+    rpm -e --nodeps openstack-keystone
+    rpm -e --nodeps python-keystoneclient
+    rpm -e --nodeps python-keystone
+    rpm -e --nodeps python-keystonemiddleware
+    rpm -e --nodeps openstack-ironic-api
+    rpm -e --nodeps openstack-ironic-common
+    rpm -e --nodeps openstack-ironic-conductor
+    rpm -e --nodeps python-ironicclient
+    rpm -e --nodeps pxe_server_install
     for i in `ps -elf | grep daisy-api |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $i;done 
     for j in `ps -elf | grep daisy-registry |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done 
     for j in `ps -elf | grep rabbitmq |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done 
