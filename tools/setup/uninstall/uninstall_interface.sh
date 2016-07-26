@@ -16,7 +16,7 @@ function uninstall_daisy
     echo "clean all hosts discovery information..." 
     pxe_os_install_clean all
     
-    # 先停止所有服务
+    # 脧脠脥拢脰鹿脣霉脫脨路镁脦帽
     echo "stop all service..."
     stop_service_all
     remove_rpms_by_yum "openstack-keystone python-django-horizon python-keystoneclient python-keystone python-keystonemiddleware  daisy-dashboard"
@@ -39,6 +39,7 @@ function uninstall_daisy
     rm -rf /etc/sudoers.d/daisy
     rm -rf /etc/rabbitmq
     rm -rf /etc/my.cnf.d
+    rm -rf /etc/kolla
     rm -rf /var/lib/daisy
     rm -rf /var/lib/mysql/*
     rm -rf /var/lib/ironic
@@ -48,6 +49,16 @@ function uninstall_daisy
     rm -rf /var/log/ironic
     rm -rf /var/log/rabbitmq
     rm -rf /root/daisyrc_admin
+    echo "remove container and image..."
+    container_id=`docker ps -a |grep "registry"|awk -F' ' '{print $1}'`
+    if [ -n "$container_id" ];then
+        docker stop $container_id
+        docker rm $container_id
+    fi
+    image_id=`docker images |grep "registry"|awk -F' ' '{print $3}'`
+    if [ -n "$image_id" ];then
+        docker rmi $image_id
+    fi
     echo "Finish clean daisy!"  
 }
 
