@@ -37,65 +37,67 @@ class TecsClusterTest(base.BaseDaisyTest):
         cls.cluster_meta1 = {'description': 'desc',
                              'name': 'test'}
 
-        cls.cluster_meta2 = {'description': 'desc',
-                             'logic_networks': [{'name': 'external1',
-                                                 'physnet_name': 'phynet2',
-                                                 'segmentation_id': 200,
-                                                 'segmentation_type': 'vlan',
-                                                 'shared': True,
-                                                 'subnets': [{'cidr': '192.168.1.0/24',
-                                                              'dns_nameservers': ['8.8.4.4',
-                                                                                  '8.8.8.8'],
-                                                              'floating_ranges': [['192.168.1.2',
-                                                                                   '192.168.1.200']],
-                                                              'gateway': '192.168.1.1',
-                                                              'name': 'subnet2'},
-                                                             {'cidr': '172.16.1.0/24',
-                                                              'dns_nameservers': ['8.8.4.4',
-                                                                                  '8.8.8.8'],
-                                                              'floating_ranges': [['172.16.1.130',
-                                                                                   '172.16.1.150']],
-                                                              'gateway': '172.16.1.1',
-                                                              'name': 'subnet10'}],
-                                                 'type': 'external'},
-                                                {'name': 'internal1',
-                                                 'physnet_name': 'phynet1',
-                                                 'segmentation_id': '777',
-                                                 'segmentation_type': 'vlan',
-                                                 'shared': False,
-                                                 'subnets': [{'cidr': '192.168.31.0/24',
-                                                              'dns_nameservers': ['8.8.4.4',
-                                                                                  '8.8.8.8'],
-                                                              'floating_ranges': [['192.168.31.130',
-                                                                                   '192.168.31.254']],
-                                                              'gateway': '192.168.31.1',
-                                                              'name': 'subnet3'},
-                                                             {'cidr': '192.168.4.0/24',
-                                                              'dns_nameservers': ['8.8.4.4',
-                                                                                  '8.8.8.8'],
-                                                              'floating_ranges': [['192.168.4.130',
-                                                                                   '192.168.4.254']],
-                                                              'gateway': '192.168.4.1',
-                                                              'name': 'subnet4'}],
-                                                 'type': 'internal'}],
-                             'name': 'test',
-                             'networking_parameters': {'base_mac': 'fa:16:3e:00:00:00',
-                                                       'gre_id_range': [2, 2000],
-                                                       'net_l23_provider': 'ovs',
-                                                       'public_vip': '172.16.0.3',
-                                                       'segmentation_type': 'vlan,vxlan',
-                                                       'vlan_range': [2, 4094],
-                                                       'vni_range': [1000, 1030]},
-                             'networks': [],
-                             'nodes': [],
-                             'routers': [{'description': 'router1',
-                                          'external_logic_network': 'external1',
-                                          'name': 'router1',
-                                          'subnets': ['subnet4']},
-                                         {'description': 'router2',
-                                          'external_logic_network': 'external1',
-                                          'name': 'router2',
-                                          'subnets': ['subnet10']}]}
+        cls.cluster_meta2 = \
+            {'description': 'desc',
+             'logic_networks':
+                 [{'name': 'external1',
+                   'physnet_name': 'phynet2',
+                   'segmentation_id': 200,
+                   'segmentation_type': 'vlan',
+                   'shared': True,
+                   'subnets': [{'cidr': '192.168.1.0/24',
+                                'dns_nameservers': ['8.8.4.4',
+                                                    '8.8.8.8'],
+                                'floating_ranges': [['192.168.1.2',
+                                                     '192.168.1.200']],
+                                'gateway': '192.168.1.1',
+                                'name': 'subnet2'},
+                               {'cidr': '172.16.1.0/24',
+                                'dns_nameservers': ['8.8.4.4',
+                                                    '8.8.8.8'],
+                                'floating_ranges': [['172.16.1.130',
+                                                     '172.16.1.150']],
+                                'gateway': '172.16.1.1',
+                                'name': 'subnet10'}],
+                   'type': 'external'},
+                  {'name': 'internal1',
+                   'physnet_name': 'phynet1',
+                   'segmentation_id': '777',
+                   'segmentation_type': 'vlan',
+                   'shared': False,
+                   'subnets': [{'cidr': '192.168.31.0/24',
+                                'dns_nameservers': ['8.8.4.4',
+                                                    '8.8.8.8'],
+                                'floating_ranges': [['192.168.31.130',
+                                                     '192.168.31.254']],
+                                'gateway': '192.168.31.1',
+                                'name': 'subnet3'},
+                               {'cidr': '192.168.4.0/24',
+                                'dns_nameservers': ['8.8.4.4',
+                                                    '8.8.8.8'],
+                                'floating_ranges': [['192.168.4.130',
+                                                     '192.168.4.254']],
+                                'gateway': '192.168.4.1',
+                                'name': 'subnet4'}],
+                   'type': 'internal'}],
+             'name': 'test',
+             'networking_parameters': {'base_mac': 'fa:16:3e:00:00:00',
+                                       'gre_id_range': [2, 2000],
+                                       'net_l23_provider': 'ovs',
+                                       'public_vip': '172.16.0.3',
+                                       'segmentation_type': 'vlan,vxlan',
+                                       'vlan_range': [2, 4094],
+                                       'vni_range': [1000, 1030]},
+             'networks': [],
+             'nodes': [],
+             'routers': [{'description': 'router1',
+                          'external_logic_network': 'external1',
+                          'name': 'router1',
+                          'subnets': ['subnet4']},
+                         {'description': 'router2',
+                          'external_logic_network': 'external1',
+                          'name': 'router2',
+                          'subnets': ['subnet10']}]}
         cls.cluster_meta3 = {'description': "This cluster's name is null",
                              'name': ""}
         cls.cluster_meta4 = {'description': "",
@@ -140,19 +142,39 @@ class TecsClusterTest(base.BaseDaisyTest):
     def test_add_cluster_with_networking_parameters(self):
         self.private_network_add()
         cluster_info = self.add_cluster(**self.cluster_meta2)
-        self.assertEqual(self.cluster_meta2['name'], cluster_info.name, "cluster name is not correct")
-        self.assertEqual(self.cluster_meta2['description'], cluster_info.description, "cluster add  interface execute failed")
-        self.assertEqual(self.cluster_meta2['networking_parameters']['base_mac'], cluster_info.base_mac, "cluster add  interface execute failed")
-        self.assertEqual(self.cluster_meta2['networking_parameters']['net_l23_provider'], cluster_info.net_l23_provider, "cluster add  interface execute failed")
-        self.assertEqual(self.cluster_meta2['networking_parameters']['public_vip'], cluster_info.public_vip, "cluster add  interface execute failed")
-        self.assertEqual(self.cluster_meta2['networking_parameters']['segmentation_type'], cluster_info.segmentation_type, "cluster add  interface execute failed")
+        self.assertEqual(self.cluster_meta2['name'],
+                         cluster_info.name,
+                         "cluster name is not correct")
+        self.assertEqual(self.cluster_meta2['description'],
+                         cluster_info.description,
+                         "cluster add  interface execute failed")
+        self.assertEqual(
+            self.cluster_meta2['networking_parameters']['base_mac'],
+            cluster_info.base_mac,
+            "cluster add  interface execute failed")
+        self.assertEqual(
+            self.cluster_meta2['networking_parameters']['net_l23_provider'],
+            cluster_info.net_l23_provider,
+            "cluster add  interface execute failed")
+        self.assertEqual(
+            self.cluster_meta2['networking_parameters']['public_vip'],
+            cluster_info.public_vip,
+            "cluster add  interface execute failed")
+        self.assertEqual(
+            self.cluster_meta2['networking_parameters']['segmentation_type'],
+            cluster_info.segmentation_type,
+            "cluster add  interface execute failed")
         self.delete_cluster(cluster_info.id)
 
     def test_add_cluster_no_networking_parameters(self):
         self.private_network_add()
         cluster_info = self.add_cluster(**self.cluster_meta1)
-        self.assertEqual(self.cluster_meta1['name'], cluster_info.name, "cluster add interface is not correct")
-        self.assertEqual(self.cluster_meta1['description'], cluster_info.description, "cluster add  interface execute failed")
+        self.assertEqual(self.cluster_meta1['name'],
+                         cluster_info.name,
+                         "cluster add interface is not correct")
+        self.assertEqual(self.cluster_meta1['description'],
+                         cluster_info.description,
+                         "cluster add  interface execute failed")
         self.delete_cluster(cluster_info.id)
 
     def test_add_cluster_with_networking_parameters_no_routers(self):
@@ -162,7 +184,9 @@ class TecsClusterTest(base.BaseDaisyTest):
             del cluster_temp['routers']
             cluster_info = self.add_cluster(**cluster_temp)
             # cluster = self.get_cluster(cluster_info.id)
-            self.assertEqual(cluster_temp['name'], cluster_info.name, "cluster add  interface execute failed")
+            self.assertEqual(cluster_temp['name'],
+                             cluster_info.name,
+                             "cluster add  interface execute failed")
             self.delete_cluster(cluster_info.id)
 
     def test_add_cluster_with_nodes(self):
@@ -173,9 +197,15 @@ class TecsClusterTest(base.BaseDaisyTest):
         self.private_network_add()
         cluster_info = self.add_cluster(**self.cluster_meta1)
         cluster = self.get_cluster(cluster_info.id)
-        self.assertEqual(self.cluster_meta1['name'], cluster.name, "add cluster with nodes  is not correct")
-        self.assertEqual(self.cluster_meta1['description'], cluster.description, "add cluster with nodes execute failed")
-        self.assertEqual(self.cluster_meta1['nodes'], cluster.nodes, "add cluster with nodes execute failed")
+        self.assertEqual(self.cluster_meta1['name'],
+                         cluster.name,
+                         "add cluster with nodes  is not correct")
+        self.assertEqual(self.cluster_meta1['description'],
+                         cluster.description,
+                         "add cluster with nodes execute failed")
+        self.assertEqual(self.cluster_meta1['nodes'],
+                         cluster.nodes,
+                         "add cluster with nodes execute failed")
         self.delete_cluster(cluster_info.id)
         self.delete_host(host_info.id)
 
@@ -184,9 +214,14 @@ class TecsClusterTest(base.BaseDaisyTest):
         cluster_info = self.add_cluster(**self.cluster_meta1)
         self.cluster_meta1['name'] = "test_name"
         self.cluster_meta1['description'] = "test_desc"
-        cluster_update_info = self.update_cluster(cluster_info.id, **self.cluster_meta1)
-        self.assertEqual(self.cluster_meta1['name'], cluster_update_info.name, "cluster update interface is not correct")
-        self.assertEqual(self.cluster_meta1['description'], cluster_update_info.description, "cluster update  interface is not correct")
+        cluster_update_info = self.update_cluster(cluster_info.id,
+                                                  **self.cluster_meta1)
+        self.assertEqual(self.cluster_meta1['name'],
+                         cluster_update_info.name,
+                         "cluster update interface is not correct")
+        self.assertEqual(self.cluster_meta1['description'],
+                         cluster_update_info.description,
+                         "cluster update  interface is not correct")
         self.delete_cluster(cluster_info.id)
 
     def test_update_cluster_with_nodes(self):
@@ -196,20 +231,34 @@ class TecsClusterTest(base.BaseDaisyTest):
         self.private_network_add()
         cluster_info = self.add_cluster(**self.cluster_meta1)
         self.cluster_meta1['nodes'] = nodes
-        cluster_update_info = self.update_cluster(cluster_info.id, **self.cluster_meta1)
+        cluster_update_info = self.update_cluster(cluster_info.id,
+                                                  **self.cluster_meta1)
         cluster = self.get_cluster(cluster_info.id)
-        self.assertEqual(self.cluster_meta1['name'], cluster_update_info.name, "update cluster with nodes  is not correct")
-        self.assertEqual(self.cluster_meta1['description'], cluster_update_info.description, "update cluster with nodes execute failed")
-        self.assertEqual(self.cluster_meta1['nodes'], cluster.nodes, "update cluster with nodes execute failed")
+        self.assertEqual(self.cluster_meta1['name'],
+                         cluster_update_info.name,
+                         "update cluster with nodes  is not correct")
+        self.assertEqual(self.cluster_meta1['description'],
+                         cluster_update_info.description,
+                         "update cluster with nodes execute failed")
+        self.assertEqual(self.cluster_meta1['nodes'],
+                         cluster.nodes,
+                         "update cluster with nodes execute failed")
         self.delete_cluster(cluster_info.id)
         self.delete_host(host_info.id)
 
     def test_update_cluster_with_networking_parameters(self):
         self.private_network_add()
         cluster_info = self.add_cluster(**self.cluster_meta1)
-        cluster_update_info = self.update_cluster(cluster_info.id, **self.cluster_meta2)
-        self.assertEqual(self.cluster_meta2['name'], cluster_update_info.name, "update cluster with networking parameters  is not correct")
-        self.assertEqual(self.cluster_meta2['description'], cluster_update_info.description, "update cluster with networking parameters execute failed")
+        cluster_update_info = self.update_cluster(cluster_info.id,
+                                                  **self.cluster_meta2)
+        self.assertEqual(self.cluster_meta2['name'],
+                         cluster_update_info.name,
+                         "update cluster with networking parameters "
+                         "is not correct")
+        self.assertEqual(self.cluster_meta2['description'],
+                         cluster_update_info.description,
+                         "update cluster with networking parameters "
+                         "execute failed")
         # cluster = self.get_cluster(cluster_info.id)
         self.delete_cluster(cluster_info.id)
 
@@ -217,8 +266,10 @@ class TecsClusterTest(base.BaseDaisyTest):
         self.private_network_add()
         cluster_info = self.add_cluster(**self.cluster_meta1)
         hwm_meta = {"hwm_ip": "10.43.211.63"}
-        cluster_update_info = self.update_cluster(cluster_info.id, **hwm_meta)
-        self.assertEqual("10.43.211.63", cluster_update_info.hwm_ip,
+        cluster_update_info = self.update_cluster(cluster_info.id,
+                                                  **hwm_meta)
+        self.assertEqual("10.43.211.63",
+                         cluster_update_info.hwm_ip,
                          "Update cluster with hwm_ip failed")
         self.delete_cluster(cluster_info.id)
 
@@ -232,9 +283,16 @@ class TecsClusterTest(base.BaseDaisyTest):
                   'subnets': ['subnet3']}
         self.cluster_meta2['routers'].append(router)
 
-        cluster_update_info = self.update_cluster(cluster_info.id, **self.cluster_meta2)
-        self.assertEqual(self.cluster_meta2['name'], cluster_update_info.name, "update cluster with networking parameters  is not correct")
-        self.assertEqual(self.cluster_meta2['description'], cluster_update_info.description, "update cluster with networking parameters execute failed")
+        cluster_update_info = self.update_cluster(cluster_info.id,
+                                                  **self.cluster_meta2)
+        self.assertEqual(self.cluster_meta2['name'],
+                         cluster_update_info.name,
+                         "update cluster with networking parameters "
+                         "is not correct")
+        self.assertEqual(self.cluster_meta2['description'],
+                         cluster_update_info.description,
+                         "update cluster with networking parameters "
+                         "execute failed")
         # cluster = self.get_cluster(cluster_info.id)
         self.delete_cluster(cluster_info.id)
 
@@ -252,7 +310,8 @@ class TecsClusterTest(base.BaseDaisyTest):
         for query_cluster in list_clusters:
             if query_cluster.name == "test":
                 cluster_flag = True
-        self.assertTrue(cluster_flag, "test_list_cluster_filter_by_name error")
+        self.assertTrue(cluster_flag,
+                        "test_list_cluster_filter_by_name error")
 
     def test_delete_cluster(self):
         cluster_info1 = self.add_cluster(**self.cluster_meta1)
@@ -271,11 +330,16 @@ class TecsClusterTest(base.BaseDaisyTest):
         cluster_info5 = self.add_cluster(**self.cluster_meta5)
         cluster_info6 = self.add_cluster(**self.cluster_meta6)
         cluster_info7 = self.add_cluster(**self.cluster_meta7)
-        cluster_id_sort = sorted([cluster_info5.id, cluster_info6.id, cluster_info7.id], reverse=True)
+        cluster_id_sort = sorted([cluster_info5.id,
+                                  cluster_info6.id,
+                                  cluster_info7.id],
+                                 reverse=True)
         cluster_meta = {'sort_key': "id"}
         list_cluster = self.list_clusters(**cluster_meta)
-        query_cluster_id_list = [cluster_info.id for cluster_info in list_cluster]
-        self.assertEqual(query_cluster_id_list, cluster_id_sort, "test_list_cluster_by_sort_key error")
+        query_cluster_id_list = [cluster_info.id for cluster_info
+                                 in list_cluster]
+        self.assertEqual(query_cluster_id_list, cluster_id_sort,
+                         "test_list_cluster_by_sort_key error")
         self.delete_cluster(cluster_info5.id)
         self.delete_cluster(cluster_info6.id)
         self.delete_cluster(cluster_info7.id)
@@ -284,11 +348,15 @@ class TecsClusterTest(base.BaseDaisyTest):
         cluster_info5 = self.add_cluster(**self.cluster_meta5)
         cluster_info6 = self.add_cluster(**self.cluster_meta6)
         cluster_info7 = self.add_cluster(**self.cluster_meta7)
-        cluster_name_sort = ['test_add_host7', 'test_add_host6', 'test_add_host5']
+        cluster_name_sort = ['test_add_host7',
+                             'test_add_host6',
+                             'test_add_host5']
         cluster_meta = {'sort_dir': "desc", 'sort_key': "name"}
         list_cluster = self.list_clusters(**cluster_meta)
-        query_cluster_name_list = [cluster_info.name for cluster_info in list_cluster]
-        self.assertEqual(query_cluster_name_list, cluster_name_sort, "test_list_cluster_by_sort_dir error")
+        query_cluster_name_list = [cluster_info.name for cluster_info
+                                   in list_cluster]
+        self.assertEqual(query_cluster_name_list, cluster_name_sort,
+                         "test_list_cluster_by_sort_dir error")
         self.delete_cluster(cluster_info5.id)
         self.delete_cluster(cluster_info6.id)
         self.delete_cluster(cluster_info7.id)
@@ -297,10 +365,15 @@ class TecsClusterTest(base.BaseDaisyTest):
         cluster_info5 = self.add_cluster(**self.cluster_meta5)
         cluster_info6 = self.add_cluster(**self.cluster_meta6)
         cluster_info7 = self.add_cluster(**self.cluster_meta7)
-        cluster_meta = {'page_size': "1", 'sort_dir': "desc", 'sort_key': "name"}
+        cluster_meta = {'page_size': "1",
+                        'sort_dir': "desc",
+                        'sort_key': "name"}
         list_cluster = self.list_clusters(**cluster_meta)
-        query_cluster_id_list = [cluster_info.id for cluster_info in list_cluster]
-        self.assertEqual(query_cluster_id_list, [cluster_info7.id], "test_list_cluster_by_sort_key error")
+        query_cluster_id_list = [cluster_info.id for cluster_info
+                                 in list_cluster]
+        self.assertEqual(query_cluster_id_list,
+                         [cluster_info7.id],
+                         "test_list_cluster_by_sort_key error")
         self.delete_cluster(cluster_info5.id)
         self.delete_cluster(cluster_info6.id)
         self.delete_cluster(cluster_info7.id)
@@ -309,58 +382,90 @@ class TecsClusterTest(base.BaseDaisyTest):
         self.private_network_add()
         add_host = self.add_cluster(**self.cluster_meta2)
         cluster_detail = self.get_cluster(add_host.id)
-        self.assertEqual(self.cluster_meta2['networking_parameters']['base_mac'], cluster_detail.base_mac, "cluster add  networking_parameters failed")
+        self.assertEqual(
+            self.cluster_meta2['networking_parameters']['base_mac'],
+            cluster_detail.base_mac,
+            "cluster add  networking_parameters failed")
         router_flag = False
         floating_ranges_flag = False
         dns_nameservers_flag = False
-        if (cluster_detail.routers[0]['name'] == 'router1') or (cluster_detail.routers[0]['name'] == 'router2'):
+        if (cluster_detail.routers[0]['name'] == 'router1') or \
+                (cluster_detail.routers[0]['name'] == 'router2'):
             router_flag = True
-        if (cluster_detail.logic_networks[0]['subnets'][0]['floating_ranges'] == [['192.168.4.130', '192.168.4.254']]) or \
-           (cluster_detail.logic_networks[0]['subnets'][0]['floating_ranges'] == [['192.168.1.2', '192.168.1.200']]) or \
-           (cluster_detail.logic_networks[0]['subnets'][0]['floating_ranges'] == [['172.16.1.130', '172.16.1.150']]) or \
-           (cluster_detail.logic_networks[0]['subnets'][0]['floating_ranges'] == [['192.168.31.130', '192.168.31.254']]):
+
+        floating_ranges = cluster_detail.\
+            logic_networks[0]['subnets'][0]['floating_ranges']
+        if (floating_ranges == [['192.168.4.130', '192.168.4.254']]) or \
+                (floating_ranges == [['192.168.1.2', '192.168.1.200']]) or \
+                (floating_ranges == [['172.16.1.130', '172.16.1.150']]) or \
+                (floating_ranges == [['192.168.31.130', '192.168.31.254']]):
             floating_ranges_flag = True
-        if cluster_detail.logic_networks[0]['subnets'][0]['dns_nameservers'] == ['8.8.8.8', '8.8.4.4'] or \
-           cluster_detail.logic_networks[0]['subnets'][0]['dns_nameservers'] == ['8.8.4.4', '8.8.8.8']:
+
+        dns_nameservers = cluster_detail.\
+            logic_networks[0]['subnets'][0]['dns_nameservers']
+        if dns_nameservers == ['8.8.8.8', '8.8.4.4'] or \
+                dns_nameservers == ['8.8.4.4', '8.8.8.8']:
             dns_nameservers_flag = True
+
         self.assertTrue(router_flag, "cluster add floating_ranges failed")
-        self.assertTrue(floating_ranges_flag, "cluster add floating_ranges failed")
-        self.assertTrue(dns_nameservers_flag, "cluster add dns_nameservers failed")
+        self.assertTrue(floating_ranges_flag,
+                        "cluster add floating_ranges failed")
+        self.assertTrue(dns_nameservers_flag,
+                        "cluster add dns_nameservers failed")
         self.delete_cluster(add_host.id)
 
     def test_cluster_detail_info(self):
         self.private_network_add()
         add_cluster = self.add_cluster(**self.cluster_meta2)
         cluster_detail = self.get_cluster(add_cluster.id)
-        self.assertEqual(self.cluster_meta2['networking_parameters']['base_mac'], cluster_detail.base_mac, "cluster base_mac detail failed")
-        self.assertEqual(self.cluster_meta2['name'], cluster_detail.name, "cluster name detail failed")
-        self.assertEqual(self.cluster_meta2['description'], cluster_detail.description, "cluster description detail failed")
-        self.assertEqual(self.cluster_meta2['networking_parameters']['public_vip'], cluster_detail.public_vip, "cluster public_vip detail failed")
+        self.assertEqual(
+            self.cluster_meta2['networking_parameters']['base_mac'],
+            cluster_detail.base_mac,
+            "cluster base_mac detail failed")
+        self.assertEqual(self.cluster_meta2['name'],
+                         cluster_detail.name,
+                         "cluster name detail failed")
+        self.assertEqual(self.cluster_meta2['description'],
+                         cluster_detail.description,
+                         "cluster description detail failed")
+        self.assertEqual(
+            self.cluster_meta2['networking_parameters']['public_vip'],
+            cluster_detail.public_vip,
+            "cluster public_vip detail failed")
         self.private_network_delete()
 
     def test_add_cluster_no_description(self):
         self.private_network_add()
         cluster_info = self.add_cluster(**self.cluster_meta4)
         if cluster_info.description is None:
-            self.assertEqual(self.cluster_meta4['description'], cluster_info.description, "cluster add  interface execute failed")
-            print "\n ===========cluster_description= %s ", cluster_info.description
-        print "\n ===========STC-F-Daisy_Cluster-0013  run is over  ==============="
+            self.assertEqual(self.cluster_meta4['description'],
+                             cluster_info.description,
+                             "cluster add  interface execute failed")
+            print("\n ===========cluster_description= %s ",
+                  cluster_info.description)
+        print("\n ===========STC-F-Daisy_Cluster-0013  run is over "
+              " ===============")
         self.delete_cluster(cluster_info.id)
 
     def test_add_cluster_set_auto_scale(self):
         self.private_network_add()
         cluster_info = self.add_cluster(**self.cluster_meta8)
         if cluster_info:
-            self.assertEqual(self.cluster_meta8['auto_scale'], cluster_info.auto_scale, "cluster add set auto_scale=1 failed")
-            print "\n ===========cluster auto_scale= %s ", cluster_info.auto_scale
-        print "\n ===========STC-F-Daisy_Cluster-0020  run is over  ==============="
+            self.assertEqual(self.cluster_meta8['auto_scale'],
+                             cluster_info.auto_scale,
+                             "cluster add set auto_scale=1 failed")
+            print("\n ===========cluster auto_scale= %s ",
+                  cluster_info.auto_scale)
+        print("\n ===========STC-F-Daisy_Cluster-0020  run is over "
+              "===============")
         self.delete_cluster(cluster_info.id)
 
     def test_add_cluster_with_hwm(self):
         self.private_network_add()
         cluster_info = self.add_cluster(**self.cluster_meta9)
         if cluster_info:
-            self.assertEqual(self.cluster_meta9['hwm_ip'], cluster_info.hwm_ip,
+            self.assertEqual(self.cluster_meta9['hwm_ip'],
+                             cluster_info.hwm_ip,
                              "Add cluster with hwm_ip failed")
         self.delete_cluster(cluster_info.id)
 

@@ -332,8 +332,7 @@ class BaseTestCase(testtools.testcase.WithAttributes,
             BaseTestCase.is_lvm = misc.lvm_skip_check()
 
         if BaseTestCase.is_lvm:
-            raise testtools.TestCase.skipException("skip : LVM " +
-                                                   " not support this function")
+            raise testtools.TestCase.skipException("skip: don't support LVM")
 
     @classmethod
     def connectvm_skip_check(cls):
