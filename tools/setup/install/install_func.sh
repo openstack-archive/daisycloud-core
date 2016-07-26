@@ -99,7 +99,7 @@ function kolla_install
   fi
   cp -r /home/kolla_install/kolla/etc/kolla /etc 
   write_install_log "Begin copy images..."
-  if [ -f "/home/kolla_install/kolla/docker/registry-2.0.3.tgz" ] && [ -f "/home/kolla_install/kolla/docker/registry-2.0.3.tgz" ];then
+  if [ -f "/home/kolla_install/docker/registry-2.0.3.tgz" ] && [ -f "/home/kolla_install/docker/registry-server.tar" ];then
       echo "images already exit!"
   else
       rm -rf /home/kolla_install/docker
