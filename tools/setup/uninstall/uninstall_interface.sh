@@ -17,36 +17,40 @@ function uninstall_daisy
     pxe_os_install_clean all
     echo "stop all service..."
     stop_service_all
-    remove_rpms_by_yum "openstack-keystone python-django-horizon python-keystoneclient python-keystone python-keystonemiddleware  daisy-dashboard"
+    remove_rpms_by_yum "python-django-horizon  daisy-dashboard"
     remove_rpms_by_yum "daisy python-daisyclient  python-daisy"
-    remove_rpms_by_yum "openstack-ironic-api openstack-ironic-common openstack-ironic-conductor python-ironicclient"
     remove_rpms_by_yum "openstack-ironic-discoverd python-ironic-discoverd"
-    remove_rpms_by_yum "rabbitmq-server"
-    remove_rpms_by_yum "mariadb-galera-server mariadb-galera-common mariadb"
-    remove_rpms_by_yum "pxe_server_install"
-    remove_rpms_by_yum "fping"
+    rpm -e  pxe_server_install
     for i in `ps -elf | grep daisy-api |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $i;done 
     for j in `ps -elf | grep daisy-registry |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done 
     for j in `ps -elf | grep rabbitmq |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done 
     for j in `ps -elf | grep ironic-api |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
     for j in `ps -elf | grep ironic-conductor |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
     for j in `ps -elf | grep ironic-discoverd |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
-    rm -rf /etc/daisy
-    rm -rf /etc/ironic
-    rm -rf /etc/ironic-discoverd
-    rm -rf /etc/sudoers.d/daisy
-    rm -rf /etc/rabbitmq
-    rm -rf /etc/my.cnf.d
-    rm -rf /etc/kolla
-    rm -rf /var/lib/daisy
-    rm -rf /var/lib/mysql/*
-    rm -rf /var/lib/ironic
-    rm -rf /var/lib/rabbitmq
-    rm -rf /var/log/mariadb
-    rm -rf /var/log/daisy
-    rm -rf /var/log/ironic
-    rm -rf /var/log/rabbitmq
-    rm -rf /root/daisyrc_admin
+    # delect ironic database
+    create_ironic_sql="drop database IF EXISTS ironic"
+    write_install_log "delect ironic database in mariadb"
+    echo ${create_ironic_sql} | mysql
+    if [ $? -ne 0 ];then
+        echo "Error:create ironic database failed..."
+        exit 1
+    fi
+    # delect keystone database
+    create_keystone_sql="drop database IF EXISTS keystone"
+    write_install_log "delect keystone database in mariadb"
+    echo ${create_keystone_sql} | mysql
+    if [ $? -ne 0 ];then
+        echo "Error:create keystone database failed..."
+        exit 1
+    fi
+    # delect daisy database
+    create_daisy_sql="drop database IF EXISTS daisy"
+    write_install_log "delect daisy database in mariadb"
+    echo ${create_daisy_sql} | mysql
+    if [ $? -ne 0 ];then
+        echo "Error:create daisy database failed..."
+        exit 1
+    fi 
     echo "remove container and image..."
     container_id=`docker ps -a |grep "registry"|awk -F' ' '{print $1}'`
     if [ -n "$container_id" ];then
@@ -57,6 +61,15 @@ function uninstall_daisy
     if [ -n "$image_id" ];then
         docker rmi $image_id
     fi
+    rm -rf /etc/daisy
+    rm -rf /etc/ironic-discoverd
+    rm -rf /etc/sudoers.d/daisy
+    rm -rf /var/lib/daisy
+    rm -rf /var/log/mariadb
+    rm -rf /var/log/daisy
+    rm -rf /var/log/ironic
+    rm -rf /var/log/rabbitmq
+    rm -rf /root/daisyrc_admin
     echo "Finish clean daisy!"  
 }
 
