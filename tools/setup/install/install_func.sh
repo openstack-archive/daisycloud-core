@@ -88,10 +88,9 @@ function kolla_install
 
   write_install_log "Begin clone kolla..."
   if [ -e "/home/kolla_install/kolla" ];then
-      echo "kolla code already exit!" 
+      echo "kolla code already exist!" 
   else
-      rm -rf /home/kolla_install
-      mkdir /home/kolla_install
+      mkdir -p /home/kolla_install
       cd /home/kolla_install
       git clone https://git.openstack.org/openstack/kolla
       cd kolla
@@ -99,14 +98,19 @@ function kolla_install
   fi
   cp -r /home/kolla_install/kolla/etc/kolla /etc 
   write_install_log "Begin copy images..."
-  if [ -f "/home/kolla_install/docker/registry-2.0.3.tgz" ] && [ -f "/home/kolla_install/docker/registry-server.tar" ];then
-      echo "images already exit!"
+  if [ -f "/home/kolla_install/docker/registry-2.0.3.tgz" ];then
+      echo "registry-2.0.3.tgz already exist!"
+      tar mxvf registry-2.0.3.tgz
   else
-      rm -rf /home/kolla_install/docker
-      mkdir /home/kolla_install/docker
+      mkdir -p /home/kolla_install/docker
       cd /home/kolla_install/docker
       wget "ftp://openuser:123@120.76.145.166/registry-2.0.3.tgz"
       tar mxvf registry-2.0.3.tgz
+  fi
+  if [ -f "/home/kolla_install/docker/registry-server.tar" ];then
+      echo "registry-server.tar already exist!"
+  else
+      cd /home/kolla_install/docker
       wget "ftp://openuser:123@120.76.145.166/registry-server.tar"
   fi
   cd /home/kolla_install/docker
