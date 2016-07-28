@@ -177,6 +177,8 @@ def get_cluster_kolla_config(req, cluster_id):
     computer_ip_list = []
     mgt_macname_list = []
     pub_macname_list = []
+    openstack_version = '2.0.3'
+    docker_namespace = 'kolla'
     docker_registry_ip = _get_local_ip()
     docker_registry = docker_registry_ip + ':4000'
     cluster_networks = daisy_cmn.get_cluster_networks_detail(req, cluster_id)
@@ -205,6 +207,8 @@ def get_cluster_kolla_config(req, cluster_id):
                          management must be same!"))
                 LOG.error(msg)
                 raise HTTPForbidden(msg)
+            kolla_config.update({'Version': openstack_version})
+            kolla_config.update({'Namespace': docker_namespace})
             kolla_config.update({'VIP': kolla_vip})
             kolla_config.update({'IntIfMac': mgt_macname})
             kolla_config.update({'ExtIfMac': pub_macname})

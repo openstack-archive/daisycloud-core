@@ -87,6 +87,8 @@ def add_role_to_inventory(file_path, config_data):
 
 # generate kolla's globals.yml file
 def update_globals_yml(config_data):
+    Version = config_data['Version']
+    Namespace = config_data['Namespace']
     VIP = config_data['VIP']
     IntIfMac = config_data['IntIfMac']
     ExtIfMac = config_data['ExtIfMac']
@@ -99,10 +101,12 @@ def update_globals_yml(config_data):
                  'network_interface': 'eth0',
                  'neutron_external_interface': 'eth1'
                  }
+    kolla_yml['openstack_release'] = Version.encode()
+    kolla_yml['docker_registry'] = local_ip.encode()
+    kolla_yml['docker_namespace'] = Namespace.encode()
     kolla_yml['kolla_internal_vip_address'] = VIP.encode()
     kolla_yml['network_interface'] = IntIfMac.encode()
     kolla_yml['neutron_external_interface'] = ExtIfMac.encode()
-    kolla_yml['docker_registry'] = local_ip.encode()
     yaml.dump(kolla_yml, file('/etc/kolla/globals.yml', 'w'),
               default_flow_style=False)
 
