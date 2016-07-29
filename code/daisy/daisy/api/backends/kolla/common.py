@@ -16,6 +16,8 @@
 """
 /install endpoint for zenic API
 """
+import os
+import subprocess
 import copy
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
@@ -189,3 +191,68 @@ def get_roles_and_hosts_list(req, cluster_id):
                     hosts_list.append(host_cfg)
             roles_id_list.add(role['id'])
     return (roles_id_list, hosts_id_list, hosts_list)
+
+
+def run_scrip(script, ip=None, password=None, msg=None):
+    try:
+        _run_scrip(script, ip, password)
+    except:
+        msg1 = 'Error occurred during running scripts.'
+        message = msg1 + msg if msg else msg1
+        LOG.error(message)
+        raise HTTPForbidden(explanation=message)
+    else:
+        LOG.info('Running scripts successfully!')
+
+
+def _run_scrip(script, ip=None, password=None):
+    mask_list = []
+    repl_list = [("'", "'\\''")]
+    script = "\n".join(script)
+    _PIPE = subprocess.PIPE
+    if ip:
+        cmd = ["sshpass", "-p", "%s" % password,
+               "ssh", "-o StrictHostKeyChecking=no",
+               "%s" % ip, "bash -x"]
+    else:
+        cmd = ["bash", "-x"]
+    environ = os.environ
+    environ['LANG'] = 'en_US.UTF8'
+    obj = subprocess.Popen(cmd, stdin=_PIPE, stdout=_PIPE, stderr=_PIPE,
+                           close_fds=True, shell=False, env=environ)
+
+    script = "function t(){ exit $? ; } \n trap t ERR \n" + script
+    out, err = obj.communicate(script)
+    masked_out = mask_string(out, mask_list, repl_list)
+    masked_err = mask_string(err, mask_list, repl_list)
+    if obj.returncode:
+        pattern = (r'^ssh\:')
+        if re.search(pattern, err):
+            LOG.error(_("Network error occured when run script."))
+            raise exception.NetworkError(masked_err, stdout=out, stderr=err)
+        else:
+            msg = ('Failed to run remote script, stdout: %s\nstderr: %s' %
+                   (masked_out, masked_err))
+            LOG.error(msg)
+            raise exception.ScriptRuntimeError(msg, stdout=out, stderr=err)
+    return obj.returncode, out
+
+
+def mask_string(unmasked, mask_list=None, replace_list=None):
+    """
+    Replaces words from mask_list with MASK in unmasked string.
+    If words are needed to be transformed before masking, transformation
+    could be describe in replace list. For example [("'","'\\''")]
+    replaces all ' characters with '\\''.
+    """
+    mask_list = mask_list or []
+    replace_list = replace_list or []
+
+    masked = unmasked
+    for word in sorted(mask_list, lambda x, y: len(y) - len(x)):
+        if not word:
+            continue
+        for before, after in replace_list:
+            word = word.replace(before, after)
+        masked = masked.replace(word, STR_MASK)
+    return masked
