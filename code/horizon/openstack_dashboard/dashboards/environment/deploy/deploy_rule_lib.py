@@ -9,6 +9,7 @@ from horizon import messages
 from horizon import exceptions
 
 from openstack_dashboard import api
+from openstack_dashboard.dashboards.environment.host import views as host_views
 
 import logging
 LOG = logging.getLogger(__name__)
@@ -107,6 +108,15 @@ def host_role_zenic_rule(count_zen_nfm, count_zen_ctl):
         raise exceptions.ConfigurationError(message)
 
 
+def host_role_openstack_rule(count_lb, count_compute):
+    if count_lb == 0:
+        message = _('Configure must have LB roles.')
+        raise exceptions.ConfigurationError(message)
+    elif count_compute == 0:
+        message = _('Config must have computer roles.')
+        raise exceptions.ConfigurationError(message)
+
+
 def hosts_role_rule(rule_context):
     count_context = {
         "CONTROLLER_HA": {"count": 0},
@@ -120,16 +130,28 @@ def hosts_role_rule(rule_context):
         for role_name in count_context:
             if role_name in host.get("role"):
                 count_context[role_name]["count"] += 1
+    backends = rule_context.get("backends")
+    backend = ""
+    if backends is not None:
+        backend = str(backends[0])
     try:
         ha_count = count_context["CONTROLLER_HA"]["count"]
         lb_count = count_context["CONTROLLER_LB"]["count"]
         compute_count = count_context["COMPUTER"]["count"]
-        host_role_tecs_rule(ha_count,
-                            lb_count,
-                            compute_count)
-        nfm_count = count_context["ZEN_NFM"]["count"]
-        ctl_count = count_context["ZEN_CTL"]["count"]
-        host_role_zenic_rule(nfm_count, ctl_count)
+        if backend == "tecs":
+            host_role_tecs_rule(ha_count,
+                                lb_count,
+                                compute_count)
+        if backend == "kolla":
+            host_role_openstack_rule(lb_count,
+                                     compute_count)
+        if backend == "zenic":
+            nfm_count = count_context["ZEN_NFM"]["count"]
+            ctl_count = count_context["ZEN_CTL"]["count"]
+            host_role_zenic_rule(nfm_count, ctl_count)
+        # TO DO
+        # if backend == "tecs+zenic":
+        #     PASS
     except Exception as e:
         LOG.info("hosts_role_rule %s", e)
         raise
@@ -259,10 +281,11 @@ def host_net_plane_rule(ha_role, host, networks):
     if not has_net_plane(host, "MANAGEMENT", networks)[0]:
         message = _("All hosts must be config MANAGEMENT net plane.")
         raise exceptions.ConfigurationError(message)
-    # control node net plane rule
-    control_node_net_plane_rule(ha_role, host, networks)
-    # compute node net plane rule
-    compute_node_net_plane_rule(ha_role, host, networks)
+    if backend == "tecs":
+        # control node net plane rule
+        control_node_net_plane_rule(ha_role, host, networks)
+        # compute node net plane rule
+        compute_node_net_plane_rule(ha_role, host, networks)
     # zenic node net plane rule
     zenic_node_net_plane_rule(host, networks)
     # segment type vswitch type rule
@@ -276,7 +299,8 @@ def hosts_net_plane_rule(rule_context):
         for host in rule_context.get("hosts"):
             host_net_plane_rule(rule_context.get("ha_role"),
                                 host,
-                                rule_context.get("networks"))
+                                rule_context.get("networks"),
+                                rule_context.get("backends"))
     except Exception as e:
         LOG.info("hosts_net_plane_rule %s", e)
         raise
@@ -293,9 +317,11 @@ def host_config_rule(host):
         return
     if not host.get("interfaces", None):
         return
-    if not host.get("os_version"):
-        message = _("Host %s must be config os version.") % host.get("name")
-        raise exceptions.ConfigurationError(message)
+    if host.get("discover_state") != "SSH:DISCOVERY_SUCCESSFUL":
+        if not host.get("os_version_file"):
+            message = _("Host %s must be config "
+                        "os version.") % host.get("name")
+            raise exceptions.ConfigurationError(message)
     if is_config_dvs(host) and "COMPUTER" in host.get("role"):
         if not host.get("hugepagesize") or not host.get("hugepages"):
             message = _("Configure DVS, host huge page size "
@@ -331,7 +357,9 @@ def get_rule_context(request, cluster_id):
             host_get = api.daisy.host_get(request, host.id)
             host_get_list.append(host_get.to_dict())
         network_list = api.daisy.network_list(request, cluster_id)
+        backends = host_views.get_backend_type_by_role_list(request)
         rule_context.update({
+            "backends": backends,
             "ha_role": ha_role,
             "hosts": host_get_list,
             "networks": network_list})
