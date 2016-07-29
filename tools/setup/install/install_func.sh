@@ -69,12 +69,12 @@ function kolla_install
   systemctl daemon-reload
   systemctl restart docker
   yum install -y python-docker-py
-  yum -y install ntp
+  yum install -y ntp
   systemctl enable ntpd.service
   systemctl stop libvirtd.service
   systemctl disable libvirtd.service
   systemctl start ntpd.service
-  yum -y install ansible1.9
+  yum install -y ansible1.9
   yum install -y python-setuptools.noarch
   yum install -y https://kojipkgs.fedoraproject.org//packages/python-jinja2/2.8/2.fc23/noarch/python-jinja2-2.8-2.fc23.noarch.rpm
   yum install -y python2-crypto
@@ -92,11 +92,12 @@ function kolla_install
   else
       mkdir -p /home/kolla_install
       cd /home/kolla_install
+      echo "begin cloning kolla code"
       git clone https://git.openstack.org/openstack/kolla
       cd kolla
+      echo "checkout to stable/mitaka branch"
       git checkout stable/mitaka
   fi
-  cp -r /home/kolla_install/kolla/etc/kolla /etc 
   write_install_log "Begin copy images..."
   if [ -f "/home/kolla_install/docker/registry-2.0.3.tgz" ];then
       echo "registry-2.0.3.tgz already exist!"
@@ -114,6 +115,7 @@ function kolla_install
       wget "ftp://openuser:123@120.76.145.166/registry-server.tar"
   fi
   cd /home/kolla_install/docker
+  echo "load docker registry-server"
   docker load < ./registry-server.tar
   docker run -d -p 4000:5000 --restart=always -e REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/tmp/registry -v /home/kolla_install/docker/registry:/tmp/registry  --name registry registry:2
 
