@@ -100,6 +100,7 @@ function kolla_install
   write_install_log "Begin copy images..."
   if [ -f "/home/kolla_install/docker/registry-2.0.3.tgz" ];then
       echo "registry-2.0.3.tgz already exist!"
+      cd /home/kolla_install/docker
       tar mxvf registry-2.0.3.tgz
   else
       mkdir -p /home/kolla_install/docker
