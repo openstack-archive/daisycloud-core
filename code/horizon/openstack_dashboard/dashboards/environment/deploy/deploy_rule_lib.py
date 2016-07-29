@@ -107,6 +107,15 @@ def host_role_zenic_rule(count_zen_nfm, count_zen_ctl):
         raise exceptions.ConfigurationError(message)
 
 
+def host_role_openstack_rule(count_lb, count_compute):
+    if count_lb == 0:
+        message = _('Configure must have LB roles.')
+        raise exceptions.ConfigurationError(message)
+    elif count_compute == 0:
+        message = _('Config must have computer roles.')
+        raise exceptions.ConfigurationError(message)
+
+
 def hosts_role_rule(rule_context):
     count_context = {
         "CONTROLLER_HA": {"count": 0},
@@ -124,9 +133,14 @@ def hosts_role_rule(rule_context):
         ha_count = count_context["CONTROLLER_HA"]["count"]
         lb_count = count_context["CONTROLLER_LB"]["count"]
         compute_count = count_context["COMPUTER"]["count"]
-        host_role_tecs_rule(ha_count,
-                            lb_count,
-                            compute_count)
+        if ha_count > 0:
+            host_role_tecs_rule(ha_count,
+                                lb_count,
+                                compute_count)
+        if ha_count == 0:
+            if lb_count > 0:
+                host_role_openstack_rule(lb_count,
+                                         compute_count)
         nfm_count = count_context["ZEN_NFM"]["count"]
         ctl_count = count_context["ZEN_CTL"]["count"]
         host_role_zenic_rule(nfm_count, ctl_count)
@@ -173,11 +187,12 @@ def control_node_net_plane_rule(ha_role, host, networks):
             message = _("Control nodes must be config PUBLICAPI net plane.")
             raise exceptions.ConfigurationError(message)
         # share disk, ha/lb must be config STORAGE net plane
-        if is_config_share_disk(ha_role):
-            if not has_net_plane(host, "STORAGE", networks)[0]:
-                message = _("Configure share disk, control nodes "
-                            "must be config STORAGE net plane.")
-                raise exceptions.ConfigurationError(message)
+        if ha_role is not None:
+            if is_config_share_disk(ha_role):
+                if not has_net_plane(host, "STORAGE", networks)[0]:
+                    message = _("Configure share disk, control nodes "
+                                "must be config STORAGE net plane.")
+                    raise exceptions.ConfigurationError(message)
 
 
 def compute_node_net_plane_rule(ha_role, host, networks):
@@ -262,7 +277,8 @@ def host_net_plane_rule(ha_role, host, networks):
     # control node net plane rule
     control_node_net_plane_rule(ha_role, host, networks)
     # compute node net plane rule
-    compute_node_net_plane_rule(ha_role, host, networks)
+    if ha_role is not None:
+        compute_node_net_plane_rule(ha_role, host, networks)
     # zenic node net plane rule
     zenic_node_net_plane_rule(host, networks)
     # segment type vswitch type rule
@@ -293,9 +309,9 @@ def host_config_rule(host):
         return
     if not host.get("interfaces", None):
         return
-    if not host.get("os_version"):
-        message = _("Host %s must be config os version.") % host.get("name")
-        raise exceptions.ConfigurationError(message)
+    # if not host.get("os_version"):
+    #    message = _("Host %s must be config os version.") % host.get("name")
+    #    raise exceptions.ConfigurationError(message)
     if is_config_dvs(host) and "COMPUTER" in host.get("role"):
         if not host.get("hugepagesize") or not host.get("hugepages"):
             message = _("Configure DVS, host huge page size "
