@@ -196,6 +196,8 @@ def get_cluster_kolla_config(req, cluster_id):
     pub_macname_list = []
     openstack_version = '2.0.3'
     docker_namespace = 'kolla'
+    host_name_ip = {}
+    host_name_ip_list = []
     docker_registry_ip = _get_local_ip()
     docker_registry = docker_registry_ip + ':4000'
     cluster_networks = daisy_cmn.get_cluster_networks_detail(req, cluster_id)
@@ -213,11 +215,14 @@ def get_cluster_kolla_config(req, cluster_id):
                 deploy_host_cfg = kolla_cmn.get_deploy_node_cfg(
                     req, host_detail, cluster_networks)
                 mgt_ip = deploy_host_cfg['mgtip']
+                host_name_ip = {deploy_host_cfg['host_name']:deploy_host_cfg['mgtip']}
                 controller_ip_list.append(mgt_ip)
                 mgt_macname = deploy_host_cfg['mgt_macname']
                 pub_macname = deploy_host_cfg['pub_macname']
                 mgt_macname_list.append(mgt_macname)
                 pub_macname_list.append(pub_macname)
+                if host_name_ip not in host_name_ip_list:
+                    host_name_ip_list.append(host_name_ip)
             if len(set(mgt_macname_list)) != 1 or \
                     len(set(pub_macname_list)) != 1:
                 msg = (_("hosts interface name of public and \
@@ -241,10 +246,13 @@ def get_cluster_kolla_config(req, cluster_id):
                 deploy_host_cfg = kolla_cmn.get_deploy_node_cfg(
                     req, host_detail, cluster_networks)
                 mgt_ip = deploy_host_cfg['mgtip']
+                host_name_ip = {deploy_host_cfg['host_name']:deploy_host_cfg['mgtip']}
                 computer_ip_list.append(mgt_ip)
+                if host_name_ip not in host_name_ip_list:
+                    host_name_ip_list.append(host_name_ip)
             kolla_config.update({'Computer_ips': computer_ip_list})
     mgt_ip_list = set(controller_ip_list + computer_ip_list)
-    return (kolla_config, mgt_ip_list)
+    return (kolla_config, mgt_ip_list, host_name_ip_list)
 
 
 def generate_kolla_config_file(cluster_id, kolla_config):
@@ -253,6 +261,23 @@ def generate_kolla_config_file(cluster_id, kolla_config):
         config.update_globals_yml(kolla_config)
         config.update_password_yml()
         config.add_role_to_inventory(kolla_file, kolla_config)
+
+
+def config_nodes_hosts(host_name_ip_list, host_ip):
+    config_scripts = []
+    hosts_file = "/etc/hosts"
+    for name_ip in host_name_ip_list:
+        config_scripts.append("linenumber=`grep -n '%s$' %s | "
+                              "awk -F ':' '{print $1}'` && "
+                              "[ ! -z $linenumber ] && "
+                              "sed -i ${linenumber}d %s" %
+                              (name_ip.keys()[0],
+                               hosts_file, hosts_file))
+        config_scripts.append("echo '%s %s' >> %s" % (name_ip.values()[0],
+                                                      name_ip.keys()[0],
+                                                      hosts_file))
+    kolla_cmn.run_scrip(config_scripts, host_ip, "ossdbg1",
+                           msg='Failed to config /etc/hosts on %s' % host_ip)
 
 
 class KOLLAInstallTask(Thread):
@@ -301,7 +326,7 @@ class KOLLAInstallTask(Thread):
                        % self.cluster_id))
 
     def _run(self):
-        (kolla_config, self.mgt_ip_list) = get_cluster_kolla_config(
+        (kolla_config, self.mgt_ip_list, host_name_ip_list) = get_cluster_kolla_config(
             self.req, self.cluster_id)
         if not self.mgt_ip_list:
             msg = _("there is no host in cluster %s") % self.cluster_id
@@ -322,6 +347,7 @@ class KOLLAInstallTask(Thread):
         with open(self.log_file, "w+") as fp:
             for host in hosts_list:
                 host_ip = host['mgtip']
+                config_nodes_hosts(host_name_ip_list, host_ip)
                 cmd = 'sshpass -p ossdbg1 ssh -o StrictHostKeyChecking=no %s \
                       "if [ ! -d %s ];then mkdir %s;fi" ' % \
                       (host_ip, self.host_prepare_file, self.host_prepare_file)
