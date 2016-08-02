@@ -194,6 +194,7 @@ def get_cluster_kolla_config(req, cluster_id):
     computer_ip_list = []
     mgt_macname_list = []
     pub_macname_list = []
+    dat_macname_list = []
     openstack_version = '2.0.3'
     docker_namespace = 'kolla'
     host_name_ip = {}
@@ -252,7 +253,15 @@ def get_cluster_kolla_config(req, cluster_id):
                 computer_ip_list.append(mgt_ip)
                 if host_name_ip not in host_name_ip_list:
                     host_name_ip_list.append(host_name_ip)
+                dat_macname = deploy_host_cfg['dat_macname']
+                dat_macname_list.append(dat_macname)
+            if len(set(dat_macname_list)) != 1:
+                msg = (_("computer hosts interface name of dataplane \
+                         must be same!"))
+                LOG.error(msg)
+                raise HTTPForbidden(msg)
             kolla_config.update({'Computer_ips': computer_ip_list})
+            kolla_config.update({'TulIfMac': dat_macname})
     mgt_ip_list = set(controller_ip_list + computer_ip_list)
     return (kolla_config, mgt_ip_list, host_name_ip_list)
 

@@ -156,6 +156,8 @@ def get_deploy_node_cfg(req, host_detail, cluster_networks):
     host_mgt_ip = host_mgt_network['ip']
     host_pub_network = get_host_interface_by_network(host_detail, 'PUBLICAPI')
     host_pub_macname = host_pub_network['name']
+    host_dat_network = get_host_interface_by_network(host_detail, 'DATAPLANE')
+    host_dat_macname = host_dat_network['name']
     if not host_mgt_ip:
         msg = "management ip of host %s can't be empty" % host_detail['id']
         raise exception.InvalidNetworkConfig(msg)
@@ -163,6 +165,7 @@ def get_deploy_node_cfg(req, host_detail, cluster_networks):
     deploy_node_cfg.update({'mgtip': host_mgt_ip})
     deploy_node_cfg.update({'mgt_macname': host_mgt_macname})
     deploy_node_cfg.update({'pub_macname': host_pub_macname})
+    deploy_node_cfg.update({'dat_macname': host_dat_macname})
     deploy_node_cfg.update({'host_name': host_name})
     return deploy_node_cfg
 
