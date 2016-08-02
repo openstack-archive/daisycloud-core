@@ -318,43 +318,43 @@ def get_deploy_info(os_status, role_status,
             "message": role_message,
             "bar_type": "progress-bar-info",
             "count": "on_going_host_num",
-            "i18n": "OS install successful, TECS installing"},
+            "i18n": "OS install successful, backend installing"},
         "uninstalling": {
             "progress": role_progress,
             "message": role_message,
             "bar_type": "progress-bar-update",
             "count": "on_uninstalling_host_num",
-            "i18n": "TECS uninstalling"},
+            "i18n": "Backend uninstalling"},
         "updating": {
             "progress": role_progress,
             "message": role_message,
             "bar_type": "progress-bar-update",
             "count": "on_updating_host_num",
-            "i18n": "TECS updating"},
+            "i18n": "Backend updating"},
         "install-failed": {
             "progress": role_progress,
             "message": role_message,
             "bar_type": "progress-bar-danger",
             "count": "failed_host_num",
-            "i18n": "OS install successful, TECS install failed"},
+            "i18n": "OS install successful, backend install failed"},
         "uninstall-failed": {
             "progress": role_progress,
             "message": role_message,
             "bar_type": "progress-bar-danger",
             "count": "failed_host_num",
-            "i18n": "TECS uninstall failed"},
+            "i18n": "Backend uninstall failed"},
         "update-failed": {
             "progress": role_progress,
             "message": role_message,
             "bar_type": "progress-bar-danger",
             "count": "failed_host_num",
-            "i18n": "TECS update failed"},
+            "i18n": "Backend update failed"},
         "active": {
             "progress": 100,
             "message": role_message,
             "bar_type": "progress-bar-success",
             "count": "success_host_num",
-            "i18n": "install TECS successful"}
+            "i18n": "install backend successful"}
     }
     if os_status in os_status_list:
         if os_status == "active":
