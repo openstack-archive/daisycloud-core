@@ -258,6 +258,124 @@ def get_host_roles(host_detail):
     return roles
 
 
+def get_backend_type_by_role_list(request):
+    backends = []
+    roles = api.daisy.role_list(request)
+    for role in roles:
+        backends.append(role.deployment_backend)
+    back_ends = list(set(backends))
+    return back_ends
+
+
+def get_backends_deploy_info(backends, os_status, role_status,
+                             os_progress=None, os_message=None,
+                             role_progress=None, role_message=None):
+    backend = str(backends[0])
+    deploy_info = {}
+    os_status_list = {
+        "init": {
+            "progress": 0,
+            "message": os_message,
+            "bar_type": "progress-bar-info",
+            "count": "undeploy_host_num",
+            "i18n": "init"},
+        "pre-install": {
+            "progress": os_progress,
+            "message": os_message,
+            "bar_type": "progress-bar-info",
+            "count": "on_going_host_num",
+            "i18n": "OS installing"},
+        "installing": {
+            "progress": os_progress,
+            "message": os_message,
+            "bar_type": "progress-bar-info",
+            "count": "on_going_host_num",
+            "i18n": "OS installing"},
+        "updating": {
+            "progress": os_progress,
+            "message": os_message,
+            "bar_type": "progress-bar-update",
+            "count": "on_updating_host_num",
+            "i18n": "OS updating"},
+        "install-failed": {
+            "progress": os_progress,
+            "message": os_message,
+            "bar_type": "progress-bar-danger",
+            "count": "failed_host_num",
+            "i18n": "OS install failed"},
+        "update-failed": {
+            "progress": os_progress,
+            "message": os_message,
+            "bar_type": "progress-bar-danger",
+            "count": "failed_host_num",
+            "i18n": "OS update failed"},
+        "active": {
+            "progress": os_progress,
+            "message": os_message,
+            "bar_type": "progress-bar-success",
+            "count": "success_host_num",
+            "i18n": "OS install successful"}
+    }
+    role_status_list = {
+        "init": {
+            "progress": role_progress,
+            "message": role_message,
+            "bar_type": "progress-bar-info",
+            "count": "on_going_host_num",
+            "i18n": "OS install successful"},
+        "installing": {
+            "progress": role_progress,
+            "message": role_message,
+            "bar_type": "progress-bar-info",
+            "count": "on_going_host_num",
+            "i18n": "OS install successful," + backend + "  installing"},
+        "uninstalling": {
+            "progress": role_progress,
+            "message": role_message,
+            "bar_type": "progress-bar-update",
+            "count": "on_uninstalling_host_num",
+            "i18n": "" + backend + " uninstalling"},
+        "updating": {
+            "progress": role_progress,
+            "message": role_message,
+            "bar_type": "progress-bar-update",
+            "count": "on_updating_host_num",
+            "i18n": "" + backend + " updating"},
+        "install-failed": {
+            "progress": role_progress,
+            "message": role_message,
+            "bar_type": "progress-bar-danger",
+            "count": "failed_host_num",
+            "i18n": "OS install successful," + backend + "  install failed"},
+        "uninstall-failed": {
+            "progress": role_progress,
+            "message": role_message,
+            "bar_type": "progress-bar-danger",
+            "count": "failed_host_num",
+            "i18n": "" + backend + " uninstall failed"},
+        "update-failed": {
+            "progress": role_progress,
+            "message": role_message,
+            "bar_type": "progress-bar-danger",
+            "count": "failed_host_num",
+            "i18n": "" + backend + " update failed"},
+        "active": {
+            "progress": 100,
+            "message": role_message,
+            "bar_type": "progress-bar-success",
+            "count": "success_host_num",
+            "i18n": "install " + backend + " successful"}
+    }
+    if os_status in os_status_list:
+        if os_status == "active":
+            deploy_info = os_status_list[os_status]
+            if role_status in role_status_list:
+                deploy_info = role_status_list[role_status]
+        else:
+            deploy_info = os_status_list[os_status]
+    return deploy_info
+
+
 def get_deploy_info(os_status, role_status,
                     os_progress=None, os_message=None,
                     role_progress=None, role_message=None):
@@ -367,8 +485,10 @@ def get_deploy_info(os_status, role_status,
 
 
 def get_install_status(host_detail):
-    deploy_info = get_deploy_info(host_detail.os_status,
-                                  getattr(host_detail, "role_status", None))
+    deploy_info = \
+        get_backends_deploy_info(host_detail.backends,
+                                 host_detail.os_status,
+                                 getattr(host_detail, "role_status", None))
     return _(deploy_info.get("i18n", 'unknown'))
 
 
@@ -522,6 +642,10 @@ class HostsView(tables.DataTableView):
                     roles.sort()
                     host.role = host_detail.role
             hosts.extend(hosts_with_role)
+        backends = get_backend_type_by_role_list(self.request)
+        for host in hosts:
+            host.backends = backends
+
         return hosts
 
     def get_useful_hosts(self, hosts):
