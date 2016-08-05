@@ -1,0 +1,61 @@
+This call graph shows an example about how the role-list information is provided literally through
+all daisy modules. role-list information is used everywhere such as finding out which backend we
+are using.
+
+daisyclient/daisyclient/v1/
+    shell.py (a. k. a. /usr/bin/daisy)
+             ^
+             |
+       +-----+
+       |
+    +--|----------------+                               horizon/openstack_dashboard/dashboards/enviroment/deploy/
+    | CLI  or  WebUI------------------------------->        url.py maps dodeploy() to do_depoy()
+    | +-------------+   |                                   views.py impl. do_deploy() which call get_ha_role() in deploy_rule_lib.py
+    | | daisyclient +-------------+                         deploy_rule_lib.py impl. get_ha_role() which call api.daisy.role_list(request).
+    | +------+------+   |         |
+    |        |          |         |                     horizon/openstack_dashboard/api/
+    +--------|----------+         |                         daisy.py impl. role_list() by calling daisyclient(request).roles.list()
+             |                    |                         which is daisy_client.Client(version=1,  endpoint=http://127.0.0.1:19292)
+             |                    |
+             |                    +------------------>  daisyclient/daisyclient/
+             |                                              client.py impl. daisy_client
+             |                                              v1/client.py impl. daisy_client version=1 and self.roles = RoleManager(self.http_client)
+             |                                              v1/roles.py impl. RoleManager class and its list() method which
+             |                                              uses self.client.get(url="/v1/roles/detail") to get the response from daisy-api service.
+        (WSGI Interface)
+             |
+    +--------|----------+
+    | daisy-api service |                           +-> daisy/daisy/api/v1/
+    |  +-----V------+   |                           |       router.py maps url "/roles/detail" to  detail() action  of the controller "roles_resource".
+    |  |  api       +-------------------------------+       roles.py impl. "roles_resource" controller and its detail() method which calls
+    |  +------------+   |                                   registry.get_roles_detail(req.context, **params) to get info from registry service.
+    |                   |                                   registry is imported form daisy.registry.client.v1.api.
+    |  +------------+   |
+    |  |  daisy     |   |                          +->  daisy/daisy/registry/client/v1
+    |  | registry   +------------------------------+
+    |  | client     |   |                                   api.py impl. get_roles_detail() by call get_registry_client() to get a RegistryClient object
+    |  +-----+------+   |                                   and call its get_roles_detailed() method.
+    |        |          |                                   RegistryClient is initialized by RegistryClient(host=... port=19191).
+    +--------|----------+                                   client.py impl. RegistryClient class and its get_roles_detailed() method which uses
+             |                                              self.do_request("GET", "/roles/detail", params=params) to get the response
+             |                                              from daisy-registry service.
+        (WSGI Interface)
+             |
+             |
+    +--------|----------+                      +---->   daisy/daisy/registry/api/v1/
+    | daisy-registry    |                      |            __init__.py maps url "/roles/detail" to detail_role() action of the
+    | service|          |                      |            controller "hosts_resource".
+    |  +-----V------+   |                      |            hosts.py impl. "hosts_resource" controller and its detail_role() method which calls _get_roles()
+    |  |  api       +--------------------------+            get_roles() calls self.db_api.role_get_all() to get role info from database.
+    |  +------------+   |                                   self.db_api = daisy.db.get_api().
+    |                   |
+    |                   |                         +-->  daisy/daisy/db/
+    |  +------------+   |                         |         __init__.py impl. get_api() method which calls importutils.import_module(CONF.data_api) to
+    |  |            |   |                         |         allocate a api object. CONF.data_api is initialized as daisy.db.sqlalchemy.api by
+    |  |  daisy     |   |                         |         daisy/daisy/common/config.py before hand.
+    |  | database   +-----------------------------+
+    |  | impl.      |   |                               daisy/daisy/db/sqlalchemy/
+    |  |            |   |                                   api.py impl. api.role_get_all() methods which uses query=session.query(models.Role)...
+    |  +------------+   |                                   to query all roles in database.
+    +-------------------+
+
