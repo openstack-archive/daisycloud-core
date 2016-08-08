@@ -34,7 +34,7 @@ from daisy.common import exception
 from daisy.common import property_utils
 from daisy.common import utils
 from daisy.common import wsgi
-from daisy.common import vcpu_pin
+#from daisy.common import vcpu_pin
 from daisy import i18n
 from daisy import notifier
 import daisy.registry.client.v1.api as registry
@@ -622,8 +622,8 @@ class Controller(controller.BaseController):
         """
         self._enforce(req, 'get_host')
         host_meta = self.get_host_meta_or_404(req, id)
-        host_vcpu_pin = vcpu_pin.allocate_cpus(host_meta)
-        host_meta.update(host_vcpu_pin)
+        #host_vcpu_pin = vcpu_pin.allocate_cpus(host_meta)
+        #host_meta.update(host_vcpu_pin)
         if 'role' in host_meta and 'CONTROLLER_HA' in host_meta['role']:
             host_cluster_name = host_meta['cluster']
             params = {'filters': {u'name': host_cluster_name}}
@@ -1928,7 +1928,7 @@ class Controller(controller.BaseController):
 
             try:
                 subprocess.check_output(
-                    'clush -S -w %s yum install epel-release'
+                    'clush -S -w %s yum install -y epel-release'
                     % (discover_host_meta['ip'],),
                     shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as e:
