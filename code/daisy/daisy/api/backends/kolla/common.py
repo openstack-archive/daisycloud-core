@@ -166,6 +166,7 @@ def get_controller_node_cfg(req, host_detail, cluster_networks):
     deploy_node_cfg.update({'host_name': host_name})
     return deploy_node_cfg
 
+
 def get_computer_node_cfg(req, host_detail, cluster_networks):
     host_name = host_detail['name'].split('.')[0]
     host_mgt_network = get_host_interface_by_network(host_detail, 'MANAGEMENT')
@@ -180,6 +181,7 @@ def get_computer_node_cfg(req, host_detail, cluster_networks):
     deploy_node_cfg.update({'dat_macname': host_dat_macname})
     deploy_node_cfg.update({'host_name': host_name})
     return deploy_node_cfg
+
 
 def get_roles_and_hosts_list(req, cluster_id):
     roles_id_list = set()
