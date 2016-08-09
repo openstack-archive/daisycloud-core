@@ -115,12 +115,15 @@ def get_version_files():
     ver_path = get_version_path()
     ver_files = []
     ver_file_format = ['.iso']
-    items = os.listdir(ver_path)
-    for item in items:
-        full_path = os.path.join(ver_path, item)
-        if os.path.isfile(full_path) \
-                and os.path.splitext(full_path)[1] in ver_file_format:
-            ver_files.append(item)
+    try:
+        items = os.listdir(ver_path)
+        for item in items:
+            full_path = os.path.join(ver_path, item)
+            if os.path.isfile(full_path) \
+                    and os.path.splitext(full_path)[1] in ver_file_format:
+                ver_files.append(item)
+    except Exception, e:
+        ver_files = []
     return ver_files
 
 

@@ -27,12 +27,14 @@ def get_files():
     VER_PATH = get_version_path()
 
     files = []
-    items = os.listdir(VER_PATH)
-
-    for item in items:
-        full_path = os.path.join(VER_PATH, item)
-        if os.path.isfile(full_path):
-            files.append(item)
+    try:
+        items = os.listdir(VER_PATH)
+        for item in items:
+            full_path = os.path.join(VER_PATH, item)
+            if os.path.isfile(full_path):
+                files.append(item)
+    except Exception, e:
+        files = ['Directory of the Version file does not exist.']
 
     return files
 
