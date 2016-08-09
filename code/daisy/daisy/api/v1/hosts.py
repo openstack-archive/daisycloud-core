@@ -622,8 +622,12 @@ class Controller(controller.BaseController):
         """
         self._enforce(req, 'get_host')
         host_meta = self.get_host_meta_or_404(req, id)
-        host_vcpu_pin = vcpu_pin.allocate_cpus(host_meta)
-        host_meta.update(host_vcpu_pin)
+        if host_meta.get("hwm_id"):
+            self.check_discover_state_with_hwm(req, host_meta)
+        else:
+            self.check_discover_state_with_no_hwm(req, host_meta)
+        # host_vcpu_pin = vcpu_pin.allocate_cpus(host_meta)
+        # host_meta.update(host_vcpu_pin)
         if 'role' in host_meta and 'CONTROLLER_HA' in host_meta['role']:
             host_cluster_name = host_meta['cluster']
             params = {'filters': {u'name': host_cluster_name}}
