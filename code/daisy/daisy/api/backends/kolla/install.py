@@ -394,7 +394,7 @@ class KOLLAInstallTask(Thread):
                                                self.message, 10)
             try:
                 exc_result = subprocess.check_output(
-                    '%s/kolla/tools/kolla-ansible prechecks -i '
+                    'cd %s/kolla && ./tools/kolla-ansible prechecks -i '
                     '%s/kolla/ansible/inventory/multinode' %
                     (self.kolla_file, self.kolla_file),
                     shell=True, stderr=subprocess.STDOUT)
@@ -414,10 +414,10 @@ class KOLLAInstallTask(Thread):
                 update_all_host_progress_to_db(self.req, role_id_list,
                                                host_id_list,
                                                kolla_state['INSTALLING'],
-                                               self.message, 30)
+                                               self.message, 20)
             try:
                 exc_result = subprocess.check_output(
-                    '%s/kolla/tools/kolla-ansible deploy -i '
+                    'cd %s/kolla && ./tools/kolla-ansible deploy -i '
                     '%s/kolla/ansible/inventory/multinode' %
                     (self.kolla_file, self.kolla_file),
                     shell=True, stderr=subprocess.STDOUT)
@@ -433,7 +433,30 @@ class KOLLAInstallTask(Thread):
             else:
                 LOG.info(_("kolla-ansible deploy successfully!"))
                 fp.write(exc_result)
-                self.message = "install successfully!"
+                self.message = "deploy successfully!"
+                update_all_host_progress_to_db(self.req, role_id_list,
+                                               host_id_list,
+                                               kolla_state['INSTALLING'],
+                                               self.message, 90)
+            try:
+                exc_result = subprocess.check_output(
+                    'cd %s/kolla && ./tools/kolla-ansible post-deploy -i '
+                    '%s/kolla/ansible/inventory/multinode' %
+                    (self.kolla_file, self.kolla_file),
+                    shell=True, stderr=subprocess.STDOUT)
+            except subprocess.CalledProcessError as e:
+                self.message = "kolla-ansible post-deploy failed!"
+                update_all_host_progress_to_db(self.req, role_id_list,
+                                               host_id_list,
+                                               kolla_state['INSTALL_FAILED'],
+                                               self.message)
+                LOG.info(_("kolla-ansible post-deploy failed!"))
+                fp.write(e.output.strip())
+                exit()
+            else:
+                LOG.info(_("kolla-ansible post-deploy successfully!"))
+                fp.write(exc_result)
+                self.message = "post-deploy successfully!"
                 update_all_host_progress_to_db(self.req, role_id_list,
                                                host_id_list,
                                                kolla_state['ACTIVE'],
