@@ -213,7 +213,7 @@ def get_cluster_kolla_config(req, cluster_id):
             for role_host in role_hosts:
                 host_detail = kolla_cmn.get_host_detail(
                     req, role_host['host_id'])
-                deploy_host_cfg = kolla_cmn.get_deploy_node_cfg(
+                deploy_host_cfg = kolla_cmn.get_controller_node_cfg(
                     req, host_detail, cluster_networks)
                 mgt_ip = deploy_host_cfg['mgtip']
                 host_name_ip = {
@@ -245,7 +245,7 @@ def get_cluster_kolla_config(req, cluster_id):
             for role_host in role_hosts:
                 host_detail = kolla_cmn.get_host_detail(
                     req, role_host['host_id'])
-                deploy_host_cfg = kolla_cmn.get_deploy_node_cfg(
+                deploy_host_cfg = kolla_cmn.get_computer_node_cfg(
                     req, host_detail, cluster_networks)
                 mgt_ip = deploy_host_cfg['mgtip']
                 host_name_ip = {
