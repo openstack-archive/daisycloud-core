@@ -24,7 +24,7 @@ import logging
 LOG = logging.getLogger(__name__)
 
 
-def count_deploy_info(host_list):
+def count_deploy_info(backends, host_list):
     deploy_data = {
         "success_host_num": 0,
         "on_going_host_num": 0,
@@ -35,12 +35,13 @@ def count_deploy_info(host_list):
         "hosts": []}
     for host in host_list:
         deploy_info = host_views.\
-            get_deploy_info(host.os_status,
-                            getattr(host, "role_status", None),
-                            host.os_progress,
-                            host.messages,
-                            getattr(host, "role_progress", 0),
-                            getattr(host, "role_messages", " "))
+            get_backends_deploy_info(backends,
+                                     host.os_status,
+                                     getattr(host, "role_status", None),
+                                     host.os_progress,
+                                     host.messages,
+                                     getattr(host, "role_progress", 0),
+                                     getattr(host, "role_messages", " "))
         if deploy_info.get("count", None):
             deploy_data[deploy_info["count"]] += 1
         host = {
@@ -81,8 +82,13 @@ class ClusterView(tables.DataTableView):
 
         qp = {"cluster_id": context["cluster_id"]}
         host_list = api.daisy.host_list(self.request, filters=qp)
-        context["data"] = count_deploy_info(host_list)
+        backends = host_views.get_backend_type_by_role_list(self.request)
+        context["data"] = count_deploy_info(backends, host_list)
         return context
+
+    def get_backends(self):
+        backends = host_views.get_backend_type_by_role_list(self.request)
+        return backends
 
     def get_data(self):
         cluster_id = self.kwargs["cluster_id"]
@@ -121,8 +127,9 @@ class ClusterView(tables.DataTableView):
 
             if not hasattr(host, 'role_status'):
                 host.role_status = ""
-
+            backends = host_views.get_backend_type_by_role_list(self.request)
             host_status_list.append({
+                "backends": backends,
                 "host_name": host.name,
                 "host_manager_ip": host_manage_ip,
                 "host_os_progress": host.os_progress,
@@ -163,7 +170,8 @@ def update_deploy_info(request, cluster_id):
     try:
         qp = {"cluster_id": cluster_id}
         host_list = api.daisy.host_list(request, filters=qp)
-        deploy_data = count_deploy_info(host_list)
+        backends = host_views.get_backend_type_by_role_list(request)
+        deploy_data = count_deploy_info(backends, host_list)
     except Exception as e:
         status_code = 500
         LOG.error("update deploy info failed: %s" % e)

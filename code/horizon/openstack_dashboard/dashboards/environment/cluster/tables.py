@@ -114,8 +114,15 @@ class ReDeployHost(tables.BatchAction):
 
 def get_install_status(host_detail):
     role_status = host_detail.get("role_status", None)
+    '''
     deploy_info = host_views.get_deploy_info(host_detail["host_os_status"],
                                              role_status)
+    '''
+    LOG.info("hi kolla: %s" % host_detail["backends"][0])
+    deploy_info = host_views.\
+        get_backends_deploy_info(list(host_detail["backends"]),
+                                 host_detail["host_os_status"],
+                                 role_status)
     return _(deploy_info.get("i18n", 'unknown'))
 
 
