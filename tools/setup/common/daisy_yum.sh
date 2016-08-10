@@ -50,12 +50,13 @@ function yum_set
 {
     rm -rf /var/lib/rpm/__db.*
     echo "creating yum repo, please wait for several seconds..."
+    yum install -y createrepo
     make_yum_server
     make_yum_client
     echo "creating epel yum repo, please wait for several seconds..."
-    yum install epel-release
+    yum install -y epel-release
     echo "creating openstack mitaka yum repo, please wait for several seconds..."
-    yum install centos-release-openstack-mitaka
+    yum install -y centos-release-openstack-mitaka
 }
 
 fi
