@@ -144,6 +144,18 @@ def get_format_memory_size(str_memory):
     return memory_size
 
 
+def get_suggest_os_cpus():
+    # TO DO
+    # get suggest os cpu kernal number of host form ironic
+    return "1"
+
+
+def get_suggest_dvs_cpus():
+    # TO DO
+    # get suggest dvs cpu kernal number of host form ironic
+    return "1"
+
+
 class IndexView(tables.DataTableView):
     table_class = HostsTable
     template_name = 'environment/deploy/hosts_config.html'
@@ -180,8 +192,8 @@ class IndexView(tables.DataTableView):
                     "vswitch_type": "",
                     "numa_node0": "",
                     "numa_node1": "",
-                    "suggest_os_cpus": host_detail.suggest_os_cpus,
-                    "suggest_dvs_cpus": host_detail.suggest_dvs_cpus}
+                    "suggest_os_cpus": get_suggest_os_cpus,
+                    "suggest_dvs_cpus":get_suggest_dvs_cpus}
 
                 if hasattr(host_detail, "interfaces"):
                     for nic in host_detail.interfaces:
@@ -199,10 +211,6 @@ class IndexView(tables.DataTableView):
                     host_info["roles"] = host_detail.role
                 if hasattr(host_detail, "cpu"):
                     host_info["cpu_number"] = host_detail.cpu["total"]
-                if hasattr(host_detail.cpu, "numa_node0"):
-                    host_info["numa_node0"] = host_detail.cpu["numa_node0"]
-                if hasattr(host_detail.cpu, "numa_node1"):
-                    host_info["numa_node1"] = host_detail.cpu["numa_node1"]
                 if hasattr(host_detail, "memory"):
                     host_info["memory_size"] = \
                         get_format_memory_size(host_detail.memory["total"])
