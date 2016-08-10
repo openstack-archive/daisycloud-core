@@ -29,9 +29,7 @@ from daisy.common import exception
 from daisy.api.backends.kolla import config
 import daisy.api.backends.common as daisy_cmn
 import daisy.api.backends.kolla.common as kolla_cmn
-import re
-import commands
-
+import ConfigParser
 
 LOG = logging.getLogger(__name__)
 _ = i18n._
@@ -67,6 +65,7 @@ daisy_kolla_path = kolla_cmn.daisy_kolla_path
 install_kolla_progress = 0.0
 install_mutex = threading.Lock()
 kolla_file = "/home/kolla_install"
+daisy_conf_file = "/home/daisy_install"
 
 
 def update_progress_to_db(req, role_id_list,
@@ -163,26 +162,9 @@ def _check_ping_hosts(ping_ips, max_ping_times):
 
 
 def _get_local_ip():
-    (status, output) = commands.getstatusoutput('ifconfig')
-    netcard_pattern = re.compile('\S*: ')
-    ip_str = '([0-9]{1,3}\.){3}[0-9]{1,3}'
-    # ip_pattern = re.compile('(inet %s)' % ip_str)
-    pattern = re.compile(ip_str)
-    local_ip = ''
-    nic_ip = {}
-    for netcard in re.finditer(netcard_pattern, str(output)):
-        nic_name = netcard.group().split(': ')[0]
-        if nic_name == "lo":
-            continue
-        ifconfig_nic_cmd = "ifconfig %s" % nic_name
-        (status, output) = commands.getstatusoutput(ifconfig_nic_cmd)
-        if status:
-            continue
-        ip = pattern.search(str(output))
-        if ip and ip.group().split('.')[0] != "172" and \
-                ip.group() != "127.0.0.1":
-            nic_ip[nic_name] = ip.group()
-            local_ip = nic_ip[nic_name]
+    config = ConfigParser.ConfigParser()
+    config.read("%s/daisy.conf" % daisy_conf_file)
+    local_ip = config.get("DEFAULT", "daisy_management_ip")
     return local_ip
 
 
