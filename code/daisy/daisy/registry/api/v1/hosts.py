@@ -354,12 +354,7 @@ class Controller(object):
                                                    orig_config_set_id)
                 except exception.Forbidden as e:
                     LOG.info(e)
-
-            # delete ironic host by mac
-            if host_interface:
-                min_mac = utils.get_host_min_mac(host_interface)
-                self.ironicclient.physical_node.get(min_mac)
-                self.ironicclient.physical_node.delete(min_mac)
+            # TODO delete ironic host by mac
             return dict(host=deleted_host)
         except exception.ForbiddenPublicImage:
             msg = _LI("Delete denied for public host %(id)s") % {'id': id}
