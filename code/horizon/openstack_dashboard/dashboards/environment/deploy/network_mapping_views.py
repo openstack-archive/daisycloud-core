@@ -22,6 +22,7 @@ from openstack_dashboard.dashboards.environment.cluster import role \
 from openstack_dashboard.dashboards.environment.deploy import actions
 from openstack_dashboard.dashboards.environment.deploy import wizard_cache
 from openstack_dashboard.dashboards.environment.deploy import deploy_rule_lib
+from openstack_dashboard.dashboards.environment.host import views as host_views
 
 import logging
 LOG = logging.getLogger(__name__)
@@ -298,9 +299,11 @@ def assign_net_work(request, cluster_id):
             ha_role = deploy_rule_lib.get_ha_role(request, cluster_id)
             host_dict["interfaces"] = host_interfaces
             network_list = api.daisy.network_list(request, cluster_id)
+            backends = host_views.get_backend_type_by_role_list(request)
             deploy_rule_lib.host_net_plane_rule(ha_role,
                                                 host_dict,
-                                                network_list)
+                                                network_list,
+                                                backends)
             api.daisy.host_update(request,
                                   host_id,
                                   cluster=cluster_id,
