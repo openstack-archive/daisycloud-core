@@ -272,7 +272,7 @@ def network_map_4_net_port_rule(host, networks):
             raise exceptions.ConfigurationError(message)
 
 
-def host_net_plane_rule(ha_role, host, networks):
+def host_net_plane_rule(ha_role, host, networks, backends=[]):
     if not host.get("interfaces", None):
         return
     if not host.get("role", None):
@@ -281,6 +281,7 @@ def host_net_plane_rule(ha_role, host, networks):
     if not has_net_plane(host, "MANAGEMENT", networks)[0]:
         message = _("All hosts must be config MANAGEMENT net plane.")
         raise exceptions.ConfigurationError(message)
+    backend = str(backends[0])
     if backend == "tecs":
         # control node net plane rule
         control_node_net_plane_rule(ha_role, host, networks)
