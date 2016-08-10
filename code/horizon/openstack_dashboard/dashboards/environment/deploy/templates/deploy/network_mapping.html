@@ -485,12 +485,6 @@
                     ui.draggable.animate({left: "0px", top: "0px"},"slow");
                     return;
                 }
-                
-                if ( $(this).find(".dv_drop_net_plane_base").length > 0
-                     && IsDataNetPlane(net_plane_name)) {
-                    ui.draggable.animate({left: "0px", top: "0px"},"slow");
-                    return;                
-                }
 
                 AddHostNetPlane($(this), net_port_name, net_plane_name, net_plane_type);
 
