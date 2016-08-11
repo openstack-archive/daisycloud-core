@@ -300,7 +300,7 @@ class KOLLAInstallTask(Thread):
         self.ping_times = 36
         self.log_file = "/var/log/daisy/kolla_%s_deploy.log" % self.cluster_id
         self.host_prepare_file = "/home/kolla"
-        self.kolla_file = "/home/kolla_install/"
+        self.kolla_file = "/home/kolla_install"
 
     def run(self):
         try:
