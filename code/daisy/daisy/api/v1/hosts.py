@@ -1962,6 +1962,24 @@ class Controller(controller.BaseController):
                             % discover_host_meta['ip']))
                 fp.write(e.output.strip())
                 return
+            
+            try:
+                subprocess.check_output(
+                    'clush -S -w %s yum install -y net-tools'
+                    % (discover_host_meta['ip'],),
+                    shell=True, stderr=subprocess.STDOUT)
+            except subprocess.CalledProcessError as e:
+                update_info = {}
+                update_info['status'] = 'DISCOVERY_FAILED'
+                update_info['message'] = \
+                    "install net-tools rpm for %s failed!"\
+                    % discover_host_meta['ip']
+                self.update_progress_to_db(req, update_info,
+                                           discover_host_meta)
+                LOG.error(_("install net-tools rpm for %s failed!"
+                            % discover_host_meta['ip']))
+                fp.write(e.output.strip())
+                return
 
             try:
                 exc_result = subprocess.check_output(
