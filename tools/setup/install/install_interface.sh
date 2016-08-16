@@ -75,6 +75,12 @@ function all_install
 
     write_install_log "install clustershell rpm"
     install_rpm_by_yum "clustershell"
+    
+    write_install_log "install httpd rpm"
+    install_rpm_by_yum "httpd"
+
+    write_install_log "install net-tools rpm"
+    install_rpm_by_yum "net-tools"
 
     if [ -f "/etc/zte-docker" ];then
         write_install_log "install pxe_docker_install rpm"
