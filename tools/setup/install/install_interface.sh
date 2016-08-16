@@ -286,7 +286,7 @@ function all_install
     config_get_node_info
 
     write_install_log "Daisy Install Successfull..."
-    
+
     config_file="/home/daisy_install/daisy.conf"
     [ ! -e $config_file ] && return
     get_config "$config_file" default_backend_types
@@ -294,7 +294,7 @@ function all_install
     kolla=`echo $default_backend_types_params|grep 'kolla'|wc -l`
     if [ $kolla -ne 0 ];then
         write_install_log "Begin install kolla and depends..."
-        kolla_install  
+        kolla_install
     fi
 }
 _INSTALL_INTERFACE_FILE="install_interface.sh"
