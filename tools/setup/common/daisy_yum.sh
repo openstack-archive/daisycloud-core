@@ -38,7 +38,7 @@ function make_yum_client
         daisy_yum="${daisy_yum}"" --enablerepo=TFG_DEPEND_PACKAGE"
     fi
     yum clean all &>/dev/null
-    $daisy_yum install httpd
+    yum install -y httpd
     systemctl enable httpd
     systemctl start httpd || { echo "httpd start failed.";  exit 1; }
     httpd_path="/var/www/html/daisy_install"
