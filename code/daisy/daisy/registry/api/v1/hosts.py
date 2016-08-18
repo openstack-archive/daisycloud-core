@@ -418,6 +418,7 @@ class Controller(object):
         host_interface = self.db_api.get_host_interface(req.context, id)
 
         role_name = []
+        backends = set()
         if host_data.status == "with-role":
             host_roles = self.db_api.role_host_member_get(
                 req.context, None, id)
@@ -425,6 +426,7 @@ class Controller(object):
                 role_info = self.db_api.role_get(
                     req.context, host_role.role_id)
                 role_name.append(role_info['name'])
+                backends.add(role_info.get('deployment_backend'))
         host_cluster = self.db_api.cluster_host_member_find(
             req.context, None, id)
         if host_cluster:
@@ -442,6 +444,7 @@ class Controller(object):
             host_data['host']['os_version'] = os_version_dict
         if role_name:
             host_data['host']['role'] = role_name
+            host_data['host']['backends'] = backends
         if cluster_name:
             host_data['host']['cluster'] = cluster_name
 
