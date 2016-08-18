@@ -128,12 +128,6 @@ class HostManager(base.ManagerWithFind):
         host_id = base.getid(host)
         resp, body = self.client.get('/v1/nodes/%s'
                                      % urlparse.quote(str(host_id)))
-        backend_data = {u'deployment_backend': None}
-        resp_extra, get_deployment_backend = self.client.get(
-            '/v1/roles/detail?limit=20')
-        backend_data[u'deployment_backend'] = get_deployment_backend[
-            'roles'][0]['deployment_backend']
-        body['host'].update(backend_data)
         # meta = self._host_meta_from_headers(resp.headers)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
