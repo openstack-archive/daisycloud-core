@@ -31,17 +31,12 @@ from daisy.common import exception
 from daisy.api import common
 from daisy.common import utils
 import daisy.registry.client.v1.api as registry
-from ironicclient import client as ironic_client
 from daisyclient.v1 import client as daisy_client
 import daisy.api.backends.common as daisy_cmn
 import daisy.api.backends.tecs.common as tecs_cmn
 
 
 import ConfigParser
-DISCOVER_DEFAULTS = {
-    'listen_port': '5050',
-    'ironic_url': 'http://127.0.0.1:6385/v1',
-}
 
 LOG = logging.getLogger(__name__)
 _ = i18n._
@@ -77,16 +72,6 @@ LINUX_BOND_MODE = {'balance-rr': '0', 'active-backup': '1',
                    'balance-alb': '6'}
 
 daisy_tecs_path = tecs_cmn.daisy_tecs_path
-
-
-def get_ironicclient():  # pragma: no cover
-    """Get Ironic client instance."""
-    config_discoverd = ConfigParser.ConfigParser(defaults=DISCOVER_DEFAULTS)
-    config_discoverd.read("/etc/ironic-discoverd/discoverd.conf")
-    ironic_url = config_discoverd.get("discoverd", "ironic_url")
-    args = {'os_auth_token': 'fake',
-            'ironic_url': ironic_url}
-    return ironic_client.get_client(1, **args)
 
 
 def get_daisyclient():
@@ -154,8 +139,7 @@ def pxe_server_build(req, install_meta):
                 'net_mask': net_mask,
                 'client_ip_begin': client_ip_begin,
                 'client_ip_end': client_ip_end}
-        ironic = get_ironicclient()
-        ironic.daisy.build_pxe(**args)
+        #TODO:add command to build pxe
     except exception.Invalid as e:
         msg = "build pxe server failed"
         LOG.error(msg)
@@ -344,37 +328,25 @@ class OSInstall():
         self.max_parallel_os_num = int(CONF.max_parallel_os_number)
         self.cluster_hosts_install_timeout = (
             self.max_parallel_os_num / 4 + 2) * 60 * (12 * self.time_step)
-        self.ironicclient = get_ironicclient()
         self.daisyclient = get_daisyclient()
 
     def _set_boot_or_power_state(self, user, passwd, addr, action):
         count = 0
         repeat_times = 24
         while count < repeat_times:
-            set_obj = self.ironicclient.daisy.set_boot_or_power_state(user,
-                                                                      passwd,
-                                                                      addr,
-                                                                      action)
+            #TODO: use ipmi command to reset or set pxe/disk mode
             set_dict = dict([(f, getattr(set_obj, f, ''))
                              for f in ['return_code', 'info']])
             rc = int(set_dict['return_code'])
             if rc == 0:
                 LOG.info(
-                    _("Set %s to '%s' successfully for %s times by ironic" % (
+                    _("Set %s to '%s' successfully for %s times" % (
                         addr, action, count + 1)))
-                # One host set 'disk' return success, but it still 'pxe'
-                # mode in German site. If we have a method to confirm,
-                # this can be deleted.
-                if action == 'pxe' or action == 'disk':
-                    self.ironicclient.daisy.set_boot_or_power_state(user,
-                                                                    passwd,
-                                                                    addr,
-                                                                    action)
                 break
             else:
                 count += 1
                 LOG.info(
-                    _("Try setting %s to '%s' failed for %s times by ironic"
+                    _("Try setting %s to '%s' failed for %s times"
                         % (addr, action, count)))
                 time.sleep(count * 2)
         if count >= repeat_times:
@@ -513,7 +485,7 @@ class OSInstall():
             kwargs['nova_lv_size'] = host_detail['nova_lv_size']
         else:
             kwargs['nova_lv_size'] = 0
-        install_os_obj = self.ironicclient.daisy.install_os(**kwargs)
+        #TODO:add command to os prepare
         install_os_dict = dict(
             [(f, getattr(install_os_obj, f, '')) for f in
              ['return_code', 'info']])
@@ -527,7 +499,7 @@ class OSInstall():
                            'os_progress': 0,
                            'messages': install_os_description}
             update_db_host_status(self.req, host_detail['id'], host_status)
-            msg = "ironic install os return failed for host %s" % host_detail[
+            msg = "install os return failed for host %s" % host_detail[
                 'id']
             raise exception.OSInstallFailed(message=msg)
 
@@ -593,9 +565,7 @@ class OSInstall():
 
     def _query_host_progress(self, host_detail, host_status, host_last_status):
         host_id = host_detail['id']
-        install_result_obj = \
-            self.ironicclient.daisy.get_install_progress(
-                host_detail['dhcp_mac'])
+        #TODO: add commang to query os pogress
         install_result = dict([(f, getattr(install_result_obj, f, ''))
                                for f in ['return_code', 'info', 'progress']])
         rc = int(install_result['return_code'])
