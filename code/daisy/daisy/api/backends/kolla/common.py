@@ -153,7 +153,7 @@ def get_controller_node_cfg(req, host_detail, cluster_networks):
     host_name = host_detail['name'].split('.')[0]
     host_mgt_network = get_host_interface_by_network(host_detail, 'MANAGEMENT')
     host_mgt_macname = host_mgt_network['name']
-    host_mgt_ip = host_mgt_network['ip']
+    host_mgt_ip = get_host_network_ip(req, host_detail, cluster_networks, 'MANAGEMENT')
     host_pub_network = get_host_interface_by_network(host_detail, 'PUBLICAPI')
     host_pub_macname = host_pub_network['name']
     if not host_mgt_ip:
@@ -170,7 +170,7 @@ def get_controller_node_cfg(req, host_detail, cluster_networks):
 def get_computer_node_cfg(req, host_detail, cluster_networks):
     host_name = host_detail['name'].split('.')[0]
     host_mgt_network = get_host_interface_by_network(host_detail, 'MANAGEMENT')
-    host_mgt_ip = host_mgt_network['ip']
+    host_mgt_ip = get_host_network_ip(req, host_detail, cluster_networks, 'MANAGEMENT')
     host_dat_network = get_host_interface_by_network(host_detail, 'physnet1')
     host_dat_macname = host_dat_network['name']
     if not host_mgt_ip:
