@@ -161,6 +161,12 @@ class Host(BASE, DaisyBase):
     os_cpus = Column(String(255))
     dvs_cpus = Column(String(255))
     config_set_id = Column(String(36))
+    system = Column(Text())
+    cpu = Column(Text())
+    memory = Column(Text())
+    disk = Column(Text())
+    devices = Column(Text())
+    pci = Column(Text())
 
 
 class DiscoverHost(BASE, DaisyBase):
