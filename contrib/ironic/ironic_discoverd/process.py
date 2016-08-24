@@ -111,7 +111,13 @@ def format_node_info_for_daisy_client(node_info, ipmi_addr, os_status,hostname):
                   'ipmi_addr': ipmi_addr,
                   'interfaces': interface_list,
                   'os_status': 'init',
-                  'dmi_uuid': node_info.get('system').get('uuid', None)}
+                  'dmi_uuid': node_info.get('system').get('uuid', None),
+                  'system': node_info.get('system'),
+                  'cpu': node_info.get('cpu'),
+                  'memory': node_info.get('memory'),
+                  'disk': node_info.get('disk'),
+                  'devices': node_info.get('devices'),
+                  'pci': node_info.get('pci')}
 
     if os_status:
         daisy_data['os_status'] = 'active'
