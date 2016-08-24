@@ -75,13 +75,15 @@ def process(node_info):
         raise utils.Error(msg)
 
 
-def write_data_to_daisy(node_info, ipmi_addr, os_status=None,hostname=None):
+def write_data_to_daisy(node_info, ipmi_addr, os_status=None, hostname=None):
     daisy_client = utils.get_daisy_client()
-    daisy_data = format_node_info_for_daisy_client(node_info, ipmi_addr, os_status,hostname)
+    daisy_data = format_node_info_for_daisy_client(node_info, ipmi_addr,
+                                                   os_status, hostname)
     daisy_client.hosts.add(**daisy_data)
 
 
-def format_node_info_for_daisy_client(node_info, ipmi_addr, os_status,hostname):
+def format_node_info_for_daisy_client(node_info, ipmi_addr,
+                                      os_status, hostname):
     interface_list = []
     interfaces = node_info.get('interfaces', {})
     for value in interfaces.values():
@@ -105,18 +107,24 @@ def format_node_info_for_daisy_client(node_info, ipmi_addr, os_status,hostname):
 
     min_mac = find_min_mac_in_node_info(node_info)
     unique_mac = ''.join(min_mac.split(":"))
-    
     daisy_data = {'description': 'default',
                   'name': unique_mac,
                   'ipmi_addr': ipmi_addr,
                   'interfaces': interface_list,
                   'os_status': 'init',
-                  'dmi_uuid': node_info.get('system').get('uuid', None)}
+                  'dmi_uuid': node_info.get('system').get('uuid', None),
+                  'system': node_info.get('system'),
+                  'cpu': node_info.get('cpu'),
+                  'memory': node_info.get('memory'),
+                  'disk': node_info.get('disk'),
+                  'devices': node_info.get('devices'),
+                  'pci': node_info.get('pci')}
 
     if os_status:
         daisy_data['os_status'] = 'active'
         daisy_data['name'] = hostname
     return daisy_data
+
 
 def write_data_to_ironic(node_info):
     """Parse data from the discovery ramdis.
@@ -137,6 +145,7 @@ def write_data_to_ironic(node_info):
     else:
         LOG.debug("Don't find uuid.")
 
+
 def find_min_mac_in_node_info(node_info):
     interfaces_dict = node_info['interfaces']
     mac_list = []
@@ -147,6 +156,7 @@ def find_min_mac_in_node_info(node_info):
     LOG.debug('min mac=%s', min_mac)
     return min_mac
 
+
 def format_node_info_for_ironic(node_info):
     patch = []
 
@@ -154,7 +164,7 @@ def format_node_info_for_ironic(node_info):
         property_dict = node_info[property]
 
         for key, value in property_dict.items():
-            data_dict = {'op':'add'}
+            data_dict = {'op': 'add'}
             key = key.replace(':', '-').replace('.', '-')
             if property == 'disk':
                 data_dict['path'] = '/'+property+'s'+'/'+key
