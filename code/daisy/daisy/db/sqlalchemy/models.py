@@ -19,7 +19,7 @@ SQLAlchemy models for daisy data
 """
 
 import uuid
-
+from oslo_db.sqlalchemy import types as db_types
 from oslo_serialization import jsonutils
 from oslo_db.sqlalchemy import models
 from oslo_utils import timeutils
@@ -161,6 +161,12 @@ class Host(BASE, DaisyBase):
     os_cpus = Column(String(255))
     dvs_cpus = Column(String(255))
     config_set_id = Column(String(36))
+    system = Column(JSONEncodedDict(), default={}, nullable=False)
+    cpu = Column(JSONEncodedDict(), default={}, nullable=False)
+    memory = Column(JSONEncodedDict(), default={}, nullable=False)
+    disk = Column(JSONEncodedDict(), default={}, nullable=False)
+    devices = Column(JSONEncodedDict(), default={}, nullable=False)
+    pci = Column(JSONEncodedDict(), default={}, nullable=False)
 
 
 class DiscoverHost(BASE, DaisyBase):
