@@ -1,5 +1,5 @@
 #!/bin/bash
-# 
+#
 if [ ! "$_UNINSTALL_INTERFACE_FILE" ];then
 _UNINSTALL_INTERFACE_DIR=`pwd`
 cd $_UNINSTALL_INTERFACE_DIR/../common
@@ -13,7 +13,7 @@ cd $_UNINSTALL_INTERFACE_DIR
 function uninstall_daisy
 {
     echo "Will uninstall daisy rpm which has been install in the machines"
-    echo "clean all hosts discovery information..." 
+    echo "clean all hosts discovery information..."
     pxe_os_install_clean all
     echo "stop all service..."
     stop_service_all
@@ -21,9 +21,9 @@ function uninstall_daisy
     remove_rpms_by_yum "daisy python-daisyclient  python-daisy"
     remove_rpms_by_yum "openstack-ironic-discoverd python-ironic-discoverd"
     rpm -e  pxe_server_install
-    for i in `ps -elf | grep daisy-api |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $i;done 
-    for j in `ps -elf | grep daisy-registry |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done 
-    for j in `ps -elf | grep rabbitmq |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done 
+    for i in `ps -elf | grep daisy-api |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $i;done
+    for j in `ps -elf | grep daisy-registry |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
+    for j in `ps -elf | grep rabbitmq |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
     for j in `ps -elf | grep ironic-api |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
     for j in `ps -elf | grep ironic-conductor |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
     for j in `ps -elf | grep ironic-discoverd |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
@@ -33,7 +33,6 @@ function uninstall_daisy
     echo ${delete_ironic_sql} | mysql
     if [ $? -ne 0 ];then
         echo "Error:delete ironic database failed..."
-        exit 1
     fi
     # delect keystone database
     delete_keystone_sql="drop database IF EXISTS keystone"
@@ -41,7 +40,6 @@ function uninstall_daisy
     echo ${delete_keystone_sql} | mysql
     if [ $? -ne 0 ];then
         echo "Error:delete keystone database failed..."
-        exit 1
     fi
     # delect daisy database
     delete_daisy_sql="drop database IF EXISTS daisy"
@@ -49,8 +47,7 @@ function uninstall_daisy
     echo ${delete_daisy_sql} | mysql
     if [ $? -ne 0 ];then
         echo "Error:delete daisy database failed..."
-        exit 1
-    fi 
+    fi
     echo "remove container and image..."
     container_id=`docker ps -a |grep "registry"|awk -F' ' '{print $1}'`
     if [ -n "$container_id" ];then
@@ -70,7 +67,7 @@ function uninstall_daisy
     rm -rf /var/log/ironic/*
     rm -rf /var/log/rabbitmq/*
     rm -rf /root/daisyrc_admin
-    echo "Finish clean daisy!"  
+    echo "Finish clean daisy!"
 }
 
 _UNINSTALL_FUNC="uninstall_func.sh"
