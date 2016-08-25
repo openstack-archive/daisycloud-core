@@ -33,7 +33,6 @@ function uninstall_daisy
     echo ${delete_ironic_sql} | mysql
     if [ $? -ne 0 ];then
         echo "Error:delete ironic database failed..."
-        exit 1
     fi
     # delect keystone database
     delete_keystone_sql="drop database IF EXISTS keystone"
@@ -41,7 +40,6 @@ function uninstall_daisy
     echo ${delete_keystone_sql} | mysql
     if [ $? -ne 0 ];then
         echo "Error:delete keystone database failed..."
-        exit 1
     fi
     # delect daisy database
     delete_daisy_sql="drop database IF EXISTS daisy"
@@ -49,7 +47,6 @@ function uninstall_daisy
     echo ${delete_daisy_sql} | mysql
     if [ $? -ne 0 ];then
         echo "Error:delete daisy database failed..."
-        exit 1
     fi 
     echo "remove container and image..."
     container_id=`docker ps -a |grep "registry"|awk -F' ' '{print $1}'`
