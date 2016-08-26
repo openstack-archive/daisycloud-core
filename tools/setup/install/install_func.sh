@@ -1,4 +1,4 @@
-#!/bin/bash
+!/bin/bash
 # DAISY upgrade
 
 if [ ! "$_INSTALL_FUNC_FILE" ];then 
@@ -731,6 +731,15 @@ function daisyrc_admin
     fi
 }
 
+function config_pxe
+{
+    local config_file="/var/log/ironic/pxe.json"
+    if [ ! -e $config_file ];then
+        touch $config_file
+    fi 
+    echo -e "{\n\"build_pxe\":\"$2\",\n\"ip_addr_l\":\"$3\",\n\"ethname_l\":\"$1\",\n\"net_mask_l\":\"$4\",\n\"client_ip_begin\":\"$5\",\n\"client_ip_end\":\"$6\"\n}" > $config_file
+}
+
 function build_pxe_server
 {
     local ip=$1
@@ -751,27 +760,15 @@ function build_pxe_server
         
         optional_parameters=()
         get_config "$config_file" ip_address 
-        local ip_address_params=$config_answer
-        if [ ! -z $ip_address_params ];then
-            optional_parameters="--ip_address $ip_address_params "
-        fi
+        ip_address_params=$config_answer
         get_config "$config_file" net_mask 
-        local net_mask_params=$config_answer
-        if [ ! -z $net_mask_params ];then            
-            optional_parameters="$optional_parameters --net_mask $net_mask_params"
-        fi
+        net_mask_params=$config_answer
         get_config "$config_file" client_ip_begin 
-        local client_ip_begin_params=$config_answer
-        if [ ! -z $client_ip_begin_params ];then
-            optional_parameters="$optional_parameters --client_ip_begin $client_ip_begin_params"
-        fi
+        client_ip_begin_params=$config_answer
         get_config "$config_file" client_ip_end 
-        local client_ip_end_params=$config_answer
-        if [ ! -z $client_ip_end_params ];then
-            optional_parameters="$optional_parameters --client_ip_end $client_ip_end_params"
-        fi
-        ironic --ironic-url="http://${ip}:6385/v1" --os-auth-token daisy daisy-build-pxe $pxe_bond_name yes $optional_parameters >> $install_logfile 2>&1
-
+        client_ip_end_params=$config_answer
+        config_pxe $pxe_bond_name yes $ip_address_params $net_mask_params $client_ip_begin_params $client_ip_end_params
+        /usr/bin/pxe_server_install /var/log/ironic/pxe.json >> $install_logfile 2>&1
         # write dhcp cidr to DEPLOYMENT network of system for daisy
         # to decide which is pxe mac
         if [ "$ip_address_params" -a "$net_mask_params" ];then
