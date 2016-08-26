@@ -1,7 +1,7 @@
-#!/bin/bash
+!/bin/bash
 # DAISY upgrade
 
-if [ ! "$_INSTALL_FUNC_FILE" ];then 
+if [ ! "$_INSTALL_FUNC_FILE" ];then
 _INSTALL_FUNC_DIR=`pwd`
 
 cd $_INSTALL_FUNC_DIR/../common/
@@ -20,7 +20,7 @@ function ip2int()
     local ip=$1
     [ `echo $ip |grep "^[0-9]\{1,3\}\.\([0-9]\{1,3\}\.\)\{2\}[0-9]\{1,3\}$"` ] || { echo "ip of $ip format error."; exit 1; }
     ip_list=${ip//./ }
-    read -a ip_array <<<${ip_list}; 
+    read -a ip_array <<<${ip_list};
     int_num=`echo $(( ${ip_array[0]}<<24 | ${ip_array[1]}<<16 | ${ip_array[2]}<<8 | ${ip_array[3]} ))`
 }
 
@@ -50,7 +50,7 @@ function ip_to_cidr()
 
     ip2int "$ip"
     local ip_int=$int_num
-    ip2int "$netmask"    
+    ip2int "$netmask"
     local netmask_int=$int_num
 
     cidr0_int=$(( $ip_int & $netmask_int ))
@@ -88,7 +88,7 @@ function kolla_install
 
   write_install_log "Begin clone kolla..."
   if [ -e "/home/kolla_install/kolla" ];then
-      echo "kolla code already exist!" 
+      echo "kolla code already exist!"
   else
       mkdir -p /home/kolla_install
       cd /home/kolla_install
@@ -96,7 +96,7 @@ function kolla_install
       cd kolla
       git checkout stable/mitaka
   fi
-  cp -r /home/kolla_install/kolla/etc/kolla /etc 
+  cp -r /home/kolla_install/kolla/etc/kolla /etc
   write_install_log "Begin copy images..."
   if [ -f "/home/kolla_install/docker/registry-2.0.3.tgz" ];then
       echo "registry-2.0.3.tgz already exist!"
@@ -148,7 +148,7 @@ function get_ip_from_ping
     output_ip=$input_ip
     ping_result=`ping $input_ip -c 1 -w 5`
     if [ $? -eq 0 ];then
-        ping_result=`echo $ping_result|tr '(' ' '|tr ')' ' '` 
+        ping_result=`echo $ping_result|tr '(' ' '|tr ')' ' '`
         local ip=`echo $ping_result|sed -n '/from/ s/.*from[^0-9]* \([0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\).*/\1/p'`
         [ ! -z "$ip" ] && output_ip=$ip || echo -e "=============\nwarning: can't get ip address from \"ping $input_ip\"\n============="
     else
@@ -175,7 +175,7 @@ function get_default_gw_st
 
 function set_default_gw_st
 {
-    if [ -n "$defaultgw_ip" ] ; then 
+    if [ -n "$defaultgw_ip" ] ; then
     route add default gw  $defaultgw_ip
     fi
 }
@@ -186,47 +186,47 @@ function create_daisy_component
     write_install_log "Daisy init and create the component"
 
     /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-add "nova" "The OpenStack Compute component" >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of nova failed"; exit 1; } 
+    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of nova failed"; exit 1; }
 
     /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-add "cinder" "The OpenStack Block Storage component" >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of cinder failed"; exit 1; } 
+    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of cinder failed"; exit 1; }
 
     /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-add "glance" "The OpenStack Image component" >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of glance failed"; exit 1; } 
+    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of glance failed"; exit 1; }
 
     /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-add "heat" "The OpenStack Orchestration component" >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of heat failed"; exit 1; } 
+    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of heat failed"; exit 1; }
 
     /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-add "ceilometer" "The OpenStack Telemetry component" >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of ceilometer failed"; exit 1; } 
+    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of ceilometer failed"; exit 1; }
 
     /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-add "horizon" "The OpenStack dashboard component" >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of horizon failed"; exit 1; } 
+    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of horizon failed"; exit 1; }
 
     /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-add "neutron" "The OpenStack Networking component" >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of neutron failed"; exit 1; } 
+    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of neutron failed"; exit 1; }
 
     /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-add "keystone" "The OpenStack Identity component" >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of keystone failed"; exit 1; } 
+    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of keystone failed"; exit 1; }
 
     /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-add "ironic" "The OpenStack Bare Metal component" >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of ironic failed"; exit 1; } 
+    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of ironic failed"; exit 1; }
 
     /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-add "database" "Database component" >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of database failed"; exit 1; } 
+    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of database failed"; exit 1; }
 
     /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-add "amqp" "Message queue component" >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of amqp failed"; exit 1; } 
+    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of amqp failed"; exit 1; }
 
     /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-add "loadbalance" "Loadbalance component" >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of loadbalance failed"; exit 1; } 
+    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of loadbalance failed"; exit 1; }
 
     /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-add "ha" "High availability component" >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of ha failed"; exit 1; } 
-    
+    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of ha failed"; exit 1; }
+
     /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-add "camellia" "Camellia component" >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of camellia failed"; exit 1; } 
-    
+    [ "$?" -ne 0 ] && { write_install_log "Error:create the component of camellia failed"; exit 1; }
+
  #   /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-add "log" "Log component" >> $install_logfile 2>&1
  #   [ "$?" -ne 0 ] && { write_install_log "Error:create the component of log failed"; exit 1; }
 }
@@ -274,188 +274,188 @@ function create_daisy_service
 
     local lb_component_id=`/usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-list |grep -w "loadbalance" |awk -F  " " '{print $2}'` >> $install_logfile 2>&1
     [ "$?" -ne 0 ] && { write_install_log "Error:query the id of loadbalance component failed"; exit 1; }
-    
+
     local camellia_component_id=`/usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-list |grep -w "camellia" |awk -F  " " '{print $2}'` >> $install_logfile 2>&1
     [ "$?" -ne 0 ] && { write_install_log "Error:query the id of camellia component failed"; exit 1; }
-    
+
   #  local log_component_id=`/usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-list |grep -w "log" |awk -F  " " '{print $2}'` >> $install_logfile 2>&1
   #  [ "$?" -ne 0 ] && { write_install_log "Error:query the id of log component failed"; exit 1; }
 
     if [ ! -z $nova_component_id ];then
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "nova-api" "The nova api service" --component-id $nova_component_id --backup-type lb >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of nova-api failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of nova-api failed"; exit 1; }
 
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "nova-conductor" "The nova conductor service" --component-id $nova_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of nova conductor failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of nova conductor failed"; exit 1; }
 
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "nova-vncproxy" "The nova vnc proxy service" --component-id $nova_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of nova vnc proxy failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of nova vnc proxy failed"; exit 1; }
 
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "nova-sched" "The nova scheduler service" --component-id $nova_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of nova scheduler failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of nova scheduler failed"; exit 1; }
 
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "compute" "The nova compute service" --component-id $nova_component_id >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of nova scheduler failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of nova scheduler failed"; exit 1; }
 
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "nova-cert" "The nova certificate service" --component-id $nova_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of nova certificate failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of nova certificate failed"; exit 1; }
 
     else
         write_install_log "Error:there is no componet of nova"
-        exit 1;   
-    fi 
+        exit 1;
+    fi
 
     if [ ! -z $ironic_component_id ];then
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "ironic" "The nova ironic service" --component-id $ironic_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of ironic failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of ironic failed"; exit 1; }
     else
         write_install_log "Error:there is no componet of ironic"
-        exit 1;   
+        exit 1;
     fi
 
     if [ ! -z $glance_component_id ];then
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "glance" "The glance api service" --component-id $glance_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of glance api failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of glance api failed"; exit 1; }
     else
         write_install_log "Error:there is no componet of glance"
-        exit 1;   
+        exit 1;
     fi
 
     if [ ! -z $cinder_component_id ];then
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "cinder-api" "The cinder api service" --component-id $cinder_component_id --backup-type lb >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of cinder api failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of cinder api failed"; exit 1; }
 
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "cinder-scheduler" "The cinder scheduler service" --component-id $cinder_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of cinder scheduler failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of cinder scheduler failed"; exit 1; }
 
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "cinder-volume" "The cinder volumes service" --component-id $cinder_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of cinder volumes failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of cinder volumes failed"; exit 1; }
 
     else
         write_install_log "Error:there is no componet of cinder"
-        exit 1;   
+        exit 1;
     fi
 
     if [ ! -z $keystone_component_id ];then
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "keystone" "The keystone service" --component-id $keystone_component_id --backup-type lb >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of keystone failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of keystone failed"; exit 1; }
     else
         write_install_log "Error:there is no componet of keystone"
-        exit 1;   
+        exit 1;
     fi
 
     if [ ! -z $neutron_component_id ];then
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "neutron-server" "The neutron server service" --component-id $neutron_component_id --backup-type lb >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of neutron server failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of neutron server failed"; exit 1; }
 
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "neutron-l3" "The neutron l3 service" --component-id $neutron_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of neutron l3 failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of neutron l3 failed"; exit 1; }
 
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "neutron-dhcp" "The neutron dhcp service" --component-id $neutron_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of neutron dhcp failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of neutron dhcp failed"; exit 1; }
 
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "neutron-metadata" "The neutron metadata service" --component-id $neutron_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of neutron metadata failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of neutron metadata failed"; exit 1; }
     else
         write_install_log "Error:there is no componet of neutron"
-        exit 1;   
+        exit 1;
     fi
 
     if [ ! -z $horizon_component_id ];then
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "horizon" "The horizon service" --component-id $horizon_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of horizon failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of horizon failed"; exit 1; }
     else
         write_install_log "Error:there is no componet of horizon"
-        exit 1;   
+        exit 1;
     fi
 
     if [ ! -z $heat_component_id ];then
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "heat-api" "The heat api service" --component-id $heat_component_id --backup-type lb >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of heat api failed"; exit 1; }     
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of heat api failed"; exit 1; }
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "heat-api-cfn" "The heat api cfn service" --component-id $heat_component_id --backup-type lb >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of heat api cfn failed"; exit 1; }     
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of heat api cfn failed"; exit 1; }
         #/usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "heat-api-cloudwatch" "The heat api cfn cloudwatch service" --component-id $heat_component_id --backup-type ha>> $install_logfile 2>&1
         #[ "$?" -ne 0 ] && { write_install_log "Error:create the service of heat api cloudwatch failed"; exit 1;}
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "heat-engine" "The heat engine service" --component-id $heat_component_id --backup-type ha>> $install_logfile 2>&1
         [ "$?" -ne 0 ] && { write_install_log "Error:create the service of heat engine failed"; exit 1;}
     else
         write_install_log "Error:there is no componet of heat"
-        exit 1;   
+        exit 1;
     fi
     if [ ! -z $ceilometer_component_id ];then
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "ceilometer-api" "The ceilometer api service" --component-id $ceilometer_component_id --backup-type lb >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of ceilometer api failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of ceilometer api failed"; exit 1; }
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "ceilometer-collector" "The ceilometer service" --component-id $ceilometer_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of ceilometer collector failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of ceilometer collector failed"; exit 1; }
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "ceilometer-notification" "The ceilometer service" --component-id $ceilometer_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of ceilometer notification failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of ceilometer notification failed"; exit 1; }
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "ceilometer-central" "The ceilometer service" --component-id $ceilometer_component_id --backup-type ha >> $install_logfile 2>&1
-        
+
         [ "$?" -ne 0 ] && { write_install_log "Error:create the service of ceilometer central failed"; exit 1; }
-        
+
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "ceilometer-alarm" "The ceilometer service" --component-id $ceilometer_component_id --backup-type ha >> $install_logfile 2>&1
-        
+
         [ "$?" -ne 0 ] && { write_install_log "Error:create the service of ceilometer alarm failed"; exit 1; }
     else
         write_install_log "Error:there is no componet of ceilometer"
-        exit 1;   
+        exit 1;
     fi
 
     if [ ! -z $amqp_component_id ];then
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "amqp" "The amqp service" --component-id $amqp_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of amqp failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of amqp failed"; exit 1; }
     else
         write_install_log "Error:there is no componet of amqp"
-        exit 1;   
+        exit 1;
     fi
 
     if [ ! -z $database_component_id ];then
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "mariadb" "The database service" --component-id $database_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of mariadb failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of mariadb failed"; exit 1; }
     else
         write_install_log "Error:there is no componet of database"
-        exit 1;   
+        exit 1;
     fi
 
     if [ ! -z $ha_component_id ];then
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "ha" "The high availability service" --component-id $ha_component_id >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of high availability failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of high availability failed"; exit 1; }
     else
         write_install_log "Error:there is no componet of ha"
-        exit 1;   
+        exit 1;
     fi
 
     if [ ! -z $lb_component_id ];then
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "lb" "The loadbalance service" --component-id $lb_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of lb failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of lb failed"; exit 1; }
     else
         write_install_log "Error:there is no componet of loadbalance"
-        exit 1;   
+        exit 1;
     fi
 
     # now ceilometer use mariadb default, 10132825 20160202
     if [ ! -z $database_component_id ];then
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "mongodb" "The database service" --component-id $database_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of mongodb failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of mongodb failed"; exit 1; }
     else
         write_install_log "Error:there is no componet of database"
-        exit 1;   
+        exit 1;
     fi
-    
+
     if [ ! -z $camellia_component_id ];then
         /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "camellia-api" "The camellia-api service" --component-id $camellia_component_id --backup-type ha >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of camellia-api failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "Error:create the service of camellia-api failed"; exit 1; }
     else
         write_install_log "Error:there is no componet of camellia"
-        exit 1;   
+        exit 1;
     fi
-    
+
   # if [ ! -z $log_component_id ];then
   #      /usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" service-add "log-server" "The log-server service" --component-id $log_component_id --backup-type ha >> $install_logfile 2>&1
-  #      [ "$?" -ne 0 ] && { write_install_log "Error:create the service of log-server failed"; exit 1; } 
+  #      [ "$?" -ne 0 ] && { write_install_log "Error:create the service of log-server failed"; exit 1; }
   #  else
   #      write_install_log "Error:there is no componet of log"
-  #      exit 1;   
+  #      exit 1;
   #  fi
 }
 
@@ -497,21 +497,21 @@ function create_daisy_role_with_tecs
 
     if [ ! -z "$service_type_LB_list" ];then
         daisy --os-endpoint="http://${public_ip}:$bind_port" role-add "CONTROLLER_LB" "Controller role,backup type is loadbalance" --services $service_type_LB_list --type template --role-type CONTROLLER_LB >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "create the role of CONTROLLER_LB failed"; exit 1; } 
-    fi 
+        [ "$?" -ne 0 ] && { write_install_log "create the role of CONTROLLER_LB failed"; exit 1; }
+    fi
 
     if [ ! -z "$service_type_HA_list" ];then
         daisy --os-endpoint="http://${public_ip}:$bind_port" role-add "CONTROLLER_HA" "Controller role,backup type is HA,active/standby" --services $service_type_HA_list --type template  --role-type CONTROLLER_HA >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "create the role of CONTROLLER_HA failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "create the role of CONTROLLER_HA failed"; exit 1; }
     fi
 
     if [ ! -z $service_type_compute_list ];then
         daisy --os-endpoint="http://${public_ip}:$bind_port" role-add "COMPUTER" "Compute role" --services $service_type_compute_list --type template --role-type COMPUTER >> $install_logfile 2>&1
-        [ "$?" -ne 0 ] && { write_install_log "create the role of COMPUTER failed"; exit 1; } 
+        [ "$?" -ne 0 ] && { write_install_log "create the role of COMPUTER failed"; exit 1; }
     fi
 
     # daisy --os-endpoint="http://${public_ip}:$bind_port" role-add "DOCTOR" "Role for health monitoring" --type template >> $install_logfile 2>&1
-    # [ "$?" -ne 0 ] && { write_install_log "create the role of DOCTOR failed"; exit 1; } 
+    # [ "$?" -ne 0 ] && { write_install_log "create the role of DOCTOR failed"; exit 1; }
 }
 
 function create_daisy_role_with_zenic
@@ -525,7 +525,7 @@ function create_daisy_role_with_zenic
     [ "$?" -ne 0 ] && { write_install_log "create the role of ZENIC_NFM failed"; exit 1; }
 
     #daisy --os-endpoint="http://${public_ip}:$bind_port" role-add "ZENIC_MDB" "Role for zenic mongodb." --type template --deployment-backend zenic --role-type ZENIC_MDB >> $install_logfile 2>&1
-    #[ "$?" -ne 0 ] && { write_install_log "create the role of ZENIC_MDB failed"; exit 1; } 
+    #[ "$?" -ne 0 ] && { write_install_log "create the role of ZENIC_MDB failed"; exit 1; }
 }
 
 function create_daisy_role_with_proton
@@ -543,7 +543,7 @@ function create_daisy_role_with_kolla
     [ "$?" -ne 0 ] && { write_install_log "create the controller role of KOLLA failed"; exit 1; }
     daisy --os-endpoint="http://${public_ip}:$bind_port" role-add "COMPUTER" "Computer Role for kolla." --type template --deployment-backend kolla --role-type COMPUTER >> $install_logfile 2>&1
     [ "$?" -ne 0 ] && { write_install_log "create the computer role of KOLLA failed"; exit 1; }
-    
+
 }
 
 function create_daisy_service_role_with_cell
@@ -624,11 +624,11 @@ function modify_sudoers
 
     #echo update key $key to value $value in file $file ...
     local exist=`grep "^[[:space:]]*[^#]" $file | grep -c "[[:space:]]*$key[[:space:]]*"`
-    
+
     if [ $exist -gt 0 ];then
-        sed  -i "/^[^#]/s/Defaults    requiretty/#Defaults    requiretty/" $file       
+        sed  -i "/^[^#]/s/Defaults    requiretty/#Defaults    requiretty/" $file
     fi
-    
+
     sudoer_daisy="/etc/sudoers.d/daisy"
     if [ ! -e $sudoer_daisy ];then
         touch $sudoer_daisy
@@ -640,7 +640,7 @@ function config_ironic
 {
     local file=$1
     [ ! -e $file ] && { write_install_log "Error:$file is not exist"; exit 1;}
-    
+
     openstack-config --set "$file" DEFAULT "rpc_backend" "rabbit"
 
     get_public_ip
@@ -684,7 +684,7 @@ function config_rabbitmq_config
     {default_pass, <<"guest">>}
   ]},
   {kernel, [
-    
+
   ]}
 ].
 % EOF
@@ -693,7 +693,7 @@ EOF
 }
 
 function config_ironic_discoverd
-{    
+{
     local file=$1
     local ip=$2
     local daisy_file="/etc/daisy/daisy-api.conf"
@@ -705,7 +705,7 @@ function config_ironic_discoverd
         fi
     fi
     [ ! -e $file ] && { write_install_log "Error:$file is not exist"; exit 1;}
-    
+
     openstack-config --set "$file" discoverd "os_auth_token" "admin"
     openstack-config --set "$file" discoverd "ironic_url " "http://$ip:6385/v1"
     openstack-config --set "$file" discoverd "manage_firewall " "false"
@@ -719,7 +719,7 @@ function daisyrc_admin
     if [ -z $bind_port ];then
         bind_port="19292"
     fi
-    
+
     if [ ! -e $file ];then
        touch $file
        echo "export OS_AUTH_TOKEN=admin" >> $file
@@ -731,14 +731,23 @@ function daisyrc_admin
     fi
 }
 
+function config_pxe
+{
+    local config_file="/var/log/ironic/pxe.json"
+    if [ ! -e $config_file ];then
+        touch $config_file
+    fi
+    echo -e "{\n\"build_pxe\":\"$2\",\n\"ip_addr_l\":\"$3\",\n\"ethname_l\":\"$1\",\n\"net_mask_l\":\"$4\",\n\"client_ip_begin\":\"$5\",\n\"client_ip_end\":\"$6\"\n}" > $config_file
+}
+
 function build_pxe_server
 {
     local ip=$1
     local daisy_port=$2
 
     config_file="/home/daisy_install/daisy.conf"
-    [ ! -e $config_file ] && return 
-    
+    [ ! -e $config_file ] && return
+
     get_config "$config_file" build_pxe
     local build_pxe_params=$config_answer
     if [ "$build_pxe_params" == yes ];then
@@ -748,30 +757,18 @@ function build_pxe_server
         if [  -z $pxe_bond_name ];then
             write_install_log "Error:In the configuration file daisy.conf,eth_name is blank"
         fi
-        
-        optional_parameters=()
-        get_config "$config_file" ip_address 
-        local ip_address_params=$config_answer
-        if [ ! -z $ip_address_params ];then
-            optional_parameters="--ip_address $ip_address_params "
-        fi
-        get_config "$config_file" net_mask 
-        local net_mask_params=$config_answer
-        if [ ! -z $net_mask_params ];then            
-            optional_parameters="$optional_parameters --net_mask $net_mask_params"
-        fi
-        get_config "$config_file" client_ip_begin 
-        local client_ip_begin_params=$config_answer
-        if [ ! -z $client_ip_begin_params ];then
-            optional_parameters="$optional_parameters --client_ip_begin $client_ip_begin_params"
-        fi
-        get_config "$config_file" client_ip_end 
-        local client_ip_end_params=$config_answer
-        if [ ! -z $client_ip_end_params ];then
-            optional_parameters="$optional_parameters --client_ip_end $client_ip_end_params"
-        fi
-        ironic --ironic-url="http://${ip}:6385/v1" --os-auth-token daisy daisy-build-pxe $pxe_bond_name yes $optional_parameters >> $install_logfile 2>&1
 
+        optional_parameters=()
+        get_config "$config_file" ip_address
+        ip_address_params=$config_answer
+        get_config "$config_file" net_mask
+        net_mask_params=$config_answer
+        get_config "$config_file" client_ip_begin
+        client_ip_begin_params=$config_answer
+        get_config "$config_file" client_ip_end
+        client_ip_end_params=$config_answer
+        config_pxe $pxe_bond_name yes $ip_address_params $net_mask_params $client_ip_begin_params $client_ip_end_params
+        /usr/bin/pxe_server_install /var/log/ironic/pxe.json >> $install_logfile 2>&1
         # write dhcp cidr to DEPLOYMENT network of system for daisy
         # to decide which is pxe mac
         if [ "$ip_address_params" -a "$net_mask_params" ];then
@@ -811,7 +808,7 @@ function config_keystone_local_setting
         write_install_log "Error:default gateway is not set!!!"
         exit 1
     fi
-    
+
     update_config "$dashboard_conf_file" OPENSTACK_KEYSTONE_URL "\"http://${public_ip}:5000/v2.0\""
     update_config "$dashboard_conf_file" DAISY_ENDPOINT_URL "\"http://$public_ip:19292\""
     update_config "$dashboard_conf_file" WEBROOT "'/dashboard/'"
@@ -820,11 +817,11 @@ function config_keystone_local_setting
     update_config "$dashboard_conf_file" ALLOWED_HOSTS "['*']"
     update_config "$dashboard_conf_file" AUTHENTICATION_URLS "['openstack_auth.urls',]"
     openstack-config --set "$keystone_conf_file" DEFAULT admin_token "e93e9abf42f84be48e0996e5bd44f096"
-    openstack-config --set "$keystone_conf_file" token expiration "90000"    
-    
+    openstack-config --set "$keystone_conf_file" token expiration "90000"
+
     touch /var/log/horizon/horizon.log
     chown apache:apache /var/log/horizon/horizon.log
-    
+
     config_file="/home/daisy_install/daisy.conf"
     local director_theme_conf_file="/usr/share/openstack-dashboard/openstack_dashboard/enabled/_20_director_theme.py"
     [ ! -e $config_file ] && return
