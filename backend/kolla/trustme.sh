@@ -53,7 +53,7 @@ if [ $? != 0 ]; then
     print_log "delete pub key of $ip from known_hosts failed"
     exit 1
 fi
-sshpass -p $passwd ssh -o StrictHostKeyChecking=no $ip "touch ~/.ssh/authorized_keys"
+sshpass -p $passwd ssh -o StrictHostKeyChecking=no $ip "mkdir -p ~/.ssh && touch ~/.ssh/authorized_keys"
 if [ $? != 0 ]; then
     print_log "ssh $ip to create file authorized_keys failed"
     exit 1

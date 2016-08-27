@@ -340,6 +340,8 @@ class KOLLAInstallTask(Thread):
         with open(self.log_file, "w+") as fp:
             for host in hosts_list:
                 host_ip = host['mgtip']
+                cmd = '/var/lib/daisy/kolla/trustme.sh %s ossdbg1' % host_ip
+                daisy_cmn.subprocess_call(cmd, fp)
                 config_nodes_hosts(host_name_ip_list, host_ip)
                 cmd = 'sshpass -p ossdbg1 ssh -o StrictHostKeyChecking=no %s \
                       "if [ ! -d %s ];then mkdir %s;fi" ' % \
