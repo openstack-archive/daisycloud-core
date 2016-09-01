@@ -31,13 +31,13 @@ from oslo_db.sqlalchemy import session
 from oslo_log import log as logging
 from oslo_utils import timeutils
 import osprofiler.sqlalchemy
-from retrying import retry
 import six
 # NOTE(jokke): simplified transition to py3, behaves like py2 xrange
 from six.moves import range
 import sqlalchemy
 import sqlalchemy.orm as sa_orm
 import sqlalchemy.sql as sa_sql
+import tenacity
 import types
 import socket
 import netaddr
@@ -135,8 +135,11 @@ def image_update(context, image_id, values, purge_props=False,
                          from_state=from_state)
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def image_destroy(context, image_id):
     """Destroy the image or raise if it does not exist."""
     session = get_session()
@@ -643,8 +646,11 @@ def _according_interface_to_add_network_alias(context,
                 query_network.update({"alias": alias_name})
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 @utils.no_4byte_params
 def _host_update(context, values, host_id):
     """
@@ -850,7 +856,7 @@ def _host_update(context, values, host_id):
             if values.has_key("os_version") and \
                utils.is_uuid_like(values['os_version']):
                 host_ref.os_version_id = values['os_version']
-            elif(values.has_key("os_version") and not 
+            elif(values.has_key("os_version") and not
                  utils.is_uuid_like(values['os_version'])):
                 host_ref.os_version_file = values['os_version']
 
@@ -1163,8 +1169,11 @@ def host_add(context, values):
     return _host_update(context, values, None)
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def host_destroy(context, host_id):
     """Destroy the host or raise if it does not exist."""
     session = get_session()
@@ -1203,8 +1212,11 @@ def discover_host_update(context, discover_host_id, values):
     return _discover_host_update(context, values, discover_host_id)
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 @utils.no_4byte_params
 def _discover_host_update(context, values, discover_host_id):
     """
@@ -1281,8 +1293,11 @@ def discover_host_get(context, discover_host_id, session=None,
     return discover_host
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def discover_host_destroy(context, host_id):
     """Destroy the discover host or raise if it does not exist."""
     session = get_session()
@@ -1397,8 +1412,11 @@ def delete_cluster_host(context, cluster_id, session=None):
         raise exception.NotFound(msg)
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 @utils.no_4byte_params
 def _cluster_update(context, values, cluster_id):
     """
@@ -1867,8 +1885,11 @@ def _check_component_id(component_id):
         raise exception.NotFound()
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 @utils.no_4byte_params
 def _component_update(context, values, component_id):
     """
@@ -2248,8 +2269,11 @@ def _services_used_in_cluster(context, services_id, session=None):
     return services_used
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def component_destroy(context, component_id):
     """Destroy the component or raise if it does not exist."""
     session = get_session()
@@ -2287,8 +2311,11 @@ def _check_service_id(service_id):
         raise exception.NotFound()
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 @utils.no_4byte_params
 def _service_update(context, values, service_id):
     """
@@ -2429,8 +2456,11 @@ def _service_destroy(context, service_id):
     return service_ref
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def service_destroy(context, service_id):
     """Destroy the service or raise if it does not exist."""
     session = get_session()
@@ -2578,8 +2608,11 @@ def _check_role_id(role_id):
         raise exception.NotFound()
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 @utils.no_4byte_params
 def _role_update(context, values, role_id):
     """
@@ -2846,8 +2879,11 @@ def role_add(context, values):
     return _role_update(context, values, None)
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def role_destroy(context, role_id):
     """Destroy the role or raise if it does not exist."""
     session = get_session()
@@ -2901,7 +2937,7 @@ def role_get_all(context, filters=None, marker=None, limit=None,
             sort_dir.append(default_sort_dir)
 
     session = get_session()
-    
+
     if 'cluster_id' in filters:
         query=session.query(models.Role).filter_by(cluster_id=filters.pop('cluster_id')).filter_by(deleted=False)
     else:
@@ -3021,24 +3057,28 @@ def _check_role_host_id(role_host_id):
     if (role_host_id and
        len(role_host_id) > models.HostRole.id.property.columns[0].type.length):
         raise exception.NotFound()
-        
+
 def cluster_update(context, cluster_id, values):
     """
     Set the given properties on an cluster and update it.
 
     :raises NotFound if cluster does not exist.
     """
-    return _cluster_update(context, values, cluster_id)    
+    return _cluster_update(context, values, cluster_id)
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def cluster_destroy(context, cluster_id):
     """Destroy the project or raise if it does not exist."""
     session = get_session()
     with session.begin():
         project_ref = _cluster_get(context, cluster_id, session=session)
         project_ref.delete(session=session)
-        
+
         logicnetwork_query = session.query(models.LogicNetwork).filter_by(
         cluster_id=cluster_id).filter_by(deleted=False)
         delete_time = timeutils.utcnow()
@@ -3054,11 +3094,11 @@ def cluster_destroy(context, cluster_id):
                 query_dns_nameservers.update({"deleted": True, "deleted_at": delete_time})
             query_subnet.update({"deleted": True, "deleted_at": delete_time})
         logicnetwork_query.update({"deleted": True, "deleted_at": delete_time})
-        
+
         router_query = session.query(models.Router).filter_by(
         cluster_id=cluster_id).filter_by(deleted=False)
         router_query.update({"deleted": True, "deleted_at": delete_time})
-        
+
         role_query = session.query(models.Role).filter_by(
         cluster_id=cluster_id).filter_by(deleted=False)
         for role_info in role_query.all():
@@ -3077,7 +3117,7 @@ def cluster_destroy(context, cluster_id):
             delete_service_disks_by_role(role_info.id, session)
             delete_cinder_volumes_by_role(role_info.id, session)
         role_query.update({"deleted": True, "deleted_at": delete_time})
-        
+
         network_query = session.query(models.Network).filter_by(
         cluster_id=cluster_id).filter_by(deleted=False)
         for network_info in network_query.all():
@@ -3089,7 +3129,7 @@ def cluster_destroy(context, cluster_id):
             network_id=network_info.id).filter_by(deleted=False)
             query_ip_range.update({"deleted": True, "deleted_at": delete_time})
         network_query.update({"deleted": True, "deleted_at": delete_time})
-        
+
         cluster_host_query = session.query(models.ClusterHost).filter_by(cluster_id=cluster_id).filter_by(deleted=False)
         cluster_hosts = cluster_host_query.all()
         for cluster_host in cluster_hosts:  #delete host role which all the roles belong to this cluster
@@ -3097,7 +3137,7 @@ def cluster_destroy(context, cluster_id):
             host_ref = _host_get(context, cluster_host.host_id, session=session)
             host_ref.update({'status': 'init'})
         delete_cluster_host(context, cluster_id, session=session)
-        
+
     return project_ref
 
 def is_image_mutable(context, image):
@@ -3572,7 +3612,7 @@ def host_get_all(context, filters=None, marker=None, limit=None,
             return hosts
     elif 'name' in filters:
         name = filters.pop('name')
-        query = session.query(models.Host).filter_by(deleted=showing_deleted).filter_by(name=name)             
+        query = session.query(models.Host).filter_by(deleted=showing_deleted).filter_by(name=name)
     else:
         query = session.query(models.Host).filter_by(deleted=showing_deleted)
 
@@ -3587,7 +3627,7 @@ def host_get_all(context, filters=None, marker=None, limit=None,
         host_dict = host.to_dict()
         hosts.append(host_dict)
     return hosts
-    
+
 def _drop_protected_attrs(model_class, values):
     """
     Removed protected attributes from values dictionary using the models
@@ -3640,8 +3680,11 @@ def _update_values(image_ref, values):
             setattr(image_ref, k, values[k])
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 @utils.no_4byte_params
 def _image_update(context, values, image_id, purge_props=False,
                   from_state=None):
@@ -4411,7 +4454,7 @@ def _cluster_host_member_get(context, session, member_id):
     query = session.query(models.ClusterHost)
     query = query.filter(models.ClusterHost.id == member_id).filter_by(deleted=False)
     return query.one()
-    
+
 def _cluster_host_member_update(context, memb_ref, values, session=None):
     """Apply supplied dictionary of values to a Member object."""
     _drop_protected_attrs(models.ClusterHost, values)
@@ -4423,7 +4466,7 @@ def _cluster_host_member_update(context, memb_ref, values, session=None):
     memb_ref.update(values)
     memb_ref.save(session=session)
     return memb_ref
-    
+
 def cluster_host_member_update(context, values, member_id):
     """Update an ClusterHost object."""
     session = get_session()
@@ -4575,7 +4618,7 @@ def component_get_all(context, filters=None, marker=None, limit=None,
             sort_dir.append(default_sort_dir)
 
     session = get_session()
-    
+
     query = session.query(models.Component).filter_by(deleted=showing_deleted)
 
     query = _paginate_query(query, models.Component, limit,
@@ -4602,9 +4645,12 @@ def _check_config_file_id(config_file_id):
     if (config_file_id and
        len(config_file_id) > models.ConfigFile.id.property.columns[0].type.length):
         raise exception.NotFound()
-        
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 @utils.no_4byte_params
 def _config_file_update(context, values, config_file_id):
     """
@@ -4616,7 +4662,7 @@ def _config_file_update(context, values, config_file_id):
     """
     # NOTE(jbresnah) values is altered in this so a copy is needed
     values = values.copy()
-    
+
     session = get_session()
     with session.begin():
         if config_file_id:
@@ -4693,8 +4739,11 @@ def config_file_add(context, values):
     """Add an config_file from the values dictionary."""
     return _config_file_update(context, values, None)
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def config_file_destroy(context, config_file_id):
     """Destroy the config_file or raise if it does not exist."""
     session = get_session()
@@ -4719,8 +4768,8 @@ def config_file_update(context, config_file_id, values):
 
     :raises NotFound if config_file does not exist.
     """
-    return _config_file_update(context, values, config_file_id) 
-	
+    return _config_file_update(context, values, config_file_id)
+
 def config_file_get_all(context, filters=None, marker=None, limit=None,
                   sort_key=None, sort_dir=None):
     """
@@ -4761,7 +4810,7 @@ def config_file_get_all(context, filters=None, marker=None, limit=None,
             sort_dir.append(default_sort_dir)
 
     session = get_session()
-    
+
     query = session.query(models.ConfigFile).filter_by(deleted=showing_deleted)
 
     query = _paginate_query(query, models.ConfigFile, limit,
@@ -4774,7 +4823,7 @@ def config_file_get_all(context, filters=None, marker=None, limit=None,
     for config_file in query.all():
         config_file_dict = config_file.to_dict()
         config_files.append(config_file_dict)
-    return config_files	
+    return config_files
 
 def _check_config_set_id(config_set_id):
     """
@@ -4788,9 +4837,12 @@ def _check_config_set_id(config_set_id):
     if (config_set_id and
         len(config_set_id) > models.ConfigSet.id.property.columns[0].type.length):
         raise exception.NotFound()
-        
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 @utils.no_4byte_params
 def _config_set_update(context, values, config_set_id=None):
     """
@@ -4802,7 +4854,7 @@ def _config_set_update(context, values, config_set_id=None):
     """
     # NOTE(jbresnah) values is altered in this so a copy is needed
     values = values.copy()
-    
+
     session = get_session()
     with session.begin():
         if config_set_id:
@@ -4848,8 +4900,8 @@ def _config_set_update(context, values, config_set_id=None):
                                           % values['id'])
 
     return config_set_get(context, config_set_ref.id)
-    
-    
+
+
 def _config_set_get(context, config_set_id, session=None, force_show_deleted=False):
     """Get an config_set or raise if it does not exist."""
     _check_config_set_id(config_set_id)
@@ -4922,8 +4974,11 @@ def _config_item_get_by_config_set_id(context, config_set_id, session=None, forc
 
     return config_items
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def config_set_destroy(context, config_set_id):
     """Destroy the config_set or raise if it does not exist."""
     session = get_session()
@@ -4969,7 +5024,7 @@ def config_set_update(context, config_set_id, values):
 
     :raises NotFound if config_set does not exist.
     """
-    return _config_set_update(context, values, config_set_id) 
+    return _config_set_update(context, values, config_set_id)
 
 def config_set_get_all(context, filters=None, marker=None, limit=None,
                   sort_key=None, sort_dir=None):
@@ -5011,7 +5066,7 @@ def config_set_get_all(context, filters=None, marker=None, limit=None,
             sort_dir.append(default_sort_dir)
 
     session = get_session()
-    
+
     query = session.query(models.ConfigSet).filter_by(deleted=showing_deleted)
 
     query = _paginate_query(query, models.ConfigSet, limit,
@@ -5038,9 +5093,12 @@ def _check_config_id(config_id):
     if (config_id and
         len(config_id) > models.Config.id.property.columns[0].type.length):
         raise exception.NotFound()
-        
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 @utils.no_4byte_params
 def _config_update(context, values, config_id):
     """
@@ -5096,17 +5154,17 @@ def _config_update(context, values, config_id):
                 _drop_protected_attrs(models.ConfigSetItem, config_item_values)
                 query = session.query(models.ConfigSetItem).filter_by(config_id=config_id).filter_by(deleted=False)
                 query.update(config_item_values, synchronize_session='fetch')
-            
+
             if not updated:
                 msg = (_('update config_id %(config_id)s failed') %
                        {'config_id': config_id})
                 raise exception.Conflict(msg)
-                
+
             config_ref = _config_get(context, config_id, session=session)
-                      
+
         else:
             config_ref.update(values)
-           
+
             _update_values(config_ref, values)
             try:
 
@@ -5144,7 +5202,7 @@ def _config_get(context, config_id, session=None, force_show_deleted=False):
         raise exception.NotFound(msg)
 
     return config
-    
+
 def _config_get_by_config_file_id(context, config_file_id, session=None, force_show_deleted=False):
     """Get an config or raise if it does not exist."""
     _check_config_file_id(config_file_id)
@@ -5185,8 +5243,11 @@ def config_get(context, config_id, session=None, force_show_deleted=False):
                        force_show_deleted=force_show_deleted)
     return config
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 @utils.no_4byte_params
 def update_config_by_role_hosts(context, values):
     if not values:
@@ -5218,8 +5279,11 @@ def config_add(context, values):
     """Add an config from the values dictionary."""
     return _config_update(context, values, None)
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def config_destroy(context, config_id):
     """Destroy the config or raise if it does not exist."""
     session = get_session()
@@ -5230,7 +5294,7 @@ def config_destroy(context, config_id):
         for config_item_ref in config_item_refs:
             config_item_ref.delete(session=session)
         config_ref.delete(session=session)
-        
+
         return config_ref
 
 def config_update(context, config_id, values):
@@ -5239,7 +5303,7 @@ def config_update(context, config_id, values):
 
     :raises NotFound if config does not exist.
     """
-    return _config_update(context, values, config_id) 
+    return _config_update(context, values, config_id)
 
 def config_get_all(context, filters=None, marker=None, limit=None,
                   sort_key=None, sort_dir=None):
@@ -5281,7 +5345,7 @@ def config_get_all(context, filters=None, marker=None, limit=None,
             sort_dir.append(default_sort_dir)
 
     session = get_session()
-    
+
     query = session.query(models.Config).filter_by(deleted=showing_deleted)
 
     query = _paginate_query(query, models.Config, limit,
@@ -5311,10 +5375,13 @@ def network_update(context, network_id, values):
 
     :raises NotFound if cluster does not exist.
     """
-    return _network_update(context, values, network_id)    
+    return _network_update(context, values, network_id)
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def network_destroy(context,  network_id):
     """Destroy the project or raise if it does not exist."""
     session = get_session()
@@ -5324,10 +5391,10 @@ def network_destroy(context,  network_id):
         if assign_networks:
             msg = "network %s is in used, it couldn't be deleted" % network_id
             raise exception.DeleteConstrainted(msg)
-        else:    
+        else:
             network_ref.delete(session=session)
 
-    return network_ref    
+    return network_ref
 
 def delete_network_ip_range(context,  network_id):
     session = get_session()
@@ -5421,7 +5488,7 @@ def network_get_all(context, cluster_id=None, filters=None, marker=None, limit=N
         network_dict = network.to_dict()
         networks.append(network_dict)
     return networks
-    
+
 def _check_network_id(network_id):
     """
     check if the given project id is valid before executing operations. For
@@ -5435,8 +5502,11 @@ def _check_network_id(network_id):
        len(network_id) > models.Network.id.property.columns[0].type.length):
         raise exception.NotFound()
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 @utils.no_4byte_params
 def update_phyname_of_network(context, network_phyname_set):
     """
@@ -5491,8 +5561,11 @@ def _get_role_float_ip(session, cluster_id):
             for ip in float_ip_list if ip]
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 @utils.no_4byte_params
 def _network_update(context, values, network_id):
     """
@@ -5513,7 +5586,7 @@ def _network_update(context, values, network_id):
             network_ref = _network_get(context, network_id, session=session)
         else:
             network_ref = models.Network()
-       
+
         if network_id:
             # Don't drop created_at if we're passing it in...
             _drop_protected_attrs(models.Network, values)
@@ -5569,11 +5642,11 @@ def _network_update(context, values, network_id):
             if not updated:
                 msg = (_('update network_id %(network_id)s failed') %
                        {'network_id': network_id})
-                raise exception.Conflict(msg)                        
+                raise exception.Conflict(msg)
         else:
-            
-            network_ref.update(values)            
-            _update_values(network_ref, values)            
+
+            network_ref.update(values)
+            _update_values(network_ref, values)
             try:
                 network_ref.save(session=session)
             except db_exception.DBDuplicateEntry:
@@ -5592,9 +5665,9 @@ def _network_update(context, values, network_id):
                     except db_exception.DBDuplicateEntry:
                         raise exception.Duplicate("ip rangge %s already exists!"
                                           % values['ip_ranges'])
-            
+
     return _network_get(context, network_ref.id)
-    
+
 def _network_get(context, network_id=None, cluster_id=None, session=None, force_show_deleted=False):
     """Get an network or raise if it does not exist."""
     if network_id is not None:
@@ -5609,9 +5682,9 @@ def _network_get(context, network_id=None, cluster_id=None, session=None, force_
         # filter out deleted images if context disallows it
         if not force_show_deleted and not context.can_see_deleted:
             query = query.filter_by(deleted=False)
-            
+
         networks = query.one()
-            
+
         ip_range_list=[]
         ip_ranges=get_network_ip_range(context,  networks['id'])
         if ip_ranges:
@@ -5621,15 +5694,15 @@ def _network_get(context, network_id=None, cluster_id=None, session=None, force_
                 ip_range_dict['end']=str(ip_range['end'])
                 ip_range_list.append(ip_range_dict)
         networks['ip_ranges']=ip_range_list
-           
+
 
     except sa_orm.exc.NoResultFound:
         msg = "No network found with ID %s" % network_id
         LOG.debug(msg)
         raise exception.NotFound(msg)
 
-    return networks 
-    
+    return networks
+
 def update_config(session,config_flag,config_set_id,query_set_item_list,config_interface_info):
     for config_set_item in query_set_item_list.all():
         query_config_info= session.query(models.Config).filter_by(id=config_set_item.config_id).filter_by(deleted=False)
@@ -5654,17 +5727,17 @@ def add_config(session,config_interface_info,config_set_id,config_file_id):
     config_info['config_file_id']=config_file_id
     config_info['config_version']=1
     config_info['running_version']=0
-    add_config.update(config_info) 
+    add_config.update(config_info)
     _update_values(add_config,config_info)
     add_config.save(session=session)
-    
+
     add_config_setitem=models.ConfigSetItem()
     config_set_value['config_set_id']=config_set_id
     config_set_value['config_id']=add_config.id
     config_set_value.update(config_set_value)
     _update_values(add_config_setitem,config_set_value)
     add_config_setitem.save(session=session)
-    
+
 def add_config_and_file(session,config_interface_info,config_set_id):
     query_config_file=session.query(models.ConfigFile).filter_by(name=config_interface_info['file-name']).filter_by(deleted=False)
     if query_config_file.all():
@@ -5677,9 +5750,9 @@ def add_config_and_file(session,config_interface_info,config_set_id):
         _update_values(add_config_file,config_file_value)
         add_config_file.save(session=session)
         config_file_id=add_config_file.id
-    
+
     add_config(session,config_interface_info,config_set_id,config_file_id)
-                    
+
 def config_interface(context, config_interface):
     config_flag=0
     config_info_list=[]
@@ -5765,7 +5838,7 @@ def config_interface(context, config_interface):
                         config_info['config_version']=query_config_info.one().config_version
                         config_info['running_version']=query_config_info.one().running_version
                         config_info_list.append(config_info)
-                        
+
     return_config_info={'cluster':config_interface.get('cluster',None),
                         'role':config_interface.get('role',None),
                         'config':config_info_list}
@@ -5783,7 +5856,7 @@ def _check_service_disk_id(service_disk_id):
     if (service_disk_id and
        len(service_disk_id) > models.ServiceDisk.id.property.columns[0].type.length):
         raise exception.NotFound()
-    
+
 def _service_disk_get(context, service_disk_id=None, role_id=None, marker=None, session=None, force_show_deleted=False):
     """Get an service_disk or raise if it does not exist."""
     if service_disk_id is not None:
@@ -5811,9 +5884,12 @@ def _service_disk_get(context, service_disk_id=None, role_id=None, marker=None, 
         raise exception.NotFound(msg)
 
     return service_disk
-    
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 @utils.no_4byte_params
 def _service_disk_update(context, values, service_disk_id):
     """
@@ -5845,27 +5921,30 @@ def _service_disk_update(context, values, service_disk_id):
             if not updated:
                 msg = (_('update service_disk_id %(service_disk_id)s failed') %
                        {'service_disk_id': service_disk_id})
-                raise exception.Conflict(msg)                        
+                raise exception.Conflict(msg)
         else:
             service_disk_ref = models.ServiceDisk()
-            service_disk_ref.update(values)            
-            _update_values(service_disk_ref, values)            
+            service_disk_ref.update(values)
+            _update_values(service_disk_ref, values)
             try:
                 service_disk_ref.save(session=session)
             except db_exception.DBDuplicateEntry:
                 raise exception.Duplicate("service_disk ID %s already exists!"
                                           % values['id'])
-                                          
+
             service_disk_id = service_disk_ref.id
     return _service_disk_get(context, service_disk_id)
-    
+
 def service_disk_add(context, values):
     """Add an cluster from the values dictionary."""
     return _service_disk_update(context, values, None)
-    
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def service_disk_destroy(context, service_disk_id):
     """Destroy the service_disk or raise if it does not exist."""
     session = get_session()
@@ -5873,26 +5952,34 @@ def service_disk_destroy(context, service_disk_id):
         service_disk_ref = _service_disk_get(context, service_disk_id, session=session)
         service_disk_ref.delete(session=session)
     return service_disk_ref
-    
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)       
+
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def service_disk_update(context, service_disk_id, values):
     """
     Set the given properties on an cluster and update it.
 
     :raises NotFound if cluster does not exist.
     """
-    return _service_disk_update(context, values, service_disk_id)  
-    
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
-       
+    return _service_disk_update(context, values, service_disk_id)
+
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def service_disk_detail (context, service_disk_id):
     service_disk_ref = _service_disk_get(context, service_disk_id)
     return service_disk_ref
-    
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def service_disk_list(context, filters=None, **param):
     """
     Get all hosts that match zero or more filters.
@@ -5922,10 +6009,10 @@ def service_disk_list(context, filters=None, **param):
     role_id = None
     if 'role_id' in filters:
         role_id=filters.pop('role_id')
-    
+
     service_disk_ref = _service_disk_get(context, role_id=role_id)
     return service_disk_ref
-    
+
 def _check_cinder_volume_id(cinder_volume_id):
     """
     check if the given project id is valid before executing operations. For
@@ -5938,7 +6025,7 @@ def _check_cinder_volume_id(cinder_volume_id):
     if (cinder_volume_id and
        len(cinder_volume_id) > models.CinderVolume.id.property.columns[0].type.length):
         raise exception.NotFound()
-    
+
 def _cinder_volume_get(context, cinder_volume_id=None, role_id=None, marker=None, session=None, force_show_deleted=False):
     """Get an cinder_volume or raise if it does not exist."""
     if cinder_volume_id is not None:
@@ -5966,7 +6053,7 @@ def _cinder_volume_get(context, cinder_volume_id=None, role_id=None, marker=None
         raise exception.NotFound(msg)
 
     return cinder_volume
-    
+
 
 def _cinder_volume_update(context, values, cinder_volume_id):
     """
@@ -5998,28 +6085,34 @@ def _cinder_volume_update(context, values, cinder_volume_id):
             if not updated:
                 msg = (_('update cinder_volume_id %(cinder_volume_id)s failed') %
                        {'cinder_volume_id': cinder_volume_id})
-                raise exception.Conflict(msg)                        
+                raise exception.Conflict(msg)
         else:
             cinder_volume_ref = models.CinderVolume()
-            cinder_volume_ref.update(values)            
-            _update_values(cinder_volume_ref, values)            
+            cinder_volume_ref.update(values)
+            _update_values(cinder_volume_ref, values)
             try:
                 cinder_volume_ref.save(session=session)
             except db_exception.DBDuplicateEntry:
                 raise exception.Duplicate("cinder_volume ID %s already exists!"
                                           % values['id'])
-                                          
+
             cinder_volume_id = cinder_volume_ref.id
     return _cinder_volume_get(context, cinder_volume_id)
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)    
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def cinder_volume_add(context, values):
     """Add an cluster from the values dictionary."""
     return _cinder_volume_update(context, values, None)
-    
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def cinder_volume_destroy(context, cinder_volume_id):
     """Destroy the service_disk or raise if it does not exist."""
     session = get_session()
@@ -6028,24 +6121,33 @@ def cinder_volume_destroy(context, cinder_volume_id):
         cinder_volume_ref.delete(session=session)
     return cinder_volume_ref
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def cinder_volume_update(context, cinder_volume_id, values):
     """
     Set the given properties on an cluster and update it.
 
     :raises NotFound if cluster does not exist.
     """
-    return _cinder_volume_update(context, values, cinder_volume_id)  
-    
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+    return _cinder_volume_update(context, values, cinder_volume_id)
+
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def cinder_volume_detail(context, cinder_volume_id):
     cinder_volume_ref = _cinder_volume_get(context, cinder_volume_id)
     return cinder_volume_ref
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def cinder_volume_list(context, filters=None, **param):
     """
     Get all hosts that match zero or more filters.
@@ -6064,18 +6166,151 @@ def cinder_volume_list(context, filters=None, **param):
     role_id = None
     if 'role_id' in filters:
         role_id=filters.pop('role_id')
-    
+
     cinder_volume_ref = _cinder_volume_get(context, role_id=role_id)
     return cinder_volume_ref
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50) 
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
+def hwm_add(context, values):
+    """add hwm to daisy."""
+    return _hwm_update(context, values, None)
+
+
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
+def hwm_update(context, hwm_id, values):
+    """update cluster template to daisy."""
+    return _hwm_update(context, values, hwm_id)
+
+
+def _hwm_update(context, values, hwm_id):
+    """update or add hwm to daisy."""
+    values = values.copy()
+    session = get_session()
+    with session.begin():
+        if hwm_id:
+            hwm_ref = _hwm_get(context, hwm_id, session=session)
+        else:
+            hwm_ref = models.Hwm()
+
+        if hwm_id:
+            # Don't drop created_at if we're passing it in...
+            _drop_protected_attrs(models.Hwm, values)
+            # NOTE(iccha-sethi): updated_at must be explicitly set in case
+            #                   only ImageProperty table was modifited
+            values['updated_at'] = timeutils.utcnow()
+
+        if hwm_id:
+            if values.get('id', None): del values['id']
+            hwm_ref.update(values)
+            _update_values(hwm_ref, values)
+            try:
+                hwm_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("Node ID %s already exists!"
+                                          % values['id'])
+        else:
+            hwm_ref.update(values)
+            _update_values(hwm_ref, values)
+            try:
+                hwm_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("Node ID %s already exists!"
+                                          % values['id'])
+
+    return hwm_get(context, hwm_ref.id)
+
+
+def hwm_destroy(context, hwm_id, session=None, force_show_deleted=False):
+    session = session or get_session()
+    with session.begin():
+        hwm_ref = _hwm_get(context, hwm_id, session=session)
+        hwm_ref.delete(session=session)
+        return hwm_ref
+
+
+def _hwm_get(context, hwm_id, session=None, force_show_deleted=False):
+    """Get an hwm or raise if it does not exist."""
+    session = session or get_session()
+    try:
+        query = session.query(models.Hwm).filter_by(id=hwm_id)
+
+        # filter out deleted images if context disallows it
+        if not force_show_deleted and not context.can_see_deleted:
+            query = query.filter_by(deleted=False)
+        hwm = query.one()
+        return hwm
+    except sa_orm.exc.NoResultFound:
+        msg = "No hwm found with ID %s" % hwm_id
+        LOG.debug(msg)
+        raise exception.NotFound(msg)
+
+
+def hwm_get(context, hwm_id, session=None, force_show_deleted=False):
+    hwm = _hwm_get(context, hwm_id, session=session,
+                       force_show_deleted=force_show_deleted)
+    return hwm
+
+
+def hwm_get_all(context, filters=None, marker=None, limit=None, sort_key=None,
+                sort_dir=None):
+    sort_key = ['created_at'] if not sort_key else sort_key
+
+    default_sort_dir = 'desc'
+
+    if not sort_dir:
+        sort_dir = [default_sort_dir] * len(sort_key)
+    elif len(sort_dir) == 1:
+        default_sort_dir = sort_dir[0]
+        sort_dir *= len(sort_key)
+
+    filters = filters or {}
+    showing_deleted = 'changes-since' in filters or filters.get('deleted',
+                                                                False)
+    marker_hwm = None
+    if marker is not None:
+        marker_hwm = _hwm_get(context, marker,
+                              force_show_deleted=showing_deleted)
+
+    for key in ['created_at', 'id']:
+        if key not in sort_key:
+            sort_key.append(key)
+            sort_dir.append(default_sort_dir)
+
+    session = get_session()
+    query = session.query(models.Hwm).filter_by(deleted=showing_deleted)
+
+    query = _paginate_query(query, models.Hwm, limit, sort_key,
+                            marker=marker_hwm,
+                            sort_dir=None,
+                            sort_dirs=sort_dir)
+    hwms = []
+    for hwm in query.all():
+        hwm = hwm.to_dict()
+        hwms.append(hwm)
+    return hwms
+
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def template_add(context, values):
     """add cluster template to daisy."""
     return _template_update(context, values, None)
-    
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50) 
+
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def template_update(context, template_id, values):
     """update cluster template to daisy."""
     return _template_update(context, values, template_id)
@@ -6096,7 +6331,7 @@ def _template_update(context, values, template_id):
             # NOTE(iccha-sethi): updated_at must be explicitly set in case
             #                   only ImageProperty table was modifited
             values['updated_at'] = timeutils.utcnow()
-        
+
         if template_id:
             if values.get('id', None): del values['id']
             template_ref.update(values)
@@ -6114,12 +6349,12 @@ def _template_update(context, values, template_id):
             except db_exception.DBDuplicateEntry:
                 raise exception.Duplicate("Node ID %s already exists!"
                                           % values['id'])
-        
+
     return template_get(context, template_ref.id)
-    
+
 def _template_get(context, template_id, session=None, force_show_deleted=False):
     """Get an host or raise if it does not exist."""
-    
+
     session = session or get_session()
     try:
         query = session.query(models.Template).filter_by(id=template_id)
@@ -6133,13 +6368,13 @@ def _template_get(context, template_id, session=None, force_show_deleted=False):
         msg = "No template found with ID %s" % template_id
         LOG.debug(msg)
         raise exception.NotFound(msg)
-    
-    
+
+
 def template_get(context, template_id, session=None, force_show_deleted=False):
     template = _template_get(context, template_id, session=session,
                        force_show_deleted=force_show_deleted)
     return template
-    
+
 def template_destroy(context, template_id, session=None, force_show_deleted=False):
     session = session or get_session()
     with session.begin():
@@ -6175,7 +6410,7 @@ def template_get_all(context, filters=None, marker=None, limit=None,
             sort_dir.append(default_sort_dir)
 
     session = get_session()
-    
+
     query = session.query(models.Template).filter_by(deleted=showing_deleted)
 
     query = _paginate_query(query, models.Template, limit,
@@ -6195,14 +6430,20 @@ def template_get_all(context, filters=None, marker=None, limit=None,
         templates.append(template)
     return templates
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50) 
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def host_template_add(context, values):
     """add host template to daisy."""
     return _host_template_update(context, values, None)
-    
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50) 
+
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock),
+    reraise=True)
 def host_template_update(context, template_id, values):
     """update host template to daisy."""
     return _host_template_update(context, values, template_id)
@@ -6223,7 +6464,7 @@ def _host_template_update(context, values, template_id):
             # NOTE(iccha-sethi): updated_at must be explicitly set in case
             #                   only ImageProperty table was modifited
             values['updated_at'] = timeutils.utcnow()
-        
+
         if template_id:
             if values.get('id', None): del values['id']
             template_ref.update(values)
@@ -6241,12 +6482,12 @@ def _host_template_update(context, values, template_id):
             except db_exception.DBDuplicateEntry:
                 raise exception.Duplicate("Node ID %s already exists!"
                                           % values['id'])
-        
+
     return host_template_get(context, template_ref.id)
-    
+
 def _host_template_get(context, template_id, session=None, force_show_deleted=False):
     """Get an host or raise if it does not exist."""
-    
+
     session = session or get_session()
     try:
         query = session.query(models.HostTemplate).filter_by(id=template_id)
@@ -6260,13 +6501,13 @@ def _host_template_get(context, template_id, session=None, force_show_deleted=Fa
         msg = "No host_template found with ID %s" % template_id
         LOG.debug(msg)
         raise exception.NotFound(msg)
-    
-    
+
+
 def host_template_get(context, template_id, session=None, force_show_deleted=False):
     template = _host_template_get(context, template_id, session=session,
                        force_show_deleted=force_show_deleted)
     return template
-    
+
 def host_template_destroy(context, template_id, session=None, force_show_deleted=False):
     session = session or get_session()
     with session.begin():
@@ -6302,7 +6543,7 @@ def host_template_get_all(context, filters=None, marker=None, limit=None,
             sort_dir.append(default_sort_dir)
 
     session = get_session()
-    
+
     query = session.query(models.HostTemplate).filter_by(deleted=showing_deleted)
 
     query = _paginate_query(query, models.HostTemplate, limit,
@@ -6321,7 +6562,7 @@ def host_template_get_all(context, filters=None, marker=None, limit=None,
         template = template.to_dict()
         templates.append(template)
     return templates
-    
+
 def host_interfaces_get_all(context, filters=None):
     filters = filters or {}
     session = get_session()
