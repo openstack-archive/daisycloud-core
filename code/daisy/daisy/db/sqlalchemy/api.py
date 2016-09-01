@@ -31,13 +31,13 @@ from oslo_db.sqlalchemy import session
 from oslo_log import log as logging
 from oslo_utils import timeutils
 import osprofiler.sqlalchemy
-from retrying import retry
 import six
 # NOTE(jokke): simplified transition to py3, behaves like py2 xrange
 from six.moves import range
 import sqlalchemy
 import sqlalchemy.orm as sa_orm
 import sqlalchemy.sql as sa_sql
+import tenacity
 import types
 import socket
 import netaddr
@@ -145,8 +145,10 @@ def image_update(context, image_id, values, purge_props=False,
                          from_state=from_state)
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def image_destroy(context, image_id):
     """Destroy the image or raise if it does not exist."""
     session = get_session()
@@ -653,8 +655,10 @@ def _according_interface_to_add_network_alias(context,
                 query_network.update({"alias": alias_name})
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 @utils.no_4byte_params
 def _host_update(context, values, host_id):
     """
@@ -1173,8 +1177,10 @@ def host_add(context, values):
     return _host_update(context, values, None)
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def host_destroy(context, host_id):
     """Destroy the host or raise if it does not exist."""
     session = get_session()
@@ -1213,8 +1219,10 @@ def discover_host_update(context, discover_host_id, values):
     return _discover_host_update(context, values, discover_host_id)
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 @utils.no_4byte_params
 def _discover_host_update(context, values, discover_host_id):
     """
@@ -1291,8 +1299,10 @@ def discover_host_get(context, discover_host_id, session=None,
     return discover_host
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def discover_host_destroy(context, host_id):
     """Destroy the discover host or raise if it does not exist."""
     session = get_session()
@@ -1407,8 +1417,10 @@ def delete_cluster_host(context, cluster_id, session=None):
         raise exception.NotFound(msg)
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 @utils.no_4byte_params
 def _cluster_update(context, values, cluster_id):
     """
@@ -1877,8 +1889,10 @@ def _check_component_id(component_id):
         raise exception.NotFound()
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 @utils.no_4byte_params
 def _component_update(context, values, component_id):
     """
@@ -2258,8 +2272,10 @@ def _services_used_in_cluster(context, services_id, session=None):
     return services_used
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def component_destroy(context, component_id):
     """Destroy the component or raise if it does not exist."""
     session = get_session()
@@ -2297,8 +2313,10 @@ def _check_service_id(service_id):
         raise exception.NotFound()
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 @utils.no_4byte_params
 def _service_update(context, values, service_id):
     """
@@ -2439,8 +2457,10 @@ def _service_destroy(context, service_id):
     return service_ref
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def service_destroy(context, service_id):
     """Destroy the service or raise if it does not exist."""
     session = get_session()
@@ -2588,8 +2608,10 @@ def _check_role_id(role_id):
         raise exception.NotFound()
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 @utils.no_4byte_params
 def _role_update(context, values, role_id):
     """
@@ -2856,8 +2878,10 @@ def role_add(context, values):
     return _role_update(context, values, None)
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def role_destroy(context, role_id):
     """Destroy the role or raise if it does not exist."""
     session = get_session()
@@ -3040,8 +3064,11 @@ def cluster_update(context, cluster_id, values):
     """
     return _cluster_update(context, values, cluster_id)    
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def cluster_destroy(context, cluster_id):
     """Destroy the project or raise if it does not exist."""
     session = get_session()
@@ -3650,8 +3677,10 @@ def _update_values(image_ref, values):
             setattr(image_ref, k, values[k])
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 @utils.no_4byte_params
 def _image_update(context, values, image_id, purge_props=False,
                   from_state=None):
@@ -4927,8 +4956,10 @@ def _check_config_file_id(config_file_id):
        len(config_file_id) > models.ConfigFile.id.property.columns[0].type.length):
         raise exception.NotFound()
         
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 @utils.no_4byte_params
 def _config_file_update(context, values, config_file_id):
     """
@@ -5017,8 +5048,10 @@ def config_file_add(context, values):
     """Add an config_file from the values dictionary."""
     return _config_file_update(context, values, None)
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def config_file_destroy(context, config_file_id):
     """Destroy the config_file or raise if it does not exist."""
     session = get_session()
@@ -5113,8 +5146,10 @@ def _check_config_set_id(config_set_id):
         len(config_set_id) > models.ConfigSet.id.property.columns[0].type.length):
         raise exception.NotFound()
         
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 @utils.no_4byte_params
 def _config_set_update(context, values, config_set_id=None):
     """
@@ -5246,8 +5281,10 @@ def _config_item_get_by_config_set_id(context, config_set_id, session=None, forc
 
     return config_items
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def config_set_destroy(context, config_set_id):
     """Destroy the config_set or raise if it does not exist."""
     session = get_session()
@@ -5363,8 +5400,10 @@ def _check_config_id(config_id):
         len(config_id) > models.Config.id.property.columns[0].type.length):
         raise exception.NotFound()
         
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 @utils.no_4byte_params
 def _config_update(context, values, config_id):
     """
@@ -5509,8 +5548,10 @@ def config_get(context, config_id, session=None, force_show_deleted=False):
                        force_show_deleted=force_show_deleted)
     return config
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 @utils.no_4byte_params
 def update_config_by_role_hosts(context, values):
     if not values:
@@ -5542,8 +5583,10 @@ def config_add(context, values):
     """Add an config from the values dictionary."""
     return _config_update(context, values, None)
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def config_destroy(context, config_id):
     """Destroy the config or raise if it does not exist."""
     session = get_session()
@@ -5637,8 +5680,10 @@ def network_update(context, network_id, values):
     """
     return _network_update(context, values, network_id)    
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def network_destroy(context,  network_id):
     """Destroy the project or raise if it does not exist."""
     session = get_session()
@@ -5759,8 +5804,10 @@ def _check_network_id(network_id):
        len(network_id) > models.Network.id.property.columns[0].type.length):
         raise exception.NotFound()
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 @utils.no_4byte_params
 def update_phyname_of_network(context, network_phyname_set):
     """
@@ -5815,8 +5862,10 @@ def _get_role_float_ip(session, cluster_id):
             for ip in float_ip_list if ip]
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 @utils.no_4byte_params
 def _network_update(context, values, network_id):
     """
@@ -6136,8 +6185,10 @@ def _service_disk_get(context, service_disk_id=None, role_id=None, marker=None, 
 
     return service_disk
     
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 @utils.no_4byte_params
 def _service_disk_update(context, values, service_disk_id):
     """
@@ -6188,8 +6239,10 @@ def service_disk_add(context, values):
     return _service_disk_update(context, values, None)
     
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def service_disk_destroy(context, service_disk_id):
     """Destroy the service_disk or raise if it does not exist."""
     session = get_session()
@@ -6198,8 +6251,10 @@ def service_disk_destroy(context, service_disk_id):
         service_disk_ref.delete(session=session)
     return service_disk_ref
     
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)       
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def service_disk_update(context, service_disk_id, values):
     """
     Set the given properties on an cluster and update it.
@@ -6208,15 +6263,18 @@ def service_disk_update(context, service_disk_id, values):
     """
     return _service_disk_update(context, values, service_disk_id)  
     
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
-       
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def service_disk_detail (context, service_disk_id):
     service_disk_ref = _service_disk_get(context, service_disk_id)
     return service_disk_ref
     
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def service_disk_list(context, filters=None, **param):
     """
     Get all hosts that match zero or more filters.
@@ -6336,14 +6394,18 @@ def _cinder_volume_update(context, values, cinder_volume_id):
             cinder_volume_id = cinder_volume_ref.id
     return _cinder_volume_get(context, cinder_volume_id)
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)    
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def cinder_volume_add(context, values):
     """Add an cluster from the values dictionary."""
     return _cinder_volume_update(context, values, None)
     
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def cinder_volume_destroy(context, cinder_volume_id):
     """Destroy the service_disk or raise if it does not exist."""
     session = get_session()
@@ -6352,8 +6414,10 @@ def cinder_volume_destroy(context, cinder_volume_id):
         cinder_volume_ref.delete(session=session)
     return cinder_volume_ref
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def cinder_volume_update(context, cinder_volume_id, values):
     """
     Set the given properties on an cluster and update it.
@@ -6362,14 +6426,18 @@ def cinder_volume_update(context, cinder_volume_id, values):
     """
     return _cinder_volume_update(context, values, cinder_volume_id)  
     
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def cinder_volume_detail(context, cinder_volume_id):
     cinder_volume_ref = _cinder_volume_get(context, cinder_volume_id)
     return cinder_volume_ref
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def cinder_volume_list(context, filters=None, **param):
     """
     Get all hosts that match zero or more filters.
@@ -6392,15 +6460,19 @@ def cinder_volume_list(context, filters=None, **param):
     cinder_volume_ref = _cinder_volume_get(context, role_id=role_id)
     return cinder_volume_ref
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def hwm_add(context, values):
     """add hwm to daisy."""
     return _hwm_update(context, values, None)
 
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def hwm_update(context, hwm_id, values):
     """update cluster template to daisy."""
     return _hwm_update(context, values, hwm_id)
@@ -6513,14 +6585,18 @@ def hwm_get_all(context, filters=None, marker=None, limit=None, sort_key=None,
         hwms.append(hwm)
     return hwms
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50) 
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def template_add(context, values):
     """add cluster template to daisy."""
     return _template_update(context, values, None)
     
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50) 
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def template_update(context, template_id, values):
     """update cluster template to daisy."""
     return _template_update(context, values, template_id)
@@ -6640,14 +6716,18 @@ def template_get_all(context, filters=None, marker=None, limit=None,
         templates.append(template)
     return templates
 
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50) 
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def host_template_add(context, values):
     """add host template to daisy."""
     return _host_template_update(context, values, None)
     
-@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50) 
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(50),
+    wait=tenacity.wait_fixed(0.5),
+    retry=tenacity.retry_if_exception(_retry_on_deadlock))
 def host_template_update(context, template_id, values):
     """update host template to daisy."""
     return _host_template_update(context, values, template_id)
