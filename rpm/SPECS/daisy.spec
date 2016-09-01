@@ -88,7 +88,7 @@ Requires:         python-oslo-vmware >= 0.11.1
 Requires:         python-oslo-i18n >= 1.5.0
 Requires:         python-oslo-db >= 1.7.0
 Requires:         python-osprofiler
-Requires:         python-retrying
+Requires:         python-tenacity >= 3.0.0
 Requires:         python-six >= 1.9.0
 Requires:         python-posix_ipc
 Requires:         python-stevedore
