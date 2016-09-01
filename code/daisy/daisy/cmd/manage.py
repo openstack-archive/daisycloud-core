@@ -40,7 +40,6 @@ from daisy.common import exception
 from daisy.common import utils
 from daisy.db import migration as db_migration
 from daisy.db.sqlalchemy import api as db_api
-from daisy.db.sqlalchemy import metadata
 from daisy import i18n
 
 # If ../glance/__init__.py exists, add ../ to Python search path, so that
@@ -114,38 +113,6 @@ class DbCommands(object):
         migration.db_sync(db_api.get_engine(),
                           db_migration.MIGRATE_REPO_PATH,
                           version)
-
-    @args('--path', metavar='<path>', help='Path to the directory or file '
-                                           'where json metadata is stored')
-    @args('--merge', action='store_true',
-          help='Merge files with data that is in the database. By default it '
-               'prefers existing data over new. This logic can be changed by '
-               'combining --merge option with one of these two options: '
-               '--prefer_new or --overwrite.')
-    @args('--prefer_new', action='store_true',
-          help='Prefer new metadata over existing. Existing metadata '
-               'might be overwritten. Needs to be combined with --merge '
-               'option.')
-    @args('--overwrite', action='store_true',
-          help='Drop and rewrite metadata. Needs to be combined with --merge '
-               'option')
-    def load_metadefs(self, path=None, merge=False,
-                      prefer_new=False, overwrite=False):
-        """Load metadefinition json files to database"""
-        metadata.db_load_metadefs(db_api.get_engine(), path, merge,
-                                  prefer_new, overwrite)
-
-    def unload_metadefs(self):
-        """Unload metadefinitions from database"""
-        metadata.db_unload_metadefs(db_api.get_engine())
-
-    @args('--path', metavar='<path>', help='Path to the directory where '
-                                           'json metadata files should be '
-                                           'saved.')
-    def export_metadefs(self, path=None):
-        """Export metadefinitions data from database to files"""
-        metadata.db_export_metadefs(db_api.get_engine(),
-                                    path)
 
 
 class DbLegacyCommands(object):
