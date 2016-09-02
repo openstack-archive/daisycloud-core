@@ -304,10 +304,14 @@ def allocate_clc_cpus(host_detail):
         return pci_cpu_sets
 
     host_interfaces = host_detail.get('interfaces')
-    if host_interfaces:
-        host_hw_info = utils.get_host_hw_info(host_interfaces)
-    else:
-        return pci_cpu_sets
+    host_hw_info = {'system': '', 'memory': '',
+                    'cpu': '', 'disk': '', 'interfaces': '',
+                    'pci': '', 'devices': ''}
+    host_obj = host_detail
+    for f in ['system', 'memory', 'cpu',
+              'disk', 'interfaces',
+              'pci', 'devices']:
+        host_hw_info[f] = host_obj.get(f)
 
     host_id = host_detail.get('id')
     clc_pci = utils.get_clc_pci_info(host_hw_info['pci'].values())
@@ -342,7 +346,12 @@ def allocate_dvs_cpus(host_detail):
         return dvs_cpu_sets
 
     host_id = host_detail.get('id')
-    host_hw_info = utils.get_host_hw_info(host_interfaces)
+    host_hw_info = {'system': '', 'memory': '',
+                    'cpu': '', 'disk': '', 'interfaces': '',
+                    'pci': '', 'devices': ''}
+    host_obj = host_detail
+    for f in host_hw_info:
+        host_hw_info[f] = host_obj.get(f)
     numa_cpus = utils.get_numa_node_cpus(host_hw_info.get('cpu', {}))
     if not numa_cpus or not numa_cpus['numa_node0']:
         msg = "No NUMA CPU found from of host '%s'" % host_id
