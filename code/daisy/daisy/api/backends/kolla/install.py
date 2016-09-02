@@ -237,7 +237,7 @@ def get_cluster_kolla_config(req, cluster_id):
                     host_name_ip_list.append(host_name_ip)
                 dat_macname = deploy_host_cfg['dat_macname']
                 dat_macname_list.append(dat_macname)
-            if len(set(dat_macname_list)) != 1:
+            if len(set(dat_macname_list)) != 1 and len(set(dat_macname_list)) != 0:
                 msg = (_("computer hosts interface name of dataplane \
                          must be same!"))
                 LOG.error(msg)
@@ -272,6 +272,30 @@ def config_nodes_hosts(host_name_ip_list, host_ip):
     kolla_cmn.run_scrip(config_scripts, host_ip, "ossdbg1",
                         msg='Failed to config /etc/hosts on %s' % host_ip)
 
+
+def _calc_progress(log_file):
+    progress = 20
+    mariadb_result = subprocess.call(
+        'cat %s |grep "Running MariaDB"' % log_file,
+        shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if mariadb_result == 0:
+        progress = 30
+    keystone_result = subprocess.call(
+        'cat %s |grep "Running Keystone"' % log_file,
+        shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if keystone_result == 0:
+        progress = 40
+    nova_result = subprocess.call(
+        'cat %s |grep "Running Nova"' % log_file, shell=True,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if nova_result == 0:
+        progress = 60
+    neutron_result = subprocess.call(
+        'cat %s |grep "Running Neutron"' % log_file, shell=True,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if neutron_result == 0:
+        progress = 80
+    return progress
 
 class KOLLAInstallTask(Thread):
     """
@@ -399,29 +423,37 @@ class KOLLAInstallTask(Thread):
                                                host_id_list,
                                                kolla_state['INSTALLING'],
                                                self.message, 20)
-            try:
-                exc_result = subprocess.check_output(
-                    'cd %s/kolla && ./tools/kolla-ansible deploy -i '
-                    '%s/kolla/ansible/inventory/multinode' %
-                    (self.kolla_file, self.kolla_file),
-                    shell=True, stderr=subprocess.STDOUT)
-            except subprocess.CalledProcessError as e:
-                self.message = "kolla-ansible deploy failed!"
-                update_all_host_progress_to_db(self.req, role_id_list,
-                                               host_id_list,
-                                               kolla_state['INSTALL_FAILED'],
-                                               self.message)
-                LOG.info(_("kolla-ansible deploy failed!"))
-                fp.write(e.output.strip())
-                exit()
-            else:
-                LOG.info(_("kolla-ansible deploy successfully!"))
-                fp.write(exc_result)
-                self.message = "deploy successfully!"
-                update_all_host_progress_to_db(self.req, role_id_list,
-                                               host_id_list,
-                                               kolla_state['INSTALLING'],
-                                               self.message, 90)
+            cmd = subprocess.Popen(
+                'cd %s/kolla && ./tools/kolla-ansible deploy -i '
+                '%s/kolla/ansible/inventory/multinode' %
+                (self.kolla_file, self.kolla_file),
+                shell=True,stdout=fp,stderr=fp)
+            self.message = "begin deploy openstack"
+            self.progress = 20
+            execute_times = 0
+            while True:
+                time.sleep(5)
+                return_code = cmd.poll()
+                if self.progress == 90:
+                    break
+                elif return_code == 0:
+                    self.progress = 90
+                elif return_code == 1:
+                    self.message = "KOLLA deploy openstack failed"                
+                    raise exception.InstallTimeoutException(
+                        cluster_id=self.cluster_id)
+                else:
+                    self.progress = _calc_progress(self.log_file)
+                if execute_times >= 720:
+                    self.message = "KOLLA install openstack timeout for one hours"
+                    raise exception.InstallTimeoutException(
+                        cluster_id=self.cluster_id)
+                else:
+                    update_all_host_progress_to_db(self.req, role_id_list,
+                                                   host_id_list,
+                                                   kolla_state['INSTALLING'],
+                                                   self.message, self.progress)
+                execute_times += 1    
             try:
                 exc_result = subprocess.check_output(
                     'cd %s/kolla && ./tools/kolla-ansible post-deploy -i '
