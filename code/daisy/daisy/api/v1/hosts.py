@@ -34,6 +34,7 @@ from daisy.common import exception
 from daisy.common import property_utils
 from daisy.common import utils
 from daisy.common import wsgi
+from daisy.common import vcpu_pin
 from daisy import i18n
 from daisy import notifier
 import daisy.registry.client.v1.api as registry
@@ -630,6 +631,8 @@ class Controller(controller.BaseController):
             self.check_discover_state_with_hwm(req, host_meta)
         else:
             self.check_discover_state_with_no_hwm(req, host_meta)
+        host_vcpu_pin = vcpu_pin.allocate_cpus(host_meta)
+        host_meta.update(host_vcpu_pin)
         if 'role' in host_meta and 'CONTROLLER_HA' in host_meta['role']:
             host_cluster_name = host_meta['cluster']
             params = {'filters': {u'name': host_cluster_name}}
