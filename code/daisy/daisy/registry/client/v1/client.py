@@ -22,7 +22,7 @@ from oslo_serialization import jsonutils
 from oslo_log import log as logging
 from oslo_utils import excutils
 
-from daisy.common.client import BaseClient
+from daisy.common import client
 from daisy.common import crypt
 from daisy import i18n
 from daisy.registry.api.v1 import images
@@ -39,7 +39,7 @@ _LE = i18n._LE
 _LI = i18n._LI
 
 
-class RegistryClient(BaseClient):
+class RegistryClient(client.BaseClient):
 
     """A client for the Registry image metadata service."""
 
@@ -55,8 +55,8 @@ class RegistryClient(BaseClient):
         # settings when using keystone. configure_via_auth=False disables
         # this behaviour to ensure we still send requests to the Registry API
         self.identity_headers = identity_headers
-        BaseClient.__init__(self, host, port, configure_via_auth=False,
-                            **kwargs)
+        client.BaseClient.__init__(self, host, port, configure_via_auth=False,
+                                   **kwargs)
 
     def decrypt_metadata(self, image_metadata):
         if self.metadata_encryption_key:

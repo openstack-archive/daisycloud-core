@@ -20,7 +20,7 @@ from oslo_config import cfg
 from oslo_utils import importutils
 from wsme.rest import json
 
-from daisy.api.v2.model.metadef_property_type import PropertyType
+from daisy.api.v2.model import metadef_property_type
 from daisy.common import crypt
 from daisy.common import exception
 from daisy.common import location_strategy
@@ -524,7 +524,8 @@ class MetadefObjectRepo(object):
         property_types = {}
         json_props = metadata_object['json_schema']
         for id in json_props:
-            property_types[id] = json.fromjson(PropertyType, json_props[id])
+            property_types[id] = json.fromjson(
+                metadef_property_type.PropertyType, json_props[id])
 
         return daisy.domain.MetadefObject(
             namespace=namespace_entity,
@@ -547,7 +548,7 @@ class MetadefObjectRepo(object):
         db_schema = {}
         if properties:
             for k, v in properties.items():
-                json_data = json.tojson(PropertyType, v)
+                json_data = json.tojson(metadef_property_type.PropertyType, v)
                 db_schema[k] = json_data
 
         db_metadata_object = {
