@@ -62,6 +62,7 @@ function ip_to_cidr()
 function kolla_install
 {
   write_install_log "Begin install kolla depends..."
+  catalog_url="http://127.0.0.1:4000/v2/_catalog"
   curl -sSL https://get.docker.io | bash
   mkdir -p /etc/systemd/system/docker.service.d
   config_path=/etc/systemd/system/docker.service.d/kolla.conf
@@ -108,16 +109,18 @@ function kolla_install
       wget "ftp://openuser:123@120.76.145.166/registry-2.0.3.tgz"
       tar mzxvf registry-2.0.3.tgz
   fi
-  if [ -f "/home/kolla_install/docker/registry-server.tar" ];then
-      echo "registry-server.tar already exist!"
-  else
+  catalog=`curl $catalog_url |grep repositories`
+  if [ -z $catalog ];then
+      if [ -f "/home/kolla_install/docker/registry-server.tar" ];then
+          echo "registry-server.tar already exist!"
+      else
+          cd /home/kolla_install/docker
+          wget "ftp://openuser:123@120.76.145.166/registry-server.tar"
+      fi
       cd /home/kolla_install/docker
-      wget "ftp://openuser:123@120.76.145.166/registry-server.tar"
+      docker load < ./registry-server.tar
+      docker run -d -p 4000:5000 --restart=always -e REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/tmp/registry -v /home/kolla_install/docker/registry:/tmp/registry  --name registry registry:2
   fi
-  cd /home/kolla_install/docker
-  docker load < ./registry-server.tar
-  docker run -d -p 4000:5000 --restart=always -e REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/tmp/registry -v /home/kolla_install/docker/registry:/tmp/registry  --name registry registry:2
-
 }
 #rm daisy yum config file
 function delete_unused_repo_file
