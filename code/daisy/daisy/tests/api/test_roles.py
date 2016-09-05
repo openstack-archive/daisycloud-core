@@ -2,7 +2,7 @@ import mock
 import webob
 from oslo.serialization import jsonutils
 from daisy.api.v1 import roles
-from daisy.context import RequestContext
+from daisy import context
 from daisy import test
 
 
@@ -23,9 +23,9 @@ class TestRolesApiConfig(test.TestCase):
     def test_add_role(self, mock_do_request):
         role_meta = set_role_meta()
         req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenamet')
+        req.context = context.RequestContext(is_admin=True,
+                                             user='fake user',
+                                             tenant='fake tenamet')
 
         def fake_do_request(method, path, **params):
             res = mock.Mock()
@@ -58,9 +58,9 @@ class TestRolesApiConfig(test.TestCase):
     def test_add_role_with_repeated_name(self, mock_do_request):
         role_meta = set_role_meta()
         req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenamet')
+        req.context = context.RequestContext(is_admin=True,
+                                             user='fake user',
+                                             tenant='fake tenamet')
 
         def fake_do_request(method, path, **params):
             res = mock.Mock()
@@ -98,9 +98,9 @@ class TestRolesApiConfig(test.TestCase):
         role_meta['cluster_id'] = cluster_id
         role_meta['type'] = 'template'
         req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenamet')
+        req.context = context.RequestContext(is_admin=True,
+                                             user='fake user',
+                                             tenant='fake tenamet')
 
         def fake_do_request(method, path, **params):
             res = mock.Mock()

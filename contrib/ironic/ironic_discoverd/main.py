@@ -22,7 +22,7 @@ import sys
 
 import flask
 
-from logging.handlers import RotatingFileHandler
+from logging import handlers
 from ironic_discoverd import conf
 from ironic_discoverd import firewall
 from ironic_discoverd import introspect
@@ -33,7 +33,7 @@ from ironic_discoverd import utils
 
 app = flask.Flask(__name__)
 LOG = logging.getLogger('ironic_discoverd.main')
-fh = RotatingFileHandler(
+fh = handlers.RotatingFileHandler(
     '/var/log/ironic/discoverd.log',
     'a', maxBytes=2*1024*1024, backupCount=5)
 formatter = logging.Formatter(

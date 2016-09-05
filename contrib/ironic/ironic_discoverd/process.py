@@ -20,7 +20,7 @@ import eventlet
 from ironicclient import exceptions
 
 
-from logging.handlers import RotatingFileHandler
+from logging import handlers
 from ironic_discoverd import conf
 from ironic_discoverd import firewall
 from ironic_discoverd import node_cache
@@ -29,7 +29,7 @@ from ironic_discoverd import utils
 
 
 LOG = logging.getLogger("ironic_discoverd.process")
-fh = RotatingFileHandler(
+fh = handlers.RotatingFileHandler(
     '/var/log/ironic/parse.log',
     'a', maxBytes=2*1024*1024, backupCount=5)
 formatter = logging.Formatter(
