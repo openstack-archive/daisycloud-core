@@ -24,16 +24,7 @@ function uninstall_daisy
     for i in `ps -elf | grep daisy-api |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $i;done
     for j in `ps -elf | grep daisy-registry |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
     for j in `ps -elf | grep rabbitmq |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
-    for j in `ps -elf | grep ironic-api |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
-    for j in `ps -elf | grep ironic-conductor |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
     for j in `ps -elf | grep ironic-discoverd |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
-    # delect ironic database
-    delete_ironic_sql="drop database IF EXISTS ironic"
-    write_install_log "delect ironic database in mariadb"
-    echo ${delete_ironic_sql} | mysql
-    if [ $? -ne 0 ];then
-        echo "Error:delete ironic database failed..."
-    fi
     # delect keystone database
     delete_keystone_sql="drop database IF EXISTS keystone"
     write_install_log "delect keystone database in mariadb"
