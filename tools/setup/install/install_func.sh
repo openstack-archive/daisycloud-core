@@ -636,30 +636,6 @@ function modify_sudoers
     fi
 }
 
-function config_ironic
-{
-    local file=$1
-    [ ! -e $file ] && { write_install_log "Error:$file is not exist"; exit 1;}
-
-    openstack-config --set "$file" DEFAULT "rpc_backend" "rabbit"
-
-    get_public_ip
-    if [ -z $public_ip ];then
-        write_install_log "Error:default gateway is not set!!!"
-        exit 1
-    else
-        openstack-config --set "$file" DEFAULT "rabbit_host" "$public_ip"
-        openstack-config --set "$file" database "connection" "mysql://ironic:ironic@$public_ip:3306/ironic?charset=utf8"
-    fi
-    openstack-config --set "$file" DEFAULT "rabbit_password" "guest"
-    openstack-config --set "$file" DEFAULT "enabled_drivers" "pxe_ipmitool"
-    mkdir -p /var/log/ironic
-    chown -R ironic:ironic /var/log/ironic
-    openstack-config --set "$file" DEFAULT "log_dir" "/var/log/ironic"
-    openstack-config --set "$file" DEFAULT "verbose" "true"
-    openstack-config --set "$file" DEFAULT "auth_strategy" "noauth"
-}
-
 function config_rabbitmq_env
 {
     local config_file="/etc/rabbitmq/rabbitmq-env.conf"

@@ -56,9 +56,6 @@ function all_install
     write_install_log "install keystone rpm"
     install_rpm_by_yum "openstack-keystone"
 
-    write_install_log "install ironic rpm"
-    install_rpm_by_yum "openstack-ironic-api openstack-ironic-common openstack-ironic-conductor python-ironicclient"
-
     write_install_log "install ironic-discoverd depend rpm"
     install_rpm_by_yum "python-flask"
 
@@ -132,15 +129,6 @@ function all_install
             exit 1
         fi
 
-        # creat ironic datebase
-        local create_ironic_sql="create database IF NOT EXISTS $ironic_name default charset=utf8"
-        write_install_log "create $ironic_name database in mariadb"
-        echo ${create_ironic_sql} | ${mysql_cmd}
-        if [ $? -ne 0 ];then
-            write_install_log "Error:create $ironic_name database failed..."
-            exit 1
-        fi
-
         # create keystone user
         write_install_log "create keystone user in mariadb"
         echo "grant all privileges on *.* to 'keystone'@'localhost' identified by 'keystone'" | ${mysql_cmd}
@@ -157,14 +145,6 @@ function all_install
             exit 1
         fi
 
-        # create ironic user
-        write_install_log "create ironic user in mariadb"
-        echo "grant all privileges on ironic.* to 'ironic'@'localhost' identified by 'ironic'" | ${mysql_cmd}
-        if [ $? -ne 0 ];then
-            write_install_log "Error:create ironic user failed..."
-            exit 1
-        fi
-
         # give the host access to keystone database
         write_install_log "Give the host access to the keystone database"
         echo "grant all privileges on keystone.* to 'keystone'@'%' identified by 'keystone'"| ${mysql_cmd}
@@ -178,14 +158,6 @@ function all_install
         echo "grant all privileges on daisy.* to 'daisy'@'%' identified by 'daisy'"| ${mysql_cmd}
         if [ $? -ne 0 ];then
             write_install_log "Error:Give the host access to the daisy database failed..."
-            exit 1
-        fi
-
-        # give the host access to ironic database
-        write_install_log "Give the host access to the ironic database"
-        echo "grant all privileges on ironic.* to 'ironic'@'%' identified by 'ironic'"| ${mysql_cmd}
-        if [ $? -ne 0 ];then
-            write_install_log "Error:Give the host access to the ironic database failed..."
             exit 1
         fi
 
@@ -237,7 +209,6 @@ function all_install
     config_rabbitmq_config
 
     #Configure ironic related configuration items
-    config_ironic "/etc/ironic/ironic.conf"
     config_ironic_discoverd "/etc/ironic-discoverd/discoverd.conf" "$public_ip"
 
     #modify clustershell configuration
@@ -245,24 +216,12 @@ function all_install
     sed  -i "s/connect_timeout:[[:space:]]*.*/connect_timeout: 360/g" $clustershell_conf
     sed  -i "s/command_timeout:[[:space:]]*.*/command_timeout: 3600/g" $clustershell_conf
 
-    #creat ironic datebase tables
-    which ironic-dbsync >> $install_logfile 2>&1
-    if [ "$?" == 0 ];then
-        write_install_log "start ironic-dbsync ..."
-        ironic-dbsync --config-file /etc/ironic/ironic.conf create_schema
-        [ "$?" -ne 0 ] && { write_install_log "Error:ironic-dbsync --config-file /etc/ironic/ironic.conf create_schema failed"; exit 1; }
-    fi
-
     systemctl restart rabbitmq-server.service
     [ "$?" -ne 0 ] && { write_install_log "Error:systemctl restart rabbitmq-server.service failed"; exit 1; }
 
     systemctl restart openstack-keystone.service
     [ "$?" -ne 0 ] && { write_install_log "Error:systemctl restart rabbitmq-server.service failed"; exit 1; }
 
-    systemctl restart openstack-ironic-api.service
-    [ "$?" -ne 0 ] && { write_install_log "Error:systemctl restart openstack-ironic-api.service failed"; exit 1; }
-    systemctl restart openstack-ironic-conductor.service
-    [ "$?" -ne 0 ] && { write_install_log "Error:systemctl restart openstack-ironic-conductor.service failed"; exit 1; }
     systemctl restart openstack-ironic-discoverd.service
     [ "$?" -ne 0 ] && { write_install_log "Error:systemctl restart openstack-ironic-discoverd.service failed"; exit 1; }
 
@@ -270,8 +229,6 @@ function all_install
     [ "$?" -ne 0 ] && { write_install_log "Error:systemctl start daisy-orchestration.service failed"; exit 1; }
 
     systemctl enable daisy-orchestration.service >> $install_logfile 2>&1
-    systemctl enable openstack-ironic-api.service >> $install_logfile 2>&1
-    systemctl enable openstack-ironic-conductor.service >> $install_logfile 2>&1
     systemctl enable openstack-ironic-discoverd.service >> $install_logfile 2>&1
 
     #init daisy
