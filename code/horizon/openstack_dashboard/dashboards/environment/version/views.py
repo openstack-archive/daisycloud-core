@@ -20,7 +20,7 @@ LOG = logging.getLogger(__name__)
 
 
 def get_version_path():
-    return getattr(settings, 'DAISY_VER_PATH', "/var/lib/daisy/tecs/")
+    return getattr(settings, 'DAISY_VER_PATH', "/var/lib/daisy/kolla/")
 
 
 def get_files():
