@@ -448,25 +448,6 @@ class Controller(object):
         if cluster_name:
             host_data['host']['cluster'] = cluster_name
 
-        host_hardware_config = utils.get_host_hw_info(host_interface)
-        if host_hardware_config:
-            host_data['host']['system'] = host_hardware_config['system']
-            host_data['host']['memory'] = host_hardware_config['memory']
-            host_data['host']['cpu'] = host_hardware_config['cpu']
-            host_data['host']['disks'] = host_hardware_config['disks']
-
-            for interface in host_interface:
-                for ironic_interface in host_hardware_config[
-                        'interfaces'].values():
-                    if interface['mac'] == ironic_interface['mac'] and \
-                            interface['pci'] == ironic_interface['pci']:
-                        interface['state'] = ironic_interface['state']
-                        interface['max_speed'] = ironic_interface['max_speed']
-                        interface['current_speed'] = ironic_interface[
-                            'current_speed']
-                        # interface['pci'] = ironic_interface['pci']
-            host_data['host']['interfaces'] = host_interface
-
         host_data['host']['position'] = location
 
         return host_data
