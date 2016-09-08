@@ -49,6 +49,7 @@ function make_yum_client
 function yum_set
 {
     rm -rf /var/lib/rpm/__db.*
+    rm -rf /etc/yum.repos.d/daisy*
     echo "creating yum repo, please wait for several seconds..."
     yum install -y createrepo
     make_yum_server
