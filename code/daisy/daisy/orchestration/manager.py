@@ -19,10 +19,10 @@
 
 from oslo_config import cfg
 from oslo_log import log as logging
-from webob.exc import HTTPNotFound
+from webob import exc
 
 from daisy.common import exception
-from daisyclient.v1.client import Client
+from daisyclient.v1 import client
 import ConfigParser
 
 LOG = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ class OrchestrationManager():
             bind_port = config_discoverd.get("DEFAULT", "bind_port")
             daisy_endpoint = "http://127.0.0.1:" + bind_port
             # daisy_endpoint="http://127.0.0.1:19292"
-            daisy_client = Client(
+            daisy_client = client.Client(
                 version=daisy_version, endpoint=daisy_endpoint)
             orchestrationManager = OrchestrationManager()
             cluster_meta = {'auto_scale': '1'}
@@ -98,7 +98,7 @@ class OrchestrationManager():
 
                         else:
                             LOG.info("not interfaces in host %s" % host['id'])
-                            raise HTTPNotFound(
+                            raise exc.HTTPNotFound(
                                 "not interfaces in host %s" % host['id'])
                 orchestrationManager._os_tecs_install(cluster_id, daisy_client)
         except exception.Invalid as e:

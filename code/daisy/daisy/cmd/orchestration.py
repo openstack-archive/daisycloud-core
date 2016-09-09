@@ -29,7 +29,7 @@ from oslo_log import log as logging
 from daisy.common import exception
 from daisy.common import config
 from daisy.openstack.common import loopingcall
-from daisy.orchestration.manager import OrchestrationManager
+from daisy.orchestration import manager
 import six
 
 # Monkey patch socket and time
@@ -63,7 +63,7 @@ def main():
         config.parse_args()
         logging.setup(CONF, 'daisy')
         timer = loopingcall.FixedIntervalLoopingCall(
-            OrchestrationManager.find_auto_scale_cluster)
+            manager.OrchestrationManager.find_auto_scale_cluster)
         timer.start(float(CONF.orchestration.auto_scale_interval)).wait()
     except exception.WorkerCreationFailure as e:
         fail(2, e)
