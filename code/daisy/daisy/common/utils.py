@@ -51,7 +51,6 @@ import ConfigParser
 
 from daisy.common import exception
 from daisy import i18n
-from ironicclient import client as ironic_client
 
 CONF = cfg.CONF
 
@@ -885,16 +884,6 @@ def is_ip_in_ranges(ip, ip_ranges):
             return True
 
     return False
-
-
-def get_ironicclient():  # pragma: no cover
-    """Get Ironic client instance."""
-    config_discoverd = ConfigParser.ConfigParser(defaults=DISCOVER_DEFAULTS)
-    config_discoverd.read("/etc/ironic-discoverd/discoverd.conf")
-    ironic_url = config_discoverd.get("discoverd", "ironic_url")
-    args = {'os_auth_token': 'fake',
-            'ironic_url': ironic_url}
-    return ironic_client.get_client(1, **args)
 
 
 def get_host_hw_info(host_interface):
