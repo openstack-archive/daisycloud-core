@@ -58,6 +58,7 @@ function all_install
 
     write_install_log "install ironic-discoverd depend rpm"
     install_rpm_by_yum "python-flask"
+    install_rpm_by_yum "python-ironicclient"
 
     write_install_log "install ironic-discoverd rpm"
     install_rpm_by_daisy_yum "openstack-ironic-discoverd python-ironic-discoverd"
