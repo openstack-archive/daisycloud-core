@@ -56,7 +56,6 @@ install -p -D -m 644 %{SOURCE3} %{buildroot}/%{_sysconfdir}/ironic-discoverd/dns
 Summary: Hardware introspection service for OpenStack Ironic - Python modules
 Requires: python-eventlet
 Requires: python-flask
-Requires: python-ironicclient
 Requires: python-keystoneclient
 Requires: python-keystonemiddleware
 Requires: python-requests
