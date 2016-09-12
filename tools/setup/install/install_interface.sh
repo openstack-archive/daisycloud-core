@@ -17,6 +17,7 @@ keystone_admin_token="e93e9abf42f84be48e0996e5bd44f096"
 daisy_install="/var/log/daisy/daisy_install"
 installdatefile=`date -d "today" +"%Y%m%d-%H%M%S"`
 install_logfile=$daisy_install/daisyinstall_$installdatefile.log
+discover_logfile="/var/log/ironic"
 #the contents of the output is displayed on the screen and output to the specified file
 function write_install_log
 {
@@ -37,6 +38,10 @@ function all_install
 
     if [ ! -f "$install_logfile" ];then
         touch $install_logfile
+    fi
+
+    if [ ! -d "$discover_logfile" ];then
+        mkdir -p $discover_logfile
     fi
 
     rm -rf /root/.my.cnf
