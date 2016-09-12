@@ -67,7 +67,6 @@ class Controller(object):
 
     def __init__(self):
         self.db_api = daisy.db.get_api()
-        self.ironicclient = utils.get_ironicclient()
         self.daisyclient = self.get_daisyclient()
 
     @staticmethod
