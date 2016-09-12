@@ -16,7 +16,6 @@
 import logging
 
 import eventlet
-from ironicclient import exceptions
 
 from ironic_discoverd import conf
 from ironic_discoverd import firewall
