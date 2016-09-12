@@ -16,8 +16,6 @@ import re
 
 import eventlet
 from daisyclient import client as daisy_client
-from ironicclient import client
-from ironicclient import exceptions
 from keystonemiddleware import auth_token
 import six
 
