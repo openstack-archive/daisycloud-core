@@ -126,26 +126,6 @@ def format_node_info_for_daisy_client(node_info, ipmi_addr,
     return daisy_data
 
 
-def write_data_to_ironic(node_info):
-    """Parse data from the discovery ramdis.
-
-    this function put data into ironic db
-    """
-
-    ironic = utils.get_client()
-    uuid = node_info['system'].get('uuid')
-    if uuid:
-        LOG.debug("find uuid, parse node_info, node_uuid: %s", uuid)
-        mac = find_min_mac_in_node_info(node_info)
-        patch = format_node_info_for_ironic(node_info)
-        try:
-            ironic.physical_node.update(uuid, mac, patch)
-        except Exception as ex:
-            LOG.warning('%s:update ironic db failed.', ex)
-    else:
-        LOG.debug("Don't find uuid.")
-
-
 def find_min_mac_in_node_info(node_info):
     interfaces_dict = node_info['interfaces']
     mac_list = []
