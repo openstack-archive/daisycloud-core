@@ -73,7 +73,6 @@ def api_continue():
     else:
         hostname = None
     if data_name == "baremetal_source":
-        process.write_data_to_ironic(data)
         process.write_data_to_daisy(data, ipmi_addr, os_status, hostname)
     return json.dumps(""), 200, {'Content-Type': 'applications/json'}
 
@@ -131,31 +130,6 @@ def periodic_clean_up(period):  # pragma: no cover
         eventlet.greenthread.sleep(period)
 
 
-def check_ironic_available():
-    """Try to make sure we can reach Ironic.
-
-    Ensure that:
-    1. Keystone access is configured properly
-    2. Keystone has already started
-    3. Ironic has already started
-    """
-    attempts = conf.getint('discoverd', 'ironic_retry_attempts')
-    assert attempts >= 0
-    retry_period = conf.getint('discoverd', 'ironic_retry_period')
-    LOG.debug('Trying to connect to Ironic')
-    for i in range(attempts + 1):  # one attempt always required
-        try:
-            utils.get_client().driver.list()
-        except Exception as exc:
-            if i == attempts:
-                raise
-            LOG.warning('Unable to connect to Ironic or Keystone, retrying %d '
-                        'times more: %s', attempts - i, exc)
-        else:
-            break
-        eventlet.greenthread.sleep(retry_period)
-
-
 def config_shim(args):
     """Make new argument parsing method backwards compatible."""
     if len(args) == 2 and args[1][0] != '-':
@@ -169,7 +143,6 @@ def init():
         LOG.warning('Starting unauthenticated, please check configuration')
 
     node_cache.init()
-    check_ironic_available()
 
     if conf.getboolean('discoverd', 'manage_firewall'):
         firewall.init()
