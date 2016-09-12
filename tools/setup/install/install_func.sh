@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 # DAISY upgrade
 
 if [ ! "$_INSTALL_FUNC_FILE" ];then
@@ -106,7 +106,7 @@ function kolla_install
       mkdir -p /home/kolla_install/docker
       cd /home/kolla_install/docker
       wget "ftp://openuser:123@120.76.145.166/registry-2.0.3.tgz"
-      tar mzxvf registry-2.0.3.tgz
+      tar mzxvf registry-2.0.3.tgz >> $install_logfile 2>&1
   fi
   if [ -f "/home/kolla_install/docker/registry-server.tar" ];then
       echo "registry-server.tar already exist!"
