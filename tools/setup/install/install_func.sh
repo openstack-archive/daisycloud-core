@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 # DAISY upgrade
 
 if [ ! "$_INSTALL_FUNC_FILE" ];then
