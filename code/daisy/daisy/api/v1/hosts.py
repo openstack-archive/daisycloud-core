@@ -39,7 +39,6 @@ from daisy import notifier
 import daisy.registry.client.v1.api as registry
 import threading
 import daisy.api.backends.common as daisy_cmn
-import daisy.api.backends.tecs.common as tecs_cmn
 import ConfigParser
 import socket
 import netaddr
@@ -626,10 +625,7 @@ class Controller(controller.BaseController):
         """
         self._enforce(req, 'get_host')
         host_meta = self.get_host_meta_or_404(req, id)
-        if host_meta.get("hwm_id"):
-            self.check_discover_state_with_hwm(req, host_meta)
-        else:
-            self.check_discover_state_with_no_hwm(req, host_meta)
+        self.check_discover_state_with_no_hwm(req, host_meta)
         if 'role' in host_meta and 'CONTROLLER_HA' in host_meta['role']:
             host_cluster_name = host_meta['cluster']
             params = {'filters': {u'name': host_cluster_name}}
@@ -637,7 +633,7 @@ class Controller(controller.BaseController):
             cluster_id = cluster_info[0]['id']
 
             ctl_ha_nodes_min_mac =\
-                tecs_cmn.get_ctl_ha_nodes_min_mac(req, cluster_id)
+                daisy_cmn.get_ctl_ha_nodes_min_mac(req, cluster_id)
             sorted_ha_nodes = \
                 sorted(ctl_ha_nodes_min_mac.iteritems(), key=lambda d: d[1])
             sorted_ha_nodes_min_mac = \
@@ -654,7 +650,7 @@ class Controller(controller.BaseController):
                     role_id = role['id']
                     break
             service_disks = \
-                tecs_cmn.get_service_disk_list(req,
+                daisy_cmn.get_service_disk_list(req,
                                                {'filters': {
                                                    'role_id': role_id}})
             db_share_cluster_disk = []
@@ -705,34 +701,10 @@ class Controller(controller.BaseController):
         try:
             nodes = registry.get_hosts_detail(req.context, **params)
             for node in nodes:
-                if node.get("hwm_id"):
-                    self.check_discover_state_with_hwm(req, node)
-                else:
-                    self.check_discover_state_with_no_hwm(req, node)
+                self.check_discover_state_with_no_hwm(req, node)
         except exception.Invalid as e:
             raise HTTPBadRequest(explanation=e.msg, request=req)
         return dict(nodes=nodes)
-
-    def check_discover_state_with_hwm(self, req, node):
-        node['discover_state'] = None
-        host_meta = self.get_host_meta_or_404(req, node.get('id'))
-        if host_meta and host_meta.get('interfaces'):
-            mac_list = [
-                interface['mac'] for interface in
-                host_meta.get('interfaces') if interface.get('mac')]
-            if mac_list:
-                min_mac = min(mac_list)
-                pxe_discover_host = self._get_discover_host_by_mac(req,
-                                                                   min_mac)
-                if pxe_discover_host:
-                    if pxe_discover_host.get('ip'):
-                        node['discover_state'] = \
-                            "SSH:" + pxe_discover_host.get('status')
-                    else:
-                        node['discover_state'] = \
-                            "PXE:" + pxe_discover_host.get('status')
-
-        return node
 
     def check_discover_state_with_no_hwm(self, req, node):
         node['discover_state'] = None
@@ -748,59 +720,6 @@ class Controller(controller.BaseController):
                             "SSH:" + ssh_discover_host.get('status')
 
         return node
-
-    def _update_hwm_host(self, req, hwm_host, hosts, hwm_ip):
-        hwm_host_mac = [hwm_host_interface['mac'] for hwm_host_interface
-                        in hwm_host.get('interfaces')]
-        for host in hosts:
-            host_update_meta = dict()
-            host_meta = self.get_host_meta_or_404(req, host['id'])
-            host_mac = [host_interface['mac'] for host_interface
-                        in host_meta.get('interfaces')]
-            set_same_mac = set(hwm_host_mac) & set(host_mac)
-
-            if set_same_mac:
-                host_update_meta['hwm_id'] = hwm_host['id']
-                host_update_meta['hwm_ip'] = hwm_ip
-                node = registry.update_host_metadata(req.context, host['id'],
-                                                     host_update_meta)
-                return node
-
-        host_add_meta = dict()
-        host_add_meta['name'] = str(hwm_host['id'])
-        host_add_meta['description'] = 'default'
-        host_add_meta['os_status'] = 'init'
-        host_add_meta['hwm_id'] = str(hwm_host['id'])
-        host_add_meta['hwm_ip'] = str(hwm_ip)
-        host_add_meta['interfaces'] = str(hwm_host['interfaces'])
-        node = registry.add_host_metadata(req.context, host_add_meta)
-        return node
-
-    def update_hwm_host(self, req, host_meta):
-        self._enforce(req, 'get_hosts')
-        params = self._get_query_params(req)
-        try:
-            hosts = registry.get_hosts_detail(req.context, **params)
-            hosts_without_hwm_id = list()
-            hosts_hwm_id_list = list()
-            for host in hosts:
-                if host.get('hwm_id'):
-                    hosts_hwm_id_list.append(host['hwm_id'])
-                else:
-                    hosts_without_hwm_id.append(host)
-
-            hwm_hosts = host_meta['nodes']
-            hwm_ip = host_meta['hwm_ip']
-            nodes = list()
-            for hwm_host in eval(hwm_hosts):
-                if hwm_host['id'] in hosts_hwm_id_list:
-                    continue
-                node = self._update_hwm_host(req, hwm_host,
-                                             hosts_without_hwm_id, hwm_ip)
-                nodes.append(node)
-            return dict(nodes=nodes)
-        except exception.Invalid as e:
-            raise HTTPBadRequest(explanation=e.msg, request=req)
 
     def _compute_hugepage_memory(self, hugepages, memory, hugepagesize='1G'):
         hugepage_memory = 0
@@ -2492,9 +2411,6 @@ class HostDeserializer(wsgi.JSONRequestDeserializer):
         return self._deserialize(request)
 
     def discover_host(self, request):
-        return self._deserialize(request)
-
-    def update_hwm_host(self, request):
         return self._deserialize(request)
 
     def add_discover_host(self, request):

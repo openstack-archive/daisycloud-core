@@ -224,3 +224,110 @@ def get_pxe_mac(host_detail):
     pxe_macs = [interface['mac'] for interface in host_detail['interfaces']
                 if interface['is_deployment']]
     return pxe_macs
+
+
+def get_host_network_ip(req, host_detail, cluster_networks, network_name):
+    interface_network_ip = ''
+    host_interface = get_host_interface_by_network(host_detail, network_name)
+    if host_interface:
+        network = _get_cluster_network(cluster_networks, network_name)
+        assigned_network = daisy_cmn.get_assigned_network(req,
+                                                          host_interface['id'],
+                                                          network['id'])
+        interface_network_ip = assigned_network['ip']
+
+    if not interface_network_ip and 'MANAGEMENT' == network_name:
+        msg = "%s network ip of host %s can't be empty" % (
+            network_name, host_detail['id'])
+        raise exception.InvalidNetworkConfig(msg)
+    return interface_network_ip
+
+
+def get_service_disk_list(req, params):
+    try:
+        service_disks = registry.list_service_disk_metadata(
+            req.context, **params)
+    except exception.Invalid as e:
+        raise HTTPBadRequest(explanation=e.msg, request=req)
+    return service_disks
+
+
+def sort_interfaces_by_pci(networks, host_detail):
+    """
+    Sort interfaces by pci segment, if interface type is bond,
+    user the pci of first memeber nic.This function is fix bug for
+    the name length of ovs virtual port, because if the name length large than
+    15 characters, the port will create failed.
+    :param interfaces: interfaces info of the host
+    :return:
+    """
+    interfaces = eval(host_detail.get('interfaces', None)) \
+        if isinstance(host_detail, unicode) else \
+        host_detail.get('interfaces', None)
+    if not interfaces:
+        LOG.info("This host has no interfaces info.")
+        return host_detail
+
+    tmp_interfaces = copy.deepcopy(interfaces)
+
+    slaves_name_list = []
+    for interface in tmp_interfaces:
+        if interface.get('type', None) == "bond" and\
+                interface.get('slave1', None) and\
+                interface.get('slave2', None):
+            slaves_name_list.append(interface['slave1'])
+            slaves_name_list.append(interface['slave2'])
+
+    for interface in interfaces:
+        if interface.get('name') not in slaves_name_list:
+            vlan_id_len_list = [len(network['vlan_id'])
+                                for assigned_network in interface.get(
+                                    'assigned_networks', [])
+                                for network in networks
+                                if assigned_network.get('name') ==
+                                network.get('name') and network.get('vlan_id')]
+            max_vlan_id_len = max(vlan_id_len_list) if vlan_id_len_list else 0
+            interface_name_len = len(interface['name'])
+            redundant_bit = interface_name_len + max_vlan_id_len - 14
+            interface['name'] = interface['name'][
+                redundant_bit:] if redundant_bit > 0 else interface['name']
+    return host_detail
+
+
+def run_scrip(script, ip=None, password=None, msg=None):
+    try:
+        _run_scrip(script, ip, password)
+    except:
+        msg1 = 'Error occurred during running scripts.'
+        message = msg1 + msg if msg else msg1
+        LOG.error(message)
+        raise HTTPForbidden(explanation=message)
+    else:
+        LOG.info('Running scripts successfully!')
+
+
+def get_ctl_ha_nodes_min_mac(req, cluster_id):
+    '''
+    ctl_ha_nodes_min_mac = {'host_name1':'min_mac1', ...}
+    '''
+    ctl_ha_nodes_min_mac = {}
+    roles = daisy_cmn.get_cluster_roles_detail(req, cluster_id)
+    cluster_networks =\
+        daisy_cmn.get_cluster_networks_detail(req, cluster_id)
+    for role in roles:
+        if role['deployment_backend'] != daisy_cmn.tecs_backend_name:
+            continue
+        role_hosts = daisy_cmn.get_hosts_of_role(req, role['id'])
+        for role_host in role_hosts:
+            # host has installed tecs are exclusive
+            if (role_host['status'] == TECS_STATE['ACTIVE'] or
+                    role_host['status'] == TECS_STATE['UPDATING'] or
+                    role_host['status'] == TECS_STATE['UPDATE_FAILED']):
+                continue
+            host_detail = daisy_cmn.get_host_detail(req,
+                                                    role_host['host_id'])
+            host_name = host_detail['name']
+            if role['name'] == "CONTROLLER_HA":
+                min_mac = utils.get_host_min_mac(host_detail['interfaces'])
+                ctl_ha_nodes_min_mac[host_name] = min_mac
+    return ctl_ha_nodes_min_mac
