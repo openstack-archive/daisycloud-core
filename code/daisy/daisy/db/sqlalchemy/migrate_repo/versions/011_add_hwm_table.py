@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+# Note: hwm (hardware management) table is currently not used. This is just
+# a place holder.
 from sqlalchemy import MetaData, Table, Column, String
 from daisy.db.sqlalchemy.migrate_repo.schema import (Boolean, DateTime, Text,
                                                      create_tables)

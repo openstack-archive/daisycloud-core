@@ -41,7 +41,6 @@ import daisyclient.v1.uninstall
 import daisyclient.v1.update
 import daisyclient.v1.disk_array
 import daisyclient.v1.template
-import daisyclient.v1.hwms
 from daisyclient.v1 import param_helper
 import daisyclient.v1.backup_restore
 
@@ -97,10 +96,6 @@ def _daisy_show(daisy, max_column_width=80):
            help='node network interface detail, \
                  ip must be given if assigned_networks is empty,\
                  and cluster must be given if assigned_networks is not empty.')
-@utils.arg('--hwm-id', metavar='<HWM_ID>',
-           help='The id of hwm host.')
-@utils.arg('--hwm-ip', metavar='<HWM_IP>',
-           help='The ip of hwm.')
 @utils.arg('--vcpu-pin-set', metavar='<VCPU_PIN_SET>',
            help='Set the vcpu pin.')
 @utils.arg('--dvs-high-cpuset', metavar='<DVS_HIGH_CPUSET>',
@@ -249,10 +244,6 @@ def do_host_delete(gc, args):
            help='size of hugepage.')
 @utils.arg('--hugepages', metavar='<HUGEPAGES>',
            help='number of hugepages.')
-@utils.arg('--hwm-id', metavar='<HWM_ID>',
-           help='The id of hwm host.')
-@utils.arg('--hwm-ip', metavar='<HWM_IP>',
-           help='The ip of hwm.')
 @utils.arg('--vcpu-pin-set', metavar='<VCPU_PIN_SET>',
            help='Set the vcpu pin.')
 @utils.arg('--dvs-high-cpuset', metavar='<DVS_HIGH_CPUSET>',
@@ -345,9 +336,9 @@ def do_host_list(gc, args):
 
     hosts = gc.hosts.list(**kwargs)
 
-    columns = ['ID', 'Hwm_id', 'Name', 'Description', 'Resource_type',
+    columns = ['ID', 'Name', 'Description', 'Resource_type',
                'Status', 'Os_progress', 'Os_status', 'Discover_state',
-               'Messages', 'Hwm_ip']
+               'Messages']
 #    if filters.has_key('cluster_id'):
     if 'cluster_id' in filters:
         role_columns = ['Role_progress', 'Role_status', 'Role_messages']
@@ -692,7 +683,7 @@ def do_cluster_list(gc, args):
     clusters = gc.clusters.list(**kwargs)
 
     columns = ['ID', 'Name', 'Description', 'Nodes', 'Networks',
-               'Auto_scale', 'Use_dns', 'Hwm_ip', 'Status']
+               'Auto_scale', 'Use_dns', 'Status']
     utils.print_list(clusters, columns)
 
 
@@ -2306,161 +2297,6 @@ def do_delete_host_template(dc, args):
     fields = dict(filter(lambda x: x[0] in CREATE_PARAMS, fields.items()))
     host_template = dc.template.delete_host_template(**fields)
     _daisy_show(host_template)
-
-
-@utils.arg('--hwm-ip', metavar='<HWM_IP>', help='The ip of hwm')
-def do_node_list(gc, args):
-    """Get all nodes from hwm."""
-    fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
-    result = gc.node.list(**fields)
-    columns = ['id', 'cpuCore', 'cpuFrequency', 'memory', 'disk',
-               'hardwareType', 'hardwareStatus', 'interfaces']
-    utils.print_list(result, columns, conver_field=False)
-
-
-@utils.arg('--hwm-ip', metavar='<HWM_IP>', help='The ip of hwm')
-@utils.arg('hwm_id', metavar='<HWM_ID>', help='The id of hwm')
-def do_node_location(gc, args):
-    """Get node location from hwm."""
-    fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
-    location = gc.node.location(**fields)
-    _daisy_show(location)
-
-
-@utils.arg('--hwm-ip', metavar='<HWM_IP>', help='The ip of hwm')
-@utils.arg('hwm_id', metavar='<HWM_ID>', help='The id of hwm')
-def do_node_restart(gc, args):
-    """Restart node."""
-    fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
-    location = gc.node.restart(**fields)
-    _daisy_show(location)
-
-
-@utils.arg('--hwm-ip', metavar='<HWM_IP>', help='The ip of hwm')
-@utils.arg('action_id', metavar='<ACTION_ID>',
-           help='The action id of nodes')
-def do_restart_state(gc, args):
-    """Get restart state of node."""
-    fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
-    location = gc.node.restart_state(**fields)
-    _daisy_show(location)
-
-
-@utils.arg('--hwm-ip', metavar='<HWM_IP>', help='The ip of hwm')
-@utils.arg('--boot-type', metavar='<BOOT_TYPE>', help='The node boot type')
-@utils.arg('hwm_id', metavar='<HWM_ID>', help='The id of hwm')
-def do_set_boot(gc, args):
-    """Set boot type of node."""
-    fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
-    location = gc.node.set_boot(**fields)
-    _daisy_show(location)
-
-
-@utils.arg('--hwm-ip', metavar='<HWM_IP>', help='The ip of hwm')
-def do_node_update(gc, args):
-    """Update hosts."""
-    fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
-    result = gc.node.update(**fields)
-    columns = ['ID', 'Hwm_id', 'Hwm_ip', 'Name', 'Description',
-               'Resource_type', 'Status', 'Os_progress', 'Os_status',
-               'Messages']
-    utils.print_list(result, columns)
-
-
-@utils.arg('hwm_id', metavar='<HWM_ID>', help='The id of hwm')
-@utils.arg('--hwm-ip', metavar='<HWM_IP>', help='The ip of hwm')
-def do_pxe_host_discover(gc, args):
-    """Discover host with pxe."""
-    fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
-    host = gc.node.pxe_host_discover(**fields)
-    _daisy_show(host)
-
-
-@utils.arg('hwm_ip', metavar='<HWM_IP>',
-           help='Hwm ip to be added.')
-@utils.arg('--description', metavar='<DESCRIPTION>',
-           help='Hwm description to be added.')
-def do_hwm_add(gc, args):
-    """Add a hwm."""
-    fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
-
-    # Filter out values we can't use
-    CREATE_PARAMS = daisyclient.v1.hwms.CREATE_PARAMS
-    fields = dict(filter(lambda x: x[0] in CREATE_PARAMS, fields.items()))
-
-    hwm = gc.hwm.add(**fields)
-    _daisy_show(hwm)
-
-
-@utils.arg('hwm', metavar='<HWM>', help='ID of hwm to modify.')
-@utils.arg('--hwm-ip', metavar='<HWM_IP>', help='The ip of hwm.')
-@utils.arg('--description', metavar='<DESCRIPTION>',
-           help='Description of hwm.')
-def do_hwm_update(gc, args):
-    """Update a specific hwm."""
-    fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
-    hwm_arg = fields.pop('hwm')
-    hwm = utils.find_resource(gc.hwm, hwm_arg)
-
-    # Filter out values we can't use
-    UPDATE_PARAMS = daisyclient.v1.hwms.UPDATE_PARAMS
-    fields = dict(filter(lambda x: x[0] in UPDATE_PARAMS, fields.items()))
-    hwm = gc.hwm.update(hwm, **fields)
-    _daisy_show(hwm)
-
-
-@utils.arg('--page-size', metavar='<SIZE>', default=None, type=int,
-           help='Number of hwms to request in each paginated request.')
-@utils.arg('--sort-key', default=None,
-           choices=daisyclient.v1.hwms.SORT_KEY_VALUES,
-           help='Sort hwm list by specified field.')
-@utils.arg('--sort-dir', default='asc',
-           choices=daisyclient.v1.hwms.SORT_DIR_VALUES,
-           help='Sort hwm list in specified direction.')
-def do_hwm_list(gc, args):
-    """List hwms you can access."""
-    kwargs = {'filters': {}}
-    if args.page_size is not None:
-        kwargs['page_size'] = args.page_size
-
-    kwargs['sort_key'] = args.sort_key
-    kwargs['sort_dir'] = args.sort_dir
-
-    hwms = gc.hwm.list(**kwargs)
-    columns = ['ID', 'Hwm_ip', 'Description']
-    utils.print_list(hwms, columns)
-
-
-@utils.arg('id', metavar='<ID>',
-           help='Filter hwm to those that have this id.')
-def do_hwm_detail(gc, args):
-    """List hwm you can access."""
-    host = utils.find_resource(gc.hwm, args.id)
-    _daisy_show(host)
-
-
-@utils.arg('hwms', metavar='<HWM>', nargs='+',
-           help='ID of hwm(s) to delete.')
-def do_hwm_delete(gc, args):
-    """Delete specified hwm(s)."""
-    for args_hwm in args.hwms:
-        hwm = utils.find_resource(gc.hwm, args_hwm)
-        if hwm and hwm.deleted:
-            msg = "No hwm with an ID of '%s' exists." % hwm.id
-            raise exc.CommandError(msg)
-        try:
-            if args.verbose:
-                print('Requesting hwm delete for %s ...' %
-                      encodeutils.safe_decode(args_hwm), end=' ')
-            gc.hwm.delete(hwm)
-
-            if args.verbose:
-                print('[Done]')
-
-        except exc.HTTPException as e:
-            if args.verbose:
-                print('[Fail]')
-            print('%s: Unable to delete hwm %s' % (e, args_hwm))
 
 
 @utils.arg('--provider-ip', metavar='<PROVIDER_IP>',
