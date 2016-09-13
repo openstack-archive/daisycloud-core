@@ -885,23 +885,6 @@ def is_ip_in_ranges(ip, ip_ranges):
     return False
 
 
-def get_host_hw_info(host_interface):
-    host_hw_config = {}
-    ironicclient = get_ironicclient()
-    if host_interface:
-        min_mac = get_host_min_mac(host_interface)
-        try:
-            host_obj = ironicclient.physical_node.get(min_mac)
-            host_hw_config = dict([(f, getattr(host_obj, f, ''))
-                                   for f in ['system', 'memory', 'cpu',
-                                             'disks', 'interfaces',
-                                             'pci', 'devices']])
-        except Exception:
-            LOG.exception(_LE("Unable to find ironic data %s")
-                          % Exception)
-    return host_hw_config
-
-
 def get_dvs_interfaces(host_interfaces):
     dvs_interfaces = []
     if not isinstance(host_interfaces, list):
