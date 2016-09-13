@@ -1,7 +1,6 @@
 
 import subprocess
 import daisy.registry.client.v1.api as registry
-from daisy.api.backends.tecs import config as role_service
 from oslo_log import log as logging
 import webob.exc
 from webob.exc import HTTPBadRequest
@@ -188,7 +187,7 @@ class config_clushshell():
             if service['component_id'] not in components_id:
                 continue
 
-            services_name = role_service.service_map.get(service['name'])
+            services_name = daisy_cmn.service_map.get(service['name'])
             if not services_name:
                 msg = "Can't find service for '%s'" % service
                 raise HTTPBadRequest(explanation=msg)
@@ -275,7 +274,7 @@ class config_clushshell():
     def _role_service_restart(self, role_info, host_ip):
         """  """
         for service in role_info['service_name']:
-            services_name = role_service.service_map.get(service)
+            services_name = daisy_cmn.service_map.get(service)
             if not services_name:
                 msg = "Can't find service for '%s'" % service
                 raise HTTPBadRequest(explanation=msg)

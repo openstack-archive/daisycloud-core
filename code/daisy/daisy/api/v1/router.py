@@ -29,7 +29,6 @@ from daisy.api.v1 import networks
 from daisy.api.v1 import install
 from daisy.api.v1 import disk_array
 from daisy.api.v1 import host_template
-from daisy.api.v1 import hwms
 from daisy.common import wsgi
 from daisy.api.v1 import backup_restore
 
@@ -153,11 +152,6 @@ class API(wsgi.Router):
                        action='get_host',
                        conditions={'method': ['GET']})
 
-        mapper.connect("/hwm_nodes",
-                       controller=hosts_resource,
-                       action='update_hwm_host',
-                       conditions={'method': ['POST']})
-
         mapper.connect("/discover_host/",
                        controller=hosts_resource,
                        action='discover_host',
@@ -197,30 +191,6 @@ class API(wsgi.Router):
                        controller=hosts_resource,
                        action='update_pxe_host',
                        conditions={'method': ['PUT']})
-
-        hwms_resource = hwms.create_resource()
-
-        mapper.connect("/hwm",
-                       controller=hwms_resource,
-                       action='add_hwm',
-                       conditions={'method': ['POST']})
-        mapper.connect("/hwm/{id}",
-                       controller=hwms_resource,
-                       action='delete_hwm',
-                       conditions={'method': ['DELETE']})
-        mapper.connect("/hwm/{id}",
-                       controller=hwms_resource,
-                       action='update_hwm',
-                       conditions={'method': ['PUT']})
-        mapper.connect("/hwm",
-                       controller=hwms_resource,
-                       action='list',
-                       conditions={'method': ['GET']})
-
-        mapper.connect("/hwm/{id}",
-                       controller=hwms_resource,
-                       action='detail',
-                       conditions={'method': ['GET']})
 
         clusters_resource = clusters.create_resource()
 

@@ -111,9 +111,6 @@ class TecsClusterTest(base.BaseDaisyTest):
         cls.cluster_meta8 = {'description': "test_add_host7",
                              'name': "test_add_host7",
                              'auto_scale': 1}
-        cls.cluster_meta9 = {'description': "test_with_hwm",
-                             'name': "test_with_hwm",
-                             'hwm_ip': "10.43.211.63"}
 
     def private_network_add(self):
         private_network_params = self.fake.fake_private_network_parameters()
@@ -260,17 +257,6 @@ class TecsClusterTest(base.BaseDaisyTest):
                          "update cluster with networking parameters "
                          "execute failed")
         # cluster = self.get_cluster(cluster_info.id)
-        self.delete_cluster(cluster_info.id)
-
-    def test_update_cluster_with_hwm(self):
-        self.private_network_add()
-        cluster_info = self.add_cluster(**self.cluster_meta1)
-        hwm_meta = {"hwm_ip": "10.43.211.63"}
-        cluster_update_info = self.update_cluster(cluster_info.id,
-                                                  **hwm_meta)
-        self.assertEqual("10.43.211.63",
-                         cluster_update_info.hwm_ip,
-                         "Update cluster with hwm_ip failed")
         self.delete_cluster(cluster_info.id)
 
     def test_update_cluster_with_networking_parameters_add_router(self):
@@ -458,15 +444,6 @@ class TecsClusterTest(base.BaseDaisyTest):
                   cluster_info.auto_scale)
         print("\n ===========STC-F-Daisy_Cluster-0020  run is over "
               "===============")
-        self.delete_cluster(cluster_info.id)
-
-    def test_add_cluster_with_hwm(self):
-        self.private_network_add()
-        cluster_info = self.add_cluster(**self.cluster_meta9)
-        if cluster_info:
-            self.assertEqual(self.cluster_meta9['hwm_ip'],
-                             cluster_info.hwm_ip,
-                             "Add cluster with hwm_ip failed")
         self.delete_cluster(cluster_info.id)
 
     def tearDown(self):

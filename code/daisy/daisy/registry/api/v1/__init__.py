@@ -23,7 +23,6 @@ from daisy.registry.api.v1 import configs
 from daisy.registry.api.v1 import networks
 from daisy.registry.api.v1 import disk_array
 from daisy.registry.api.v1 import template
-from daisy.registry.api.v1 import hwms
 
 
 def init(mapper):
@@ -51,33 +50,6 @@ def init(mapper):
                    controller=members_resource,
                    action="get_host_clusters",
                    conditions={'method': ['GET']})
-
-    hwms_resource = hwms.create_resource()
-
-    mapper.connect("/hwm",
-                   controller=hwms_resource,
-                   action="add_hwm",
-                   conditions={'method': ['POST']})
-
-    mapper.connect("/hwm/{id}",
-                   controller=hwms_resource,
-                   action="delete_hwm",
-                   conditions={'method': ['DELETE']})
-
-    mapper.connect("/hwm/{id}",
-                   controller=hwms_resource,
-                   action="update_hwm",
-                   conditions={'method': ['PUT']})
-
-    mapper.connect("/hwm",
-                   controller=hwms_resource,
-                   action="hwm_list",
-                   conditions={'method': ['GET']})
-
-    mapper.connect("/hwm/{id}",
-                   controller=hwms_resource,
-                   action="detail",
-                   conditions=dict(method=["GET"]))
 
     hosts_resource = hosts.create_resource()
 

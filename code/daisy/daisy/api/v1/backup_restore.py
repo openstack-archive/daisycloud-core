@@ -35,7 +35,7 @@ from daisy.common import wsgi
 import daisy.registry.client.v1.api as registry
 from daisy.api.v1 import controller
 from daisy.api.v1 import filters
-import daisy.api.backends.tecs.common as tecs_cmn
+import daisy.api.backends.common as daisy_cmn
 
 
 LOG = logging.getLogger(__name__)
@@ -169,7 +169,7 @@ class Controller(controller.BaseController):
             'rm -rf {0}daisy_tmp'.format(BACK_PATH)
         ]
 
-        tecs_cmn.run_scrip(scripts, msg='Backup file failed!')
+        daisy_cmn.run_scrip(scripts, msg='Backup file failed!')
         return {"backup_file": BACK_PATH + backup_file_name}
 
     @utils.mutating
@@ -191,7 +191,8 @@ class Controller(controller.BaseController):
                 BACK_PATH),
             'rm -rf {0}daisy_tmp'.format(BACK_PATH)
         ]
-        tecs_cmn.run_scrip(restore_scripts, msg='Restore failed!')
+
+        daisy_cmn.run_scrip(restore_scripts, msg='Restore failed!')
         LOG.info('Restore successfully')
 
     @utils.mutating
@@ -210,7 +211,7 @@ class Controller(controller.BaseController):
                 file_meta['backup_file_path'], BACK_PATH)
         ]
 
-        tecs_cmn.run_scrip(scripts, msg='Decompression file failed!')
+        daisy_cmn.run_scrip(scripts, msg='Decompression file failed!')
 
         try:
             version = subprocess.check_output(
@@ -222,7 +223,7 @@ class Controller(controller.BaseController):
             LOG.error(msg)
             raise HTTPForbidden(explanation=msg, request=req,
                                 content_type="text/plain")
-        tecs_cmn.run_scrip(['rm -rf {0}daisy_tmp'.format(BACK_PATH)])
+        daisy_cmn.run_scrip(['rm -rf {0}daisy_tmp'.format(BACK_PATH)])
         return {"backup_file_version": version}
 
     @utils.mutating

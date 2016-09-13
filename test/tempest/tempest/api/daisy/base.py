@@ -76,39 +76,6 @@ class BaseDaisyTest(tempest.test.BaseTestCase):
                 self.delete_cluster(cluster)
 
     @classmethod
-    def add_hwm(self, **hwm_meta):
-        hwm_info = self.daisy_client.hwm.add(**hwm_meta)
-        return hwm_info
-
-    @classmethod
-    def delete_hwm(self, hwm_meta):
-        self.daisy_client.hwm.delete(hwm_meta)
-
-    @classmethod
-    def update_hwm(self, hwm_id, **hwm_meta):
-        hwm_info = self.daisy_client.hwm.update(hwm_id, **hwm_meta)
-        return hwm_info
-
-    @classmethod
-    def _clean_all_hwm(self):
-        hwm_list_generator = self.daisy_client.hwm.list()
-        hwm_list = [hwms for hwms in hwm_list_generator]
-        if hwm_list:
-            for hwm in hwm_list:
-                self.delete_hwm(hwm)
-
-    @classmethod
-    def list_hwm(self, **hwm_meta):
-        hwm_meta['filters'] = hwm_meta
-        hwm_list = self.daisy_client.hwm.list(**hwm_meta)
-        return hwm_list
-
-    @classmethod
-    def get_hwm_detail(self, hwm_meta):
-        hwm_detail = self.daisy_client.hwm.get(hwm_meta)
-        return hwm_detail
-
-    @classmethod
     def add_host(self, **host_meta):
         host_info = self.daisy_client.hosts.add(**host_meta)
         return host_info

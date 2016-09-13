@@ -28,8 +28,7 @@ UPDATE_PARAMS = (
     'dns_nameservers', 'net_l23_provider', 'base_mac', 'internal_gateway',
     'internal_cidr', 'external_cidr', 'gre_id_range', 'vlan_range',
     'vni_range', 'segmentation_type', 'public_vip', 'logic_networks',
-    'networking_parameters', 'routers', 'auto_scale', 'use_dns',
-    'hwm_ip'
+    'networking_parameters', 'routers', 'auto_scale', 'use_dns'
 )
 
 CREATE_PARAMS = (
@@ -37,8 +36,7 @@ CREATE_PARAMS = (
     'dns_nameservers', 'net_l23_provider', 'base_mac', 'internal_gateway',
     'internal_cidr', 'external_cidr', 'gre_id_range', 'vlan_range',
     'vni_range', 'segmentation_type', 'public_vip', 'logic_networks',
-    'networking_parameters', 'routers', 'auto_scale', 'use_dns',
-    'hwm_ip'
+    'networking_parameters', 'routers', 'auto_scale', 'use_dns'
 )
 
 DEFAULT_PAGE_SIZE = 20
