@@ -348,13 +348,6 @@ def get_host_meta(response):
     return result
 
 
-def get_hwm_meta(response):
-    result = {}
-    for key, value in response.json.items():
-        result[key] = value
-    return result
-
-
 def get_cluster_meta(response):
     result = {}
     for key, value in response.json.items():
