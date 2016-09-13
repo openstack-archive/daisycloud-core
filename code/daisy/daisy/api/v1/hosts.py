@@ -40,7 +40,6 @@ from daisy import notifier
 import daisy.registry.client.v1.api as registry
 import threading
 import daisy.api.backends.common as daisy_cmn
-import daisy.api.backends.tecs.common as tecs_cmn
 import ConfigParser
 import socket
 import netaddr
@@ -209,16 +208,6 @@ class Controller(controller.BaseController):
             valid_fromat = True
         if not valid_fromat:
             msg = (_("%s invalid ip format!") % ip_str)
-            LOG.error(msg)
-            raise HTTPForbidden(msg)
-
-    def validate_mac_format(self, mac_str):
-        '''Validates a mac address'''
-        if re.match("[0-9a-f]{2}([-:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$",
-                    mac_str.lower()):
-            return
-        else:
-            msg = (_("%s invalid mac format!") % mac_str)
             LOG.error(msg)
             raise HTTPForbidden(msg)
 
@@ -627,10 +616,7 @@ class Controller(controller.BaseController):
         """
         self._enforce(req, 'get_host')
         host_meta = self.get_host_meta_or_404(req, id)
-        if host_meta.get("hwm_id"):
-            self.check_discover_state_with_hwm(req, host_meta)
-        else:
-            self.check_discover_state_with_no_hwm(req, host_meta)
+        self.check_discover_state_with_no_hwm(req, host_meta)
         host_vcpu_pin = vcpu_pin.allocate_cpus(host_meta)
         host_meta.update(host_vcpu_pin)
         if 'role' in host_meta and 'CONTROLLER_HA' in host_meta['role']:
@@ -640,7 +626,7 @@ class Controller(controller.BaseController):
             cluster_id = cluster_info[0]['id']
 
             ctl_ha_nodes_min_mac =\
-                tecs_cmn.get_ctl_ha_nodes_min_mac(req, cluster_id)
+                daisy_cmn.get_ctl_ha_nodes_min_mac(req, cluster_id)
             sorted_ha_nodes = \
                 sorted(ctl_ha_nodes_min_mac.iteritems(), key=lambda d: d[1])
             sorted_ha_nodes_min_mac = \
@@ -657,9 +643,9 @@ class Controller(controller.BaseController):
                     role_id = role['id']
                     break
             service_disks = \
-                tecs_cmn.get_service_disk_list(req,
-                                               {'filters': {
-                                                   'role_id': role_id}})
+                daisy_cmn.get_service_disk_list(req,
+                                                {'filters': {
+                                                    'role_id': role_id}})
             db_share_cluster_disk = []
             service_lun_info = []
             for disk in service_disks:
@@ -708,34 +694,10 @@ class Controller(controller.BaseController):
         try:
             nodes = registry.get_hosts_detail(req.context, **params)
             for node in nodes:
-                if node.get("hwm_id"):
-                    self.check_discover_state_with_hwm(req, node)
-                else:
-                    self.check_discover_state_with_no_hwm(req, node)
+                self.check_discover_state_with_no_hwm(req, node)
         except exception.Invalid as e:
             raise HTTPBadRequest(explanation=e.msg, request=req)
         return dict(nodes=nodes)
-
-    def check_discover_state_with_hwm(self, req, node):
-        node['discover_state'] = None
-        host_meta = self.get_host_meta_or_404(req, node.get('id'))
-        if host_meta and host_meta.get('interfaces'):
-            mac_list = [
-                interface['mac'] for interface in
-                host_meta.get('interfaces') if interface.get('mac')]
-            if mac_list:
-                min_mac = min(mac_list)
-                pxe_discover_host = self._get_discover_host_by_mac(req,
-                                                                   min_mac)
-                if pxe_discover_host:
-                    if pxe_discover_host.get('ip'):
-                        node['discover_state'] = \
-                            "SSH:" + pxe_discover_host.get('status')
-                    else:
-                        node['discover_state'] = \
-                            "PXE:" + pxe_discover_host.get('status')
-
-        return node
 
     def check_discover_state_with_no_hwm(self, req, node):
         node['discover_state'] = None
@@ -751,59 +713,6 @@ class Controller(controller.BaseController):
                             "SSH:" + ssh_discover_host.get('status')
 
         return node
-
-    def _update_hwm_host(self, req, hwm_host, hosts, hwm_ip):
-        hwm_host_mac = [hwm_host_interface['mac'] for hwm_host_interface
-                        in hwm_host.get('interfaces')]
-        for host in hosts:
-            host_update_meta = dict()
-            host_meta = self.get_host_meta_or_404(req, host['id'])
-            host_mac = [host_interface['mac'] for host_interface
-                        in host_meta.get('interfaces')]
-            set_same_mac = set(hwm_host_mac) & set(host_mac)
-
-            if set_same_mac:
-                host_update_meta['hwm_id'] = hwm_host['id']
-                host_update_meta['hwm_ip'] = hwm_ip
-                node = registry.update_host_metadata(req.context, host['id'],
-                                                     host_update_meta)
-                return node
-
-        host_add_meta = dict()
-        host_add_meta['name'] = str(hwm_host['id'])
-        host_add_meta['description'] = 'default'
-        host_add_meta['os_status'] = 'init'
-        host_add_meta['hwm_id'] = str(hwm_host['id'])
-        host_add_meta['hwm_ip'] = str(hwm_ip)
-        host_add_meta['interfaces'] = str(hwm_host['interfaces'])
-        node = registry.add_host_metadata(req.context, host_add_meta)
-        return node
-
-    def update_hwm_host(self, req, host_meta):
-        self._enforce(req, 'get_hosts')
-        params = self._get_query_params(req)
-        try:
-            hosts = registry.get_hosts_detail(req.context, **params)
-            hosts_without_hwm_id = list()
-            hosts_hwm_id_list = list()
-            for host in hosts:
-                if host.get('hwm_id'):
-                    hosts_hwm_id_list.append(host['hwm_id'])
-                else:
-                    hosts_without_hwm_id.append(host)
-
-            hwm_hosts = host_meta['nodes']
-            hwm_ip = host_meta['hwm_ip']
-            nodes = list()
-            for hwm_host in eval(hwm_hosts):
-                if hwm_host['id'] in hosts_hwm_id_list:
-                    continue
-                node = self._update_hwm_host(req, hwm_host,
-                                             hosts_without_hwm_id, hwm_ip)
-                nodes.append(node)
-            return dict(nodes=nodes)
-        except exception.Invalid as e:
-            raise HTTPBadRequest(explanation=e.msg, request=req)
 
     def _compute_hugepage_memory(self, hugepages, memory, hugepagesize='1G'):
         hugepage_memory = 0
@@ -1041,7 +950,7 @@ class Controller(controller.BaseController):
             raise HTTPForbidden(explanation=msg,
                                 request=req,
                                 content_type="text/plain")
-        orig_mac_list = list()
+
         if 'interfaces' in host_meta:
             for interface_param in eval(host_meta['interfaces']):
                 if not interface_param.get('pci', None) and \
@@ -1058,12 +967,9 @@ class Controller(controller.BaseController):
                         'vswitch_type']
                     raise HTTPBadRequest(explanation=msg, request=req,
                                          content_type="text/plain")
-            interfaces_db = orig_host_meta.get('interfaces', None)
-            orig_mac_list = [interface_db['mac'] for interface_db in
-                             interfaces_db if interface_db['mac']]
-            orig_pci_list = [interface_db['pci'] for interface_db in
-                             interfaces_db if interface_db['pci']]
-            if interfaces_db and len(orig_pci_list):
+
+            if orig_host_meta.get('interfaces', None):
+                interfaces_db = orig_host_meta['interfaces']
                 interfaces_param = eval(host_meta['interfaces'])
                 interfaces_db_ether = [
                     interface_db for interface_db in interfaces_db if
@@ -1625,17 +1531,6 @@ class Controller(controller.BaseController):
             host_meta = registry.update_host_metadata(req.context, id,
                                                       host_meta)
 
-            if orig_mac_list:
-                orig_min_mac = min(orig_mac_list)
-                discover_host = self._get_discover_host_by_mac(req,
-                                                               orig_min_mac)
-                if discover_host:
-                    discover_host_params = {
-                        "mac": orig_min_mac,
-                        "status": "DISCOVERY_SUCCESSFUL"
-                    }
-                    self.update_pxe_host(req, discover_host['id'],
-                                         discover_host_params)
         except exception.Invalid as e:
             msg = (_("Failed to update host metadata. Got error: %s") %
                    utils.exception_to_str(e))
@@ -2373,112 +2268,6 @@ class Controller(controller.BaseController):
 
         return {'host_meta': host_meta}
 
-    def _get_discover_host_mac(self, req):
-        params = dict()
-        hosts_mac = list()
-        discover_hosts =\
-            registry.get_discover_hosts_detail(req.context, **params)
-        for host in discover_hosts:
-            if host.get('mac'):
-                hosts_mac.append(host['mac'])
-        return hosts_mac
-
-    def _get_discover_host_by_mac(self, req, host_mac):
-        params = dict()
-        discover_hosts = \
-            registry.get_discover_hosts_detail(req.context, **params)
-        LOG.info("%s" % discover_hosts)
-        for host in discover_hosts:
-            if host.get('mac') == host_mac:
-                return host
-        return
-
-    @utils.mutating
-    def add_pxe_host(self, req, host_meta):
-        """
-        Adds a new pxe host to Daisy
-
-        :param req: The WSGI/Webob Request object
-        :param host_meta: Mapping of metadata about host
-
-        :raises HTTPBadRequest if x-host-name is missing
-        """
-        self._enforce(req, 'add_pxe_host')
-        LOG.warn("host_meta: %s" % host_meta)
-        if not host_meta.get('mac'):
-            msg = "MAC parameter can not be None."
-            raise HTTPBadRequest(explanation=msg,
-                                 request=req,
-                                 content_type="text/plain")
-
-        self.validate_mac_format(host_meta['mac'])
-        pxe_hosts_mac = self._get_discover_host_mac(req)
-        if host_meta['mac'] in pxe_hosts_mac:
-            host = self._get_discover_host_by_mac(req, host_meta['mac'])
-            host_meta = registry.update_discover_host_metadata(
-                req.context, host['id'], host_meta)
-            return {'host_meta': host_meta}
-
-        if not host_meta.get('status', None):
-            host_meta['status'] = 'None'
-
-        try:
-            pxe_host_info = \
-                registry.add_discover_host_metadata(req.context, host_meta)
-        except exception.Invalid as e:
-            raise HTTPBadRequest(explanation=e.msg, request=req)
-        return {'host_meta': pxe_host_info}
-
-    @utils.mutating
-    def update_pxe_host(self, req, id, host_meta):
-        """
-        Update a new pxe host to Daisy
-        """
-        self._enforce(req, 'update_pxe_host')
-        if not host_meta.get('mac'):
-            msg = "MAC parameter can not be None."
-            raise HTTPBadRequest(explanation=msg,
-                                 request=req,
-                                 content_type="text/plain")
-
-        self.validate_mac_format(host_meta['mac'])
-        orig_host_meta = registry.get_discover_host_metadata(req.context, id)
-        try:
-            if host_meta['mac'] == orig_host_meta['mac']:
-                host_meta = registry.update_discover_host_metadata(
-                    req.context, id, host_meta)
-
-        except exception.Invalid as e:
-            msg = (_("Failed to update discover host metadata. "
-                     "Got error: %s") % utils.exception_to_str(e))
-            LOG.error(msg)
-            raise HTTPBadRequest(explanation=msg,
-                                 request=req,
-                                 content_type="text/plain")
-        except exception.NotFound as e:
-            msg = (_("Failed to find discover host to update: %s") %
-                   utils.exception_to_str(e))
-            LOG.error(msg)
-            raise HTTPNotFound(explanation=msg,
-                               request=req,
-                               content_type="text/plain")
-        except exception.Forbidden as e:
-            msg = (_("Forbidden to update discover host: %s") %
-                   utils.exception_to_str(e))
-            LOG.error(msg)
-            raise HTTPForbidden(explanation=msg,
-                                request=req,
-                                content_type="text/plain")
-        except (exception.Conflict, exception.Duplicate) as e:
-            LOG.error(utils.exception_to_str(e))
-            raise HTTPConflict(body=_('Host operation conflicts'),
-                               request=req,
-                               content_type='text/plain')
-        else:
-            self.notifier.info('host.update', host_meta)
-
-        return {'host_meta': host_meta}
-
 
 class HostDeserializer(wsgi.JSONRequestDeserializer):
     """Handles deserialization of specific controller method requests."""
@@ -2495,9 +2284,6 @@ class HostDeserializer(wsgi.JSONRequestDeserializer):
         return self._deserialize(request)
 
     def discover_host(self, request):
-        return self._deserialize(request)
-
-    def update_hwm_host(self, request):
         return self._deserialize(request)
 
     def add_discover_host(self, request):
