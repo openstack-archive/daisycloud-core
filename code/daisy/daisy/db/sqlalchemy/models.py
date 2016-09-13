@@ -116,16 +116,6 @@ class DaisyBase(models.ModelBase, models.TimestampMixin):
         return d
 
 
-class Hwm(BASE, DaisyBase):
-
-    """Represents an hwm in the datastore."""
-    __tablename__ = 'hwm'
-    __table_args__ = (Index('ix_hwm_deleted', 'deleted'),)
-
-    description = Column(Text)
-    hwm_ip = Column(String(36), nullable=True)
-
-
 class Host(BASE, DaisyBase):
 
     """Represents an host in the datastore."""
@@ -152,8 +142,6 @@ class Host(BASE, DaisyBase):
     messages = Column(Text)
     hugepagesize = Column(String(36))
     hugepages = Column(Integer(), default=0)
-    hwm_id = Column(String(36))
-    hwm_ip = Column(String(256))
     vcpu_pin_set = Column(String(255))
     dvs_high_cpuset = Column(String(255))
     pci_high_cpuset = Column(String(255))
@@ -205,7 +193,6 @@ class Cluster(BASE, DaisyBase):
     segmentation_type = Column(String(64))
     auto_scale = Column(Integer(), nullable=False, default=0)
     use_dns = Column(Integer(), nullable=False, default=0)
-    hwm_ip = Column(String(256))
 
 
 class ClusterHost(BASE, DaisyBase):
@@ -620,7 +607,7 @@ class CinderVolume(BASE, DaisyBase):
 
 def register_models(engine):
     """Create database tables for all models with the given engine."""
-    models = (Hwm, Host, DiscoverHost, Cluster, ClusterHost, Template,
+    models = (Host, DiscoverHost, Cluster, ClusterHost, Template,
               HostTemplate, HostInterface, Network, IpRange, HostRole,
               Role, ServiceRole, Service, Component, ConfigSet, Config,
               ConfigFile, ConfigSetItem, ConfigHistory, Task, TaskInfo,
@@ -633,7 +620,7 @@ def register_models(engine):
 
 def unregister_models(engine):
     """Drop database tables for all models with the given engine."""
-    models = (Hwm, Host, DiscoverHost, Cluster, ClusterHost, Template,
+    models = (Host, DiscoverHost, Cluster, ClusterHost, Template,
               HostTemplate, HostInterface, Network, IpRange, HostRole,
               Role, ServiceRole, Service, Component, ConfigSet, Config,
               ConfigFile, ConfigSetItem, ConfigHistory, Task, TaskInfo,

@@ -30,8 +30,6 @@ from daisy.common import wsgi
 import daisy.db
 from daisy import i18n
 
-from daisyclient import client as daisy_client
-from daisy.registry.api.v1 import hwms as registry_hwm
 import ConfigParser
 
 reload(sys)
@@ -67,19 +65,6 @@ class Controller(object):
 
     def __init__(self):
         self.db_api = daisy.db.get_api()
-        self.daisyclient = self.get_daisyclient()
-
-    @staticmethod
-    def get_daisyclient():
-        """Get Daisy client instance."""
-        config_daisy = ConfigParser.ConfigParser()
-        config_daisy.read("/etc/daisy/daisy-api.conf")
-        daisy_port = config_daisy.get("DEFAULT", "bind_port")
-        args = {
-            'version': 1.0,
-            'endpoint': 'http://127.0.0.1:' + daisy_port
-        }
-        return daisy_client.Client(**args)
 
     def _get_hosts(self, context, filters, **params):
         """Get hosts, wrapping in exception if necessary."""
@@ -403,17 +388,10 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to show host %s") % id)
             raise
-        param = dict()
-        param['hwm_ip'] = host_data.hwm_ip
-        param['hwm_id'] = host_data.hwm_id
-        controller = registry_hwm.Controller()
-        hwms = controller.hwm_list(req)
-        hwms_ip = [hwm['hwm_ip'] for hwm in hwms]
-        if param['hwm_ip'] in hwms_ip:
-            result = self.daisyclient.node.location(**param)
-            location = str(result.rack) + '/' + str(result.position)
-        else:
-            location = ""
+
+        # Currently not used
+        location = ""
+
         host_interface = self.db_api.get_host_interface(req.context, id)
 
         role_name = []
