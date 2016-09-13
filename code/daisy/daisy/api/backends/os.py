@@ -32,12 +32,9 @@ from daisy.common import exception
 from daisy.api import common
 from daisy.common import utils
 import daisy.registry.client.v1.api as registry
-from daisyclient.v1 import client as daisy_client
 import daisy.api.backends.common as daisy_cmn
 import daisy.api.backends.tecs.common as tecs_cmn
 
-
-import ConfigParser
 
 LOG = logging.getLogger(__name__)
 _ = i18n._
@@ -73,15 +70,6 @@ LINUX_BOND_MODE = {'balance-rr': '0', 'active-backup': '1',
                    'balance-alb': '6'}
 
 daisy_tecs_path = tecs_cmn.daisy_tecs_path
-
-
-def get_daisyclient():
-    """Get Daisy client instance."""
-    config_daisy = ConfigParser.ConfigParser()
-    config_daisy.read("/etc/daisy/daisy-api.conf")
-    daisy_port = config_daisy.get("DEFAULT", "bind_port")
-    args = {'version': 1.0, 'endpoint': 'http://127.0.0.1:' + daisy_port}
-    return daisy_client.Client(**args)
 
 
 def pxe_server_build(req, install_meta):
@@ -339,7 +327,6 @@ class OSInstall():
         self.max_parallel_os_num = int(CONF.max_parallel_os_number)
         self.cluster_hosts_install_timeout = (
             self.max_parallel_os_num / 4 + 2) * 60 * (12 * self.time_step)
-        self.daisyclient = get_daisyclient()
 
     def _set_boot_or_power_state(self, user, passwd, addr, action):
         count = 0
@@ -449,25 +436,17 @@ class OSInstall():
             hugepagesize = '1G'
         # tfg_patch_pkg_file = check_tfg_exist()
 
-        if host_detail.get('hwm_id'):
-            host_hwm_meta = {
-                "hwm_ip": host_detail.get('hwm_ip'),
-                "hwm_id": host_detail.get('hwm_id'),
-                "boot_type": "pxe"
-            }
-            self.daisyclient.node.set_boot(**host_hwm_meta)
-        else:
-            if (not host_detail['ipmi_user'] or
-                    not host_detail['ipmi_passwd'] or
-                    not host_detail['ipmi_addr']):
-                self.message = "Invalid ipmi information configed for host %s"\
-                    % host_detail['id']
-                raise exception.NotFound(message=self.message)
+        if (not host_detail['ipmi_user'] or
+                not host_detail['ipmi_passwd'] or
+                not host_detail['ipmi_addr']):
+            self.message = "Invalid ipmi information configed for host %s" \
+                           % host_detail['id']
+            raise exception.NotFound(message=self.message)
 
-            self._set_boot_or_power_state(host_detail['ipmi_user'],
-                                          host_detail['ipmi_passwd'],
-                                          host_detail['ipmi_addr'],
-                                          'pxe')
+        self._set_boot_or_power_state(host_detail['ipmi_user'],
+                                      host_detail['ipmi_passwd'],
+                                      host_detail['ipmi_addr'],
+                                      'pxe')
 
         kwargs = {'hostname': host_detail['name'],
                   'iso_path': os_version_file,
@@ -537,17 +516,10 @@ class OSInstall():
             msg = "install os return failed for host %s" % host_detail['id']
             raise exception.OSInstallFailed(message=msg)
 
-        if host_detail.get('hwm_id'):
-            host_hwm_meta = {
-                "hwm_ip": host_detail.get('hwm_ip'),
-                "hwm_id": host_detail.get('hwm_id')
-            }
-            self.daisyclient.node.restart(**host_hwm_meta)
-        else:
-            self._set_boot_or_power_state(host_detail['ipmi_user'],
-                                          host_detail['ipmi_passwd'],
-                                          host_detail['ipmi_addr'],
-                                          'reset')
+        self._set_boot_or_power_state(host_detail['ipmi_user'],
+                                      host_detail['ipmi_passwd'],
+                                      host_detail['ipmi_addr'],
+                                      'reset')
 
     def _begin_install_os(self, hosts_detail):
         # all hosts status is set to 'pre-install' before os installing
@@ -562,26 +534,15 @@ class OSInstall():
 
     def _set_disk_start_mode(self, host_detail):
         LOG.info(_("Set boot from disk for host %s" % (host_detail['id'])))
-        if host_detail.get('hwm_id'):
-            host_hwm_meta = {
-                "hwm_ip": host_detail.get('hwm_ip'),
-                "hwm_id": host_detail.get('hwm_id'),
-                "boot_type": "disk"
-            }
-            self.daisyclient.node.set_boot(**host_hwm_meta)
-            LOG.info(_("reboot host %s" % (host_detail['id'])))
-            host_hwm_meta.pop('boot_type')
-            self.daisyclient.node.restart(**host_hwm_meta)
-        else:
-            self._set_boot_or_power_state(host_detail['ipmi_user'],
-                                          host_detail['ipmi_passwd'],
-                                          host_detail['ipmi_addr'],
-                                          'disk')
-            LOG.info(_("reboot host %s" % (host_detail['id'])))
-            self._set_boot_or_power_state(host_detail['ipmi_user'],
-                                          host_detail['ipmi_passwd'],
-                                          host_detail['ipmi_addr'],
-                                          'reset')
+        self._set_boot_or_power_state(host_detail['ipmi_user'],
+                                      host_detail['ipmi_passwd'],
+                                      host_detail['ipmi_addr'],
+                                      'disk')
+        LOG.info(_("reboot host %s" % (host_detail['id'])))
+        self._set_boot_or_power_state(host_detail['ipmi_user'],
+                                      host_detail['ipmi_passwd'],
+                                      host_detail['ipmi_addr'],
+                                      'reset')
 
     def _init_progress(self, host_detail, hosts_status):
         host_id = host_detail['id']
