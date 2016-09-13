@@ -40,10 +40,10 @@ from daisy import notifier
 import daisy.registry.client.v1.api as registry
 from daisy.registry.api.v1 import template
 
-import daisy.api.backends.tecs.common as tecs_cmn
 import daisy.api.backends.common as daisy_cmn
 
-daisy_tecs_path = tecs_cmn.daisy_tecs_path
+#TODO (huzhj) move it into common sub module
+daisy_path = '/var/lib/daisy/'
 
 
 LOG = logging.getLogger(__name__)
@@ -396,7 +396,7 @@ class Controller(controller.BaseController):
                         template_detail['hosts'] = json.loads(
                             template_detail['hosts'])
 
-                    tecs_json = daisy_tecs_path + "%s.json" % template_name
+                    tecs_json = daisy_path + "%s.json" % template_name
                     cmd = 'rm -rf  %s' % (tecs_json,)
                     daisy_cmn.subprocess_call(cmd)
                     with open(tecs_json, "w+") as fp:

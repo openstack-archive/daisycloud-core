@@ -14,7 +14,7 @@
 #    under the License.
 
 """
-/install endpoint for tecs API
+/install endpoint for daisy API
 """
 import copy
 import subprocess
@@ -24,7 +24,6 @@ import json
 from oslo_config import cfg
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
-import threading
 
 from daisy import i18n
 
@@ -32,12 +31,8 @@ from daisy.common import exception
 from daisy.api import common
 from daisy.common import utils
 import daisy.registry.client.v1.api as registry
-from daisyclient.v1 import client as daisy_client
 import daisy.api.backends.common as daisy_cmn
-import daisy.api.backends.tecs.common as tecs_cmn
 
-
-import ConfigParser
 
 LOG = logging.getLogger(__name__)
 _ = i18n._
@@ -71,17 +66,6 @@ LINUX_BOND_MODE = {'balance-rr': '0', 'active-backup': '1',
                    'balance-xor': '2', 'broadcast': '3',
                    '802.3ad': '4', 'balance-tlb': '5',
                    'balance-alb': '6'}
-
-daisy_tecs_path = tecs_cmn.daisy_tecs_path
-
-
-def get_daisyclient():
-    """Get Daisy client instance."""
-    config_daisy = ConfigParser.ConfigParser()
-    config_daisy.read("/etc/daisy/daisy-api.conf")
-    daisy_port = config_daisy.get("DEFAULT", "bind_port")
-    args = {'version': 1.0, 'endpoint': 'http://127.0.0.1:' + daisy_port}
-    return daisy_client.Client(**args)
 
 
 def pxe_server_build(req, install_meta):
@@ -179,7 +163,7 @@ def _get_network_plat(req, host_config, cluster_networks, dhcp_mac):
                     alias.append(cluster_network['alias'])
                     # convert cidr to netmask
                     cidr_to_ip = ""
-                    assigned_networks_ip = tecs_cmn.get_host_network_ip(
+                    assigned_networks_ip = daisy_cmn.get_host_network_ip(
                         req, host_config_orig, cluster_networks, network_name)
                     if cluster_network.get('cidr', None):
                         inter_ip = lambda x: '.'.join(
@@ -243,7 +227,7 @@ def get_cluster_hosts_config(req, cluster_id):
                         role['name'] in host_detail['role'] and\
                         role['nova_lv_size']:
                     host_detail['nova_lv_size'] = role['nova_lv_size']
-                service_disks = tecs_cmn.get_service_disk_list(
+                service_disks = daisy_cmn.get_service_disk_list(
                     req, {'role_id': role['id']})
                 for service_disk in service_disks:
                     if service_disk['disk_location'] == 'local' and\
@@ -278,30 +262,9 @@ def get_cluster_hosts_config(req, cluster_id):
             host_config = _get_network_plat(req, host_config_detail,
                                             networks,
                                             pxe_macs[0])
-            hosts_config.append(tecs_cmn.sort_interfaces_by_pci(networks,
+            hosts_config.append(daisy_cmn.sort_interfaces_by_pci(networks,
                                                                 host_config))
     return hosts_config
-
-
-def check_tfg_exist():
-    get_tfg_patch = "ls %s|grep CGSL_VPLAT-.*\.iso$" % daisy_tecs_path
-    obj = subprocess.Popen(get_tfg_patch,
-                           shell=True,
-                           stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE)
-    (stdoutput, erroutput) = obj.communicate()
-    tfg_patch_pkg_file = ""
-    tfg_patch_pkg_name = ""
-    if stdoutput:
-        tfg_patch_pkg_name = stdoutput.split('\n')[0]
-        tfg_patch_pkg_file = daisy_tecs_path + tfg_patch_pkg_name
-        chmod_for_tfg_bin = 'chmod +x %s' % tfg_patch_pkg_file
-        daisy_cmn.subprocess_call(chmod_for_tfg_bin)
-
-    if not stdoutput or not tfg_patch_pkg_name:
-        LOG.info(_("no CGSL_VPLAT iso file got in %s" % daisy_tecs_path))
-        return ""
-    return tfg_patch_pkg_file
 
 
 def update_db_host_status(req, host_id, host_status):
@@ -339,7 +302,6 @@ class OSInstall():
         self.max_parallel_os_num = int(CONF.max_parallel_os_number)
         self.cluster_hosts_install_timeout = (
             self.max_parallel_os_num / 4 + 2) * 60 * (12 * self.time_step)
-        self.daisyclient = get_daisyclient()
 
     def _set_boot_or_power_state(self, user, passwd, addr, action):
         count = 0
@@ -449,25 +411,17 @@ class OSInstall():
             hugepagesize = '1G'
         # tfg_patch_pkg_file = check_tfg_exist()
 
-        if host_detail.get('hwm_id'):
-            host_hwm_meta = {
-                "hwm_ip": host_detail.get('hwm_ip'),
-                "hwm_id": host_detail.get('hwm_id'),
-                "boot_type": "pxe"
-            }
-            self.daisyclient.node.set_boot(**host_hwm_meta)
-        else:
-            if (not host_detail['ipmi_user'] or
-                    not host_detail['ipmi_passwd'] or
-                    not host_detail['ipmi_addr']):
-                self.message = "Invalid ipmi information configed for host %s"\
-                    % host_detail['id']
-                raise exception.NotFound(message=self.message)
+        if (not host_detail['ipmi_user'] or
+                not host_detail['ipmi_passwd'] or
+                not host_detail['ipmi_addr']):
+            self.message = "Invalid ipmi information configed for host %s" \
+                           % host_detail['id']
+            raise exception.NotFound(message=self.message)
 
-            self._set_boot_or_power_state(host_detail['ipmi_user'],
-                                          host_detail['ipmi_passwd'],
-                                          host_detail['ipmi_addr'],
-                                          'pxe')
+        self._set_boot_or_power_state(host_detail['ipmi_user'],
+                                      host_detail['ipmi_passwd'],
+                                      host_detail['ipmi_addr'],
+                                      'pxe')
 
         kwargs = {'hostname': host_detail['name'],
                   'iso_path': os_version_file,
@@ -537,17 +491,10 @@ class OSInstall():
             msg = "install os return failed for host %s" % host_detail['id']
             raise exception.OSInstallFailed(message=msg)
 
-        if host_detail.get('hwm_id'):
-            host_hwm_meta = {
-                "hwm_ip": host_detail.get('hwm_ip'),
-                "hwm_id": host_detail.get('hwm_id')
-            }
-            self.daisyclient.node.restart(**host_hwm_meta)
-        else:
-            self._set_boot_or_power_state(host_detail['ipmi_user'],
-                                          host_detail['ipmi_passwd'],
-                                          host_detail['ipmi_addr'],
-                                          'reset')
+        self._set_boot_or_power_state(host_detail['ipmi_user'],
+                                      host_detail['ipmi_passwd'],
+                                      host_detail['ipmi_addr'],
+                                      'reset')
 
     def _begin_install_os(self, hosts_detail):
         # all hosts status is set to 'pre-install' before os installing
@@ -562,26 +509,15 @@ class OSInstall():
 
     def _set_disk_start_mode(self, host_detail):
         LOG.info(_("Set boot from disk for host %s" % (host_detail['id'])))
-        if host_detail.get('hwm_id'):
-            host_hwm_meta = {
-                "hwm_ip": host_detail.get('hwm_ip'),
-                "hwm_id": host_detail.get('hwm_id'),
-                "boot_type": "disk"
-            }
-            self.daisyclient.node.set_boot(**host_hwm_meta)
-            LOG.info(_("reboot host %s" % (host_detail['id'])))
-            host_hwm_meta.pop('boot_type')
-            self.daisyclient.node.restart(**host_hwm_meta)
-        else:
-            self._set_boot_or_power_state(host_detail['ipmi_user'],
-                                          host_detail['ipmi_passwd'],
-                                          host_detail['ipmi_addr'],
-                                          'disk')
-            LOG.info(_("reboot host %s" % (host_detail['id'])))
-            self._set_boot_or_power_state(host_detail['ipmi_user'],
-                                          host_detail['ipmi_passwd'],
-                                          host_detail['ipmi_addr'],
-                                          'reset')
+        self._set_boot_or_power_state(host_detail['ipmi_user'],
+                                      host_detail['ipmi_passwd'],
+                                      host_detail['ipmi_addr'],
+                                      'disk')
+        LOG.info(_("reboot host %s" % (host_detail['id'])))
+        self._set_boot_or_power_state(host_detail['ipmi_user'],
+                                      host_detail['ipmi_passwd'],
+                                      host_detail['ipmi_addr'],
+                                      'reset')
 
     def _init_progress(self, host_detail, hosts_status):
         host_id = host_detail['id']
@@ -742,190 +678,3 @@ class OSInstall():
                 else:
                     role_hosts_ids.remove(host_id)
         return (hosts_detail, role_hosts_ids)
-
-
-def _os_thread_bin(req, host_ip, host_id):
-    host_meta = {}
-    password = "ossdbg1"
-    LOG.info(_("Begin update os for host %s." % (host_ip)))
-    cmd = 'mkdir -p /var/log/daisy/daisy_update/'
-    daisy_cmn.subprocess_call(cmd)
-
-    var_log_path = "/var/log/daisy/daisy_update/%s_update_tfg.log" % host_ip
-    with open(var_log_path, "w+") as fp:
-        cmd = '/var/lib/daisy/tecs/trustme.sh %s %s' % (host_ip, password)
-        daisy_cmn.subprocess_call(cmd, fp)
-        cmd = 'clush -S -w %s "mkdir -p /home/daisy_update/"' % (host_ip,)
-        daisy_cmn.subprocess_call(cmd, fp)
-        cmd = 'clush -S -b -w %s  "rm -rf /home/daisy_update/*"' % (host_ip,)
-        daisy_cmn.subprocess_call(cmd, fp)
-        cmd = 'clush -S -w %s -c /var/lib/daisy/tecs/*CGSL_VPLAT*.iso\
-                 /var/lib/daisy/tecs/tfg_upgrade.sh \
-                 --dest=/home/daisy_update' % (
-            host_ip,)
-        daisy_cmn.subprocess_call(cmd, fp)
-        cmd = 'clush -S -w %s "chmod 777 /home/daisy_update/*"' % (host_ip,)
-        daisy_cmn.subprocess_call(cmd, fp)
-        host_meta['os_progress'] = 30
-        host_meta['os_status'] = host_os_status['UPDATING']
-        host_meta['messages'] = "os updating,copy iso successfully"
-        update_db_host_status(req, host_id, host_meta)
-        try:
-            exc_result = subprocess.check_output(
-                'clush -S -w %s "/home/daisy_update/tfg_upgrade.sh"' % (
-                    host_ip,),
-                shell=True, stderr=subprocess.STDOUT)
-        except subprocess.CalledProcessError as e:
-            if e.returncode == 255 and "reboot" in e.output.strip():
-                host_meta['os_progress'] = 100
-                host_meta['os_status'] = host_os_status['ACTIVE']
-                host_meta['messages'] = "upgrade tfg successfully,os reboot"
-                LOG.info(
-                    _("Update tfg for %s successfully,os reboot!" % host_ip))
-                daisy_cmn.check_reboot_ping(host_ip)
-            else:
-                host_meta['os_progress'] = 0
-                host_meta['os_status'] = host_os_status['UPDATE_FAILED']
-                host_meta[
-                    'messages'] =\
-                    e.output.strip()[-400:-200].replace('\n', ' ')
-                LOG.error(_("Update tfg for %s failed!" % host_ip))
-            update_db_host_status(req, host_id, host_meta)
-            fp.write(e.output.strip())
-        else:
-            host_meta['os_progress'] = 100
-            host_meta['os_status'] = host_os_status['ACTIVE']
-            host_meta['messages'] = "upgrade tfg successfully"
-            update_db_host_status(req, host_id, host_meta)
-            LOG.info(_("Update os for %s successfully!" % host_ip))
-            fp.write(exc_result)
-            if "reboot" in exc_result:
-                daisy_cmn.check_reboot_ping(host_ip)
-
-
-# this will be raise raise all the exceptions of the thread to log file
-def os_thread_bin(req, host_ip, host_id):
-    try:
-        _os_thread_bin(req, host_ip, host_id)
-    except Exception as e:
-        LOG.exception(e.message)
-        raise exception.ThreadBinException(message=e.message)
-
-
-def _get_host_os_version(host_ip, host_pwd='ossdbg1'):
-    version = ""
-    tfg_version_file = '/usr/sbin/tfg_showversion'
-    try:
-        subprocess.check_output("sshpass -p %s ssh -o StrictHostKeyChecking=no"
-                                " %s test -f %s" % (host_pwd, host_ip,
-                                                    tfg_version_file),
-                                shell=True, stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError:
-        LOG.info(_("Host %s os version is TFG" % host_ip))
-        return version
-    try:
-        process =\
-            subprocess.Popen(["sshpass", "-p", "%s" % host_pwd, "ssh",
-                              "-o StrictHostKeyChecking=no", "%s" % host_ip,
-                              'tfg_showversion'], shell=False,
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        version = process.stdout.read().strip('\n')
-    except subprocess.CalledProcessError:
-        msg = _("Get host %s os version by subprocess failed!" % host_ip)
-        raise exception.SubprocessCmdFailed(message=msg)
-
-    if version:
-        LOG.info(_("Host %s os version is %s" % (host_ip, version)))
-        return version
-    else:
-        msg = _("Get host %s os version by tfg_showversion failed!" % host_ip)
-        LOG.error(msg)
-        raise exception.Invalid(message=msg)
-
-
-def _cmp_os_version(new_os_file, old_os_version,
-                    target_host_ip, password='ossdbg1'):
-    shell_file = '/usr/sbin/tfg_showversion'
-    if old_os_version:
-        try:
-            subprocess.check_output("test -f %s" % shell_file, shell=True,
-                                    stderr=subprocess.STDOUT)
-        except subprocess.CalledProcessError:
-            scripts = ["sshpass -p %s scp -r -o\
-                        StrictHostKeyChecking=no %s:%s "
-                       "/usr/sbin/" % (password, target_host_ip, shell_file)]
-            tecs_cmn.run_scrip(scripts)
-
-        cmp_script = "tfg_showversion %s %s" % (new_os_file, old_os_version)
-        try:
-            result = subprocess.check_output(cmp_script, shell=True,
-                                             stderr=subprocess.STDOUT)
-        except subprocess.CalledProcessError:
-            return -1
-    else:
-        if new_os_file.find("Mimosa") != -1:
-            return 0
-        else:
-            msg = _("Please use Mimosa os to upgrade instead of TFG")
-            LOG.error(msg)
-            raise exception.Forbidden(message=msg)
-    return result.find("yes")
-
-
-def upgrade_os(req, hosts_list):
-    upgrade_hosts = []
-    max_parallel_os_upgrade_number = int(CONF.max_parallel_os_upgrade_number)
-    while hosts_list:
-        host_meta = {}
-        threads = []
-        if len(hosts_list) > max_parallel_os_upgrade_number:
-            upgrade_hosts = hosts_list[:max_parallel_os_upgrade_number]
-            hosts_list = hosts_list[max_parallel_os_upgrade_number:]
-        else:
-            upgrade_hosts = hosts_list
-            hosts_list = []
-
-        new_os_file = check_tfg_exist()
-        for host_info in upgrade_hosts:
-            host_id = host_info.keys()[0]
-            host_ip = host_info.values()[0]
-            host_detail = daisy_cmn.get_host_detail(req, host_id)
-            target_host_os = _get_host_os_version(
-                host_ip, host_detail['root_pwd'])
-
-            if _cmp_os_version(new_os_file, target_host_os, host_ip) != -1:
-                host_meta['os_progress'] = 10
-                host_meta['os_status'] = host_os_status['UPDATING']
-                host_meta['messages'] = "os updating,begin copy iso"
-                update_db_host_status(req, host_id, host_meta)
-                t = threading.Thread(target=os_thread_bin, args=(req, host_ip,
-                                                                 host_id))
-                t.setDaemon(True)
-                t.start()
-                threads.append(t)
-            else:
-                LOG.warn(_("new os version is lower than or equal to that of "
-                           "host %s, don't need to upgrade!" % host_ip))
-        try:
-            for t in threads:
-                t.join()
-        except:
-            LOG.warn(_("Join update thread %s failed!" % t))
-        else:
-            for host_info in upgrade_hosts:
-                update_failed_flag = False
-                host_id = host_info.keys()[0]
-                host_ip = host_info.values()[0]
-                host = registry.get_host_metadata(req.context, host_id)
-                if host['os_status'] == host_os_status['UPDATE_FAILED'] or\
-                        host['os_status'] == host_os_status['INIT']:
-                    update_failed_flag = True
-                    raise exception.ThreadBinException(
-                        "%s update tfg failed! %s" % (
-                            host_ip, host['messages']))
-                if not update_failed_flag:
-                    host_meta = {}
-                    host_meta['os_progress'] = 100
-                    host_meta['os_status'] = host_os_status['ACTIVE']
-                    host_meta['messages'] = "upgrade tfg successfully"
-                    update_db_host_status(req, host_id, host_meta)

@@ -32,7 +32,6 @@ from daisy.registry.api.v1 import config_sets
 from daisy.registry.api.v1 import configs
 from daisy.registry.api.v1 import networks
 from daisy.registry.api.v1 import template
-from daisy.registry.api.v1 import hwms
 
 LOG = logging.getLogger(__name__)
 _LE = i18n._LE
@@ -571,58 +570,6 @@ class RegistryClient(client.BaseClient):
         # Registry returns a JSONified dict(image=image_info)
         data = jsonutils.loads(res.read())
         return data['template']
-
-    def add_hwm(self, hwm):
-        """ """
-        headers = {
-            'Content-Type': 'application/json',
-        }
-
-        if 'hwm' not in hwm:
-            hwm = dict(hwm=hwm)
-
-        body = jsonutils.dumps(hwm)
-
-        res = self.do_request("POST", "/hwm", body=body, headers=headers)
-        # Registry returns a JSONified dict(image=image_info)
-        data = jsonutils.loads(res.read())
-        return data['hwm']
-
-    def update_hwm(self, hwm_id, hwm):
-        headers = {
-            'Content-Type': 'application/json',
-        }
-        if 'hwm' not in hwm:
-            hwm = dict(hwm=hwm)
-
-        body = jsonutils.dumps(hwm)
-
-        res = self.do_request(
-            "PUT",
-            "/hwm/%s" %
-            hwm_id,
-            body=body,
-            headers=headers)
-        # Registry returns a JSONified dict(image=image_info)
-        data = jsonutils.loads(res.read())
-        return data['hwm']
-
-    def delete_hwm(self, hwm_id):
-        res = self.do_request("DELETE", "/hwm/%s" % hwm_id)
-        data = jsonutils.loads(res.read())
-        return data['hwm']
-
-    def list_hwm(self, **kwargs):
-        """ """
-        params = self._extract_params(kwargs, hwms.SUPPORTED_PARAMS)
-        res = self.do_request("GET", "/hwm", params=params)
-        data = jsonutils.loads(res.read())
-        return data
-
-    def get_hwm_detail(self, hwm_id):
-        res = self.do_request("GET", "/hwm/%s" % hwm_id)
-        data = jsonutils.loads(res.read())
-        return data['hwm']
 
     def add_host_template(self, template):
         """ """
