@@ -486,7 +486,7 @@ class Controller(controller.BaseController):
         Adds a new host to Daisy
 
         :param req: The WSGI/Webob Request object
-        :param image_meta: Mapping of metadata about host
+        :param host_meta: Mapping of metadata about host
 
         :raises HTTPBadRequest if x-host-name is missing
         """
@@ -559,6 +559,11 @@ class Controller(controller.BaseController):
                                             host_meta['config_set_id'])
 
         host_meta = registry.add_host_metadata(req.context, host_meta)
+
+        for ironic_keyword in ['cpu', 'system', 'memory',
+                               'pci', 'disk', 'devices']:
+            if host_meta[ironic_keyword]:
+                host_meta[ironic_keyword] = eval(host_meta[ironic_keyword])
 
         return {'host_meta': host_meta}
 
