@@ -328,31 +328,6 @@ def add_component_metadata(context, component_meta):
     return c.add_component(component_meta)
 
 
-def add_hwm_metadata(context, hwm):
-    c = get_registry_client(context)
-    return c.add_hwm(hwm)
-
-
-def update_hwm_metadata(context, hwm_id, hwm):
-    c = get_registry_client(context)
-    return c.update_hwm(hwm_id, hwm)
-
-
-def delete_hwm_metadata(context, hwm_id):
-    c = get_registry_client(context)
-    return c.delete_hwm(hwm_id)
-
-
-def hwm_list_metadata(context, **kwargs):
-    c = get_registry_client(context)
-    return c.list_hwm(**kwargs)
-
-
-def hwm_detail_metadata(context, hwm_id):
-    c = get_registry_client(context)
-    return c.get_hwm_detail(hwm_id)
-
-
 def add_template_metadata(context, template):
     c = get_registry_client(context)
     return c.add_template(template)

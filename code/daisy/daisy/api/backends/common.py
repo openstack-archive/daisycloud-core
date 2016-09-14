@@ -40,6 +40,48 @@ kolla_backend_name = "kolla"
 os_install_start_time = 0.0
 
 
+# This is used for mapping daisy service id to systemctl service name
+# Only used by non containerized deploy tools such as clush/puppet.
+
+service_map = {
+    'lb': 'haproxy',
+    'mongodb': 'mongod',
+    'ha': '',
+    'mariadb': 'mariadb',
+    'amqp': 'rabbitmq-server',
+    'ceilometer-api': 'openstack-ceilometer-api',
+    'ceilometer-collector': 'openstack-ceilometer-collector,\
+                                openstack-ceilometer-mend',
+    'ceilometer-central': 'openstack-ceilometer-central',
+    'ceilometer-notification': 'openstack-ceilometer-notification',
+    'ceilometer-alarm': 'openstack-ceilometer-alarm-evaluator,\
+                        openstack-ceilometer-alarm-notifier',
+    'heat-api': 'openstack-heat-api',
+    'heat-api-cfn': 'openstack-heat-api-cfn',
+    'heat-engine': 'openstack-heat-engine',
+    'ironic': 'openstack-ironic-api,openstack-ironic-conductor',
+    'horizon': 'httpd,opencos-alarmmanager',
+    'keystone': 'openstack-keystone',
+    'glance': 'openstack-glance-api,openstack-glance-registry',
+    'cinder-volume': 'openstack-cinder-volume',
+    'cinder-scheduler': 'openstack-cinder-scheduler',
+    'cinder-api': 'openstack-cinder-api',
+    'neutron-metadata': 'neutron-metadata-agent',
+    'neutron-lbaas': 'neutron-lbaas-agent',
+    'neutron-dhcp': 'neutron-dhcp-agent',
+    'neutron-server': 'neutron-server',
+    'neutron-l3': 'neutron-l3-agent',
+    'compute': 'openstack-nova-compute',
+    'nova-cert': 'openstack-nova-cert',
+    'nova-sched': 'openstack-nova-scheduler',
+    'nova-vncproxy': 'openstack-nova-novncproxy,openstack-nova-consoleauth',
+    'nova-conductor': 'openstack-nova-conductor',
+    'nova-api': 'openstack-nova-api',
+    'nova-cells': 'openstack-nova-cells',
+    'camellia-api': 'camellia-api'
+}
+
+
 def subprocess_call(command, file=None):
     if file:
         return_code = subprocess.call(command,
@@ -366,3 +408,168 @@ def calc_host_iqn(min_mac):
         get_uuid = stdoutput.split('=')[1]
         iqn = "iqn.opencos.rh:" + get_uuid.strip()
     return iqn
+
+
+def _get_cluster_network(cluster_networks, network_type):
+    network = [cn for cn in cluster_networks if cn['name'] in network_type]
+    if not network or not network[0]:
+        msg = "network %s is not exist" % (network_type)
+        raise exception.InvalidNetworkConfig(msg)
+    else:
+        return network[0]
+
+
+def get_host_interface_by_network(host_detail, network_type):
+    host_detail_info = copy.deepcopy(host_detail)
+    interface_list = [hi for hi in host_detail_info['interfaces']
+                      for assigned_network in hi['assigned_networks']
+                      if assigned_network and
+                      network_type == assigned_network['name']]
+    interface = {}
+    if interface_list:
+        interface = interface_list[0]
+    if not interface:
+        msg = "network %s of host %s is not exist" % (
+            network_type, host_detail_info['id'])
+        raise exception.InvalidNetworkConfig(msg)
+    return interface
+
+
+def get_host_network_ip(req, host_detail, cluster_networks, network_name):
+    interface_network_ip = ''
+    host_interface = get_host_interface_by_network(host_detail, network_name)
+    if host_interface:
+        network = _get_cluster_network(cluster_networks, network_name)
+        assigned_network = get_assigned_network(req,
+                                                host_interface['id'],
+                                                network['id'])
+        interface_network_ip = assigned_network['ip']
+
+    if not interface_network_ip and 'MANAGEMENT' == network_name:
+        msg = "%s network ip of host %s can't be empty" % (
+            network_name, host_detail['id'])
+        raise exception.InvalidNetworkConfig(msg)
+    return interface_network_ip
+
+
+def get_service_disk_list(req, params):
+    try:
+        service_disks = registry.list_service_disk_metadata(
+            req.context, **params)
+    except exception.Invalid as e:
+        raise HTTPBadRequest(explanation=e.msg, request=req)
+    return service_disks
+
+
+def sort_interfaces_by_pci(networks, host_detail):
+    """
+    Sort interfaces by pci segment, if interface type is bond,
+    user the pci of first memeber nic.This function is fix bug for
+    the name length of ovs virtual port, because if the name length large than
+    15 characters, the port will create failed.
+    :param interfaces: interfaces info of the host
+    :return:
+    """
+    interfaces = eval(host_detail.get('interfaces', None)) \
+        if isinstance(host_detail, unicode) else \
+        host_detail.get('interfaces', None)
+    if not interfaces:
+        LOG.info("This host has no interfaces info.")
+        return host_detail
+
+    tmp_interfaces = copy.deepcopy(interfaces)
+
+    slaves_name_list = []
+    for interface in tmp_interfaces:
+        if interface.get('type', None) == "bond" and\
+                interface.get('slave1', None) and\
+                interface.get('slave2', None):
+            slaves_name_list.append(interface['slave1'])
+            slaves_name_list.append(interface['slave2'])
+
+    for interface in interfaces:
+        if interface.get('name') not in slaves_name_list:
+            vlan_id_len_list = [len(network['vlan_id'])
+                                for assigned_network in interface.get(
+                                    'assigned_networks', [])
+                                for network in networks
+                                if assigned_network.get('name') ==
+                                network.get('name') and network.get('vlan_id')]
+            max_vlan_id_len = max(vlan_id_len_list) if vlan_id_len_list else 0
+            interface_name_len = len(interface['name'])
+            redundant_bit = interface_name_len + max_vlan_id_len - 14
+            interface['name'] = interface['name'][
+                redundant_bit:] if redundant_bit > 0 else interface['name']
+    return host_detail
+
+
+def run_scrip(script, ip=None, password=None, msg=None):
+    try:
+        _run_scrip(script, ip, password)
+    except:
+        msg1 = 'Error occurred during running scripts.'
+        message = msg1 + msg if msg else msg1
+        LOG.error(message)
+        raise HTTPForbidden(explanation=message)
+    else:
+        LOG.info('Running scripts successfully!')
+
+
+def _run_scrip(script, ip=None, password=None):
+    mask_list = []
+    repl_list = [("'", "'\\''")]
+    script = "\n".join(script)
+    _PIPE = subprocess.PIPE
+    if ip:
+        cmd = ["sshpass", "-p", "%s" % password,
+               "ssh", "-o StrictHostKeyChecking=no",
+               "%s" % ip, "bash -x"]
+    else:
+        cmd = ["bash", "-x"]
+    environ = os.environ
+    environ['LANG'] = 'en_US.UTF8'
+    obj = subprocess.Popen(cmd, stdin=_PIPE, stdout=_PIPE, stderr=_PIPE,
+                           close_fds=True, shell=False, env=environ)
+
+    script = "function t(){ exit $? ; } \n trap t ERR \n" + script
+    out, err = obj.communicate(script)
+    masked_out = mask_string(out, mask_list, repl_list)
+    masked_err = mask_string(err, mask_list, repl_list)
+    if obj.returncode:
+        pattern = (r'^ssh\:')
+        if re.search(pattern, err):
+            LOG.error(_("Network error occured when run script."))
+            raise exception.NetworkError(masked_err, stdout=out, stderr=err)
+        else:
+            msg = ('Failed to run remote script, stdout: %s\nstderr: %s' %
+                   (masked_out, masked_err))
+            LOG.error(msg)
+            raise exception.ScriptRuntimeError(msg, stdout=out, stderr=err)
+    return obj.returncode, out
+
+
+def get_ctl_ha_nodes_min_mac(req, cluster_id):
+    '''
+    ctl_ha_nodes_min_mac = {'host_name1':'min_mac1', ...}
+    '''
+    ctl_ha_nodes_min_mac = {}
+    roles = get_cluster_roles_detail(req, cluster_id)
+    cluster_networks =\
+        get_cluster_networks_detail(req, cluster_id)
+    for role in roles:
+        if role['deployment_backend'] != tecs_backend_name:
+            continue
+        role_hosts = get_hosts_of_role(req, role['id'])
+        for role_host in role_hosts:
+            # host has installed tecs are exclusive
+            if (role_host['status'] == TECS_STATE['ACTIVE'] or
+                    role_host['status'] == TECS_STATE['UPDATING'] or
+                    role_host['status'] == TECS_STATE['UPDATE_FAILED']):
+                continue
+            host_detail = get_host_detail(req,
+                                          role_host['host_id'])
+            host_name = host_detail['name']
+            if role['name'] == "CONTROLLER_HA":
+                min_mac = utils.get_host_min_mac(host_detail['interfaces'])
+                ctl_ha_nodes_min_mac[host_name] = min_mac
+    return ctl_ha_nodes_min_mac

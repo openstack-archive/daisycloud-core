@@ -40,14 +40,10 @@ from daisy import notifier
 import daisy.registry.client.v1.api as registry
 from daisy.registry.api.v1 import template
 
-import daisy.api.backends.tecs.common as tecs_cmn
-
 try:
     import simplejson as json
 except ImportError:
     import json
-
-daisy_tecs_path = tecs_cmn.daisy_tecs_path
 
 
 LOG = logging.getLogger(__name__)

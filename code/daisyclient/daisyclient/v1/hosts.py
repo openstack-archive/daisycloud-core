@@ -29,7 +29,7 @@ UPDATE_PARAMS = ('name', 'resource_type', 'dmi_uuid', 'role', 'cluster',
                  'os_status', 'interfaces', 'is_deployment',
                  'description', 'deleted', 'status', 'ipmi_user',
                  'ipmi_passwd', 'ipmi_addr', 'ip', 'status', 'user',
-                 'passwd', 'hwm_id', 'hwm_ip', 'cluster_id',
+                 'passwd', 'cluster_id',
                  'vcpu_pin_set', 'dvs_high_cpuset', 'pci_high_cpuset',
                  'os_cpus', 'dvs_cpus', 'config_set_id', 'system',
                  'cpu', 'memory', 'disk', 'devices', 'pci')
@@ -38,7 +38,7 @@ CREATE_PARAMS = ('id', 'name', 'description', 'resource_type', 'dmi_uuid',
                  'role', 'cluster', 'os_version', 'os_status',
                  'interfaces', 'is_deployment', 'status', 'ipmi_user',
                  'ipmi_passwd', 'ipmi_addr', 'ip', 'status', 'user',
-                 'passwd', 'hwm_id', 'hwm_ip', 'cluster_id',
+                 'passwd', 'cluster_id',
                  'vcpu_pin_set', 'dvs_high_cpuset', 'pci_high_cpuset',
                  'os_cpus', 'dvs_cpus', 'config_set_id', 'system',
                  'cpu', 'memory', 'disk', 'devices', 'pci')
@@ -316,23 +316,6 @@ class HostManager(base.ManagerWithFind):
 
         return Host(self, self._format_host_meta_for_user(body))
 
-    def get_min_mac(self, hwm_id):
-        params = dict()
-        resp, body = self.client.get('/v1/nodes')
-        hosts = body.get('nodes')
-        if hosts:
-            for host in hosts:
-                if hwm_id == host.get('hwm_id'):
-                    resp, host_body = self.client.get('/v1/nodes/%s' %
-                                                      host['id'])
-                    interfaces = host_body['host'].get('interfaces')
-                    if interfaces:
-                        mac_list = [interface['mac'] for interface in
-                                    interfaces if interface.get('mac')]
-                        if mac_list:
-                            params['mac'] = min(mac_list)
-        return params
-
     def add_discover_host(self, **kwargs):
         """Add a discover host
 
@@ -349,9 +332,6 @@ class HostManager(base.ManagerWithFind):
                 msg = 'create() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
 
-        hwm_id = fields.get('hwm_id')
-        params = self.get_min_mac(hwm_id)
-        fields['mac'] = params.get('mac')
         hdrs = self._host_meta_to_headers(fields)
 
         resp, body = self.client.post('/v1/discover/nodes',
