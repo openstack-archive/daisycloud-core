@@ -18,8 +18,6 @@ import itertools
 import daisy.api.middleware.context
 import daisy.api.versions
 import daisy.common.config
-import daisy.common.location_strategy
-import daisy.common.location_strategy.store_type
 import daisy.common.property_utils
 import daisy.common.rpc
 import daisy.common.wsgi
@@ -43,7 +41,6 @@ _api_opts = [
         daisy.api.middleware.context.context_opts,
         daisy.api.versions.versions_opts,
         daisy.common.config.common_opts,
-        daisy.common.location_strategy.location_strategy_opts,
         daisy.common.property_utils.property_opts,
         daisy.common.rpc.rpc_opts,
         daisy.common.wsgi.bind_opts,
@@ -56,10 +53,7 @@ _api_opts = [
         daisy.registry.client.registry_client_ctx_opts,
         daisy.registry.client.registry_client_opts,
         daisy.registry.client.v1.api.registry_client_ctx_opts))),
-    ('image_format', daisy.common.config.image_format_opts),
     ('task', daisy.common.config.task_opts),
-    ('store_type_location_strategy',
-     daisy.common.location_strategy.store_type.store_type_opts),
     ('paste_deploy', daisy.common.config.paste_deploy_opts)
 ]
 _registry_opts = [
