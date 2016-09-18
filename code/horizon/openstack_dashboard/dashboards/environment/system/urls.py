@@ -21,8 +21,7 @@ from django.conf.urls import patterns
 from django.conf.urls import url
 
 from openstack_dashboard.dashboards.environment.system import views
-from openstack_dashboard.dashboards.environment.system \
-    import system_config_views
+
 
 HWM = r'^(?P<hwm_id>[^/]+)/%s$'
 
@@ -34,12 +33,4 @@ urlpatterns = patterns(
     url(r'restore_system_force$',
         views.restore_system_force,
         name='restore_system_force'),
-    url(r'^systemconfig$', system_config_views.SystemConfigView.as_view(),
-        name='systemconfig'),
-    url(r'^modify_systemconfig$',
-        system_config_views.modify_systemconfig,
-        name='modify_systemconfig'),
-    url(r'^set_pxeserver$',
-        system_config_views.set_pxeserver,
-        name='set_pxeserver'),
 )

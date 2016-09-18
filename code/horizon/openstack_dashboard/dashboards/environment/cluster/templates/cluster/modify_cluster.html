@@ -198,16 +198,6 @@
         $("#base_mac").val(cluster_list[0].base_mac);
         $("#auto_scale").val(cluster_list[0].auto_scale);
         $("#use_dns").val(cluster_list[0].use_dns);
-        if((cluster_list[0].hwm_ip != "") && (cluster_list[0].hwmip_list.length > 0)){
-            var hwm_ip = cluster_list[0].hwm_ip;
-
-            $("#select_hwm_ip option[value='" + hwm_ip + "']").attr("selected", true);
-            $("#select_hwm_ip").attr("disabled",true);
-            $("#auto_scale").attr("disabled",true);
-        }
-        else if((cluster_list[0].hwm_ip == "") && (cluster_list[0].hwmip_list.length > 0)){
-            $("#select_hwm_ip_block").hide();
-        }
         $("#description").val(cluster_list[0].description);
     }
 

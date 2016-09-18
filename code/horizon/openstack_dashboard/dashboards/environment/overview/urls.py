@@ -29,7 +29,6 @@ CLUSTER = r'^(?P<cluster_id>[^/]+)/%s$'
 
 urlpatterns = patterns(
     'openstack_dashboard.dashboards.environment.overview.views',
-    url(r'get_hwmip/$', overview_views.Get_hwmip, name='get_hwmip'),
     url(r'^$', overview_views.OverviewView.as_view(), name='index'),
     url(r'^create/$', overview_views.cluster_create, name='create'),
     url(r'delete/$', cluster_views.ClusterDelete, name='clusterdelete'),

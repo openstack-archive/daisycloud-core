@@ -85,18 +85,6 @@
             </select>
         </div>
     </div>
-{% if hwmip_list|length > 0 %} 
-    <div style="clear:both" class="form-group hwm_ip" id="select_hwm_ip_block">
-        <label for="hwm_ip" class="col-sm-3 control-label" style="text-align:right;">{% trans "HWM IP" %}</label>
-        <div style="float:left;" class="col-sm-4">
-            <select id="select_hwm_ip" name="select_hwm_ip" class="form-control">
-            {% for ip in hwmip_list %}
-            <option value={{ip}}>{{ ip }}</option>
-            {% endfor %}
-            </select>
-        </div>
-    </div>
-{% endif %}
     <div style="clear:both" class="form-group">
         <label style="text-align:right;" for="description" class="col-sm-3 control-label">{% trans 'Description' %}</label>
         <div style="float:left;" class="col-sm-4">

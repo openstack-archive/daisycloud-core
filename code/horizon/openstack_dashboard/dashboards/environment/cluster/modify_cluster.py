@@ -40,9 +40,6 @@ class ModifyView(views.HorizonTemplateView):
         context['clusters'] = self.get_clusters()
         context["roles"] = cluster_role.\
             get_role_list(self.request, self.kwargs["cluster_id"])
-        hwms = api.daisy.hwm_list(self.request)
-        hwmip_list = [hwm.hwm_ip for hwm in hwms]
-        context["hwmip_list"] = hwmip_list
         return context
 
     def get_success_url(self):
@@ -55,8 +52,6 @@ def GetCluster(request):
 
     filter = data["cluster_info"]
     cluster_info = api.daisy.cluster_get(request, filter["cluster_id"])
-    hwms = api.daisy.hwm_list(request)
-    hwmip_list = [hwm.hwm_ip for hwm in hwms]
 
     ret_cluster_list = []
     ret_cluster_list.append({
@@ -67,9 +62,7 @@ def GetCluster(request):
         "gre_id_end": cluster_info.networking_parameters["gre_id_range"][1],
         "auto_scale": cluster_info.auto_scale,
         "use_dns": cluster_info.use_dns,
-        "hwm_ip": cluster_info.hwm_ip,
-        "description": cluster_info.description,
-        "hwmip_list": hwmip_list})
+        "description": cluster_info.description})
 
     return HttpResponse(json.dumps(ret_cluster_list),
                         content_type="application/json")
