@@ -17,11 +17,9 @@ from oslo_config import cfg
 
 from daisy.common import wsgi
 from daisy.registry.api import v1
-from daisy.registry.api import v2
 
 CONF = cfg.CONF
 CONF.import_opt('enable_v1_registry', 'daisy.common.config')
-CONF.import_opt('enable_v2_registry', 'daisy.common.config')
 
 
 class API(wsgi.Router):
@@ -31,7 +29,5 @@ class API(wsgi.Router):
         mapper = mapper or wsgi.APIMapper()
         if CONF.enable_v1_registry:
             v1.init(mapper)
-        if CONF.enable_v2_registry:
-            v2.init(mapper)
 
         super(API, self).__init__(mapper)
