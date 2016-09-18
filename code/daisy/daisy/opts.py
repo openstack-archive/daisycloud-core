@@ -29,12 +29,10 @@ import daisy.notifier
 import daisy.registry
 import daisy.registry.client
 import daisy.registry.client.v1.api
-import daisy.scrubber
 
 __all__ = [
     'list_api_opts',
     'list_registry_opts',
-    'list_scrubber_opts',
     'list_cache_opts',
     'list_manage_opts'
 ]
@@ -57,8 +55,7 @@ _api_opts = [
         daisy.registry.registry_addr_opts,
         daisy.registry.client.registry_client_ctx_opts,
         daisy.registry.client.registry_client_opts,
-        daisy.registry.client.v1.api.registry_client_ctx_opts,
-        daisy.scrubber.scrubber_opts))),
+        daisy.registry.client.v1.api.registry_client_ctx_opts))),
     ('image_format', daisy.common.config.image_format_opts),
     ('task', daisy.common.config.task_opts),
     ('store_type_location_strategy',
@@ -73,15 +70,6 @@ _registry_opts = [
         daisy.common.wsgi.socket_opts,
         daisy.common.wsgi.eventlet_opts))),
     ('paste_deploy', daisy.common.config.paste_deploy_opts)
-]
-_scrubber_opts = [
-    (None, list(itertools.chain(
-        daisy.common.config.common_opts,
-        daisy.scrubber.scrubber_opts,
-        daisy.scrubber.scrubber_cmd_opts,
-        daisy.scrubber.scrubber_cmd_cli_opts,
-        daisy.registry.client.registry_client_ctx_opts,
-        daisy.registry.registry_addr_opts))),
 ]
 _cache_opts = [
     (None, list(itertools.chain(
@@ -121,13 +109,6 @@ def list_registry_opts():
     service.
     """
     return [(g, copy.deepcopy(o)) for g, o in _registry_opts]
-
-
-def list_scrubber_opts():
-    """Return a list of oslo_config options available in Glance Scrubber
-    service.
-    """
-    return [(g, copy.deepcopy(o)) for g, o in _scrubber_opts]
 
 
 def list_cache_opts():

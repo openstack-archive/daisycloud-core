@@ -15,13 +15,11 @@ Source0:          http://launchpad.net/%{service}/%{release_name}/%{version}/+do
 
 Source1:          daisy-api.service
 Source2:          daisy-registry.service
-Source3:          daisy-scrubber.service
 Source4:          daisy.logrotate
 
 Source5:          daisy-api-dist.conf
 Source6:          daisy-registry-dist.conf
 Source7:          daisy-cache-dist.conf
-Source8:          daisy-scrubber-dist.conf
 Source9:          daisy-orchestration.service
 Source10:         daisy-orchestration.conf
 
@@ -153,7 +151,6 @@ rm -rf {test-,}requirements.txt tools/{pip,test}-requires
 api_dist=%{SOURCE5}
 registry_dist=%{SOURCE6}
 cache_dist=%{SOURCE7}
-scrubber_dist=%{SOURCE8}
 
 %build
 %{__python2} setup.py build
@@ -202,8 +199,6 @@ install -p -D -m 644 etc/daisy-registry-paste.ini %{buildroot}%{_datadir}/daisy/
 install -p -D -m 644 etc/daisy-registry-paste.ini %{buildroot}%{_sysconfdir}/daisy/daisy-registry-paste.ini
 install -p -D -m 640 etc/daisy-cache.conf %{buildroot}%{_sysconfdir}/daisy/daisy-cache.conf
 install -p -D -m 644 %{SOURCE7} %{buildroot}%{_datadir}/daisy/daisy-cache-dist.conf
-install -p -D -m 640 etc/daisy-scrubber.conf %{buildroot}%{_sysconfdir}/daisy/daisy-scrubber.conf
-install -p -D -m 644 %{SOURCE8} %{buildroot}%{_datadir}/daisy/daisy-scrubber-dist.conf
 
 install -p -D -m 640 etc/policy.json %{buildroot}%{_sysconfdir}/daisy/policy.json
 install -p -D -m 640 etc/schema-image.json %{buildroot}%{_sysconfdir}/daisy/schema-image.json
@@ -211,7 +206,6 @@ install -p -D -m 640 etc/schema-image.json %{buildroot}%{_sysconfdir}/daisy/sche
 # systemd services
 install -p -D -m 644 %{SOURCE1} %{buildroot}%{_unitdir}/daisy-api.service
 install -p -D -m 644 %{SOURCE2} %{buildroot}%{_unitdir}/daisy-registry.service
-install -p -D -m 644 %{SOURCE3} %{buildroot}%{_unitdir}/daisy-scrubber.service
 install -p -D -m 644 %{SOURCE9} %{buildroot}%{_unitdir}/daisy-orchestration.service
 
 # Logrotate config
@@ -243,20 +237,17 @@ exit 0
 # Initial installation
 %systemd_post daisy-api.service
 %systemd_post daisy-registry.service
-%systemd_post daisy-scrubber.service
 %systemd_post daisy-orchestration.service
 
 
 %preun
 %systemd_preun daisy-api.service
 %systemd_preun daisy-registry.service
-%systemd_preun daisy-scrubber.service
 %systemd_preun daisy-orchestration.service
 
 %postun
 %systemd_postun_with_restart daisy-api.service
 %systemd_postun_with_restart daisy-registry.service
-%systemd_postun_with_restart daisy-scrubber.service
 %systemd_postun_with_restart daisy-orchestration.service
 
 if [ $1 -eq 0 ] ; then
@@ -271,14 +262,12 @@ fi
 /etc/daisy/daisy-registry-paste.ini
 %doc README.rst
 %{_bindir}/daisy-api
-%{_bindir}/daisy-control
 %{_bindir}/daisy-manage
 %{_bindir}/daisy-registry
 %{_bindir}/daisy-cache-cleaner
 %{_bindir}/daisy-cache-manage
 %{_bindir}/daisy-cache-prefetcher
 %{_bindir}/daisy-cache-pruner
-%{_bindir}/daisy-scrubber
 %{_bindir}/daisy-replicator
 %{_bindir}/daisy-index
 %{_bindir}/daisy-search
@@ -287,13 +276,11 @@ fi
 %{_datadir}/daisy/daisy-api-dist.conf
 %{_datadir}/daisy/daisy-registry-dist.conf
 %{_datadir}/daisy/daisy-cache-dist.conf
-%{_datadir}/daisy/daisy-scrubber-dist.conf
 %{_datadir}/daisy/daisy-api-dist-paste.ini
 %{_datadir}/daisy/daisy-registry-dist-paste.ini
 
 %{_unitdir}/daisy-api.service
 %{_unitdir}/daisy-registry.service
-%{_unitdir}/daisy-scrubber.service
 %{_unitdir}/daisy-orchestration.service
 
 
@@ -305,7 +292,6 @@ fi
 %config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/daisy/daisy-registry.conf
 %config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/daisy/daisy-orchestration.conf
 %config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/daisy/daisy-cache.conf
-%config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/daisy/daisy-scrubber.conf
 %config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/daisy/policy.json
 %config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/daisy/schema-image.json
 %config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/logrotate.d/daisy
