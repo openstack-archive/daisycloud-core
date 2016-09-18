@@ -3,7 +3,7 @@
 Name:		openstack-ironic-discoverd
 Summary:	Hardware introspection service for OpenStack Ironic
 Version:	1.0.0
-Release:	%{_release}
+Release:	%{_release}%{?dist}
 License:	ASL 2.0
 Group:		System Environment/Base
 URL:		https://pypi.python.org/pypi/ironic-discoverd

@@ -1,7 +1,7 @@
 Name:             python-daisyclient
 Epoch:            1
 Version:          1.0.0
-Release:          %{_release}
+Release:          %{_release}%{?dist}
 Summary:          Python API and CLI for OpenStack daisy
 
 License:          ASL 2.0

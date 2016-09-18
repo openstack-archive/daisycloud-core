@@ -7,7 +7,7 @@
 
 Name:       python-django-horizon
 Version:    1.0.0
-Release:    %{_release}
+Release:    %{_release}%{?dist}
 Summary:    Django application for talking to Openstack
 
 Group:      Development/Libraries

@@ -5,7 +5,7 @@
 
 Name:             daisy
 Version:          1.0.0
-Release:          %{_release}
+Release:          %{_release}%{?dist}
 Summary:          OpenStack Image Service
 
 Group:            Applications/System
