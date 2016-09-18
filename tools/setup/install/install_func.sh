@@ -542,10 +542,18 @@ function create_daisy_role_with_proton
 function create_daisy_role_with_kolla
 {
     write_install_log "Daisy init and create the role with kolla"
-    daisy --os-endpoint="http://${public_ip}:$bind_port" role-add "CONTROLLER_LB" "Controller Role for kolla." --type template --deployment-backend kolla --role-type CONTROLLER_LB >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "create the controller role of KOLLA failed"; exit 1; }
-    daisy --os-endpoint="http://${public_ip}:$bind_port" role-add "COMPUTER" "Computer Role for kolla." --type template --deployment-backend kolla --role-type COMPUTER >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "create the computer role of KOLLA failed"; exit 1; }
+    local service_type_LB_list=`daisy --os-endpoint="http://${public_ip}:$bind_port" service-list | awk -F "|" '{print $2$6}' | grep -w [Ll][Bb] | awk -F " " '{print $1}'`
+    local service_type_compute_list=`daisy --os-endpoint="http://${public_ip}:$bind_port" service-list | awk -F "|" '{print $2$3}' | grep -w "compute" | awk -F " " '{print $1}'`
+
+    if [ ! -z "$service_type_LB_list" ];then
+        daisy --os-endpoint="http://${public_ip}:$bind_port" role-add "CONTROLLER_LB" "Controller role,backup type is loadbalance" --services $service_type_LB_list --type template --role-type CONTROLLER_LB --deployment-backend kolla >> $install_logfile 2>&1
+        [ "$?" -ne 0 ] && { write_install_log "create the role of CONTROLLER_LB failed"; exit 1; }
+    fi
+
+    if [ ! -z $service_type_compute_list ];then
+        daisy --os-endpoint="http://${public_ip}:$bind_port" role-add "COMPUTER" "Compute role" --services $service_type_compute_list --type template --role-type COMPUTER --deployment-backend kolla >> $install_logfile 2>&1
+        [ "$?" -ne 0 ] && { write_install_log "create the role of COMPUTER failed"; exit 1; }
+    fi
 
 }
 
