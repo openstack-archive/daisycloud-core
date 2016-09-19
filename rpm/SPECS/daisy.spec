@@ -19,7 +19,6 @@ Source4:          daisy.logrotate
 
 Source5:          daisy-api-dist.conf
 Source6:          daisy-registry-dist.conf
-Source7:          daisy-cache-dist.conf
 Source9:          daisy-orchestration.service
 Source10:         daisy-orchestration.conf
 
@@ -150,7 +149,6 @@ rm -rf {test-,}requirements.txt tools/{pip,test}-requires
 # Programmatically update defaults in example config
 api_dist=%{SOURCE5}
 registry_dist=%{SOURCE6}
-cache_dist=%{SOURCE7}
 
 %build
 %{__python2} setup.py build
@@ -180,7 +178,6 @@ rm -f %{buildroot}%{_sysconfdir}/daisy*.conf
 rm -f %{buildroot}%{_sysconfdir}/daisy*.ini
 rm -f %{buildroot}%{_sysconfdir}/logging.cnf.sample
 rm -f %{buildroot}%{_sysconfdir}/policy.json
-rm -f %{buildroot}%{_sysconfdir}/schema-image.json
 rm -f %{buildroot}/usr/share/doc/daisy/README.rst
 
 # Setup directories
@@ -197,8 +194,6 @@ install -p -D -m 640 etc/daisy-registry.conf %{buildroot}%{_sysconfdir}/daisy/da
 install -p -D -m 644 %{SOURCE6} %{buildroot}%{_datadir}/daisy/daisy-registry-dist.conf
 install -p -D -m 644 etc/daisy-registry-paste.ini %{buildroot}%{_datadir}/daisy/daisy-registry-dist-paste.ini
 install -p -D -m 644 etc/daisy-registry-paste.ini %{buildroot}%{_sysconfdir}/daisy/daisy-registry-paste.ini
-install -p -D -m 640 etc/daisy-cache.conf %{buildroot}%{_sysconfdir}/daisy/daisy-cache.conf
-install -p -D -m 644 %{SOURCE7} %{buildroot}%{_datadir}/daisy/daisy-cache-dist.conf
 
 install -p -D -m 640 etc/policy.json %{buildroot}%{_sysconfdir}/daisy/policy.json
 install -p -D -m 640 etc/schema-image.json %{buildroot}%{_sysconfdir}/daisy/schema-image.json
@@ -264,18 +259,10 @@ fi
 %{_bindir}/daisy-api
 %{_bindir}/daisy-manage
 %{_bindir}/daisy-registry
-%{_bindir}/daisy-cache-cleaner
-%{_bindir}/daisy-cache-manage
-%{_bindir}/daisy-cache-prefetcher
-%{_bindir}/daisy-cache-pruner
-%{_bindir}/daisy-replicator
-%{_bindir}/daisy-index
-%{_bindir}/daisy-search
 %{_bindir}/daisy-orchestration
 
 %{_datadir}/daisy/daisy-api-dist.conf
 %{_datadir}/daisy/daisy-registry-dist.conf
-%{_datadir}/daisy/daisy-cache-dist.conf
 %{_datadir}/daisy/daisy-api-dist-paste.ini
 %{_datadir}/daisy/daisy-registry-dist-paste.ini
 
@@ -291,9 +278,7 @@ fi
 %config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/daisy/daisy-api.conf
 %config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/daisy/daisy-registry.conf
 %config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/daisy/daisy-orchestration.conf
-%config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/daisy/daisy-cache.conf
 %config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/daisy/policy.json
-%config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/daisy/schema-image.json
 %config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/logrotate.d/daisy
 %dir %attr(0755, daisy, daisy) %{_sharedstatedir}/daisy
 %dir %attr(0750, daisy, daisy) %{_localstatedir}/log/daisy
