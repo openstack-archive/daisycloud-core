@@ -33,7 +33,6 @@ import functools
 import os
 import platform
 import re
-import stevedore
 import subprocess
 import sys
 import uuid
@@ -820,13 +819,6 @@ def stash_conf_values():
     conf['cert_file'] = CONF.cert_file
 
     return conf
-
-
-def get_search_plugins():
-    namespace = 'daisy.search.index_backend'
-    ext_manager = stevedore.extension.ExtensionManager(
-        namespace, invoke_on_load=True)
-    return ext_manager.extensions
 
 
 def get_host_min_mac(host_interfaces):
