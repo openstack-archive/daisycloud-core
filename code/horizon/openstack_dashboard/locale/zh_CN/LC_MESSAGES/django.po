@@ -2348,9 +2348,7 @@ msgid "PXE Discover Host"
 msgid_plural "PXE Discover Hosts"
 msgstr[0] "PXE 发现"
 
-msgid "Delete HWM IP"
-msgid_plural "Delete HWM IPs"
-msgstr[0] "删除 HWM IP"
+
 
 msgid "Discover Status"
 msgstr "发现状态"
@@ -2386,12 +2384,6 @@ msgstr ""
 
 msgid "System Config"
 msgstr "系统配置"
-
-msgid "HWM IP"
-msgstr "硬件管理服务器IP"
-
-msgid "HWM IP Description"
-msgstr "硬件管理服务器IP描述信息"
 
 msgid "Save success!"
 msgstr "保存成功！"

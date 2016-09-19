@@ -203,8 +203,7 @@ def get_host_detail(host_detail):
             "host_memory_size": memory_size_str,
             "product": product,
             "manufacturer": manufacturer,
-            "disks_size": disk_size_str,
-            "position": host_detail.position
+            "disks_size": disk_size_str
         }
         return template.loader.render_to_string(template_name, context)
 
@@ -345,32 +344,12 @@ class SelectHostsView(tables.DataTableView):
 
         # key = 'show_host' + current_cluster
         # if (key in self.request.session) and self.request.session[key]:
-        cluster_info = api.daisy.cluster_get(
-            self.request, self.kwargs["cluster_id"])
-        if(cluster_info.hwm_ip != ""):
-            try:
-                param = {
-                    "hwm_ip": cluster_info.hwm_ip
-                }
-                hwm_nodes = api.daisy.node_update(self.request, **param)
-                for hwm_node in hwm_nodes:
-                    pass
-            except Exception, e:
-                messages.error(self.request, e)
         hosts = api.daisy.host_list(self.request)
 
         for host in hosts:
             host_detail = api.daisy.host_get(self.request, host.id)
             if (host_detail.status == "init"):
-                if (cluster_info.hwm_ip != ""):
-                    if(host_detail.hwm_ip == cluster_info.hwm_ip):
-                        setattr(host_detail,
-                                "discover_state", host.discover_state)
-                        handled_hosts.append(host_detail)
-                    else:
-                        continue
-                else:
-                    handled_hosts.append(host_detail)
+                handled_hosts.append(host_detail)
 
         return handled_hosts
 
@@ -394,9 +373,6 @@ class SelectHostsView(tables.DataTableView):
                                      context["cluster_id"])
         context["host_templates"] = template_views.\
             get_host_template_by_cluster(self.request, cluster_id)
-        cluster_info = api.daisy.cluster_get(
-            self.request, self.kwargs["cluster_id"])
-        context["hwm_ip"] = cluster_info.hwm_ip
         return context
 
 

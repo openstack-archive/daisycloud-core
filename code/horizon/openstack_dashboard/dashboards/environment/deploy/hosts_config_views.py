@@ -108,7 +108,7 @@ class HostsTable(tables.DataTable):
 
 
 def get_version_path():
-    return getattr(settings, 'DAISY_VER_PATH', "/var/lib/daisy/kolla/")
+    return getattr(settings, 'DAISY_VER_PATH', "/var/lib/daisy/tecs/")
 
 
 def get_version_files():
@@ -278,7 +278,6 @@ def set_host_config(request, cluster_id):
             host_get = api.daisy.host_get(request, host["host_id"])
             host_dict = host_get.to_dict()
             host_dict.update(host_config)
-            host_dict["os_version_file"] = host_config["os_version"]
             deploy_rule_lib.host_config_rule(host_dict)
             api.daisy.host_update(request, host["host_id"], **host_config)
             LOG.info("set host config success!")

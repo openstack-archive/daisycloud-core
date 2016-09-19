@@ -117,14 +117,6 @@ def GetCluster(request):
 
 
 @csrf_exempt
-def Get_hwmip(request):
-    hwms = api.daisy.hwm_list(request)
-    hwmip_list = [hwm.hwm_ip for hwm in hwms]
-    return HttpResponse(json.dumps(hwmip_list),
-                        content_type="application/json")
-
-
-@csrf_exempt
 def GetClusters(request):
     clusters = api.daisy.cluster_list(request)
     cluster_lists = [c for c in clusters]

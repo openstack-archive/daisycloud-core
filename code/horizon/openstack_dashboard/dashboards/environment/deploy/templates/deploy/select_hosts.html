@@ -84,8 +84,6 @@
     }
    
     horizon.addInitFunction(function(){
-        if("{{hwm_ip}}")
-            document.getElementById("fade_btn").style.visibility="hidden";
         $(document).on("click", "#config_discover_info", function(){
             cluster_id = $("#cluster_id_for_select_hosts").attr("cluster_id");
             var url = "/dashboard/environment/deploy/" + cluster_id + '/ipmiconf';
@@ -351,7 +349,7 @@
 {% block operate_region %}
 <div class="row">
    <form class="col-xs-4" style="margin-left:10px;">
-     <div class="form-group input-sm" style="display:none;">
+     <div class="form-group input-sm">
        <label class="control-label col-sm-3">{% trans 'Select Protocol' %}:</label>
        <div class="col-sm-6">
        <select class="form-control" id="protocol_type" data-toggle="tooltip" data-placement="right" data-original-title="{% trans "SSH protocol can discover hosts installed os" %}">

@@ -501,21 +501,6 @@ def get_host_role_url(host):
     return template.loader.render_to_string(template_name, context)
 
 
-def hwm_nodes_update(request):
-    hwms = api.daisy.hwm_list(request)
-    hwmip_list = [hwm.hwm_ip for hwm in hwms]
-    for hwm_ip in hwmip_list:
-        try:
-            param = {
-                "hwm_ip": hwm_ip
-            }
-            hwm_nodes = api.daisy.node_update(request, **param)
-            for hwm_node in hwm_nodes:
-                pass
-        except Exception, e:
-            messages.error(request, e)
-
-
 class UpdateHostCell(tables.UpdateAction):
 
     def allowed(self, request, host, cell):
@@ -624,7 +609,6 @@ class HostsView(tables.DataTableView):
     template_name = "environment/host/index.html"
 
     def get_data(self):
-        hwm_nodes_update(self.request)
         hosts = []
         hosts_list = api.daisy.host_list(self.request)
         for host in hosts_list:

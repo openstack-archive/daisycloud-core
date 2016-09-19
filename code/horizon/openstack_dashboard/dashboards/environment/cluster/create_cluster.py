@@ -49,9 +49,6 @@ class CreateView(views.HorizonTemplateView):
         cluster_lists = [c for c in clusters]
         context['clusters'] = cluster_lists
         context["roles"] = self.get_roles_data()
-        hwms = api.daisy.hwm_list(self.request)
-        hwmip_list = [hwm.hwm_ip for hwm in hwms]
-        context["hwmip_list"] = hwmip_list
         return context
 
 
@@ -70,8 +67,7 @@ def create_submit(request):
             name=cluster["cluster_name"],
             description=cluster["description"],
             networking_parameters=cluster["networking_parameters"],
-            use_dns=cluster["use_dns"],
-            hwm_ip=cluster["hwm_ip"])
+            use_dns=cluster["use_dns"])
         cluster_new.append({
             "id": cluster_created.id
         })
