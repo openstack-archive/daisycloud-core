@@ -194,11 +194,6 @@ def parse_args(args=None, usage=None, default_config_files=None):
          default_config_files=default_config_files)
 
 
-def parse_cache_args(args=None):
-    config_files = cfg.find_config_files(project='daisy', prog='daisy-cache')
-    parse_args(args=args, default_config_files=config_files)
-
-
 def _get_deployment_flavor(flavor=None):
     """
     Retrieve the paste_deploy.flavor config item, formatted appropriately
