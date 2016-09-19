@@ -72,6 +72,7 @@ function all_install
 
     write_install_log "install daisy dashboard rpm"
     install_rpm_by_yum "python-django"
+    install_rpm_by_yum "python-lockfile"
     install_rpm_by_daisy_yum "python-django-horizon"
     install_rpm_by_yum "daisy-dashboard"
 
@@ -84,6 +85,7 @@ function all_install
     else
         write_install_log "install pxe server rpm"
         install_rpm_by_daisy_yum pxe_server_install
+        install_rpm_by_yum "dhcp"
     fi
 
     #get management network IP address, and then update the database of Daisy user to the configuration file
