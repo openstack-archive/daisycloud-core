@@ -18,11 +18,8 @@ import itertools
 import daisy.api.middleware.context
 import daisy.api.versions
 import daisy.common.config
-import daisy.common.property_utils
 import daisy.common.rpc
 import daisy.common.wsgi
-import daisy.image_cache
-import daisy.image_cache.drivers.sqlite
 import daisy.notifier
 import daisy.registry
 import daisy.registry.client
@@ -31,7 +28,6 @@ import daisy.registry.client.v1.api
 __all__ = [
     'list_api_opts',
     'list_registry_opts',
-    'list_cache_opts',
     'list_manage_opts'
 ]
 
@@ -41,13 +37,10 @@ _api_opts = [
         daisy.api.middleware.context.context_opts,
         daisy.api.versions.versions_opts,
         daisy.common.config.common_opts,
-        daisy.common.property_utils.property_opts,
         daisy.common.rpc.rpc_opts,
         daisy.common.wsgi.bind_opts,
         daisy.common.wsgi.eventlet_opts,
         daisy.common.wsgi.socket_opts,
-        daisy.image_cache.drivers.sqlite.sqlite_opts,
-        daisy.image_cache.image_cache_opts,
         daisy.notifier.notifier_opts,
         daisy.registry.registry_addr_opts,
         daisy.registry.client.registry_client_ctx_opts,
@@ -64,14 +57,6 @@ _registry_opts = [
         daisy.common.wsgi.socket_opts,
         daisy.common.wsgi.eventlet_opts))),
     ('paste_deploy', daisy.common.config.paste_deploy_opts)
-]
-_cache_opts = [
-    (None, list(itertools.chain(
-        daisy.common.config.common_opts,
-        daisy.image_cache.drivers.sqlite.sqlite_opts,
-        daisy.image_cache.image_cache_opts,
-        daisy.registry.registry_addr_opts,
-        daisy.registry.client.registry_client_ctx_opts))),
 ]
 _manage_opts = [
     (None, [])
@@ -103,13 +88,6 @@ def list_registry_opts():
     service.
     """
     return [(g, copy.deepcopy(o)) for g, o in _registry_opts]
-
-
-def list_cache_opts():
-    """Return a list of oslo_config options available in Glance Cache
-    service.
-    """
-    return [(g, copy.deepcopy(o)) for g, o in _cache_opts]
 
 
 def list_manage_opts():
