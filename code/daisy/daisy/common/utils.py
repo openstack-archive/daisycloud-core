@@ -822,13 +822,6 @@ def stash_conf_values():
     return conf
 
 
-def get_search_plugins():
-    namespace = 'daisy.search.index_backend'
-    ext_manager = stevedore.extension.ExtensionManager(
-        namespace, invoke_on_load=True)
-    return ext_manager.extensions
-
-
 def get_host_min_mac(host_interfaces):
     if not isinstance(host_interfaces, list):
         host_interfaces = eval(host_interfaces)
