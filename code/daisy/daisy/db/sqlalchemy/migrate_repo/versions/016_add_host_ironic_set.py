@@ -23,7 +23,7 @@ def upgrade(migrate_engine):
     system = Column('system', JSONEncodedDict(), default={}, nullable=False)
     cpu = Column('cpu', JSONEncodedDict(), default={}, nullable=False)
     memory = Column('memory', JSONEncodedDict(), default={}, nullable=False)
-    disk = Column('disk', JSONEncodedDict(), default={}, nullable=False)
+    disks = Column('disks', JSONEncodedDict(), default={}, nullable=False)
     devices = Column('devices', JSONEncodedDict(), default={}, nullable=False)
     pci = Column('pci', JSONEncodedDict(), default={}, nullable=False)
 
@@ -32,7 +32,7 @@ def upgrade(migrate_engine):
     hosts.create_column(system)
     hosts.create_column(cpu)
     hosts.create_column(memory)
-    hosts.create_column(disk)
+    hosts.create_column(disks)
     hosts.create_column(devices)
     hosts.create_column(pci)
 
