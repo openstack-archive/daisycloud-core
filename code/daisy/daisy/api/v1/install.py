@@ -39,7 +39,8 @@ from daisy.api.v1 import controller
 from daisy.api.v1 import filters
 import daisy.api.backends.common as daisy_cmn
 from daisy.api.backends import driver
-from daisy.api.backends import os as os_handle
+from daisy.api.backends.os import osdriver as os_handle
+import ConfigParser
 
 
 LOG = logging.getLogger(__name__)
@@ -57,6 +58,11 @@ ACTIVE_IMMUTABLE = daisy.api.v1.ACTIVE_IMMUTABLE
 BACKENDS_INSTALL_ORDER = ['proton', 'zenic', 'tecs', 'kolla']
 BACKENDS_UPGRADE_ORDER = ['proton', 'zenic', 'tecs', 'kolla']
 BACKENDS_UNINSTALL_ORDER = []
+
+config = ConfigParser.ConfigParser()
+config.read(daisy_cmn.daisy_conf_file)
+OS_INSTALL_TYPE = config.get("OS", "os_install_type")
+os_driver = os_handle.load_install_os_driver(OS_INSTALL_TYPE)
 
 
 def get_deployment_backends(req, cluster_id, backends_order):
@@ -139,9 +145,9 @@ class InstallTask(object):
         order_hosts_need_os = hosts_with_role_need_os + \
             hosts_without_role_need_os
         while order_hosts_need_os:
-            os_install = os_handle.OSInstall(self.req, self.cluster_id)
             # all os will be installed batch by batch with
             # max_parallel_os_number which was set in daisy-api.conf
+            os_install = os_driver(self.req, self.cluster_id)
             (order_hosts_need_os, role_hosts_need_os) = os_install.install_os(
                 order_hosts_need_os, role_hosts_need_os)
             # after a batch of os install over, judge if all
@@ -240,7 +246,7 @@ class Controller(controller.BaseController):
         :raises HTTPBadRequest if x-install-cluster is missing
         """
         if 'deployment_interface' in install_meta:
-            os_handle.pxe_server_build(req, install_meta)
+            os_install.pxe_server_build(req, install_meta)
             return {"status": "pxe is installed"}
 
         cluster_id = install_meta['cluster_id']
