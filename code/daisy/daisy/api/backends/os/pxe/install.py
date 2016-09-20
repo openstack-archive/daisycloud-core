@@ -678,3 +678,4 @@ class OSInstall():
                 else:
                     role_hosts_ids.remove(host_id)
         return (hosts_detail, role_hosts_ids)
+
