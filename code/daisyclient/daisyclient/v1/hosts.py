@@ -32,7 +32,7 @@ UPDATE_PARAMS = ('name', 'resource_type', 'dmi_uuid', 'role', 'cluster',
                  'passwd', 'cluster_id',
                  'vcpu_pin_set', 'dvs_high_cpuset', 'pci_high_cpuset',
                  'os_cpus', 'dvs_cpus', 'config_set_id', 'system',
-                 'cpu', 'memory', 'disk', 'devices', 'pci')
+                 'cpu', 'memory', 'disks', 'devices', 'pci')
 
 CREATE_PARAMS = ('id', 'name', 'description', 'resource_type', 'dmi_uuid',
                  'role', 'cluster', 'os_version', 'os_status',
@@ -41,7 +41,7 @@ CREATE_PARAMS = ('id', 'name', 'description', 'resource_type', 'dmi_uuid',
                  'passwd', 'cluster_id',
                  'vcpu_pin_set', 'dvs_high_cpuset', 'pci_high_cpuset',
                  'os_cpus', 'dvs_cpus', 'config_set_id', 'system',
-                 'cpu', 'memory', 'disk', 'devices', 'pci')
+                 'cpu', 'memory', 'disks', 'devices', 'pci')
 
 DEFAULT_PAGE_SIZE = 200
 

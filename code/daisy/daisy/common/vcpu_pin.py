@@ -305,7 +305,7 @@ def allocate_clc_cpus(host_detail):
 
     host_interfaces = host_detail.get('interfaces')
     host_hw_info = {'system': '', 'memory': '',
-                    'cpu': '', 'disk': '', 'interfaces': '',
+                    'cpu': '', 'disks': '', 'interfaces': '',
                     'pci': '', 'devices': ''}
     host_obj = host_detail
     for f in host_hw_info:
@@ -345,7 +345,7 @@ def allocate_dvs_cpus(host_detail):
 
     host_id = host_detail.get('id')
     host_hw_info = {'system': '', 'memory': '',
-                    'cpu': '', 'disk': '', 'interfaces': '',
+                    'cpu': '', 'disks': '', 'interfaces': '',
                     'pci': '', 'devices': ''}
     host_obj = host_detail
     for f in host_hw_info:
