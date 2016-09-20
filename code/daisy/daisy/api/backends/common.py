@@ -82,6 +82,13 @@ service_map = {
 }
 
 
+def get_daisy_conf():
+    """get daisy_conf file
+    """
+    daisy_conf_file = "/home/daisy_install/daisy.conf"
+    return daisy_conf_file
+
+
 def subprocess_call(command, file=None):
     if file:
         return_code = subprocess.call(command,
