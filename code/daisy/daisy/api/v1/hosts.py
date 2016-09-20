@@ -2002,7 +2002,7 @@ class Controller(controller.BaseController):
             self.get_cluster_meta_or_404(req, cluster_id)
 
         config = ConfigParser.ConfigParser()
-        config.read("/home/daisy_install/daisy.conf")
+        config.read(daisy_cmn.get_daisy_conf())
         daisy_management_ip = config.get("DEFAULT", "daisy_management_ip")
         if daisy_management_ip:
             cmd = 'dhcp_linenumber=`grep -n "dhcp_ip="' \
