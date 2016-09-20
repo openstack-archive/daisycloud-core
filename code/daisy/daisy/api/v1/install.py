@@ -40,7 +40,8 @@ from daisy.api.v1 import controller
 from daisy.api.v1 import filters
 import daisy.api.backends.common as daisy_cmn
 from daisy.api.backends import driver
-from daisy.api.backends import os as os_handle
+from daisy.api.backends.os import osdriver as os_handle
+from daisy.api.backends.os.pxe import install as pxe_install
 
 
 LOG = logging.getLogger(__name__)
@@ -140,7 +141,9 @@ class InstallTask(object):
         order_hosts_need_os = hosts_with_role_need_os + \
             hosts_without_role_need_os
         while order_hosts_need_os:
-            os_install = os_handle.OSInstall(self.req, self.cluster_id)
+            # os_install = os_handle.OSInstall(self.req, self.cluster_id)
+            os_driver = os_handle.load_install_os_driver('pxe')
+            os_install = os_driver.install(self.req,self.cluster_id)
             # all os will be installed batch by batch with
             # max_parallel_os_number which was set in daisy-api.conf
             (order_hosts_need_os, role_hosts_need_os) = os_install.install_os(
@@ -245,7 +248,7 @@ class Controller(controller.BaseController):
         :raises HTTPBadRequest if x-install-cluster is missing
         """
         if 'deployment_interface' in install_meta:
-            os_handle.pxe_server_build(req, install_meta)
+            pxe_install.pxe_server_build(req, install_meta)
             return {"status": "pxe is installed"}
 
         cluster_id = install_meta['cluster_id']
