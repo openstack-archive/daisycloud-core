@@ -75,19 +75,7 @@ class AddToCluster(tables.LinkAction):
         if datum is not None:
             if hasattr(datum, "status"):
                 if datum.status == "init":
-                    if hasattr(datum, "discover_state"):
-                        hwms = api.daisy.hwm_list(request)
-                        hwmip_list = [hwm.hwm_ip for hwm in hwms]
-                        if len(hwmip_list) > 0:
-                            if ((datum.discover_state ==
-                                 "PXE:DISCOVERY_SUCCESSFUL") or
-                                (datum.discover_state ==
-                                 "SSH:DISCOVERY_SUCCESSFUL")):
-                                return True
-                        else:
-                            return True
-                    else:
-                        return True
+                    return True
         return False
 
 
@@ -109,8 +97,6 @@ class SshDiscoverOneHostForm(forms.SelfHandlingForm):
             host = {"ip": data["ip"],
                     "user": data["username"],
                     "passwd": data["password"]}
-            if host_detail.hwm_id:
-                host["hwm_id"] = host_detail.hwm_id
             api.daisy.add_discover_host(request, **host)
             api.daisy.discover_host(request)
         except Exception, e:
@@ -143,18 +129,7 @@ class SshDiscover(tables.LinkAction):
     classes = ("ajax-modal",)
 
     def allowed(self, request, datum):
-        if datum is not None:
-            if hasattr(datum, "discover_state"):
-                hwms = api.daisy.hwm_list(request)
-                hwmip_list = [hwm.hwm_ip for hwm in hwms]
-                if len(hwmip_list) > 0:
-                    return True
-                else:
-                    return False
-            else:
-                return False
-        else:
-            return False
+        return False
 
 
 class PxeDiscover(tables.BatchAction):
@@ -179,29 +154,10 @@ class PxeDiscover(tables.BatchAction):
     classes = ("btn-danger",)
 
     def allowed(self, request, datum):
-        if datum is not None:
-            if hasattr(datum, "discover_state"):
-                hwms = api.daisy.hwm_list(request)
-                hwmip_list = [hwm.hwm_ip for hwm in hwms]
-                if len(hwmip_list) > 0:
-                    return True
-                else:
-                    return False
-            else:
-                return False
-        else:
-            return False
+        return False
 
     def action(self, request, host_id):
-        try:
-            host_detail = api.daisy.host_get(request, host_id)
-            if hasattr(host_detail, "hwm_id") and \
-               hasattr(host_detail, "hwm_ip"):
-                api.daisy.pxe_host_discover(request,
-                                            **{"hwm_id": host_detail.hwm_id,
-                                               "hwm_ip": host_detail.hwm_ip})
-        except Exception, e:
-            messages.error(request, e)
+        pass
 
 
 def get_cluster_id(request, cluster_name):
