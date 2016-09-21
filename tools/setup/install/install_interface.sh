@@ -78,6 +78,9 @@ function all_install
 
     write_install_log "install clustershell rpm"
     install_rpm_by_yum "clustershell"
+    
+    write_install_log "install ipmitool rpm"
+    install_rpm_by_yum "ipmitool"
 
     if [ -f "/etc/zte-docker" ];then
         write_install_log "install pxe_docker_install rpm"
