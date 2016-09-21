@@ -24,7 +24,7 @@ from daisy import i18n
 
 from daisy.common import exception
 import daisy.registry.client.v1.api as registry
-
+import copy
 
 LOG = logging.getLogger(__name__)
 _ = i18n._
