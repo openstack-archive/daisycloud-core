@@ -441,8 +441,12 @@ class KOLLAInstallTask(Thread):
                     self.progress = 90
                 elif return_code == 1:
                     self.message = "KOLLA deploy openstack failed"
-                    raise exception.InstallTimeoutException(
-                        cluster_id=self.cluster_id)
+                    update_all_host_progress_to_db(self.req, role_id_list,
+                                                   host_id_list,
+                                                   kolla_state['INSTALL_FAILED'],
+                                                   self.message)
+                    LOG.info(_("kolla-ansible deploy failed!"))
+                    exit()
                 else:
                     self.progress = _calc_progress(self.log_file)
                 if execute_times >= 720:

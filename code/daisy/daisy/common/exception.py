@@ -344,7 +344,7 @@ class InstallException(DaisyException):
 
 class InstallTimeoutException(DaisyException):
     message = _(
-        "Time out, during install TECS components to cluster %(cluster_id)s")
+        "Time out, during install backend to cluster %(cluster_id)s")
 
 
 class TaskNotFound(TaskException, NotFound):
