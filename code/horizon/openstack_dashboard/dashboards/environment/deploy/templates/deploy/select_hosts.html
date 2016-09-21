@@ -165,15 +165,7 @@
                             var cur_tr = $(this).parent().parent();
                             var cur_tds = cur_tr.find("td");
                             var discover_status = $.trim(cur_tds.eq(4).text());
-                            if (("{{hwm_ip}}") && (discover_status != "PXE:DISCOVERY_SUCCESSFUL") && (discover_status != "SSH:DISCOVERY_SUCCESSFUL"))
-                            {
-                                horizon.alert("error","all hosts added to cluster should be discovered successful.");
-                                return false;
-                            }                      
-                            else
-                            {
-                                hosts.push($(this).val());
-                            }                            
+                            hosts.push($(this).val());
                         }
                     })
                     
