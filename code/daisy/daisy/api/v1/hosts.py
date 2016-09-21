@@ -550,8 +550,8 @@ class Controller(controller.BaseController):
 
         for ironic_keyword in ['cpu', 'system', 'memory',
                                'pci', 'disk', 'devices']:
-            if host_meta[ironic_keyword]:
-                host_meta[ironic_keyword] = eval(host_meta[ironic_keyword])
+            if host_meta.get(ironic_keyword):
+                host_meta[ironic_keyword] = eval(host_meta.get(ironic_keyword))
 
         host_meta = registry.add_host_metadata(req.context, host_meta)
 
