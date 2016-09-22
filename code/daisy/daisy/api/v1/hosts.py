@@ -549,7 +549,7 @@ class Controller(controller.BaseController):
                                             host_meta['config_set_id'])
 
         for ironic_keyword in ['cpu', 'system', 'memory',
-                               'pci', 'disk', 'devices']:
+                               'pci', 'disks', 'devices']:
             if host_meta.get(ironic_keyword):
                 host_meta[ironic_keyword] = eval(host_meta.get(ironic_keyword))
 
