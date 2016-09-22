@@ -23,8 +23,8 @@ from tempest_lib.common.utils import misc
 
 
 # zfl add a decorator to show func's exec time
-def exectime(func): 
-    def newfunc(*args, **args2): 
+def exectime(func):
+    def newfunc(*args, **args2):
         t0 = time.time()
         f = func(*args, **args2)
         print "\n\n@====exectime====%.3fs taken for {%s}\n\n" % (time.time() - t0, func.__name__)
@@ -87,13 +87,14 @@ class TempestException(Exception):
                                      log_result + \
                                      "\n\n===possiblelog end===\n\n\n"
             except Exception as e:
-                  print "ZTE ===zfl : error ==" , e
-                  traceback.print_exc()
+                print "ZTE ===zfl : error ==" , e
+                traceback.print_exc()
 #        else:
 #            print "\n========zfl,exception call __str__ again"
-        
-        #zfl add end: get related opencos log      
+
+        # zfl add end: get related opencos log 
             return self._error_string
+
 
 class RestClientException(TempestException,
                           testtools.TestCase.failureException):

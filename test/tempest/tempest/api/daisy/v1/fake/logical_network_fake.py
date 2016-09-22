@@ -102,7 +102,6 @@ class FakeLogicNetwork():
                   'gateway': '172.16.1.1',
                   'name': 'subnet10'}]
 
-
     def fake_router_parameters2(self):
         return [{
                     'description': 'router1',
@@ -121,33 +120,33 @@ class FakeLogicNetwork():
         return {
             'name' : 'phynet2',
             'description' : 'phynet2',
-            'network_type':'DATAPLANE',
-            'type':'custom',
-            'vlan_start':'101',
-            'vlan_end':'1001',
-            'ml2_type':'ovs'
+            'network_type': 'DATAPLANE',
+            'type': 'custom',
+            'vlan_start': '101',
+            'vlan_end': '1001',
+            'ml2_type': 'ovs'
         }
 
     def fake_private_network_parameters1(self):
         return {
             'name' : 'phynet3',
             'description' : 'phynet3',
-            'network_type':'DATAPLANE',
-            'type':'custom',
-            'vlan_start':'101',
-            'vlan_end':'2000',
-            'ml2_type':'ovs'
+            'network_type': 'DATAPLANE',
+            'type': 'custom',
+            'vlan_start': '101',
+            'vlan_end': '2000',
+            'ml2_type': 'ovs'
         }
 
     def fake_private_network_parameters2(self):
         return {
             'name' : 'phynet1',
             'description' : 'phynet1',
-            'network_type':'DATAPLANE',
-            'type':'custom',
-            'vlan_start':'101',
-            'vlan_end':'2000',
-            'ml2_type':'ovs'
+            'network_type': 'DATAPLANE',
+            'type': 'custom',
+            'vlan_start': '101',
+            'vlan_end': '2000',
+            'ml2_type': 'ovs'
         }
 
 class FakeDiscoverHosts():
@@ -155,8 +154,8 @@ class FakeDiscoverHosts():
     daisy_data = [{'description': 'default',
                     'name': '4c09b4b2788a',
                     'ipmi_addr': '10.43.203.230',
-                    'ipmi_user':'albert',
-                    'ipmi_passwd':'superuser',
+                    'ipmi_user': 'albert',
+                    'ipmi_passwd': 'superuser',
                     'interfaces': [{'name': 'enp132s0f0',
                                     "mac": '4c:09:b4:b2:78:8a',
                                     "ip": '99.99.1.60',
@@ -168,8 +167,8 @@ class FakeDiscoverHosts():
                     {'description': 'default',
                     'name': '4c09b4b2798a',
                     'ipmi_addr': '10.43.203.231',
-                    'ipmi_user':'albert',
-                    'ipmi_passwd':'superuser',
+                    'ipmi_user': 'albert',
+                    'ipmi_passwd': 'superuser',
                     'interfaces': [{'name': 'enp132s0f0',
                                     "mac": '4c:09:b4:b2:79:8a',
                                     "ip": '99.99.1.61',
@@ -181,8 +180,8 @@ class FakeDiscoverHosts():
                     {'description': 'default',
                     'name': '4c09b4b2808a',
                     'ipmi_addr': '10.43.203.232',
-                    'ipmi_user':'albert',
-                    'ipmi_passwd':'superuser',
+                    'ipmi_user': 'albert',
+                    'ipmi_passwd': 'superuser',
                     'interfaces': [{'name': 'enp132s0f0',
                                     "mac": '4c:09:b4:b2:80:8a',
                                     "ip": '99.99.1.62',
@@ -192,7 +191,7 @@ class FakeDiscoverHosts():
                 'os_status': 'init',
                 'dmi_uuid': '03000200-0400-0500-0006-000700080009'}]
 
-    ironic_disk_data = [{'uuid':'03000200-0400-0500-0006-000700080009',
+    ironic_disk_data = [{'uuid': '03000200-0400-0500-0006-000700080009',
                     'mac': '4c:09:b4:b2:78:8a',
                     'patch':[{'op': 'add',
                             'path': '/disks/sda',
@@ -202,7 +201,7 @@ class FakeDiscoverHosts():
                                         'name': 'sda',
                                         'removable': '',
                                         'size': ' 200127266816 bytes'}}]},
-                    {'uuid':'03000200-0400-0500-0006-000700080009',
+                    {'uuid': '03000200-0400-0500-0006-000700080009',
                     'mac': '4c:09:b4:b2:79:8a',
                     'patch':[{'op': 'add',
                             'path': '/disks/sda',
@@ -212,7 +211,7 @@ class FakeDiscoverHosts():
                                         'name': 'sda',
                                         'removable': '',
                                         'size': ' 200127266816 bytes'}}]},
-                    {'uuid':'03000200-0400-0500-0006-000700080009',
+                    {'uuid': '03000200-0400-0500-0006-000700080009',
                     'mac': '4c:09:b4:b2:80:8a',
                     'patch':[{'op': 'add',
                             'path': '/disks/sda',
@@ -223,7 +222,7 @@ class FakeDiscoverHosts():
                                         'removable': '',
                                         'size': ' 200127266816 bytes'}}]}]
                             
-    ironic_memory_data = [{'uuid':'03000200-0400-0500-0006-000700080009',
+    ironic_memory_data = [{'uuid': '03000200-0400-0500-0006-000700080009',
                            'mac': '4c:09:b4:b2:78:8a',
                            'patch':[{'path': '/memory/total',
                                      'value': '        1850020 kB',
@@ -239,7 +238,7 @@ class FakeDiscoverHosts():
                                                              'size': ' 8192 MB'}},
                                      'op': 'add'},
                                    ]},
-                         {'uuid':'03000200-0400-0500-0006-000700080009',
+                         {'uuid': '03000200-0400-0500-0006-000700080009',
                           'mac': '4c:09:b4:b2:79:8a',
                           'patch':[{'path': '/memory/total',
                                     'value': '        1850020 kB',
@@ -255,7 +254,7 @@ class FakeDiscoverHosts():
                                                             'size': ' 8192 MB'}},
                                     'op': 'add'},
                                   ]},
-                         {'uuid':'03000200-0400-0500-0006-000700080009',
+                         {'uuid': '03000200-0400-0500-0006-000700080009',
                           'mac': '4c:09:b4:b2:80:8a',
                           'patch':[{'path': '/memory/total',
                                     'value': '        1850020 kB',
@@ -272,7 +271,7 @@ class FakeDiscoverHosts():
                                     'op': 'add'},
                                   ]}]
                                   
-    ironic_cpu_data = [{'uuid':'03000200-0400-0500-0006-000700080009',
+    ironic_cpu_data = [{'uuid': '03000200-0400-0500-0006-000700080009',
                                 'mac': '4c:09:b4:b2:78:8a',
                                 'patch':[{'path': '/cpu/real',
                                           'value': 1,
@@ -287,7 +286,7 @@ class FakeDiscoverHosts():
                                          'value': {'model': ' Pentium(R) Dual-Core  CPU      E5700  @ 3.00GHz',                                               'frequency': 3003},
                                          'op': 'add'}
                                         ]},
-                       {'uuid':'03000200-0400-0500-0006-000700080009',
+                       {'uuid': '03000200-0400-0500-0006-000700080009',
                                 'mac': '4c:09:b4:b2:79:8a',
                                 'patch':[{'path': '/cpu/real',
                                           'value': 1,
@@ -302,7 +301,7 @@ class FakeDiscoverHosts():
                                          'value': {'model': ' Pentium(R) Dual-Core  CPU      E5700  @ 3.00GHz',                                               'frequency': 3003},
                                          'op': 'add'}
                                         ]},
-                       {'uuid':'03000200-0400-0500-0006-000700080009',
+                       {'uuid': '03000200-0400-0500-0006-000700080009',
                                 'mac': '4c:09:b4:b2:80:8a',
                                 'patch':[{'path': '/cpu/real',
                                           'value': 1,
