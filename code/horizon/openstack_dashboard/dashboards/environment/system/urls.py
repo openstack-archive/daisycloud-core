@@ -23,8 +23,6 @@ from django.conf.urls import url
 from openstack_dashboard.dashboards.environment.system import views
 
 
-HWM = r'^(?P<hwm_id>[^/]+)/%s$'
-
 urlpatterns = patterns(
     'openstack_dashboard.dashboards.environment.system.views',
     url(r'^$', views.SystemView.as_view(), name='index'),

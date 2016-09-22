@@ -235,10 +235,6 @@ def node_update(request, **kwargs):
     return daisyclient(request).node.update(**kwargs)
 
 
-def hwm_list(request):
-    return daisyclient(request).hwm.list()
-
-
 def backup_system(request, **kwargs):
     return daisyclient(request).backup_restore.backup(**kwargs)
 
@@ -257,22 +253,6 @@ def get_daisy_internal_version(request):
 
 def pxe_host_discover(request, **kwargs):
     return daisyclient(request).node.pxe_host_discover(**kwargs)
-
-
-def hwmip_delete(request, hwm_id):
-    return daisyclient(request).hwm.delete(hwm_id)
-
-
-def hwmip_add(request, **kwargs):
-    return daisyclient(request).hwm.add(**kwargs)
-
-
-def hwmip_update(request, hwm_id, **kwargs):
-    return daisyclient(request).hwm.update(hwm_id, **kwargs)
-
-
-def hwmip_get(request, hwm_id):
-    return daisyclient(request).hwm.get(hwm_id)
 
 
 def get_pxeserver(request):
