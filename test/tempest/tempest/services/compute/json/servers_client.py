@@ -71,7 +71,7 @@ class ServersClientJSON(service_client.ServiceClient):
         # zfl add boot from volume
         if image_ref == "":
             post_body.pop('imageRef')
-        # zfl add boot from volume  end 
+        # zfl add boot from volume  end
 
         # zfl add config_drive
         for option in ['personality', 'adminPass', 'key_name',
@@ -95,7 +95,7 @@ class ServersClientJSON(service_client.ServiceClient):
             else:
                 if key == "networks":
                     netid = CONF.network.internal_network_id
-                    post_body['networks'] = [{'uuid': netid}] 
+                    post_body['networks'] = [{'uuid': netid}]
             # zfl add end
         if 'host' in kwargs:
             post_body['availability_zone'] = kwargs.get('host')
@@ -105,7 +105,7 @@ class ServersClientJSON(service_client.ServiceClient):
         if 'sched_hints' in kwargs:
             hints = {'os:scheduler_hints': kwargs.get('sched_hints')}
             post_body = dict(post_body.items() + hints.items())
- 
+
         if 'uuid' in kwargs:
             networks = {'networks': [kwargs.get('uuid')]}
             post_body = dict(post_body.items() + networks.items())
@@ -503,7 +503,7 @@ class ServersClientJSON(service_client.ServiceClient):
         List the virtual interfaces used in an instance.
         """
         resp, body = self.get('/'.join(['servers', server_id,
-                              'os-virtual-interfaces']))
+                                        'os-virtual-interfaces']))
         body = json.loads(body)
         self.validate_response(schema.list_virtual_interfaces, resp, body)
         return service_client.ResponseBody(resp, body)

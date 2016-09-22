@@ -85,7 +85,7 @@ class TokenClientJSON(rest_client.RestClient):
 
         resp, resp_body = self.raw_request(url, method,
                                            headers=headers, body=body)
-        self._log_request(method, url, resp, req_body=body) #zfl add
+        self._log_request(method, url, resp, req_body=body)  # zfl add
 
         if resp.status in [401, 403]:
             resp_body = json.loads(resp_body)

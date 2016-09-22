@@ -27,16 +27,17 @@ class RemoteClient(object):
 
     # NOTE(afazekas): It should always get an address instead of server
     def __init__(self, server, username, password=None, pkey=None):
-        #zfl: use server's generated adminpass can't ssh,so 
-        #if password is a generated one, use CONF.compute.image_ssh_password instead;
-        #if password is specified by use, just use it
+        # zfl: use server's generated adminpass can't ssh,so
+        # if password is a generated one,
+        # use CONF.compute.image_ssh_password instead;
+        # if password is specified by use, just use it
         if password is not None and password.startswith('opencos'):
-            self.password =  password[len('opencos'):]
+            self.password = password[len('opencos'):]
         else:
             self.password = CONF.compute.image_ssh_password
-        
+
         self.ssh_timeout = CONF.compute.ssh_timeout
-        #network = CONF.compute.network_for_ssh
+        # network = CONF.compute.network_for_ssh
         network = CONF.compute.fixed_network_name
         self.ip_version = CONF.compute.ip_version_for_ssh
         self.ssh_channel_timeout = CONF.compute.ssh_channel_timeout
@@ -44,7 +45,8 @@ class RemoteClient(object):
             self.ip_address = server
         else:
             self.addresses = server['addresses'][network]
-            #zfl look for network backwards (first floating ip,then internal ip)           
+            # zfl look for network backwards (first floating ip,then internal
+            # ip)
             for address in self.addresses[::-1]:
                 if address['version'] == self.ip_version:
                     self.ip_address = address['addr']

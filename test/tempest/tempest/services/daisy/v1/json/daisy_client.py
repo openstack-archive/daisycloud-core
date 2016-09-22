@@ -13,10 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import copy
-import errno
 import json
-import os
 import time
 import urllib
 
@@ -52,9 +49,6 @@ class DaisyClientJSON(service_client.ServiceClient):
         self._http = None
         self.dscv = disable_ssl_certificate_validation
         self.ca_certs = ca_certs
-
-
-
 
     def _get_http(self):
         return glance_http.HTTPClient(auth_provider=self.auth_provider,
