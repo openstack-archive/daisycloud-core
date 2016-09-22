@@ -23,11 +23,12 @@ from tempest_lib.common.utils import misc
 
 
 # zfl add a decorator to show func's exec time
-def exectime(func): 
-    def newfunc(*args, **args2): 
+def exectime(func):
+    def newfunc(*args, **args2):
         t0 = time.time()
         f = func(*args, **args2)
-        print "\n\n@====exectime====%.3fs taken for {%s}\n\n" % (time.time() - t0, func.__name__)
+        print "\n\n@====exectime====%.3fs taken for {%s}\n\n" \
+              % (time.time() - t0, func.__name__)
         return f
     return newfunc
 # zfl add end
@@ -61,39 +62,40 @@ class TempestException(Exception):
 
     def __str__(self):
         # zfl add : get related opencos log
-            try:
-                # zfl for debug only: stop and reserve
-                # if issubclass(type(self),SSHTimeout):
-                #     import time
-                #     time.sleep(999999999)
-                # zfl for debug only: stop and reserve end
+        try:
+            # zfl for debug only: stop and reserve
+            # if issubclass(type(self),SSHTimeout):
+            #     import time
+            #     time.sleep(999999999)
+            # zfl for debug only: stop and reserve end
 
-                self.get_log = True
-                log_obj = misc.GetOpenCosLog()
-                pattern1 = re.compile(r'\w+-\w+-\w+-\w+-\w+')
-                sresult = pattern1.findall(self._error_string)
-                obj_type = ""
-                if 'server' in self._error_string.lower():
-                    obj_type = "server"
-                if sresult:
-                    log_result = log_obj.get_opencos_log(sresult,
-                                                         obj_type=obj_type)
-                else:
-                    log_result = log_obj.get_opencos_log([],
-                                                         obj_type=obj_type)
-                    log_result = "\n--------- <logs>\n" + log_result
-                self._error_string = self._error_string + \
-                                     "\n\n\n===possible log ===" + \
-                                     log_result + \
-                                     "\n\n===possiblelog end===\n\n\n"
-            except Exception as e:
-                  print "ZTE ===zfl : error ==" , e
-                  traceback.print_exc()
+            self.get_log = True
+            log_obj = misc.GetOpenCosLog()
+            pattern1 = re.compile(r'\w+-\w+-\w+-\w+-\w+')
+            sresult = pattern1.findall(self._error_string)
+            obj_type = ""
+            if 'server' in self._error_string.lower():
+                obj_type = "server"
+            if sresult:
+                log_result = log_obj.get_opencos_log(sresult,
+                                                     obj_type=obj_type)
+            else:
+                log_result = log_obj.get_opencos_log([],
+                                                     obj_type=obj_type)
+                log_result = "\n--------- <logs>\n" + log_result
+            self._error_string = self._error_string + \
+                "\n\n\n===possible log ===" + \
+                log_result + \
+                "\n\n===possiblelog end===\n\n\n"
+        except Exception as e:
+            print "ZTE ===zfl : error ==", e
+            traceback.print_exc()
 #        else:
 #            print "\n========zfl,exception call __str__ again"
-        
-        #zfl add end: get related opencos log      
-            return self._error_string
+
+        # zfl add end: get related opencos log
+        return self._error_string
+
 
 class RestClientException(TempestException,
                           testtools.TestCase.failureException):
@@ -227,6 +229,7 @@ class InvalidStructure(TempestException):
 
 
 class CommandFailed(Exception):
+
     def __init__(self, returncode, cmd, output, stderr):
         super(CommandFailed, self).__init__()
         self.returncode = returncode

@@ -30,8 +30,8 @@ list_migrations = {
                         'dest_node': {'type': 'string'},
                         'dest_compute': {'type': 'string'},
                         'dest_host': {'type': 'string'},
-                        #zfl : tecs 1.0  old_instance_type_id is None
-                        #'old_instance_type_id': {'type': 'integer'},
+                        # zfl : tecs 1.0  old_instance_type_id is None
+                        # 'old_instance_type_id': {'type': 'integer'},
                         'new_instance_type_id': {'type': 'integer'},
                         'created_at': {'type': 'string'},
                         'updated_at': {'type': ['string', 'null']}
