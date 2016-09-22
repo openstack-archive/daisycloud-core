@@ -115,7 +115,7 @@ def format_node_info_for_daisy_client(node_info, ipmi_addr,
                   'system': node_info.get('system'),
                   'cpu': node_info.get('cpu'),
                   'memory': node_info.get('memory'),
-                  'disk': node_info.get('disk'),
+                  'disks': node_info.get('disk'),
                   'devices': node_info.get('devices'),
                   'pci': node_info.get('pci')}
 

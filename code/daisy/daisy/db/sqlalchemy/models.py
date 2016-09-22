@@ -151,7 +151,7 @@ class Host(BASE, DaisyBase):
     system = Column(JSONEncodedDict(), default={}, nullable=False)
     cpu = Column(JSONEncodedDict(), default={}, nullable=False)
     memory = Column(JSONEncodedDict(), default={}, nullable=False)
-    disk = Column(JSONEncodedDict(), default={}, nullable=False)
+    disks = Column(JSONEncodedDict(), default={}, nullable=False)
     devices = Column(JSONEncodedDict(), default={}, nullable=False)
     pci = Column(JSONEncodedDict(), default={}, nullable=False)
 
