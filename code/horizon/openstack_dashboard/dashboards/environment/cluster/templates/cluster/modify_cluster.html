@@ -28,11 +28,11 @@
         };
         var role_info = {};
         var role_contexts = [
-            {
+            /*{
                 "name" : "ha",
                 "panel_name": "CONTROLLER_HA",
                 "callback": get_ha_role_values
-            },
+            },*/
             {
                 "name" : "lb",
                 "panel_name": "CONTROLLER_LB",
@@ -67,7 +67,7 @@
             'role_info': role_info,
             'net_plane_info': net_plane_info
         }
-        if(params['role_info']['ha']['db_disk_location'] == "share_cluster" && params['role_info']['ha']["db1_lun"] == params['role_info']['ha']["db2_lun"] )
+        /*if(params['role_info']['ha']['db_disk_location'] == "share_cluster" && params['role_info']['ha']["db1_lun"] == params['role_info']['ha']["db2_lun"] )
         {
             horizon.alert('error', '{% trans "lun1 and lun2 does not equal." %}');
             return false;            
@@ -76,7 +76,9 @@
         {
             var url = "/dashboard/environment/cluster/" + cluster_id + "/modify_submit/";
             do_post(url, JSON.stringify(params), GoToIndexPage);
-        }
+        }*/
+        var url = "/dashboard/environment/cluster/" + cluster_id + "/modify_submit/";
+        do_post(url, JSON.stringify(params), GoToIndexPage);
     }
 
     function judge_cluster_auto_scale(cluster_list){
