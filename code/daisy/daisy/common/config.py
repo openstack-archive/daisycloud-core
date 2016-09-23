@@ -159,11 +159,6 @@ common_opts = [
     cfg.IntOpt('pydev_worker_debug_port', default=5678,
                help=_('The port on which a pydev process is listening for '
                       'connections.')),
-    cfg.StrOpt('metadata_encryption_key', secret=True,
-               help=_('AES key for encrypting store \'location\' metadata. '
-                      'This includes, if used, Swift or S3 credentials. '
-                      'Should be set to a random string of length 16, 24 or '
-                      '32 bytes')),
     cfg.StrOpt('digest_algorithm', default='sha1',
                help=_('Digest algorithm which will be used for digital '
                       'signature; the default is sha1 the default in Kilo '
