@@ -78,15 +78,11 @@ def update_progress_to_db(req, role_id_list,
     :param status: install status.
     :return:
     """
-
-    global install_mutex
-    install_mutex.acquire(True)
     role = {}
     for role_id in role_id_list:
         role['status'] = status
         role['progress'] = progress
         daisy_cmn.update_role(req, role_id, role)
-    install_mutex.release()
 
 
 def update_host_progress_to_db(req, role_id_list, host,
@@ -483,3 +479,5 @@ class KOLLAInstallTask(Thread):
                                                host_id_list,
                                                kolla_state['ACTIVE'],
                                                self.message, 100)
+                update_progress_to_db(self.req, role_id_list,
+                                      kolla_state['ACTIVE'], 100)
