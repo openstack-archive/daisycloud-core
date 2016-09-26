@@ -253,6 +253,9 @@ class HostInterface(BASE, DaisyBase):
     slave2 = Column(String(32))
     mode = Column(String(36))
     is_deployment = Column(Boolean(), default=False)
+    state = Column(String(64))
+    max_speed = Column(String(64))
+    current_speed =Column(String(64))
 
 
 class Network(BASE, DaisyBase):
