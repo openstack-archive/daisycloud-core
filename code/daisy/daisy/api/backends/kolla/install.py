@@ -483,3 +483,5 @@ class KOLLAInstallTask(Thread):
                                                host_id_list,
                                                kolla_state['ACTIVE'],
                                                self.message, 100)
+                update_progress_to_db(self.req, role_id_list,
+                                      kolla_state['ACTIVE'], 100)
