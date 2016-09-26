@@ -2,6 +2,12 @@
 
 if [ ! "$_DAISY_YUM_FILE" ];then
 
+function make_yum_server
+{
+    path=`pwd`
+    createrepo --update $path &>/dev/null
+    [ "$?" -ne 0 ] && { echo "createrepo in $path failed"; exit 1; }
+}
 
 function make_yum_client
 {
@@ -27,6 +33,7 @@ function yum_set
     rm -rf /etc/yum.repos.d/daisy*
     echo "creating yum repo, please wait for several seconds..."
     yum install -y createrepo
+    make_yum_server
     make_yum_client
     echo "creating epel yum repo, please wait for several seconds..."
     yum install -y epel-release
