@@ -29,8 +29,10 @@ from oslo_log import log as logging
 from daisy.common import exception
 from daisy.common import config
 from oslo_service import loopingcall
-from daisy.orchestration import manager
 import six
+import ConfigParser
+from oslo_utils import importutils
+import daisy.api.backends.common as daisy_cmn
 
 # Monkey patch socket and time
 eventlet.patcher.monkey_patch(all=False, socket=True, time=True, thread=True)
@@ -58,12 +60,22 @@ def fail(returncode, e):
     sys.stderr.write("ERROR: %s\n" % six.text_type(e))
 
 
+def get_backend():
+    config = ConfigParser.ConfigParser()
+    config.read(daisy_cmn.daisy_conf_file)
+    backend = config.get("BACKEND", "default_backend_types")
+    return backend
+
+
 def main():
     try:
         config.parse_args()
         logging.setup(CONF, 'daisy')
+        backend = get_backend()
+        manager = "daisy.orchestration.%s.manager" % backend
+        api = importutils.import_module(manager)
         timer = loopingcall.FixedIntervalLoopingCall(
-            manager.OrchestrationManager.find_auto_scale_cluster)
+            api.OrchestrationManager.find_auto_scale_cluster)
         timer.start(float(CONF.orchestration.auto_scale_interval)).wait()
     except exception.WorkerCreationFailure as e:
         fail(2, e)
