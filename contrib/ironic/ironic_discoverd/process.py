@@ -100,7 +100,10 @@ def format_node_info_for_daisy_client(node_info, ipmi_addr,
             'current_speed': value['current_speed'],
             'netmask': value['netmask'],
             'type': value['type'],
-            'slaves': slaves
+            'slaves': slaves,
+            'state': value['state'],
+            'current_speed': value['current_speed'],
+            'max_speed': value['max_speed']
         }
         interface_list.append(interface)
 
