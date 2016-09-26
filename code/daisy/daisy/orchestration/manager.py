@@ -66,8 +66,11 @@ class OrchestrationManager():
                 params = {'filters': {'cluster_id': cluster_id}}
                 roles_gen = daisy_client.roles.list(**params)
                 roles_in_cluster = [role.to_dict() for role in roles_gen]
-                roles = [role for role in roles_in_cluster if role[
-                    'name'] == "CONTROLLER_HA" and role['status'] == "active"]
+                roles = [role for role in roles_in_cluster
+                         if (role['name'] == "CONTROLLER_HA" and
+                             role['status'] == "active") or
+                         (role['name'] == "CONTROLLER_LB" and
+                          role['status'] == "active")]
                 if not roles:
                     LOG.info("no active CONTROLLER_HA role")
                     return {"status": "no active CONTROLLER_HA role"}
