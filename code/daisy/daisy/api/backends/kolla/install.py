@@ -65,7 +65,6 @@ daisy_kolla_path = kolla_cmn.daisy_kolla_path
 install_kolla_progress = 0.0
 install_mutex = threading.Lock()
 kolla_file = "/home/kolla_install"
-daisy_conf_file = "/home/daisy_install"
 
 
 def update_progress_to_db(req, role_id_list,
@@ -163,7 +162,7 @@ def _check_ping_hosts(ping_ips, max_ping_times):
 
 def _get_local_ip():
     config = ConfigParser.ConfigParser()
-    config.read("%s/daisy.conf" % daisy_conf_file)
+    config.read(daisy_cmn.get_daisy_conf())
     local_ip = config.get("DEFAULT", "daisy_management_ip")
     return local_ip
 
