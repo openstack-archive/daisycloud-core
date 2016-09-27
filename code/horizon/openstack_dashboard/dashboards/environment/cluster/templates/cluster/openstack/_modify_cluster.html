@@ -1,0 +1,35 @@
+{% load i18n %}
+{% load context_selection %}
+{% load url from future %}
+
+<div>
+    <ul class="nav nav-tabs" id="cluster_modify_modal">
+        <li class="active">
+            <a href="#cluster_baseinfo" data-toggle="tab" data-target="#cluster_baseinfo">{% trans "basic info" %}</a>
+        </li>
+        <li class="">
+            <a href="#cluster_role" data-toggle="tab" data-target="#cluster_role">{% trans "Role Settings" %}</a>
+        </li>
+        <li class="">
+            <a href="#cluster_netplane" data-toggle="tab" data-target="#cluster_netplane">{% trans "Netplane Settings" %}</a>
+        </li>
+    </ul>
+    <div class="tab-content">
+        <div role="tab-panel" class="tab-pane active" id="cluster_baseinfo">
+            <input type="hidden" id="cluster_id" name="cluster_id" value="{{ cluster_id }}">
+            {% include "environment/cluster/_base.html" %}
+        </div>
+        <div role="tab-panel" class="tab-pane" id="cluster_role">
+            {% include "environment/cluster/openstack/_roles.html" %}
+        </div>
+        <div role="tab-panel" class="tab-pane" id="cluster_netplane">
+            {% include "environment/cluster/openstack/_network.html" %}
+        </div>
+    </div>
+</div>
+
+<div class="pull-right">
+    <a class="btn btn-primary" type="submit" onclick="modify_cluster_click()">{% trans 'Modify' %}</a>
+    <a class="btn btn-default cancel" href="{% url 'horizon:environment:cluster:overview' cluster_id %}">{% trans "Cancel" %}</a>
+</div>
+
