@@ -23,8 +23,13 @@ import logging
 LOG = logging.getLogger(__name__)
 
 
+def get_daisy_deploy_backend():
+    ## wait for daisy interface ##
+    return "openstack"
+
 class ModifyView(views.HorizonTemplateView):
-    template_name = "environment/cluster/modify_cluster.html"
+    backends = get_daisy_deploy_backend()
+    template_name = "environment/cluster/"+backends+"/modify_cluster.html"
 
     def get_clusters(self):
         clusters = api.daisy.cluster_list(self.request)
