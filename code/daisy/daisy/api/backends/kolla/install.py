@@ -67,7 +67,6 @@ install_mutex = threading.Lock()
 kolla_file = "/home/kolla_install"
 daisy_conf_file = "/home/daisy_install"
 
-
 def update_progress_to_db(req, role_id_list,
                           status, progress=0.0):
     """

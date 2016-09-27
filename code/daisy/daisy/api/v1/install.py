@@ -148,8 +148,6 @@ class InstallTask(object):
             config = ConfigParser.ConfigParser()
             config.read("%s/daisy.conf" % daisy_conf_file)
             os_install_type = config.get("OS", "os_install_type")
-            os_driver = os_handle.load_install_os_driver(os_install_type)
-            os_install = os_driver.install(self.req, self.cluster_id)
             # all os will be installed batch by batch with
             # max_parallel_os_number which was set in daisy-api.conf
             (order_hosts_need_os, role_hosts_need_os) = os_install.install_os(
