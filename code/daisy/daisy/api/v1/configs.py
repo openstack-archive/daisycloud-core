@@ -30,7 +30,6 @@ import daisy.api.v1
 from daisy.api.v1 import controller
 from daisy.api.v1 import filters
 from daisy.common import exception
-from daisy.common import property_utils
 from daisy.common import utils
 from daisy.common import wsgi
 from daisy import i18n
@@ -76,10 +75,6 @@ class Controller(controller.BaseController):
         self.notifier = notifier.Notifier()
         registry.configure_registry_client()
         self.policy = policy.Enforcer()
-        if property_utils.is_property_protection_enabled():
-            self.prop_enforcer = property_utils.PropertyRules(self.policy)
-        else:
-            self.prop_enforcer = None
 
     def _enforce(self, req, action, target=None):
         """Authorize an action against our policies"""
