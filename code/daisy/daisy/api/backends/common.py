@@ -32,6 +32,7 @@ _LE = i18n._LE
 _LI = i18n._LI
 _LW = i18n._LW
 
+daisy_conf_file = '/home/daisy_install/daisy.conf'
 daisy_path = '/var/lib/daisy/'
 tecs_backend_name = "tecs"
 zenic_backend_name = "zenic"
