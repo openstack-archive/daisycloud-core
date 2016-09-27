@@ -61,7 +61,9 @@ BACKENDS_INSTALL_ORDER = ['proton', 'zenic', 'tecs', 'kolla']
 BACKENDS_UPGRADE_ORDER = ['proton', 'zenic', 'tecs', 'kolla']
 BACKENDS_UNINSTALL_ORDER = []
 
-daisy_conf_file = "/home/daisy_install"
+config = ConfigParser.ConfigParser()
+config.read(daisy_cmn.get_daisy_conf())
+OS_INSTALL_TYPE = config.get("OS", "os_install_type")
 
 
 def get_deployment_backends(req, cluster_id, backends_order):
@@ -145,10 +147,7 @@ class InstallTask(object):
             hosts_without_role_need_os
         while order_hosts_need_os:
             # os_install = os_handle.OSInstall(self.req, self.cluster_id)
-            config = ConfigParser.ConfigParser()
-            config.read("%s/daisy.conf" % daisy_conf_file)
-            os_install_type = config.get("OS", "os_install_type")
-            os_driver = os_handle.load_install_os_driver(os_install_type)
+            os_driver = os_handle.load_install_os_driver(OS_INSTALL_TYPE)
             os_install = os_driver.install(self.req, self.cluster_id)
             # all os will be installed batch by batch with
             # max_parallel_os_number which was set in daisy-api.conf
