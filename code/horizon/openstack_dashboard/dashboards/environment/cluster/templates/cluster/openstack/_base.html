@@ -1,0 +1,94 @@
+{% load i18n %}
+{% load context_selection %}
+
+<script src="{{ STATIC_URL }}dashboard/bootstrapValidator.js"></script>
+<script type='text/javascript' charset='utf-8'>
+    function CheckIP(str)
+    {
+        if (str === "")
+            return true;
+        var reg = new RegExp("^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[0-9])$");
+        if (!reg.test(str))
+            return false;
+        return true;
+    }
+
+    $(function(){
+        $('.form-cluster-validator').bootstrapValidator({
+            message: 'This value is not valid',
+            excluded: ':disabled',
+            feedbackIcons: {
+                valid: 'glyphicon glyphicon-ok',
+                invalid: 'glyphicon glyphicon-remove',
+                validating: 'glyphicon glyphicon-refresh'
+            },
+            fields: {
+                cluster_name: {
+                    validators: {
+                        notEmpty: {
+                            message: '{% trans "Cluster name can not be empty, please input" %}'
+                        },
+                        regexp: {
+                            regexp: '^[a-zA-Z][a-zA-Z0-9_]{3,15}$',
+                            message: '{% trans "Name must begin with letters,and consist of numbers,letters or underscores. The length of name is 4 to 16." %}'
+                        }
+                    }
+                },
+                base_mac:{
+                    validators: {
+                        regexp: {
+                            regexp: /^([0-9a-fA-F]{2})(([/\s:][0-9a-fA-F]{2}){5})$/,
+                            message: '{% trans "MAC address is error, format as XX:XX:XX:XX:XX:XX" %}'
+                        }
+                    }
+                }
+            }
+        });
+    });
+
+    function get_network_values(){
+        var networking_parameters = {
+            "base_mac": $("#base_mac").val(),
+        };
+        return networking_parameters;
+    }
+</script>
+
+<form class="form-horizontal form-cluster-validator">
+    <div style="clear:both" class="form-group">
+        <label style="text-align:right;" for="cluster_name" class="col-sm-3 control-label">{% trans 'Cluster name' %}</label>
+        <div style="float:left;" class="col-sm-4">
+            <input type="text" id="cluster_name" name="cluster_name" class="form-control" placeholder="{% trans 'Cluster name' %}">
+        </div>
+    </div>
+    <div style="clear:both" class="form-group">
+        <label style="text-align:right;" for="base_mac" class="col-sm-3 control-label">{% trans 'Start MAC' %}</label>
+        <div style="float:left;" class="col-sm-4">
+            <input type="text" id="base_mac" name="base_mac" class="form-control" placeholder="{% trans 'VM start MAC address' %}">
+        </div>
+    </div>
+    <div style="clear:both" class="form-group form-auto-scale hide">
+        <label style="text-align:right;" for="auto_scale" class="col-sm-3 control-label">{% trans 'Auto scale' %}</label>
+        <div style="float:left;" class="col-sm-4">
+            <select id="auto_scale" name="auto_scale" class="form-control">
+                <option value="0" selected="selected">{% trans "Unsupport" %}</option>
+                <option value="1">{% trans "Support" %}</option>
+            </select>
+        </div>
+    </div>
+    <div style="clear:both" class="form-group">
+        <label style="text-align:right;" for="use_dns" class="col-sm-3 control-label">{% trans 'Use DNS' %}</label>
+        <div style="float:left;" class="col-sm-4">
+            <select id="use_dns" name="use_dns" class="form-control">
+                <option value="0">{% trans "No" %}</option>
+                <option value="1" selected="selected">{% trans "Yes" %}</option>
+            </select>
+        </div>
+    </div>
+    <div style="clear:both" class="form-group">
+        <label style="text-align:right;" for="description" class="col-sm-3 control-label">{% trans 'Description' %}</label>
+        <div style="float:left;" class="col-sm-4">
+            <input type="text" id="description" name="description" class="form-control" placeholder="{% trans 'Descriptive info' %}">
+        </div>
+    </div>
+</form>

@@ -1,0 +1,177 @@
+{% load i18n %}
+{% load context_selection %}
+
+
+<script src="{{ STATIC_URL }}dashboard/bootstrapValidator.js"></script>
+<script type='text/javascript' charset='utf-8'>
+
+    $(function(){
+        $('.form-roles-validator').bootstrapValidator({
+            message: 'This value is not valid',
+            excluded: ':disabled',
+            feedbackIcons: {
+                valid: 'glyphicon glyphicon-ok',
+                invalid: 'glyphicon glyphicon-remove',
+                validating: 'glyphicon glyphicon-refresh'
+            },
+            fields: {
+                lb_float_ip: {
+                    validators: {
+                        callback: {
+                            callback: function(value, validator) {
+                                if ($(".ha_float_ip_auto").attr('checked') != 'checked'){
+                                    var reg = new RegExp("^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]{1}|[0-9])$");
+                                    if (!reg.test(value))
+                                        return false;
+                                    }
+                                return true;
+                            },
+                            message: '{% trans "Float IP address can not be empty, correct format is:xxx.xxx.xxx.xxx" %}'
+                        }
+                    }
+                },
+                nova_lv_size: {
+                    validators: {
+                        notEmpty: {
+                            message: '{% trans "Nova disk size can not be empty, please input" %}'
+                        },
+                        greaterThan: {
+                            value: 0,
+                            message: '{% trans "Nova disk size cannot be less than 0" %}'
+                        }
+                    }
+                }
+            }
+        }).on('error.form.bv', function(e) {
+            // Active the panel element containing the first invalid element
+            var $form         = $(e.target),
+                validator     = $form.data('bootstrapValidator'),
+                $invalidField = validator.getInvalidFields().eq(0),
+                $collapse     = $invalidField.parents('.collapse');
+            if (!$collapse.hasClass("in")){
+                $collapse.collapse('show');
+            }
+        });
+
+        var $panel_collapse = $("form.form-roles-validator div.panel-default:first div.panel-collapse");
+        if (!$panel_collapse.hasClass("in")){
+            $panel_collapse.addClass("in");
+        }
+    });
+
+    function findObj(theObj, theDoc){
+        var p, i, foundObj;
+        if (!theDoc)
+            theDoc = document;
+        if ((p = theObj.indexOf("?")) > 0 && parent.frames.length)
+        {
+            theDoc = parent.frames[theObj.substring(p+1)].document;
+            theObj = theObj.substring(0,p);
+        }
+        if (!(foundObj = theDoc[theObj]) && theDoc.all)
+            foundObj = theDoc.all[theObj];
+
+        for (i=0; !foundObj && i < theDoc.forms.length; i++)
+            foundObj = theDoc.forms[i][theObj];
+
+        for(i=0; !foundObj && theDoc.layers && i < theDoc.layers.length; i++)
+            foundObj = findObj(theObj,theDoc.layers[i].document);
+
+        if(!foundObj && document.getElementById)
+            foundObj = document.getElementById(theObj);
+
+        return foundObj;
+    }
+
+    function get_lb_role_values(){
+        var param = {
+            'role_id': $("#lb_role_id").val(),
+            'name': $("#lb_role_name").val()}
+        if ($(".lb_float_ip_auto").attr("checked") != "checked"){
+            param["vip"] = $("#lb_float_ip").val();
+        }
+        return param
+    }
+
+    function get_computer_info(){
+        var param = {
+            "nova_lv_size": GetDiskSizeForComponet("nova")
+        }
+        return param;
+    }
+
+    function AutoAssignedIP(bind_input_name){
+        var bind_input = $("#" + bind_input_name);
+        var is_disabled = bind_input.attr("disabled");
+        bind_input.attr("disabled", !is_disabled);
+    }
+
+</script>
+
+{% for role in roles %}
+     {% if role.name == "CONTROLLER_LB" %}
+          <input type="hidden" id="lb_role_id" name="lb_role_id" value="{{ role.id }}">
+          <input type="hidden" id="lb_role_name" name="lb_role_name" value="{{ role.name }}">
+     {% elif role.name == "COMPUTER" %}
+          <input type="hidden" id="{{ role.name|lower }}_role_id" name="{{ role.name|lower }}_role_id" value="{{ role.id }}">
+          <input type="hidden" id="{{ role.name|lower }}_role_name" name="{{ role.name|lower }}_role_name" value="{{ role.name }}">
+     {% endif %}
+{% endfor %}
+<div class="panel-group" role="tablist" aria-multiselectable="true">
+    <form class="form-horizontal form-roles-validator">
+{% for role in roles %}
+    {% ifequal role.name "CONTROLLER_LB" %}
+        <div class="panel panel-default panel_{{role.name}}" style="border-left: 3px solid {{1|get_color}}">
+            <div class="panel-heading" role="tab" id="heading_lb">
+                <h3 class="panel-title">
+                    <a role="button" data-toggle="collapse" data-parent="#selector" href="#collapse_lb" aria-expanded="false" aria-controls="collapse_lb">
+                        CONTROLLER_LB
+                    </a>
+                </h3>
+            </div>
+            <div id="collapse_lb" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading_lb">
+                <div class="panel-body">
+                    <div style="clear:both" class="form-group">
+                        <label for="lb_float_ip" class="col-sm-3 control-label" style="text-align:right;">{% trans "Float IP" %}</label>
+                        <div class="col-sm-4">
+                            <input type="text" class="form-control" id="lb_float_ip" name="lb_float_ip" placeholder="{% trans 'Float IP' %}">
+                        </div>
+                        <div class="col-sm-4 checkbox dv_lb_float_ip_auto">
+                            <label>
+                                <input type="checkbox" class="auto_assgign_ip lb_float_ip_auto" onclick="AutoAssignedIP('lb_float_ip')">{% trans 'Automatically assigned' %}
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endifequal %}
+    {% ifequal role.name "COMPUTER" %}
+        <div class="panel panel-default panel_{{ role.name|lower }}" style="border-left: 3px solid {{2|get_color}}">
+            <div class="panel-heading" role="tab" id="heading_{{ role.name|lower }}">
+                <h3 class="panel-title">
+                    <a role="button" data-toggle="collapse" data-parent="#selector" href="#collapse_{{ role.name|lower }}" aria-expanded="false" aria-controls="collapse_{{ role.name|lower }}">
+                        {{role.name}}
+                    </a>
+                </h3>
+            </div>
+            <div id="collapse_{{ role.name|lower }}" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading_{{ role.name|lower }}">
+                <div class="panel-body">
+                    <div style="clear:both" class="form-group">
+                        <label for="nova_lv_size" class="col-sm-3 control-label" style="text-align:right;">{% trans "Nova Disk Size" %}(GB)</label>
+                        <div class="col-sm-4">
+                            <input type="text" class="form-control" id="nova_lv_size" name="nova_lv_size" placeholder="{% trans 'Nova Disk Size' %}(GB)" value="0">
+                        </div>
+                        <div class="col-sm-4 checkbox">
+                            <label>
+                                <input type="checkbox" class="auto_assgign_nova" onclick="AutoAssignedDisk2Componet('nova')">{% trans 'The remaining hard disk space allocated to Nova' %}
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endifequal %}
+{% endfor %}
+    </form>
+</div>
