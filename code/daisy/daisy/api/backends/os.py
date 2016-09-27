@@ -313,7 +313,7 @@ class OSInstall():
                 device = 'bootdev'
 
             cmd = ['ipmitool', '-I', 'lanplus', '-H', addr, '-U', user,
-                   '-P', passwd, 'chassis', device, state]
+                   '-P', passwd, 'chassis', device, action]
 
             if device == 'bootdev':
                 cmd.append('options=persistent')
