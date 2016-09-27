@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}
+  {% trans "Modify Cluster" %}
+{% endblock %}
+
+{% block page_header %}
+  {% trans "Modify Cluster" %}
+{% endblock page_header %}
+
+{% block js %}
+    {% include "horizon/_scripts.html" %}
+    <script type="text/javascript">
+    $("#cluster_modify_modal a:first").tab("show");
+
+    function GoToIndexPage(){
+        var cluster_id = $("#cluster_id").val();
+        window.location = "/dashboard/environment/cluster/" + cluster_id + "/overview";
+    }
+    function modify_cluster_commit(cluster_id){
+        var cluster_info = {
+            "name": $("#cluster_name").val(),
+            "networking_parameters": get_network_values(),
+            "auto_scale": $("#auto_scale").val(),
+            "use_dns": $("#use_dns").val(),
+            "description":$("#description").val()
+        };
+        var role_info = {};
+        var role_contexts = [
+            {
+                "name" : "lb",
+                "panel_name": "CONTROLLER_LB",
+                "callback": get_lb_role_values
+            },
+            {
+                "name": "computer",
+                "panel_name": "computer",
+                "callback": get_computer_info,
+            }
+        ]
+        for (var i = 0;i < role_contexts.length;i++){
+            var role_context = role_contexts[i];
+            var $panel = $(".form-roles-validator div.panel_" + role_context["panel_name"]);
+            if ($panel.length > 0){
+                role_info[role_context["name"]] = role_context["callback"]();
+            }
+        }
+        net_plane_info = get_net_plane_info();
+        var params = {
+            'cluster_info': cluster_info,
+            'role_info': role_info,
+            'net_plane_info': net_plane_info
+        }
+        var url = "/dashboard/environment/cluster/" + cluster_id + "/modify_submit/";
+        do_post(url, JSON.stringify(params), GoToIndexPage);
+    }
+
+    function judge_cluster_auto_scale(cluster_list){
+        var cluster_id = $("#cluster_id").val()
+        for(var i=0; i<cluster_list.length; i++)
+        {
+            if (($("#auto_scale").val() == 1) && (cluster_list[i].auto_scale == 1) && (cluster_list[i].id != cluster_id))
+            {
+                title = '{% trans "Confirm to modify" %}';
+                body = '{% trans "Computing node auto scale function has been selected by other clusters, Are you sure to replace it?" %}';
+                action = '{% trans "Confirm" %}';
+                modal = horizon.modals.create(title, body, action);
+                modal.modal();
+                modal.find('.btn-primary').click(function (evt) {
+                    var auto_scale_cluster_id = cluster_list[i].id;
+                    var cluster_info = {
+                        "name": cluster_list[i].name,
+                        "auto_scale": 0
+                    };
+                    var url = "/dashboard/environment/cluster/" + auto_scale_cluster_id + "/set_cluster_auto_scale/"
+                    do_post(url, JSON.stringify({'cluster_info': cluster_info}));
+
+                    modify_cluster_commit(cluster_id);
+                    modal.modal('hide');
+                })
+                return;
+            }
+        }
+        if (i >= cluster_list.length)
+        {
+            modify_cluster_commit(cluster_id);
+        }
+    }
+
+    function modify_cluster_click(){
+        $(".form-cluster-validator").data('bootstrapValidator').resetForm();
+        $(".form-roles-validator").data('bootstrapValidator').resetForm();
+        $(".form-net-plane").data('bootstrapValidator').resetForm();
+
+        $(".form-cluster-validator").data('bootstrapValidator').validate()
+        if (!$(".form-cluster-validator").data('bootstrapValidator').isValid()){
+            $('#cluster_modify_modal a[href="#cluster_baseinfo"]').tab("show")
+            return;
+        }
+
+        $(".form-roles-validator").data('bootstrapValidator').validate()
+        if (!$(".form-roles-validator").data('bootstrapValidator').isValid()){
+            $('#cluster_modify_modal a[href="#cluster_role"]').tab("show")
+            return;
+        }
+
+        $(".form-net-plane").data("bootstrapValidator").validate()
+        if (!$(".form-net-plane").data('bootstrapValidator').isValid()){
+            $('#cluster_modify_modal a[href="#cluster_netplane"]').tab("show")
+            return;
+        }
+
+        var url = "/dashboard/environment/cluster/get_clusters/";
+        do_post(url, {}, judge_cluster_auto_scale);
+    }
+
+    function modify_cluster_dialog_init(){
+        $(".form-auto-scale").removeClass('hide');
+
+        var cluster_info = {
+            "cluster_id": $("#cluster_id").val()};
+        var url = "/dashboard/environment/cluster/get_cluster/";
+        do_post(url, JSON.stringify({'cluster_info': cluster_info}), cluster_baseinfo_init);
+
+        var role_contexts = [
+            {
+                "panel_name": "CONTROLLER_LB",
+                "role_id" : $("#lb_role_id").val(),
+                "url" : "/dashboard/environment/cluster/get_role_info/",
+                "callback": cluster_lb_role_init
+            },
+            {
+                "panel_name": "computer",
+                "role_id" : $("#computer_role_id").val(),
+                "url" : "/dashboard/environment/cluster/get_computer_role_info/",
+                "callback": cluster_computer_role_init
+            }
+        ]
+        for (var i = 0;i < role_contexts.length;i++){
+            var role_context = role_contexts[i];
+            var $panel = $(".form-roles-validator div.panel_"+role_context["panel_name"]);
+            if ($panel.length > 0){
+                do_post(role_context["url"],
+                    JSON.stringify({'role_id': role_context["role_id"]}),
+                    role_context["callback"]);
+            }
+        }
+    }
+
+    function cluster_baseinfo_init(cluster_list){
+        if (cluster_list.length == 0)
+            return;
+
+        $("#cluster_id").val(cluster_list[0].id);
+        $("#cluster_name").val(cluster_list[0].name);
+        $("#base_mac").val(cluster_list[0].base_mac);
+        $("#auto_scale").val(cluster_list[0].auto_scale);
+        $("#use_dns").val(cluster_list[0].use_dns);
+        $("#description").val(cluster_list[0].description);
+    }
+
+    function ShowRoleFloatIP(role_info, name, key){
+        $("#" + key + "_float_ip").val("");
+        if (role_info[name] != null){
+            $("#" + key + "_float_ip").val(role_info[name]);
+            if ($(".dv_" + key + "_float_ip_auto").length > 0){
+                $(".dv_" + key + "_float_ip_auto").hide();
+            }
+        }
+        else{
+            if ($("." + key + "_float_ip_auto").length > 0){
+                $("." + key + "_float_ip_auto").trigger("click");
+            }
+        }
+    }
+
+    function InitDiskSize4Componet(name, size){
+        if (size == "-1"){
+            $("#" + name + "_lv_size").val("");
+            $("#" + name + "_lv_size").attr("disabled", true);
+            $(".auto_assgign_" + name).attr("checked", true)
+        }
+        else{
+            var lv_size = parseInt(size) / 1024;
+            $("#" + name + "_lv_size").val(lv_size.toString());
+        }
+    }
+
+    function cluster_lb_role_init(role_info){
+        ShowRoleFloatIP(role_info, "vip", "lb");
+    }
+
+    function cluster_computer_role_init(role_info){
+        InitDiskSize4Componet("nova", role_info["nova_lv_size"]);
+    }
+
+    $(function(){
+        modify_cluster_dialog_init();
+    });
+</script>
+{% endblock %}
+
+{% block main %}
+    {% include 'environment/cluster/openstack/_modify_cluster.html' %}
+{% endblock %}
