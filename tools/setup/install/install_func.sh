@@ -96,6 +96,7 @@ function kolla_install
       git clone https://git.openstack.org/openstack/kolla
       cd kolla
       git checkout stable/mitaka
+      git reset --hard 68ca8942cb1828e801540088e7de9d3dce34f23e
   fi
   cp -r /home/kolla_install/kolla/etc/kolla /etc
   write_install_log "Begin copy images..."
