@@ -255,7 +255,7 @@ class HostInterface(BASE, DaisyBase):
     is_deployment = Column(Boolean(), default=False)
     state = Column(String(64))
     max_speed = Column(String(64))
-    current_speed =Column(String(64))
+    current_speed = Column(String(64))
 
 
 class Network(BASE, DaisyBase):

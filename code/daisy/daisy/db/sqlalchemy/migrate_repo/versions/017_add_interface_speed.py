@@ -5,9 +5,9 @@ from sqlalchemy import String
 
 
 meta = MetaData()
-state = Column('state',String(64))
-max_speed = Column('max_speed',String(64))
-current_speed =Column('current_speed',String(64))
+state = Column('state', String(64))
+max_speed = Column('max_speed', String(64))
+current_speed = Column('current_speed', String(64))
 
 
 def upgrade(migrate_engine):
@@ -18,6 +18,7 @@ def upgrade(migrate_engine):
     host_interfaces.create_column(state)
     host_interfaces.create_column(max_speed)
     host_interfaces.create_column(current_speed)
+
 
 def downgrade(migrate_engine):
     # Operations to reverse the above upgrade go here.
