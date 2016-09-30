@@ -23,7 +23,6 @@ from oslo_log import log as logging
 from oslo_utils import excutils
 
 from daisy.common import client
-from daisy.common import crypt
 from daisy import i18n
 from daisy.registry.api.v1 import hosts
 from daisy.registry.api.v1 import config_files
