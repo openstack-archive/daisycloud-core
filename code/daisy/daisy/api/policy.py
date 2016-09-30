@@ -16,7 +16,6 @@
 
 """Policy Engine For Glance"""
 
-import copy
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -96,4 +95,3 @@ class Enforcer(policy.Enforcer):
            :returns: A non-False value if context role is admin.
         """
         return self.check(context, 'context_is_admin', context.to_dict())
-
