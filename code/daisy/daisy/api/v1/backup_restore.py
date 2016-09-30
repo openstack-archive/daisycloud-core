@@ -35,6 +35,7 @@ import daisy.registry.client.v1.api as registry
 from daisy.api.v1 import controller
 from daisy.api.v1 import filters
 import daisy.api.backends.common as daisy_cmn
+from daisy.version import version_info
 
 
 LOG = logging.getLogger(__name__)
@@ -231,20 +232,10 @@ class Controller(controller.BaseController):
         :raises HTTPBadRequest if can't get version of daisy
         """
         if version.get('type') == 'internal':
-            scripts = "rpm -q python-daisy | awk -F'-' '{print $3\"-\"$4}'"
+            return {"daisy_version": version_info.version_string()}
         else:
-            # reserve for external version
+            # reserved for external version
             return {"daisy_version": '1.0.0-1.1.0'}
-        try:
-            version = subprocess.check_output(scripts, shell=True,
-                                              stderr=subprocess.STDOUT).strip()
-        except:
-            msg = 'Error occurred when running scripts to get version of daisy'
-            LOG.error(msg)
-            raise HTTPForbidden(explanation=msg, request=req,
-                                content_type="text/plain")
-        daisy_version = filter(lambda x: not x.isalpha(), version)[:-1]
-        return {"daisy_version": daisy_version}
 
 
 class BackupRestoreDeserializer(wsgi.JSONRequestDeserializer):
