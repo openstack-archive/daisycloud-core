@@ -28,7 +28,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from daisy.common import exception
 from daisy.common import config
-from daisy.openstack.common import loopingcall
+from oslo_service import loopingcall
 from daisy.orchestration import manager
 import six
 

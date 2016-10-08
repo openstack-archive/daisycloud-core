@@ -37,7 +37,7 @@ from daisy.common import config
 from daisy.common import exception
 from daisy.common import wsgi
 from daisy import notifier
-from daisy.openstack.common import systemd
+from oslo_service import systemd
 
 # Monkey patch socket, time, select, threads
 eventlet.patcher.monkey_patch(all=False, socket=True, time=True,

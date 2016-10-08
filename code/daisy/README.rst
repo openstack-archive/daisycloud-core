@@ -1,11 +1,9 @@
 ======
-Glance
+Daisy
 ======
 
-Glance is a project that defines services for discovering, registering,
-retrieving and storing virtual machine images.
+Daisy(Openstack project name: daisycloud-core) provides automated deployment and 
+management of OpenStack and other distributed systems.
 
-Use the following resources to learn more:
-
-* `Official Glance documentation <http://docs.openstack.org/developer/glance/>`_
-* `Official Client documentation <http://docs.openstack.org/developer/python-glanceclient/>`_
+## Website
+http://www.daisycloud.org
