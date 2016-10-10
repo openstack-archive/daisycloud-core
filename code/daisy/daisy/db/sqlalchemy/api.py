@@ -236,7 +236,8 @@ def get_ip_with_equal_cidr(cluster_id,network_plane_name,session, exclude_ips=[]
 # merged_by_cidr_vlan['(10,23)'] = [management_network_plane]
 # merged_by_cidr_vlan['(9,24)'] = [
 # deployment_network_plane,storage_network_plane]
-# merged_networks=[{'name':'MAGEMENT','ip':"10.43.177.2"},{'name':'DEPLOYMENT,STORAGE','ip':""}]
+# merged_networks=[{'name':'MAGEMENT','ip':"10.43.177.2"},
+#                  {'name':'DEPLOYMENT,STORAGE','ip':""}]
 def merge_networks_for_unifiers(cluster_id, assigned_networks):
     merged_by_cidr_vlan = {}
     session = get_session()
