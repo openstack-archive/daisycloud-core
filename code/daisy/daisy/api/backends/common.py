@@ -574,3 +574,106 @@ def get_ctl_ha_nodes_min_mac(req, cluster_id):
                 min_mac = utils.get_host_min_mac(host_detail['interfaces'])
                 ctl_ha_nodes_min_mac[host_name] = min_mac
     return ctl_ha_nodes_min_mac
+
+
+def build_pxe_server(eth_name, ip_address, build_pxe, net_mask,
+                     client_ip_begin, client_ip_end):
+    """build pxe server."""
+    pxe_dict = dict()
+    pxe_dict['ethname_l'] = eth_name
+    pxe_dict['ip_addr_l'] = ip_address
+    pxe_dict['build_pxe'] = build_pxe
+    pxe_dict['net_mask_l'] = net_mask
+    pxe_dict['client_ip_begin'] = client_ip_begin
+    pxe_dict['client_ip_end'] = client_ip_end
+    LOG.info('pxe_dict=%s' % pxe_dict)
+    with open('/var/log/ironic/pxe.json', 'w') as f:
+        json.dump(pxe_dict, f, indent=2)
+    f.close()
+    _PIPE = subprocess.PIPE
+    cmd = "/usr/bin/pxe_server_install /var/log/ironic/pxe.json && \
+           chmod 755 /tftpboot -R"
+    try:
+        obj = subprocess.Popen(cmd, stdin=_PIPE, stdout=_PIPE,
+                               stderr=_PIPE, shell=False)
+        obj.communicate()
+    except Exception as e:
+        msg = "build_pxe_server error: %s" % e
+        LOG.error(msg)
+        raise exception.Invalid(msg)
+
+    if obj.returncode:
+        msg = "execute set pxe command failed."
+        LOG.error(msg)
+        raise exception.Invalid(msg)
+
+
+def set_boot_or_power_state(user, passwd, addr, action):
+    if action in ['on', 'off', 'reset']:
+        device = 'power'
+    elif action in ['pxe', 'disk']:
+        device = 'bootdev'
+    else:
+        return
+
+    cmd = ['ipmitool', '-I', 'lanplus', '-H', addr, '-U', user,
+           '-P', passwd, 'chassis', device, action]
+
+    if device == 'bootdev':
+        cmd.append('options=persistent')
+    _PIPE = subprocess.PIPE
+    try:
+        obj = subprocess.Popen(cmd, stdin=_PIPE, stdout=_PIPE,
+                               stderr=_PIPE, shell=False)
+        obj.communicate()
+    except Exception as e:
+        msg = "%s set_boot_or_power_state error: %s" % (addr, e)
+        LOG.error(msg)
+        return -1
+
+    return obj.returncode
+
+
+def install_os(**kwargs):
+    json_file = "/var/log/ironic/%s.json" % kwargs['dhcp_mac']
+    with open(json_file, 'w') as f:
+        json.dump(kwargs, f, indent=2)
+    f.close()
+    _PIPE = subprocess.PIPE
+    cmd = "/usr/bin/pxe_os_install /var/log/ironic/%s.json && \
+           chmod 755 /tftpboot -R && \
+           chmod 755 /home/install_share -R && \
+           chmod 755 /linuxinstall -R" % kwargs['dhcp_mac']
+    try:
+        obj = subprocess.Popen(cmd, stdin=_PIPE, stdout=_PIPE,
+                               stderr=_PIPE, shell=False)
+        out, error = obj.communicate()
+    except Exception as e:
+        msg = "%s install_os error: %s" % (kwargs['dhcp_mac'], e)
+        LOG.error(msg)
+        return -1, msg
+
+    return obj.returncode, error
+
+
+def get_install_progress(dhcp_mac):
+    _PIPE = subprocess.PIPE
+    cmd = "/usr/bin/pxe_os_install_progress %s" % dhcp_mac
+
+    try:
+        obj = subprocess.Popen(cmd, stdin=_PIPE, stdout=_PIPE,
+                               stderr=_PIPE, shell=False)
+        out, error = obj.communicate()
+        progress_list = out.split()
+        progress = progress_list.pop(0)
+        info = ' '.join(progress_list)
+        rc = obj.returncode
+    except Exception as e:
+        info = '%s get install progress failed: %s' % (dhcp_mac, e)
+        progress, rc = 0, -1
+        LOG.error(info)
+
+    ret = {'return_code': rc,
+           'progress': progress,
+           'info': info}
+    return ret
