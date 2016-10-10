@@ -113,32 +113,6 @@ This package contains the daisy Python library.
 CI Build Id = %{_description}
 SVN Revision = %{_svn_revision}
 
-%package doc
-Summary:          Documentation for OpenStack Image Service
-Group:            Documentation
-
-Requires:         %{name} = %{version}-%{release}
-
-BuildRequires:    systemd-units
-BuildRequires:    python-sphinx
-BuildRequires:    python-oslo-sphinx
-BuildRequires:    graphviz
-
-# Required to build module documents
-BuildRequires:    python-boto
-BuildRequires:    python-eventlet
-BuildRequires:    python-routes
-BuildRequires:    python-sqlalchemy
-BuildRequires:    python-webob
-
-%description      doc
-OpenStack Image Service (code-named daisy) provides discovery, registration,
-and delivery services for virtual disk images.
-
-This package contains documentation files for daisy.
-CI Build Id = %{_description}
-SVN Revision = %{_svn_revision}
-
 %prep
 %setup -q -n daisy-%{upstream_version}
 
@@ -162,15 +136,6 @@ rm -fr %{buildroot}%{python2_sitelib}/daisy/tests
 # Drop old daisy CLI it has been deprecated
 # and replaced daisyclient
 rm -f %{buildroot}%{_bindir}/daisy
-
-export PYTHONPATH="$( pwd ):$PYTHONPATH"
-pushd doc
-sphinx-build -b html source build/html
-#sphinx-build -b man source build/man
-
-mkdir -p %{buildroot}%{_mandir}/man1
-#install -p -D -m 644 build/man/*.1 %{buildroot}%{_mandir}/man1/
-popd
 
 # Fix hidden-file-or-dir warnings
 rm -fr doc/build/html/.doctrees doc/build/html/.buildinfo
@@ -290,8 +255,4 @@ fi
 %doc README.rst
 %{python2_sitelib}/daisy
 %{python2_sitelib}/*.egg-info
-
-%files doc
-%doc doc/build/html
-
 
