@@ -20,6 +20,7 @@ import subprocess
 import time
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
+from webob.exc import HTTPNotFound
 from daisy import i18n
 
 from daisy.common import exception
@@ -104,6 +105,10 @@ def get_host_detail(req, host_id):
         host_detail = registry.get_host_metadata(req.context, host_id)
     except exception.Invalid as e:
         raise HTTPBadRequest(explanation=e.msg, request=req)
+    except exception.NotFound:
+        msg = "Host with identifier %s not found" % host_id
+        LOG.debug(msg)
+        raise HTTPNotFound(msg)
     return host_detail
 
 
