@@ -22,7 +22,6 @@ import eventlet
 from logging import handlers
 from ironic_discoverd import conf
 from ironic_discoverd import firewall
-from ironic_discoverd import node_cache
 from ironic_discoverd.plugins import base as plugins_base
 from ironic_discoverd import utils
 
@@ -30,7 +29,7 @@ from ironic_discoverd import utils
 LOG = logging.getLogger("ironic_discoverd.process")
 fh = handlers.RotatingFileHandler(
     '/var/log/ironic/parse.log',
-    'a', maxBytes=2*1024*1024, backupCount=5)
+    'a', maxBytes=2 * 1024 * 1024, backupCount=5)
 formatter = logging.Formatter(
     '%(asctime)-12s:%(name)s:%(levelname)s:%(message)s')
 fh.setFormatter(formatter)
@@ -38,40 +37,6 @@ LOG.addHandler(fh)
 
 _POWER_CHECK_PERIOD = 5
 _POWER_OFF_CHECK_PERIOD = 5
-
-
-def process(node_info):
-    """Process data from the discovery ramdisk.
-
-    This function heavily relies on the hooks to do the actual data processing.
-    """
-    hooks = plugins_base.processing_hooks_manager()
-    for hook_ext in hooks:
-        hook_ext.obj.before_processing(node_info)
-
-    cached_node = node_cache.find_node(
-        bmc_address=node_info.get('ipmi_address'),
-        mac=node_info.get('macs'))
-
-    ironic = utils.get_client()
-    try:
-        node = ironic.node.get(cached_node.uuid)
-    except exceptions.NotFound:
-        msg = ('Node UUID %s was found in cache, but is not found in Ironic'
-               % cached_node.uuid)
-        cached_node.finished(error=msg)
-        raise utils.Error(msg, code=404)
-
-    try:
-        return _process_node(ironic, node, node_info, cached_node)
-    except utils.Error as exc:
-        cached_node.finished(error=str(exc))
-        raise
-    except Exception as exc:
-        msg = 'Unexpected exception during processing'
-        LOG.exception(msg)
-        cached_node.finished(error=msg)
-        raise utils.Error(msg)
 
 
 def write_data_to_daisy(node_info, ipmi_addr, os_status=None, hostname=None):
@@ -149,9 +114,9 @@ def format_node_info_for_ironic(node_info):
             data_dict = {'op': 'add'}
             key = key.replace(':', '-').replace('.', '-')
             if property == 'disk':
-                data_dict['path'] = '/'+property+'s'+'/'+key
+                data_dict['path'] = '/' + property + 's' + '/' + key
             else:
-                data_dict['path'] = '/'+property+'/'+key
+                data_dict['path'] = '/' + property + '/' + key
             data_dict['value'] = value
             patch.append(data_dict)
 
@@ -186,7 +151,7 @@ def _process_node(ironic, node, node_info, cached_node):
         try:
             port = ironic.port.create(node_uuid=node.uuid, address=mac)
             ports[mac] = port
-        except exceptions.Conflict:
+        except Exception:
             LOG.warning('MAC %(mac)s appeared in introspection data for '
                         'node %(node)s, but already exists in '
                         'database - skipping',
