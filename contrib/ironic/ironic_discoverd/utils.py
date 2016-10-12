@@ -39,14 +39,6 @@ class Error(Exception):
         self.http_code = code
 
 
-def get_client():  # pragma: no cover
-    """Get Ironic client instance."""
-    #args = dict((k, conf.get('discoverd', k)) for k in OS_ARGS)
-    args = dict({'os_auth_token': conf.get('discoverd', 'os_auth_token'),
-                 'ironic_url': conf.get('discoverd', 'ironic_url')})
-    return client.get_client(1, **args)
-
-
 def get_daisy_client():
     """Get Daisy client instance."""
     endpoint = conf.get('discoverd', 'daisy_url')
@@ -84,8 +76,8 @@ def check_auth(request):
 def is_valid_mac(address):
     """Return whether given value is a valid MAC."""
     m = "[0-9a-f]{2}(:[0-9a-f]{2}){5}$"
-    return (isinstance(address, six.string_types)
-            and re.match(m, address.lower()))
+    return (isinstance(address, six.string_types) and
+            re.match(m, address.lower()))
 
 
 def retry_on_conflict(call, *args, **kwargs):
@@ -93,7 +85,7 @@ def retry_on_conflict(call, *args, **kwargs):
     for i in range(RETRY_COUNT):
         try:
             return call(*args, **kwargs)
-        except exceptions.Conflict as exc:
+        except Exception as exc:
             LOG.warning('Conflict on calling %s: %s, retry attempt %d',
                         getattr(call, '__name__', repr(call)), exc, i + 1)
             if i == RETRY_COUNT - 1:
