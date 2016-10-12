@@ -15,8 +15,6 @@
 
 import logging
 
-import eventlet
-
 from ironic_discoverd import conf
 from ironic_discoverd import firewall
 from ironic_discoverd import node_cache
@@ -26,47 +24,6 @@ from ironic_discoverd import utils
 LOG = logging.getLogger("ironic_discoverd.introspect")
 # See http://specs.openstack.org/openstack/ironic-specs/specs/kilo/new-ironic-state-machine.html  # noqa
 VALID_STATES = {'enroll', 'manageable', 'inspecting'}
-
-
-def introspect(uuid, setup_ipmi_credentials=False):
-    """Initiate hardware properties introspection for a given node.
-
-    :param uuid: node uuid
-    :raises: Error
-    """
-    ironic = utils.get_client()
-
-    try:
-        node = ironic.node.get(uuid)
-    except exceptions.NotFound:
-        raise utils.Error("Cannot find node %s" % uuid, code=404)
-    except exceptions.HttpError as exc:
-        raise utils.Error("Cannot get node %s: %s" % (uuid, exc))
-
-    if (setup_ipmi_credentials and not
-            conf.getboolean('discoverd', 'enable_setting_ipmi_credentials')):
-        raise utils.Error(
-            'IPMI credentials setup is disabled in configuration')
-
-    if not node.maintenance:
-        provision_state = node.provision_state
-        if provision_state and provision_state.lower() not in VALID_STATES:
-            msg = ('Refusing to introspect node %s with provision state "%s" '
-                   'and maintenance mode off')
-            raise utils.Error(msg % (node.uuid, provision_state))
-    else:
-        LOG.info('Node %s is in maintenance mode, skipping power and provision'
-                 ' states check')
-
-    if not setup_ipmi_credentials:
-        validation = utils.retry_on_conflict(ironic.node.validate, node.uuid)
-        if not validation.power['result']:
-            msg = ('Failed validation of power interface for node %s, '
-                   'reason: %s')
-            raise utils.Error(msg % (node.uuid, validation.power['reason']))
-
-    eventlet.greenthread.spawn_n(_background_start_discover, ironic, node,
-                                 setup_ipmi_credentials=setup_ipmi_credentials)
 
 
 def _get_ipmi_address(node):
