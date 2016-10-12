@@ -77,38 +77,6 @@ def api_continue():
     return json.dumps(""), 200, {'Content-Type': 'applications/json'}
 
 
-@app.route('/v1/introspection/<uuid>', methods=['GET', 'POST'])
-@convert_exceptions
-def api_introspection(uuid):
-    utils.check_auth(flask.request)
-
-    if flask.request.method == 'POST':
-        setup_ipmi_credentials = flask.request.args.get(
-            'setup_ipmi_credentials',
-            type=bool,
-            default=False)
-        introspect.introspect(uuid,
-                              setup_ipmi_credentials=setup_ipmi_credentials)
-        return '', 202
-    else:
-        node_info = node_cache.get_node(uuid)
-        return flask.json.jsonify(finished=bool(node_info.finished_at),
-                                  error=node_info.error or None)
-
-
-@app.route('/v1/discover', methods=['POST'])
-@convert_exceptions
-def api_discover():
-    utils.check_auth(flask.request)
-
-    data = flask.request.get_json(force=True)
-    LOG.debug("/v1/discover got JSON %s", data)
-
-    for uuid in data:
-        introspect.introspect(uuid)
-    return "", 202
-
-
 def periodic_update(period):  # pragma: no cover
     while True:
         LOG.debug('Running periodic update of filters')
