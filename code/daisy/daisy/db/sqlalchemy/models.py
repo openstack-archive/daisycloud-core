@@ -148,12 +148,12 @@ class Host(BASE, DaisyBase):
     os_cpus = Column(String(255))
     dvs_cpus = Column(String(255))
     config_set_id = Column(String(36))
-    system = Column(JSONEncodedDict(), default={}, nullable=False)
-    cpu = Column(JSONEncodedDict(), default={}, nullable=False)
-    memory = Column(JSONEncodedDict(), default={}, nullable=False)
-    disks = Column(JSONEncodedDict(), default={}, nullable=False)
-    devices = Column(JSONEncodedDict(), default={}, nullable=False)
-    pci = Column(JSONEncodedDict(), default={}, nullable=False)
+    system = Column(JSONEncodedDict(), default={})
+    cpu = Column(JSONEncodedDict(), default={})
+    memory = Column(JSONEncodedDict(), default={})
+    disks = Column(JSONEncodedDict(), default={})
+    devices = Column(JSONEncodedDict(), default={})
+    pci = Column(JSONEncodedDict(), default={})
 
 
 class DiscoverHost(BASE, DaisyBase):

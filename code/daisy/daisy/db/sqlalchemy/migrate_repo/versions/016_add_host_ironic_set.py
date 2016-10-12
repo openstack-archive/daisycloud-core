@@ -20,12 +20,12 @@ def upgrade(migrate_engine):
     # Upgrade operations go here. Don't create your own engine; bind
     # migrate_engine to your metadata
     meta = MetaData()
-    system = Column('system', JSONEncodedDict(), default={}, nullable=False)
-    cpu = Column('cpu', JSONEncodedDict(), default={}, nullable=False)
-    memory = Column('memory', JSONEncodedDict(), default={}, nullable=False)
-    disks = Column('disks', JSONEncodedDict(), default={}, nullable=False)
-    devices = Column('devices', JSONEncodedDict(), default={}, nullable=False)
-    pci = Column('pci', JSONEncodedDict(), default={}, nullable=False)
+    system = Column('system', JSONEncodedDict(), default={})
+    cpu = Column('cpu', JSONEncodedDict(), default={})
+    memory = Column('memory', JSONEncodedDict(), default={})
+    disks = Column('disks', JSONEncodedDict(), default={})
+    devices = Column('devices', JSONEncodedDict(), default={})
+    pci = Column('pci', JSONEncodedDict(), default={})
 
     meta.bind = migrate_engine
     hosts = Table('hosts', meta, autoload=True)
