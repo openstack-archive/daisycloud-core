@@ -49,20 +49,14 @@ function all_install
     write_install_log "install fping rpm"
     install_rpm_by_yum "fping"
 
-    write_install_log "install mariadb-galera-server rpm"
-    install_rpm_by_yum "mariadb-galera-server"
-
-    write_install_log "install mariadb rpm"
-    install_rpm_by_yum "mariadb"
+    write_install_log "install mariadb-server rpm"
+    install_rpm_by_yum "mariadb-server"
 
     write_install_log "install rabbitmq-server rpm"
     install_rpm_by_yum "rabbitmq-server"
 
     write_install_log "install keystone rpm"
     install_rpm_by_yum "openstack-keystone"
-
-    write_install_log "install ironic-discoverd depend rpm"
-    install_rpm_by_yum "python-flask"
 
     write_install_log "install ironic-discoverd rpm"
     install_rpm_by_daisy_yum "openstack-ironic-discoverd python-ironic-discoverd"
@@ -71,8 +65,6 @@ function all_install
     install_rpm_by_yum "daisy"
 
     write_install_log "install daisy dashboard rpm"
-    install_rpm_by_yum "python-django"
-    install_rpm_by_yum "python-lockfile"
     install_rpm_by_daisy_yum "python-django-horizon"
     install_rpm_by_yum "daisy-dashboard"
 
