@@ -4,12 +4,6 @@
 
 pbr>=1.6 # Apache-2.0
 
-#
-# The greenlet package must be compiled with gcc and needs
-# the Python.h headers. Make sure you install the python-dev
-# package to get the right headers...
-greenlet>=0.3.2
-
 # < 0.8.0/0.8 does not work, see https://bugs.launchpad.net/bugs/1153983
 SQLAlchemy>=0.9.7,<=0.9.99
 anyjson>=0.3.3
