@@ -63,6 +63,7 @@ config = ConfigParser.ConfigParser()
 config.read(daisy_cmn.daisy_conf_file)
 OS_INSTALL_TYPE = 'pxe'
 OS_INSTALL_TYPE = config.get("OS", "os_install_type")
+os_driver = os_handle.load_install_os_driver(OS_INSTALL_TYPE)
 
 
 def get_deployment_backends(req, cluster_id, backends_order):
@@ -147,7 +148,6 @@ class InstallTask(object):
         while order_hosts_need_os:
             # all os will be installed batch by batch with
             # max_parallel_os_number which was set in daisy-api.conf
-            os_driver = os_handle.load_install_os_driver(OS_INSTALL_TYPE)
             os_install = os_driver(self.req, self.cluster_id)
             (order_hosts_need_os, role_hosts_need_os) = os_install.install_os(
                 order_hosts_need_os, role_hosts_need_os)
