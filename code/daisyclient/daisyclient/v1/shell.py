@@ -2351,8 +2351,9 @@ def do_backup_file_version(dc, args):
 
 
 @utils.arg('--type', metavar='<TYPE>',
-           help='Type of daisy version, supported type are "internal": '
-                'the internal version of daisy.')
+           help='Type of daisy version, supported types are '
+               '"internal": the internal version of daisy,'
+               '"pbr": the git version of daisy.')
 def do_version(dc, args):
     """Get version of daisy."""
     fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
