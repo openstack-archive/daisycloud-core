@@ -17,7 +17,7 @@ then
     exit 1
 fi
 
-pip_ip=10.43.177.17
+pip_ip=10.43.178.177
 
 log_path=logs
 mkdir -p $log_path

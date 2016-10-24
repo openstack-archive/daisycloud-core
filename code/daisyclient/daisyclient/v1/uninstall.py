@@ -26,6 +26,7 @@ OS_REQ_ID_HDR = 'x-openstack-request-id'
 
 
 class Uninstall(base.Resource):
+
     def __repr__(self):
         return "<Uninstall %s>" % self._info
 
