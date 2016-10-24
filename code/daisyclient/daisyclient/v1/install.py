@@ -90,7 +90,7 @@ class InstallManager(base.ManagerWithFind):
         url = '/v1/install'
 
         hdrs = self._install_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=hdrs)
         return Install(self, self._format_install_meta_for_user(body))
 
     def export_db(self, **kwargs):
@@ -108,7 +108,7 @@ class InstallManager(base.ManagerWithFind):
 
         url = '/v1/export_db'
         hdrs = self._install_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=hdrs)
         return Install(self, self._format_install_meta_for_user(body))
 
     def disk_array_update(self, cluster, **kwargs):
@@ -124,5 +124,5 @@ class InstallManager(base.ManagerWithFind):
 
         url = '/v1/disk_array/%s' % base.getid(cluster)
         hdrs = self._install_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=hdrs)
         return Install(self, self._format_install_meta_for_user(body))
