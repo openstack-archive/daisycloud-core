@@ -141,7 +141,7 @@ class TestClient(testtools.TestCase):
         except glanceclient.exc.CommunicationError as comm_err:
             fail_msg = ("Exception message '%s' should contain '%s'" %
                         (comm_err.message, self.endpoint))
-            self.assertIn(self.endpoint, comm_err.message, fail_msg)
+            self.assertTrue(self.endpoint in comm_err.message, fail_msg)
 
     def test_http_encoding(self):
         # Lets fake the response

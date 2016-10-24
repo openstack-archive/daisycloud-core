@@ -184,7 +184,7 @@ class DiskArrayManager(base.ManagerWithFind):
         url = '/v1/service_disk'
 
         hdrs = self._service_disk_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=hdrs)
         return Disk_array(self, self._format_service_disk_meta_for_user(
             body['disk_meta']))
 
@@ -331,7 +331,7 @@ class DiskArrayManager(base.ManagerWithFind):
         url = '/v1/cinder_volume'
 
         hdrs = self._service_disk_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=hdrs)
         return Disk_array(self, self._format_service_disk_meta_for_user(
             body['disk_meta']))
 

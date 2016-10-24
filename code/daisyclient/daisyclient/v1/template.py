@@ -221,7 +221,7 @@ class TemplateManager(base.ManagerWithFind):
         hdrs = self._template_meta_to_headers(fields)
 
         resp, body = self.client.post('/v1/template',
-                                      headers=hdrs,
+                                      headers=None,
                                       data=hdrs)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
@@ -275,7 +275,7 @@ class TemplateManager(base.ManagerWithFind):
 
         url = '/v1/export_db_to_json'
         hdrs = self._template_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=hdrs)
         return Template(
             self, self._format_template_meta_for_user(body['template']))
 
@@ -293,7 +293,7 @@ class TemplateManager(base.ManagerWithFind):
 
         url = '/v1/import_json_to_template'
         hdrs = self._template_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=hdrs)
         return Template(
             self, self._format_template_meta_for_user(body['template']))
 
@@ -311,7 +311,7 @@ class TemplateManager(base.ManagerWithFind):
 
         url = '/v1/import_template_to_db'
         hdrs = self._template_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=hdrs)
         return Template(
             self, self._format_template_meta_for_user(body['template']))
 
@@ -327,7 +327,7 @@ class TemplateManager(base.ManagerWithFind):
 
         url = '/v1/host_to_template'
         hdrs = self._template_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=hdrs)
         return Template(
             self, self._format_template_meta_for_user(body['host_template']))
 
@@ -403,6 +403,6 @@ class TemplateManager(base.ManagerWithFind):
 
         url = '/v1/host_template'
         hdrs = self._template_meta_to_headers(fields)
-        resp, body = self.client.put(url, headers=hdrs, data=hdrs)
+        resp, body = self.client.put(url, headers=None, data=hdrs)
         return Template(
             self, self._format_template_meta_for_user(body['host_template']))
