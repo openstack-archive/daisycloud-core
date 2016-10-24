@@ -252,6 +252,7 @@ function all_install
     
     config_file="/home/daisy_install/daisy.conf"
     [ ! -e $config_file ] && return
+    if [ -f install_interface_patch.sh ]; then ./install_interface_patch.sh ; fi
     get_config "$config_file" default_backend_types
     local default_backend_types_params=$config_answer
     kolla=`echo $default_backend_types_params|grep 'kolla'|wc -l`
