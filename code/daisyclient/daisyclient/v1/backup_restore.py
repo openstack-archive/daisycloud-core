@@ -87,7 +87,7 @@ class BackupRestoreManager(base.ManagerWithFind):
 
         url = '/v1/backup'
         hdrs = self._backup_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=hdrs)
         return BackupRestore(self, body)
 
     def restore(self, **kwargs):
@@ -106,7 +106,7 @@ class BackupRestoreManager(base.ManagerWithFind):
         url = '/v1/restore'
 
         hdrs = self._restore_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=hdrs)
 
     def backup_file_version(self, **kwargs):
         """Get version of backup file.
@@ -123,7 +123,7 @@ class BackupRestoreManager(base.ManagerWithFind):
 
         url = '/v1/backup_file_version'
         hdrs = self._restore_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=hdrs)
         return BackupRestore(self, body)
 
     def version(self, **kwargs):
@@ -141,5 +141,5 @@ class BackupRestoreManager(base.ManagerWithFind):
 
         url = '/v1/version'
         hdrs = self._restore_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=hdrs)
         return BackupRestore(self, body)

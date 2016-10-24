@@ -22,7 +22,7 @@ from daisyclient.common.utils import safe_header
 from daisyclient import exc
 from oslo_utils import importutils
 from oslo_utils import netutils
-
+from simplejson import decoder
 import requests
 try:
     from requests.packages.urllib3.exceptions import ProtocolError
@@ -245,7 +245,6 @@ class HTTPClient(object):
                 # Let's use requests json method,
                 # it should take care of response
                 # encoding
-                body_iter = resp.json()
             else:
                 body_iter = six.StringIO(content)
                 try:

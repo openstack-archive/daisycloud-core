@@ -283,7 +283,7 @@ class ClusterManager(base.ManagerWithFind):
 
         hdrs = self._cluster_meta_to_headers(fields)
         resp, body = self.client.post('/v1/clusters',
-                                      headers=hdrs,
+                                      headers=None,
                                       data=hdrs)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
