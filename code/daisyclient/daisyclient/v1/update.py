@@ -75,7 +75,7 @@ class UpdateManager(base.ManagerWithFind):
             if field in CREATE_PARAMS:
                 fields[field] = kwargs[field]
             else:
-                msg = 'update() got an unexpected keyword argument \'%s\''
+                msg = 'update() got an unexpected argument \'%s\''
                 raise TypeError(msg % field)
 
             if "cluster" in fields:

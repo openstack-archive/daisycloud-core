@@ -241,7 +241,7 @@ class Config_setManager(base.ManagerWithFind):
 
         hdrs = self._config_set_meta_to_headers(fields)
         resp, body = self.client.post('/v1/config_sets',
-                                      headers=hdrs,
+                                      headers=None,
                                       data=hdrs)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
@@ -301,7 +301,7 @@ class Config_setManager(base.ManagerWithFind):
 
         hdrs = self._config_set_meta_to_headers(fields)
         resp, body = self.client.post('/v1/cluster_config_set_update',
-                                      headers=hdrs,
+                                      headers=None,
                                       data=hdrs)
         return Config_set(self, self._format_config_set_meta_for_user(
             body['config_set']))
@@ -322,6 +322,6 @@ class Config_setManager(base.ManagerWithFind):
 
         hdrs = self._config_set_meta_to_headers(fields)
         resp, body = self.client.post('/v1/cluster_config_set_progress',
-                                      headers=hdrs,
+                                      headers=None,
                                       data=hdrs)
         return Config_set(self, self._format_config_set_meta_for_user(body))

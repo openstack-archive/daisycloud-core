@@ -959,5 +959,5 @@ class UrlParameterTest(testtools.TestCase):
         shell.do_image_list(self.gc, FakeArg({"is_public": "True"}))
         parts = parse.urlparse(self.api.url)
         qs_dict = parse.parse_qs(parts.query)
-        self.assertIn('is_public', qs_dict)
+        self.assertIn('is_public', qs_dict)        
         self.assertTrue(qs_dict['is_public'][0].lower() == "true")

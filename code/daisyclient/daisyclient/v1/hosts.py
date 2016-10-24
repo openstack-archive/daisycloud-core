@@ -257,7 +257,7 @@ class HostManager(base.ManagerWithFind):
         hdrs = self._host_meta_to_headers(fields)
 
         resp, body = self.client.post('/v1/nodes',
-                                      headers=hdrs,
+                                      headers=None,
                                       data=hdrs)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
@@ -312,7 +312,7 @@ class HostManager(base.ManagerWithFind):
                 continue
         hdrs.update(self._host_meta_to_headers(fields))
         url = '/v1/discover_host/'
-        resp, body = self.client.post(url, headers=hdrs, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=hdrs)
 
         return Host(self, self._format_host_meta_for_user(body))
 
@@ -335,7 +335,7 @@ class HostManager(base.ManagerWithFind):
         hdrs = self._host_meta_to_headers(fields)
 
         resp, body = self.client.post('/v1/discover/nodes',
-                                      headers=hdrs,
+                                      headers=None,
                                       data=hdrs)
 
         return_request_id = kwargs.get('return_req_id', None)

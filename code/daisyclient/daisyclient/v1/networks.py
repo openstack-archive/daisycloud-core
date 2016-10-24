@@ -282,7 +282,7 @@ class NetworkManager(base.ManagerWithFind):
 
         hdrs = self._network_meta_to_headers(fields)
         resp, body = self.client.post('/v1/networks',
-                                      headers=hdrs,
+                                      headers=None,
                                       data=hdrs)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
