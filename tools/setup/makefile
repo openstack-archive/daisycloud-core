@@ -52,6 +52,7 @@ bin: binclean binforce
 	chmod +x $(_TECS_TOOLS_PATH)/setup/bin_temp/uninstall/uninstall_func.sh
 	chmod +x $(_TECS_TOOLS_PATH)/setup/bin_temp/upgrade/upgrade_interface.sh
 	chmod +x $(_TECS_TOOLS_PATH)/setup/bin_temp/upgrade/upgrade_func.sh
+	if [ -e makefile_patch.sh ]; then ./makefile_patch.sh $(_TECS_TOOLS_PATH) ; fi
 	cd $(_TECS_TOOLS_PATH)/setup; chmod +x ./makeself.sh; ./makeself.sh ./bin_temp $(_TECS_TARGET_PATH)/$(PURE_OS_TYPE)/$(ARCH)/$(VER_PREFIX)_$(BIN_TYPE).$(VER_SUFFIX) tecs ./setup.sh
 	$(RM) $(_TECS_TOOLS_PATH)/setup/bin_temp
 
