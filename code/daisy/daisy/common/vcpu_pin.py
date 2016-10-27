@@ -213,7 +213,7 @@ def get_dvs_cpusets(numa_cpus, host_detail, host_hw_info):
     if dvs_nics_name:
         nics_info = [{'name': nic_name, 'bus': interface['pci']}
                      for nic_name in dvs_nics_name
-                     for interface in host_hw_info['interfaces'].values()
+                     for interface in host_hw_info['interfaces']
                      if nic_name == interface['name']]
         dvs_cpu_num = 4
         device_numa = {}
