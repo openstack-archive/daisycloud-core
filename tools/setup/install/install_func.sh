@@ -95,19 +95,20 @@ function kolla_install
       cd /home/kolla_install
       git clone https://git.openstack.org/openstack/kolla
       cd kolla
-      git checkout stable/newton
+      git checkout stable/mitaka
+      git reset --hard 68ca8942cb1828e801540088e7de9d3dce34f23e
   fi
   cp -r /home/kolla_install/kolla/etc/kolla /etc
   write_install_log "Begin copy images..."
-  if [ -f "/home/kolla_install/docker/registry-2.0.3-20161027.tgz" ];then
-      echo "registry-2.0.3-20161027.tgz already exist!"
+  if [ -f "/home/kolla_install/docker/registry-2.0.3.tgz" ];then
+      echo "registry-2.0.3.tgz already exist!"
       cd /home/kolla_install/docker
-      tar mzxvf registry-2.0.3-20161027.tgz
+      tar mzxvf registry-2.0.3.tgz
   else
       mkdir -p /home/kolla_install/docker
       cd /home/kolla_install/docker
-      wget "ftp://openuser:123@120.76.145.166/registry-2.0.3-20161027.tgz"
-      tar mzxvf registry-2.0.3-20161027.tgz
+      wget "ftp://openuser:123@120.76.145.166/registry-2.0.3.tgz"
+      tar mzxvf registry-2.0.3.tgz
   fi
   catalog=`curl $catalog_url |grep repositories`
   if [ -z $catalog ];then
