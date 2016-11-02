@@ -16,17 +16,22 @@
 """
 /install endpoint for tecs API
 """
+import os
 import subprocess
 import time
+import re
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
+from webob.exc import HTTPForbidden
 from daisy import i18n
+from daisy.common import utils
 
 from daisy.common import exception
 import daisy.registry.client.v1.api as registry
 import copy
 import json
 
+STR_MASK = '*' * 8
 LOG = logging.getLogger(__name__)
 _ = i18n._
 _LE = i18n._LE
@@ -40,6 +45,17 @@ zenic_backend_name = "zenic"
 proton_backend_name = "proton"
 kolla_backend_name = "kolla"
 os_install_start_time = 0.0
+
+BACKEND_STATE = {
+    'INIT': 'init',
+    'INSTALLING': 'installing',
+    'ACTIVE': 'active',
+    'INSTALL_FAILED': 'install-failed',
+    'UNINSTALLING': 'uninstalling',
+    'UNINSTALL_FAILED': 'uninstall-failed',
+    'UPDATING': 'updating',
+    'UPDATE_FAILED': 'update-failed',
+}
 
 
 # This is used for mapping daisy service id to systemctl service name
@@ -505,6 +521,26 @@ def sort_interfaces_by_pci(networks, host_detail):
     return host_detail
 
 
+def mask_string(unmasked, mask_list=None, replace_list=None):
+    """
+    Replaces words from mask_list with MASK in unmasked string.
+    If words are needed to be transformed before masking, transformation
+    could be describe in replace list. For example [("'","'\\''")]
+    replaces all ' characters with '\\''.
+    """
+    mask_list = mask_list or []
+    replace_list = replace_list or []
+
+    masked = unmasked
+    for word in sorted(mask_list, lambda x, y: len(y) - len(x)):
+        if not word:
+            continue
+        for before, after in replace_list:
+            word = word.replace(before, after)
+        masked = masked.replace(word, STR_MASK)
+    return masked
+
+
 def run_scrip(script, ip=None, password=None, msg=None):
     try:
         _run_scrip(script, ip, password)
@@ -564,9 +600,9 @@ def get_ctl_ha_nodes_min_mac(req, cluster_id):
         role_hosts = get_hosts_of_role(req, role['id'])
         for role_host in role_hosts:
             # host has installed tecs are exclusive
-            if (role_host['status'] == TECS_STATE['ACTIVE'] or
-                    role_host['status'] == TECS_STATE['UPDATING'] or
-                    role_host['status'] == TECS_STATE['UPDATE_FAILED']):
+            if (role_host['status'] == BACKEND_STATE['ACTIVE'] or
+                    role_host['status'] == BACKEND_STATE['UPDATING'] or
+                    role_host['status'] == BACKEND_STATE['UPDATE_FAILED']):
                 continue
             host_detail = get_host_detail(req,
                                           role_host['host_id'])
