@@ -17,9 +17,7 @@
 /install endpoint for daisy API
 """
 import copy
-import subprocess
 import time
-import json
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -101,42 +99,24 @@ class OSInstall():
     def _set_boot_or_power_state(self, user, passwd, addr, action):
         count = 0
         repeat_times = 24
+        ipmi_result_flag = True
         while count < repeat_times:
-            if action in ['on', 'off', 'reset']:
-                device = 'power'
-            elif action in ['pxe', 'disk']:
-                device = 'bootdev'
-
-            cmd = ['ipmitool', '-I', 'lanplus', '-H', addr, '-U', user,
-                   '-P', passwd, 'chassis', device, action]
-
-            if device == 'bootdev':
-                cmd.append('options=persistent')
-
-            try:
-                _PIPE = subprocess.PIPE
-                obj = subprocess.Popen(cmd,
-                                       stdin=_PIPE,
-                                       stdout=_PIPE,
-                                       stderr=_PIPE,
-                                       shell=False,
-                                       cwd=None,
-                                       env=None)
-                out, error = obj.communicate()
-            except Exception as ex:
+            rc = daisy_cmn.set_boot_or_power_state(user, passwd, addr, action)
+            if rc == 0:
+                LOG.info(
+                    _("Set %s to '%s' successfully for %s times" % (
+                        addr, action, count + 1)))
+                break
+            else:
                 count += 1
                 LOG.info(
                     _("Try setting %s to '%s' failed for %s times"
                       % (addr, action, count)))
-                time.sleep(count * 2)
-            else:
-                LOG.info(
-                    _("Set %s to '%s' successfully for %s times" % (
-                      addr, action, count + 1)))
-                break
         if count >= repeat_times:
+            ipmi_result_flag = False
             message = "Set %s to '%s' failed for 10 mins" % (addr, action)
             raise exception.IMPIOprationFailed(message=message)
+        return ipmi_result_flag
 
     def _install_os_for_baremetal(self, host_detail):
         # os_install_disk = 'sda'
@@ -213,10 +193,11 @@ class OSInstall():
                            % host_detail['id']
             raise exception.NotFound(message=self.message)
 
-        self._set_boot_or_power_state(host_detail['ipmi_user'],
-                                      host_detail['ipmi_passwd'],
-                                      host_detail['ipmi_addr'],
-                                      'pxe')
+            ipmi_result_flag = self._set_boot_or_power_state(
+                host_detail['ipmi_user'],
+                host_detail['ipmi_passwd'],
+                host_detail['ipmi_addr'],
+                'pxe')
 
         kwargs = {'hostname': host_detail['name'],
                   'iso_path': os_version_file,
@@ -261,30 +242,21 @@ class OSInstall():
             kwargs['nova_lv_size'] = host_detail['nova_lv_size']
         else:
             kwargs['nova_lv_size'] = 0
-        json_file = "/var/log/ironic/%s.json" % kwargs['dhcp_mac']
-        with open(json_file, 'w') as f:
-            json.dump(kwargs, f, indent=2)
-        f.close()
-        try:
-            _PIPE = subprocess.PIPE
-            cmd = "/usr/bin/pxe_os_install /var/log/ironic/%s.json && \
-                   chmod 755 /tftpboot -R && \
-                   chmod 755 /home/install_share -R && \
-                   chmod 755 /linuxinstall -R" % kwargs['dhcp_mac']
-            obj = subprocess.Popen(cmd,
-                                   shell=True,
-                                   stdout=_PIPE,
-                                   stderr=_PIPE)
-            out, error = obj.communicate()
-        except Exception as ex:
-            msg = "%s: execute build os command failed." % ex
-            LOG.error(msg)
-            host_status = {'os_status': host_os_status['INSTALL_FAILED'],
-                           'os_progress': 0,
-                           'messages': msg}
-            update_db_host_status(self.req, host_detail['id'], host_status)
-            msg = "install os return failed for host %s" % host_detail['id']
-            raise exception.OSInstallFailed(message=msg)
+        if host_detail.get('hwm_id') or ipmi_result_flag:
+            rc, error = daisy_cmn.install_os(**kwargs)
+            if rc != 0:
+                install_os_description = error
+                LOG.info(
+                    _("install os config failed because of '%s'" % error))
+                host_status = {'os_status': host_os_status['INSTALL_FAILED'],
+                               'os_progress': 0,
+                               'messages': error}
+                daisy_cmn.update_db_host_status(self.req,
+                                                host_detail['id'],
+                                                host_status)
+                msg = "ironic install os return failed for host %s" % \
+                      host_detail['id']
+                raise exception.OSInstallFailed(message=msg)
 
         self._set_boot_or_power_state(host_detail['ipmi_user'],
                                       host_detail['ipmi_passwd'],
@@ -330,20 +302,11 @@ class OSInstall():
 
     def _query_host_progress(self, host_detail, host_status, host_last_status):
         host_id = host_detail['id']
-        try:
-            _PIPE = subprocess.PIPE
-            dhcp_mac = host_detail['dhcp_mac']
-            cmd = "/usr/bin/pxe_os_install_progress %s" % dhcp_mac
-            obj = subprocess.Popen(cmd,
-                                   shell=True,
-                                   stdout=_PIPE,
-                                   stderr=_PIPE)
-            out, error = obj.communicate()
-            return_code = obj.returncode
-            progress_list = out.split()
-            progress = progress_list.pop(0)
-            info = ' '.join(progress_list)
-            host_status['os_progress'] = int(progress)
+        install_result = daisy_cmn.get_install_progress(
+            host_detail['dhcp_mac'])
+        rc = int(install_result['return_code'])
+        host_status['os_progress'] = int(install_result['progress'])
+        if rc == 0:
             if host_status['os_progress'] == 100:
                 time_cost = str(
                     round((time.time() -
@@ -365,10 +328,10 @@ class OSInstall():
                                 % (host_id,
                                    host_status['count'] * self.time_step,
                                    host_status['os_progress'])))
-        except Exception as ex:
-            LOG.error('%s: execute get install progress failed.', ex)
+        else:
+            LOG.info(_("host %s install failed." % host_id))
             host_status['os_status'] = host_os_status['INSTALL_FAILED']
-            host_status['messages'] = info
+            host_status['messages'] = install_result['info']
 
     def _query_progress(self, hosts_last_status, hosts_detail):
         hosts_status = copy.deepcopy(hosts_last_status)
@@ -444,69 +407,64 @@ class OSInstall():
         except exception.Invalid as e:
             raise HTTPBadRequest(explanation=e.msg, request=req)
 
-        ip_inter = lambda x: sum([256 ** j * int(i)
-                                  for j, i in enumerate(x.split('.')[::-1])])
-        inter_ip = lambda x: '.'.join(
-            [str(x / (256**i) % 256) for i in range(3, -1, -1)])
-        for network in networks:
-            if 'system' in network['type']:
-                network_cidr = network.get('cidr')
-                if not network_cidr:
-                    msg = "Error:The CIDR is blank of pxe server!"
-                    LOG.error(msg)
-                    raise exception.Forbidden(msg)
-                cidr_end = network_cidr.split('/')[1]
-                mask = ~(2**(32 - int(cidr_end)) - 1)
-                net_mask = inter_ip(mask)
-                pxe_server_ip = network.get('ip')
-                ip_ranges = network.get('ip_ranges')
-                for ip_range in ip_ranges:
-                    client_ip_begin = ip_range.get('start')
-                    client_ip_end = ip_range.get('end')
-                    ip_addr = network_cidr.split('/')[0]
-                    ip_addr_int = ip_inter(ip_addr)
-                    ip_addr_min = inter_ip(ip_addr_int & (mask & 0xffffffff))
-                    ip_addr_max = inter_ip(ip_addr_int | (~mask & 0xffffffff))
-                    if not client_ip_begin and not client_ip_end:
-                        client_ip_begin = inter_ip((ip_inter(ip_addr_min)) + 2)
-                        client_ip_end = ip_addr_max
-                    if pxe_server_ip:
-                        ip_in_cidr = utils.is_ip_in_cidr(pxe_server_ip,
-                                                         network_cidr)
-                        if not ip_in_cidr:
-                            msg = "Error:The ip '%s' is not in cidr '%s'" \
-                                  " range." % (pxe_server_ip, network_cidr)
-                            LOG.error(msg)
-                            raise HTTPBadRequest(explanation=msg)
-                    else:
-                        pxe_server_ip = inter_ip((ip_inter(ip_addr_min)) + 1)
-
-        eth_name = install_meta.get('deployment_interface')
-        if not eth_name:
-            msg = "Error:The nic name is blank of build pxe server!"
-            LOG.error(msg)
-            raise exception.Forbidden(msg)
-        args = {'build_pxe': 'yes',
-                'ethname_l': eth_name,
-                'ip_addr_l': pxe_server_ip,
-                'net_mask_l': net_mask,
-                'client_ip_begin': client_ip_begin,
-                'client_ip_end': client_ip_end}
-        with open('/var/log/ironic/pxe.json', 'w') as f:
-            json.dump(args, f, indent=2)
-        f.close()
         try:
-            _PIPE = subprocess.PIPE
-            cmd = "/usr/bin/pxe_server_install /var/log/ironic/pxe.json && \
-                   chmod 755 /tftpboot -R"
-            obj = subprocess.Popen(cmd,
-                                   shell=True,
-                                   stdout=_PIPE,
-                                   stderr=_PIPE)
-            out, error = obj.communicate()
-        except Exception as ex:
-            LOG.error("%s: execute set pxe command failed.", ex)
+            ip_inter = lambda x: sum([256 ** j * int(i)
+                                      for j, i in enumerate(
+                                      x.split('.')[::-1])])
+            inter_ip = lambda x: '.'.join(
+                [str(x / (256**i) % 256) for i in range(3, -1, -1)])
+            for network in networks:
+                if 'system' in network['type']:
+                    network_cidr = network.get('cidr')
+                    if not network_cidr:
+                        msg = "Error:The CIDR is blank of pxe server!"
+                        LOG.error(msg)
+                        raise exception.Forbidden(msg)
+                    cidr_end = network_cidr.split('/')[1]
+                    mask = ~(2**(32 - int(cidr_end)) - 1)
+                    net_mask = inter_ip(mask)
+                    pxe_server_ip = network.get('ip')
+                    ip_ranges = network.get('ip_ranges')
+                    for ip_range in ip_ranges:
+                        client_ip_begin = ip_range.get('start')
+                        client_ip_end = ip_range.get('end')
+                        ip_addr = network_cidr.split('/')[0]
+                        ip_addr_int = ip_inter(ip_addr)
+                        ip_addr_min = \
+                            inter_ip(ip_addr_int & (mask & 0xffffffff))
+                        ip_addr_max = \
+                            inter_ip(ip_addr_int | (~mask & 0xffffffff))
+                        if not client_ip_begin and not client_ip_end:
+                            client_ip_begin = \
+                                inter_ip((ip_inter(ip_addr_min)) + 2)
+                            client_ip_end = ip_addr_max
+                        if pxe_server_ip:
+                            ip_in_cidr = utils.is_ip_in_cidr(pxe_server_ip,
+                                                             network_cidr)
+                            if not ip_in_cidr:
+                                msg = "Error:The ip '%s' is not in cidr '%s'" \
+                                      " range." % (pxe_server_ip, network_cidr)
+                                LOG.error(msg)
+                                raise HTTPBadRequest(explanation=msg)
+                        else:
+                            pxe_server_ip = \
+                                inter_ip((ip_inter(ip_addr_min)) + 1)
+
+            eth_name = install_meta.get('deployment_interface')
+            if not eth_name:
+                msg = "Error:The nic name is blank of build pxe server!"
+                LOG.error(msg)
+                raise exception.Forbidden(msg)
+            args = {'build_pxe': 'yes',
+                    'ethname_l': eth_name,
+                    'ip_addr_l': pxe_server_ip,
+                    'net_mask_l': net_mask,
+                    'client_ip_begin': client_ip_begin,
+                    'client_ip_end': client_ip_end}
+            daisy_cmn.build_pxe_server(**args)
+        except exception.Invalid as e:
             msg = "build pxe server failed"
+            LOG.error(msg)
             raise exception.InvalidNetworkConfig(msg)
 
     def install_os(self, hosts_detail, role_hosts_ids):
