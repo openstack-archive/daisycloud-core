@@ -22,7 +22,7 @@ from daisyclient.common.utils import safe_header
 from daisyclient import exc
 from oslo_utils import importutils
 from oslo_utils import netutils
-
+from simplejson import decoder
 import requests
 try:
     from requests.packages.urllib3.exceptions import ProtocolError
