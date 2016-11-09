@@ -25,6 +25,7 @@ from daisy.common import utils
 from daisy.common import wsgi
 from daisy import i18n
 import daisy.registry.client.v1.api as registry
+import daisy.api.backends.common as daisy_cmn
 
 LOG = logging.getLogger(__name__)
 _ = i18n._
@@ -148,7 +149,7 @@ class Controller(controller.BaseController):
             LOG.debug(utils.exception_to_str(e))
             raise webob.exc.HTTPNotFound(explanation=e.msg)
 
-        return webob.exc.HTTPNoContent()
+        # return webob.exc.HTTPNoContent()
 
     def default(self, req, image_id, id, body=None):
         """This will cover the missing 'show' and 'create' actions"""
