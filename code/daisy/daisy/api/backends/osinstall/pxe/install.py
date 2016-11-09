@@ -66,6 +66,17 @@ LINUX_BOND_MODE = {'balance-rr': '0', 'active-backup': '1',
                    'balance-alb': '6'}
 
 
+def check_discover_state(req, host_meta, is_detail=False):
+    if host_meta.get("hwm_id"):
+        daisy_cmn.check_discover_state_with_hwm(req,
+                                                host_meta,
+                                                is_detail=is_detail)
+    else:
+        daisy_cmn.check_discover_state_with_no_hwm(req,
+                                                   host_meta,
+                                                   is_detail=is_detail)
+
+
 def pxe_server_build(req, install_meta):
     params = {'filters': {'type': 'system'}}
     try:
