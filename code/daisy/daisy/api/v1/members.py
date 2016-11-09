@@ -148,7 +148,7 @@ class Controller(controller.BaseController):
             LOG.debug(utils.exception_to_str(e))
             raise webob.exc.HTTPNotFound(explanation=e.msg)
 
-        return webob.exc.HTTPNoContent()
+        # return webob.exc.HTTPNoContent()
 
     def default(self, req, image_id, id, body=None):
         """This will cover the missing 'show' and 'create' actions"""
