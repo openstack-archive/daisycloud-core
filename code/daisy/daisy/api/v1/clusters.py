@@ -534,6 +534,11 @@ class Controller(controller.BaseController):
         cluster_name = cluster_meta["name"]
         if not cluster_name:
             raise ValueError('cluster name is null!')
+        # target_systems = cluster_meta['target_systems']
+        # if not target_systems:
+        #     raise ValueError('target_systems is null!')
+        if not cluster_meta.get('target_systems', None):
+            cluster_meta['target_systems'] = "os"
         cluster_name_split = cluster_name.split('_')
         for cluster_name_info in cluster_name_split:
             if not cluster_name_info.isalnum():

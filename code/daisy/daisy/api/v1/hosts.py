@@ -39,9 +39,8 @@ from daisy import notifier
 import daisy.registry.client.v1.api as registry
 import threading
 import daisy.api.backends.common as daisy_cmn
+from daisy.api.backends.os import osdriver
 import ConfigParser
-import socket
-import netaddr
 
 LOG = logging.getLogger(__name__)
 _ = i18n._
@@ -71,6 +70,23 @@ ML2_TYPE = [
     'sriov(macvtap)',
     'sriov(direct)']
 SUPPORT_HOST_PAGE_SIZE = ['2M', '1G']
+config = ConfigParser.ConfigParser()
+config.read(daisy_cmn.daisy_conf_file)
+try:
+    OS_INSTALL_TYPE = config.get("OS", "os_install_type")
+except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
+    OS_INSTALL_TYPE = 'pxe'
+
+_OS_HANDLE = None
+
+
+def get_os_handle():
+    global _OS_HANDLE
+    if _OS_HANDLE is not None:
+        return _OS_HANDLE
+
+    _OS_HANDLE = osdriver.load_install_os_driver(OS_INSTALL_TYPE)
+    return _OS_HANDLE
 
 
 class Controller(controller.BaseController):
@@ -611,7 +627,10 @@ class Controller(controller.BaseController):
         """
         self._enforce(req, 'get_host')
         host_meta = self.get_host_meta_or_404(req, id)
-        self.check_discover_state_with_no_hwm(req, host_meta)
+        os_handle = get_os_handle()
+        os_handle.check_discover_state(req,
+                                       host_meta,
+                                       is_detail=True)
         host_vcpu_pin = vcpu_pin.allocate_cpus(host_meta)
         host_meta.update(host_vcpu_pin)
         if 'role' in host_meta and 'CONTROLLER_HA' in host_meta['role']:
@@ -686,10 +705,12 @@ class Controller(controller.BaseController):
         """
         self._enforce(req, 'get_hosts')
         params = self._get_query_params(req)
+        os_handle = get_os_handle()
         try:
             nodes = registry.get_hosts_detail(req.context, **params)
             for node in nodes:
-                self.check_discover_state_with_no_hwm(req, node)
+                os_handle.check_discover_state(req,
+                                               node)
         except exception.Invalid as e:
             raise HTTPBadRequest(explanation=e.msg, request=req)
         return dict(nodes=nodes)
