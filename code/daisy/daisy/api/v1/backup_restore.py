@@ -153,6 +153,7 @@ class Controller(controller.BaseController):
 
         scripts = [
             'test -d {0}daisy_tmp||mkdir -p {0}daisy_tmp'.format(BACK_PATH),
+            'rm -rf {0}*.tar.gz'.format(BACK_PATH),
             'echo {0}>{1}daisy_tmp/version.conf'.format(
                 version['daisy_version'], BACK_PATH),
             'cp /home/daisy_install/daisy.conf {0}/daisy_tmp'.format(
@@ -187,7 +188,6 @@ class Controller(controller.BaseController):
                 BACK_PATH),
             'rm -rf {0}daisy_tmp'.format(BACK_PATH)
         ]
-
         daisy_cmn.run_scrip(restore_scripts, msg='Restore failed!')
         LOG.info('Restore successfully')
 
