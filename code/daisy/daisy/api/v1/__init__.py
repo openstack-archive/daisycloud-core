@@ -13,8 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-SUPPORTED_FILTERS = ['name', 'status', 'cluster_id', 'id',
-                     'host_id', 'role_id',
+SUPPORTED_FILTERS = ['name', 'status', 'cluster_id', 'id', 'service_name',
+                     'host_id', 'role_id', 'func_id', 'config_id', 'version',
                      'auto_scale', 'container_format', 'disk_format',
                      'min_ram', 'min_disk', 'size_min', 'size_max',
                      'is_public', 'changes-since', 'protected', 'type']
