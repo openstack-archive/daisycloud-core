@@ -39,7 +39,7 @@ from daisy.api.v1 import controller
 from daisy.api.v1 import filters
 import daisy.api.backends.common as daisy_cmn
 from daisy.api.backends import driver
-from daisy.api.backends.os import osdriver
+from daisy.api.backends.osinstall import osdriver
 import ConfigParser
 
 
