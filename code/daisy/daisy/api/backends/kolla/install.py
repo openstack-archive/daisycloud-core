@@ -176,6 +176,8 @@ def get_cluster_kolla_config(req, cluster_id):
     mgt_macname_list = []
     pub_macname_list = []
     dat_macname_list = []
+    ext_macname_list = []
+    sto_macname_list = []
     openstack_version = '2.0.3'
     docker_namespace = 'kolla'
     host_name_ip = {}
@@ -202,21 +204,25 @@ def get_cluster_kolla_config(req, cluster_id):
                 controller_ip_list.append(mgt_ip)
                 mgt_macname = deploy_host_cfg['mgt_macname']
                 pub_macname = deploy_host_cfg['pub_macname']
+                sto_macname = deploy_host_cfg['sto_macname']
                 mgt_macname_list.append(mgt_macname)
                 pub_macname_list.append(pub_macname)
+                sto_macname_list.append(sto_macname)
                 if host_name_ip not in host_name_ip_list:
                     host_name_ip_list.append(host_name_ip)
             if len(set(mgt_macname_list)) != 1 or \
-                    len(set(pub_macname_list)) != 1:
+                    len(set(pub_macname_list)) != 1 or \
+                    len(set(sto_macname_list)) != 1:
                 msg = (_("hosts interface name of public and \
-                         management must be same!"))
+                         management and storage must be same!"))
                 LOG.error(msg)
                 raise HTTPForbidden(msg)
             kolla_config.update({'Version': openstack_version})
             kolla_config.update({'Namespace': docker_namespace})
             kolla_config.update({'VIP': kolla_vip})
             kolla_config.update({'IntIfMac': mgt_macname})
-            kolla_config.update({'ExtIfMac': pub_macname})
+            kolla_config.update({'PubIfMac': pub_macname})
+            kolla_config.update({'StoIfMac': sto_macname})
             kolla_config.update({'LocalIP': docker_registry})
             kolla_config.update({'Controller_ips': controller_ip_list})
             kolla_config.update({'Network_ips': controller_ip_list})
@@ -236,13 +242,17 @@ def get_cluster_kolla_config(req, cluster_id):
                     host_name_ip_list.append(host_name_ip)
                 dat_macname = deploy_host_cfg['dat_macname']
                 dat_macname_list.append(dat_macname)
-            if len(set(dat_macname_list)) != 1:
+                ext_macname = deploy_host_cfg['ext_macname']
+                ext_macname_list.append(ext_macname)
+            if len(set(dat_macname_list)) != 1 or \
+                    len(set(ext_macname_list)) != 1:
                 msg = (_("computer hosts interface name of dataplane \
-                         must be same!"))
+                         and external must be same!"))
                 LOG.error(msg)
                 raise HTTPForbidden(msg)
             kolla_config.update({'Computer_ips': computer_ip_list})
             kolla_config.update({'TulIfMac': dat_macname})
+            kolla_config.update({'ExtIfMac': ext_macname})
     mgt_ip_list = set(controller_ip_list + computer_ip_list)
     return (kolla_config, mgt_ip_list, host_name_ip_list)
 
