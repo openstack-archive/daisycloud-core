@@ -37,7 +37,8 @@ from daisy import i18n
 from daisy import notifier
 import daisy.registry.client.v1.api as registry
 from daisy.registry.api.v1 import template
-
+from daisy.api.backends.osinstall import osdriver
+import ConfigParser
 import daisy.api.backends.common as daisy_cmn
 
 LOG = logging.getLogger(__name__)
@@ -53,6 +54,21 @@ CONF.import_opt('disk_formats', 'daisy.common.config', group='image_format')
 CONF.import_opt('container_formats', 'daisy.common.config',
                 group='image_format')
 CONF.import_opt('image_property_quota', 'daisy.common.config')
+try:
+    OS_INSTALL_TYPE = config.get("OS", "os_install_type")
+except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
+    OS_INSTALL_TYPE = 'pxe'
+
+_OS_HANDLE = None
+
+
+def get_os_handle():
+    global _OS_HANDLE
+    if _OS_HANDLE is not None:
+        return _OS_HANDLE
+
+    _OS_HANDLE = osdriver.load_install_os_driver(OS_INSTALL_TYPE)
+    return _OS_HANDLE
 
 
 class Controller(controller.BaseController):
@@ -262,10 +278,10 @@ class Controller(controller.BaseController):
         kwargs = {}
         nodes = registry.get_hosts_detail(req.context, **kwargs)
         for node in nodes:
-            if node.get("hwm_id"):
-                daisy_cmn.check_discover_state_with_hwm(req, node)
-            else:
-                daisy_cmn.check_discover_state_with_no_hwm(req, node)
+            os_handle = get_os_handle()
+            os_handle.check_discover_state(req,
+                                           host_meta,
+                                           is_detail=True)
         ssh_hosts_list = []
         for node in nodes:
             if node['discover_state'] and 'SSH' in node['discover_state']:

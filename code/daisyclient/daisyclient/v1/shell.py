@@ -60,6 +60,8 @@ def _daisy_show(daisy, max_column_width=80):
            help='node name to be added.')
 @utils.arg('description', metavar='<DESCRIPTION>',
            help='node description to be added.')
+@utils.arg('discover_mode', metavar='<DISCOVER_MODE>',
+           help='node discover mode(PXE/SSH) to be added.')
 @utils.arg('--resource-type', metavar='<RESOURCE_TYPE>',
            help='node resource type to be added, supported type are \
                  "baremetal", "server" and "docker".\
