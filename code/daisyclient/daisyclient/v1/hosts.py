@@ -29,19 +29,26 @@ UPDATE_PARAMS = ('name', 'resource_type', 'dmi_uuid', 'role', 'cluster',
                  'os_status', 'interfaces', 'is_deployment',
                  'description', 'deleted', 'status', 'ipmi_user',
                  'ipmi_passwd', 'ipmi_addr', 'ip', 'status', 'user',
-                 'passwd', 'cluster_id',
+                 'passwd', 'hwm_id', 'hwm_ip', 'cluster_id',
                  'vcpu_pin_set', 'dvs_high_cpuset', 'pci_high_cpuset',
-                 'os_cpus', 'dvs_cpus', 'config_set_id', 'system',
-                 'cpu', 'memory', 'disks', 'devices', 'pci')
+                 'os_cpus', 'dvs_cpus', 'config_set_id', 'discover_state',
+                 'group_list', 'version_patch_id', 'tecs_version_id',
+                 'dvs_config_type', 'dvsc_cpus', 'dvsp_cpus', 'dvsv_cpus',
+                 'dvsblank_cpus', 'flow_mode', 'virtio_queue_size',
+                 'dvs_config_desc', 'discover_mode', 'system', 'cpu',
+                 'memory', 'disks', 'devices', 'pci')
+
 
 CREATE_PARAMS = ('id', 'name', 'description', 'resource_type', 'dmi_uuid',
                  'role', 'cluster', 'os_version', 'os_status',
                  'interfaces', 'is_deployment', 'status', 'ipmi_user',
                  'ipmi_passwd', 'ipmi_addr', 'ip', 'status', 'user',
-                 'passwd', 'cluster_id',
+                 'passwd', 'hwm_id', 'hwm_ip', 'cluster_id',
                  'vcpu_pin_set', 'dvs_high_cpuset', 'pci_high_cpuset',
-                 'os_cpus', 'dvs_cpus', 'config_set_id', 'system',
-                 'cpu', 'memory', 'disks', 'devices', 'pci')
+                 'os_cpus', 'dvs_cpus', 'config_set_id', 'root_disk',
+                 'version_patch_id', 'tecs_version_id', 'dvs_config_type',
+                 'discover_mode', 'system', 'cpu', 'memory', 'disks', 'devices',
+                 'pci')
 
 DEFAULT_PAGE_SIZE = 200
 
