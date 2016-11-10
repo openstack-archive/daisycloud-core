@@ -30,6 +30,7 @@ from daisy.api import policy
 import daisy.api.v1
 from daisy.api.v1 import controller
 from daisy.api.v1 import filters
+from daisy.api.v1 import install as instl
 from daisy.common import exception
 from daisy.common import utils
 from daisy.common import wsgi
@@ -108,6 +109,7 @@ class Controller(controller.BaseController):
         DELETE /nodes/<ID> -- Delete the host with id <ID>
     """
     support_resource_type = ['baremetal', 'server', 'docker']
+    support_discover_mode = ['PXE', 'SSH']
 
     def __init__(self):
         self.notifier = notifier.Notifier()
@@ -128,6 +130,7 @@ class Controller(controller.BaseController):
         if network is None or network['deleted']:
             msg = _("Network with identifier %s has been deleted.") % \
                 network_id
+            LOG.error(msg)
             raise HTTPNotFound(msg)
 
     def _raise_404_if_cluster_deleted(self, req, cluster_id):
@@ -135,12 +138,14 @@ class Controller(controller.BaseController):
         if cluster is None or cluster['deleted']:
             msg = _("Cluster with identifier %s has been deleted.") % \
                 cluster_id
+            LOG.error(msg)
             raise HTTPNotFound(msg)
 
     def _raise_404_if_role_deleted(self, req, role_id):
         role = self.get_role_meta_or_404(req, role_id)
         if role is None or role['deleted']:
             msg = _("Cluster with identifier %s has been deleted.") % role_id
+            LOG.error(msg)
             raise HTTPNotFound(msg)
 
     def _get_filters(self, req):
@@ -222,21 +227,37 @@ class Controller(controller.BaseController):
             LOG.error(msg)
             raise HTTPForbidden(msg)
 
+    def validate_mac_format(self, mac_str):
+        '''Validates a mac address'''
+        if re.match("[0-9a-f]{2}([-:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$",
+                    mac_str.lower()):
+            return
+        else:
+            msg = (_("%s invalid mac format!") % mac_str)
+            LOG.error(msg)
+            raise HTTPForbidden(msg)
+
     def get_cluster_networks_info(self, req, cluster_id=None, type=None):
         '''
         get_cluster_networks_info by cluster id
         '''
+
+        if not type and not cluster_id:
+            msg = "error, the type and cluster_id "\
+                  "can not be empty at the same time"
+            LOG.error(msg)
+            raise HTTPForbidden(msg)
         params = {}
-        if type:
+        if type and cluster_id:
+            params['filters'] = {'type': type, 'cluster_id': cluster_id}
+        elif type:
             params['filters'] = {'type': type}
+        elif cluster_id:
+            params['filters'] = {'cluster_id': cluster_id}
 
         all_networks = registry.get_all_networks(req.context, **params)
-        if cluster_id:
-            cluster_networks = [network for network in all_networks
-                                if network['cluster_id'] == cluster_id]
-            return cluster_networks
-        else:
-            return all_networks
+
+        return all_networks
 
     def _check_assigned_networks(self, req, cluster_id, assigned_networks):
         LOG.info("assigned_networks %s " % assigned_networks)
@@ -267,6 +288,7 @@ class Controller(controller.BaseController):
                                          " is not in cidr range." %
                                          (assigned_network['ip'],
                                           assigned_network['name'])))
+                                LOG.error(msg)
                                 raise HTTPBadRequest(explanation=msg)
                     else:
                         msg = "error, cidr of network '%s' is empty" % (
@@ -310,14 +332,17 @@ class Controller(controller.BaseController):
                     msg = (_('Network %s and network %s with same '
                              'cidr can not be assigned to different '
                              'interfaces.')) % (network1_name, network2_name)
+                    LOG.error(msg)
                     raise HTTPBadRequest(explanation=msg)
 
     def _check_add_host_interfaces(self, req, host_meta):
         host_meta_interfaces = []
-        if 'interfaces' in host_meta:
+        if host_meta.get('interfaces') and eval(host_meta['interfaces']):
             host_meta_interfaces = list(eval(host_meta['interfaces']))
         else:
-            return
+            msg = "No Interface in host, host_meta is: %s" % host_meta
+            LOG.error(msg)
+            raise HTTPBadRequest(msg)
 
         cluster_id = host_meta.get('cluster', None)
 
@@ -328,6 +353,7 @@ class Controller(controller.BaseController):
                 msg = _(
                     'The host %s os_status is active,'
                     'forbidden ironic to add host.') % exist_id
+                LOG.error(msg)
                 raise HTTPBadRequest(explanation=msg)
             host_meta['id'] = exist_id
             self.update_host(req, exist_id, host_meta)
@@ -351,6 +377,7 @@ class Controller(controller.BaseController):
                     'mac',
                     None):
                 msg = _('The ether interface need a non-null mac ')
+                LOG.error(msg)
                 raise HTTPBadRequest(explanation=msg,
                                      request=req,
                                      content_type="text/plain")
@@ -425,6 +452,7 @@ class Controller(controller.BaseController):
                     ML2_TYPE:
                 msg = "vswitch_type %s is not supported" % interface[
                     'vswitch_type']
+                LOG.error(msg)
                 raise HTTPBadRequest(explanation=msg, request=req,
                                      content_type="text/plain")
             interface_num += 1
@@ -441,6 +469,7 @@ class Controller(controller.BaseController):
                     msg = (_('Network %s and network %s with same '
                              'cidr can not be assigned to different '
                              'interfaces.')) % (network1_name, network2_name)
+                    LOG.error(msg)
                     raise HTTPBadRequest(explanation=msg)
 
         # when assigned_network is empty, ip must be config
@@ -479,6 +508,7 @@ class Controller(controller.BaseController):
                                  orig_host_meta.get('name'))
                     msg = _("hugepages should be larger than 10G "
                             " when dvs installed on host %s") % host_name
+                    LOG.error(msg)
                     raise HTTPForbidden(explanation=msg)
 
     @utils.mutating
@@ -514,12 +544,14 @@ class Controller(controller.BaseController):
                 if len(role_id_list) != len(host_roles):
                     msg = "The role of params %s is not exist, " \
                           "please use the right name" % host_roles
+                    LOG.error(msg)
                     raise HTTPBadRequest(explanation=msg,
                                          request=req,
                                          content_type="text/plain")
                 host_meta['role'] = role_id_list
             else:
                 msg = "cluster params is none"
+                LOG.error(msg)
                 raise HTTPBadRequest(explanation=msg,
                                      request=req,
                                      content_type="text/plain")
@@ -533,6 +565,7 @@ class Controller(controller.BaseController):
             if host_meta['resource_type'] not in self.support_resource_type:
                 msg = "resource type is not supported, please use it in %s" % \
                       self.support_resource_type
+                LOG.error(msg)
                 raise HTTPBadRequest(explanation=msg,
                                      request=req,
                                      content_type="text/plain")
@@ -543,6 +576,7 @@ class Controller(controller.BaseController):
             if host_meta['os_status'] not in ['init', 'installing',
                                               'active', 'failed', 'none']:
                 msg = "os_status is not valid."
+                LOG.error(msg)
                 raise HTTPBadRequest(explanation=msg,
                                      request=req,
                                      content_type="text/plain")
@@ -558,6 +592,14 @@ class Controller(controller.BaseController):
         if host_meta.get('config_set_id'):
             self.get_config_set_meta_or_404(req,
                                             host_meta['config_set_id'])
+        if host_meta.get("discover_mode") and \
+                (host_meta["discover_mode"] not in self.support_discover_mode):
+            msg = "discover mode is not supported, please use it in %s" % \
+                  self.support_discover_mode
+            LOG.error(msg)
+            raise HTTPBadRequest(explanation=msg,
+                                 request=req,
+                                 content_type="text/plain")
 
         for ironic_keyword in ['cpu', 'system', 'memory',
                                'pci', 'disks', 'devices']:
@@ -715,21 +757,6 @@ class Controller(controller.BaseController):
             raise HTTPBadRequest(explanation=e.msg, request=req)
         return dict(nodes=nodes)
 
-    def check_discover_state_with_no_hwm(self, req, node):
-        node['discover_state'] = None
-        host_meta = self.get_host_meta_or_404(req, node.get('id'))
-        if host_meta and host_meta.get('interfaces'):
-            ip_list = [interface['ip'] for interface
-                       in host_meta.get('interfaces') if interface['ip']]
-            if ip_list:
-                for ip in ip_list:
-                    ssh_discover_host = self._get_host_by_ip(req, ip)
-                    if ssh_discover_host:
-                        node['discover_state'] = \
-                            "SSH:" + ssh_discover_host.get('status')
-
-        return node
-
     def _compute_hugepage_memory(self, hugepages, memory, hugepagesize='1G'):
         hugepage_memory = 0
         if hugepagesize == '2M':
@@ -739,6 +766,7 @@ class Controller(controller.BaseController):
         if hugepage_memory > memory:
             msg = "The memory hugepages used is bigger " \
                   "than total memory."
+            LOG.error(msg)
             raise HTTPBadRequest(explanation=msg)
 
     def _count_host_pxe_info(self, interfaces):
@@ -876,6 +904,7 @@ class Controller(controller.BaseController):
                               "db, but 'dmi_uuid' is different.We think " \
                               "you want update the host, but the host " \
                               "can't find."
+                        LOG.error(msg)
                         raise HTTPForbidden(explanation=msg)
                     return (id, os_status)
         return (None, None)
@@ -891,7 +920,7 @@ class Controller(controller.BaseController):
             swap_lv_size_m = 65536
         return swap_lv_size_m
 
-    def _ready_to_discover_host(self, host_meta, orig_host_meta):
+    def _ready_to_discover_host(self, req, host_meta, orig_host_meta):
         if orig_host_meta.get('interfaces', None):
             macs = [interface['mac'] for interface
                     in orig_host_meta['interfaces'] if interface['mac']]
@@ -905,7 +934,10 @@ class Controller(controller.BaseController):
                 'status' in orig_host_meta and
                 orig_host_meta['status'] == 'with-role' and
                 orig_host_meta['os_status'] != 'init'):
-            host_meta['role'] = []
+            role_info = {'messages': '', 'progress': '0', 'status': 'init'}
+            host_roles = daisy_cmn.get_roles_of_host(req, orig_host_meta['id'])
+            for host_role in host_roles:
+                daisy_cmn.update_role_host(req, host_role['id'], role_info)
         if 'os_progress' not in host_meta:
             host_meta['os_progress'] = 0
         if 'messages' not in host_meta:
@@ -918,6 +950,7 @@ class Controller(controller.BaseController):
                                    network['name'] == 'DEPLOYMENT']
         if not template_deploy_network:
             msg = "error, can't find deployment network of system"
+            LOG.error(msg)
             raise HTTPNotFound(msg)
 
         dhcp_cidr = template_deploy_network[0]['cidr']
@@ -947,6 +980,143 @@ class Controller(controller.BaseController):
             raise HTTPBadRequest(explanation=msg)
         host_meta['interfaces'] = unicode(host_meta['interfaces'])
 
+    def _get_os_version(self, host_meta, orig_host_meta):
+        # os_version_file and os_version_id only exist one at same time
+        os_version = None
+        if host_meta.get('os_version', None) and not utils.is_uuid_like(
+                host_meta['os_version']):
+            os_version = host_meta['os_version']
+        if host_meta.get('os_version', None) and utils.is_uuid_like(
+                host_meta['os_version']):
+            os_version = host_meta['os_version']
+        if not host_meta.get('os_version', None) and orig_host_meta[
+            'os_version_file']:
+            os_version = orig_host_meta['os_version_file']
+        if not host_meta.get('os_version', None) and orig_host_meta[
+            'os_version_id']:
+            os_version = orig_host_meta['os_version_id']
+        return os_version
+
+    def _get_group_list(self, host_meta, orig_host_meta, os_version_type):
+        group_list = None
+        if host_meta.get('group_list', None):
+            group_list = host_meta['group_list']
+        if not host_meta.get('group_list', None) and orig_host_meta.get(
+                'group_list', None):
+            group_list = orig_host_meta['group_list']
+        if not host_meta.get('group_list', None) and not orig_host_meta.get(
+                'group_list', None) and os_version_type == "redhat 7.0":
+            host_meta['group_list'] = "core,base"
+            group_list = host_meta['group_list']
+        if not host_meta.get('group_list', None) and not orig_host_meta.get(
+                'group_list', None) and os_version_type == "centos 7.0":
+            host_meta['group_list'] = "core,base"
+            group_list = host_meta['group_list']
+        return host_meta, group_list
+
+    def _get_os_version_type(self, req, os_version):
+        os_version_type = None
+        if utils.is_uuid_like(os_version):
+            version_metadata = registry.get_version_metadata(req.context,
+                                                             os_version)
+            os_version_type = version_metadata['type']
+            return os_version_type
+        return os_version_type
+        # else:
+        #     params = {}
+        #     version_list = registry.list_version_metadata(req.context, **params)
+        #     for version in version_list:
+        #         if version['name'] == os_version.split("/")[-1]:
+        #             return version['type']
+
+    def _check_group_list(self, os_version_type, group_list):
+        if os_version_type == "redhat 7.0":
+            if "core" not in group_list.split(","):
+                msg = "No group named 'core' found in redhat 7.0"
+                raise HTTPBadRequest(explanation=msg)
+            if "base" not in group_list.split(","):
+                msg = "No group named 'base' found in redhat 7.0"
+                raise HTTPBadRequest(explanation=msg)
+        if os_version_type == "centos 7.0":
+            if "core" not in group_list.split(","):
+                msg = "No group named 'core' found in centos 7.0"
+                raise HTTPBadRequest(explanation=msg)
+            if "base" not in group_list.split(","):
+                msg = "No group named 'base' found in centos 7.0"
+                raise HTTPBadRequest(explanation=msg)
+
+    def _check_os_version(self, req, os_version):
+        params = {}
+        version_list = registry.list_version_metadata(req.context, **params)
+        if utils.is_uuid_like(os_version):
+            version_id_list = [version['id'] for version in version_list]
+            if not os_version in version_id_list:
+                msg = _("os version %s does not exist") % os_version
+                raise HTTPForbidden(explanation=msg)
+        # else:
+        #     version_file_list = [version['name'] for version in version_list]
+        #     if not os_version.split("/")[-1] in version_file_list:
+        #         msg = _("os version %s does not exist") % \
+        #               os_version.split("/")[-1]
+        #         raise HTTPForbidden(explanation=msg)
+
+    def _verify_host_name(self, req, host_id, orig_host_meta, host_meta):
+        if (host_meta.get('os_status', "") != 'init') and \
+                (orig_host_meta.get('os_status', "") == 'active'):
+            if (host_meta.get("name")) and \
+                    (host_meta["name"] != orig_host_meta["name"]):
+                msg = _(
+                    "Forbidden to update name of %s "
+                    "when os_status is active if "
+                    "you don't want to install os") % host_meta['name']
+                LOG.error(msg)
+                raise HTTPForbidden(explanation=msg)
+        else:
+            if not host_meta.get("name"):
+                return
+            _name_regex = '^[a-zA-Z][a-zA-Z0-9-]{3,15}$'
+            if not re.match(_name_regex, host_meta["name"]):
+                msg = _(
+                    "Forbidden to update name of %s "
+                    "Name must begin with letters,and consist of numbers,"
+                    "letters or strikethrough. "
+                    "The length of name is 4 to 16.") % host_meta['name']
+                LOG.error(msg)
+                raise HTTPForbidden(explanation=msg)
+            # host name is already existed?
+            hosts = registry.get_hosts_detail(req.context)
+            for host in hosts:
+                if (host.get("name", "") == host_meta["name"]) and \
+                        (host.get("id", "") != host_id):
+                    msg = _("host name %s already exists.") % host_meta["name"]
+                    LOG.error(msg)
+                    raise HTTPForbidden(explanation=msg)
+
+    def _verify_host_cluster(self, req, host_id, orig_host_meta, host_meta):
+        if 'cluster' in host_meta:
+            self.get_cluster_meta_or_404(req, host_meta['cluster'])
+            if orig_host_meta['status'] == 'in-cluster':
+                host_cluster = registry.get_host_clusters(
+                    req.context, host_id)
+                if host_meta['cluster'] != host_cluster[0]['cluster_id']:
+                    msg = _("Forbidden to add host %s with status "
+                            "'in-cluster' in another cluster") % host_id
+                    LOG.error(msg)
+                    raise HTTPForbidden(explanation=msg)
+            if orig_host_meta.get("hwm_id"):
+                daisy_cmn.check_discover_state_with_hwm(req, orig_host_meta)
+            else:
+                daisy_cmn.check_discover_state_with_no_hwm(req,
+                                                           orig_host_meta)
+            discover_success = (orig_host_meta.get("discover_state")) and \
+                               ('DISCOVERY_SUCCESSFUL' in
+                                orig_host_meta["discover_state"])
+            if not discover_success:
+                msg = _("Forbidden to update host %s with discover status "
+                        "not successful") % host_id
+                LOG.error(msg)
+                raise HTTPForbidden(explanation=msg)
+
     @utils.mutating
     def update_host(self, req, id, host_meta):
         """
@@ -963,15 +1133,18 @@ class Controller(controller.BaseController):
         # Fix for LP Bug #1060930
         if orig_host_meta['deleted']:
             msg = _("Forbidden to update deleted host.")
+            LOG.error(msg)
             raise HTTPForbidden(explanation=msg,
                                 request=req,
                                 content_type="text/plain")
-
+        orig_mac_list = list()
+        self._verify_host_name(req, id, orig_host_meta, host_meta)
         if 'interfaces' in host_meta:
             for interface_param in eval(host_meta['interfaces']):
                 if not interface_param.get('pci', None) and \
                         interface_param.get('type', None) == 'ether':
                     msg = "The Interface need a non-null pci"
+                    LOG.error(msg)
                     raise HTTPBadRequest(explanation=msg,
                                          request=req,
                                          content_type="text/plain")
@@ -981,11 +1154,15 @@ class Controller(controller.BaseController):
                         interface_param['vswitch_type'] not in ML2_TYPE:
                     msg = "vswitch_type %s is not supported" % interface_param[
                         'vswitch_type']
+                    LOG.error(msg)
                     raise HTTPBadRequest(explanation=msg, request=req,
                                          content_type="text/plain")
-
-            if orig_host_meta.get('interfaces', None):
-                interfaces_db = orig_host_meta['interfaces']
+            interfaces_db = orig_host_meta.get('interfaces', None)
+            orig_mac_list = [interface_db['mac'] for interface_db in
+                             interfaces_db if interface_db['mac']]
+            orig_pci_list = [interface_db['pci'] for interface_db in
+                             interfaces_db if interface_db['pci']]
+            if interfaces_db and len(orig_pci_list):
                 interfaces_param = eval(host_meta['interfaces'])
                 interfaces_db_ether = [
                     interface_db for interface_db in interfaces_db if
@@ -997,6 +1174,7 @@ class Controller(controller.BaseController):
                         'type', None) != 'bond']
                 if len(interfaces_param) < len(interfaces_db_ether):
                     msg = "Forbidden to update part of interfaces"
+                    LOG.error(msg)
                     raise HTTPForbidden(explanation=msg)
             # pci in subnet interface is null,
                     # comment it to avoid the bug. 20160508 gaoming
@@ -1012,31 +1190,26 @@ class Controller(controller.BaseController):
                                     msg = "Forbidden to modify mac of " \
                                           "interface with pci %s" % \
                                           interface_db['pci']
+                                    LOG.error(msg)
                                     raise HTTPForbidden(explanation=msg)
                                 if interface_param[
                                         'type'] != interface_db['type']:
                                     msg = "Forbidden to modify type of " \
                                           "interface with pci %s" % \
                                           interface_db['pci']
+                                    LOG.error(msg)
                                     raise HTTPForbidden(explanation=msg)
                 if pci_count != len(interfaces_db_ether):
                     msg = "Forbidden to modify pci of interface"
+                    LOG.error(msg)
                     raise HTTPForbidden(explanation=msg)
 
-        if 'cluster' in host_meta:
-            self.get_cluster_meta_or_404(req, host_meta['cluster'])
-            if 'cluster' in host_meta:
-                if orig_host_meta['status'] == 'in-cluster':
-                    host_cluster = registry.get_host_clusters(req.context, id)
-                    if host_meta['cluster'] != host_cluster[0]['cluster_id']:
-                        msg = _("Forbidden to add host %s with status "
-                                "'in-cluster' in another cluster") % id
-                        raise HTTPForbidden(explanation=msg)
-
+        self._verify_host_cluster(req, id, orig_host_meta, host_meta)
         if ('resource_type' in host_meta and
                 host_meta['resource_type'] not in self.support_resource_type):
             msg = "resource type is not supported, please use it in %s" % \
                   self.support_resource_type
+            LOG.error(msg)
             raise HTTPNotFound(msg)
 
         if host_meta.get(
@@ -1049,11 +1222,12 @@ class Controller(controller.BaseController):
                 msg = _(
                     "Forbidden to update root_disk of %s "
                     "when os_status is active if "
-                    "you don't want to install os") % host_meta['name']
+                    "you don't want to install os") % id
+                LOG.error(msg)
                 raise HTTPForbidden(explanation=msg)
             else:
                 host_meta['root_disk'] = orig_host_meta['root_disk']
-        else:
+        elif orig_host_meta.get('discover_mode'):
             if host_meta.get('root_disk', None):
                 root_disk = host_meta['root_disk']
             elif orig_host_meta.get('root_disk', None):
@@ -1063,9 +1237,11 @@ class Controller(controller.BaseController):
                 root_disk = host_meta['root_disk']
             if not orig_host_meta.get('disks', None):
                 msg = "there is no disks in %s" % orig_host_meta['id']
+                LOG.error(msg)
                 raise HTTPNotFound(msg)
             if root_disk not in orig_host_meta['disks'].keys():
                 msg = "There is no disk named %s" % root_disk
+                LOG.error(msg)
                 raise HTTPBadRequest(explanation=msg,
                                      request=req,
                                      content_type="text/plain")
@@ -1083,10 +1259,11 @@ class Controller(controller.BaseController):
                     "Forbidden to update root_lv_size of %s "
                     "when os_status is active if "
                     "you don't want to install os") % host_meta['name']
+                LOG.error(msg)
                 raise HTTPForbidden(explanation=msg)
             else:
                 host_meta['root_lv_size'] = str(orig_host_meta['root_lv_size'])
-        else:
+        elif orig_host_meta.get('discover_mode'):
             if host_meta.get('root_lv_size', None):
                 root_lv_size = host_meta['root_lv_size']
             elif orig_host_meta.get('root_lv_size', None):
@@ -1096,6 +1273,7 @@ class Controller(controller.BaseController):
                 root_lv_size = host_meta['root_lv_size']
             if not orig_host_meta.get('disks', None):
                 msg = "there is no disks in %s" % orig_host_meta['id']
+                LOG.error(msg)
                 raise HTTPNotFound(msg)
             if root_lv_size.isdigit():
                 root_lv_size = int(root_lv_size)
@@ -1115,6 +1293,7 @@ class Controller(controller.BaseController):
                     msg = "root_lv_size of %s is larger " \
                           "than the free_root_disk_storage_size." % \
                           orig_host_meta['id']
+                    LOG.error(msg)
                     raise HTTPForbidden(explanation=msg,
                                         request=req,
                                         content_type="text/plain")
@@ -1122,6 +1301,7 @@ class Controller(controller.BaseController):
                     msg = "root_lv_size of %s is too small, " \
                           "it must be larger than 102400M." % orig_host_meta[
                               'id']
+                    LOG.error(msg)
                     raise HTTPForbidden(explanation=msg,
                                         request=req,
                                         content_type="text/plain")
@@ -1130,6 +1310,7 @@ class Controller(controller.BaseController):
                     _("root_lv_size of %s is wrong,"
                       "please input a number and it must be positive number") %
                     orig_host_meta['id'])
+                LOG.error(msg)
                 raise HTTPForbidden(explanation=msg,
                                     request=req,
                                     content_type="text/plain")
@@ -1147,10 +1328,11 @@ class Controller(controller.BaseController):
                     "Forbidden to update swap_lv_size of %s "
                     "when os_status is active if "
                     "you don't want to install os") % host_meta['name']
+                LOG.error(msg)
                 raise HTTPForbidden(explanation=msg)
             else:
                 host_meta['swap_lv_size'] = str(orig_host_meta['swap_lv_size'])
-        else:
+        elif orig_host_meta.get('discover_mode'):
             if host_meta.get('swap_lv_size', None):
                 swap_lv_size = host_meta['swap_lv_size']
             elif orig_host_meta.get('swap_lv_size', None):
@@ -1158,6 +1340,7 @@ class Controller(controller.BaseController):
             else:
                 if not orig_host_meta.get('memory', None):
                     msg = "there is no memory in %s" % orig_host_meta['id']
+                    LOG.error(msg)
                     raise HTTPNotFound(msg)
                 memory_size_b_str = str(orig_host_meta['memory']['total'])
                 memory_size_b_int = int(memory_size_b_str.strip().split()[0])
@@ -1175,7 +1358,9 @@ class Controller(controller.BaseController):
                             or orig_host_meta['disks'][key]['name'].\
                             find("mpath") != -1 \
                             or orig_host_meta['disks'][key]['name'].\
-                            find("spath") != -1:
+                            find("spath") != -1 \
+                            or orig_host_meta['disks'][key]['removable'] \
+                                    == 'removable':
                         continue
                     stroage_size_str = orig_host_meta['disks'][key]['size']
                     stroage_size_b_int = int(
@@ -1228,6 +1413,7 @@ class Controller(controller.BaseController):
                           "db_lv_size of %s is larger " \
                           "than the free_disk_storage_size." % \
                           orig_host_meta['id']
+                    LOG.error(msg)
                     raise HTTPForbidden(explanation=msg,
                                         request=req,
                                         content_type="text/plain")
@@ -1235,6 +1421,7 @@ class Controller(controller.BaseController):
                     msg = "swap_lv_size of %s is too small, " \
                           "it must be larger than 2000M." % orig_host_meta[
                               'id']
+                    LOG.error(msg)
                     raise HTTPForbidden(explanation=msg,
                                         request=req,
                                         content_type="text/plain")
@@ -1243,6 +1430,7 @@ class Controller(controller.BaseController):
                     _("swap_lv_size of %s is wrong,"
                       "please input a number and it must be positive number") %
                     orig_host_meta['id'])
+                LOG.error(msg)
                 raise HTTPForbidden(explanation=msg,
                                     request=req,
                                     content_type="text/plain")
@@ -1258,6 +1446,7 @@ class Controller(controller.BaseController):
                     "Forbidden to update root_pwd of %s "
                     "when os_status is active if "
                     "you don't want to install os") % host_meta['name']
+                LOG.error(msg)
                 raise HTTPForbidden(explanation=msg)
             else:
                 host_meta['root_pwd'] = orig_host_meta['root_pwd']
@@ -1280,10 +1469,11 @@ class Controller(controller.BaseController):
                     "Forbidden to update isolcpus of %s "
                     "when os_status is active if "
                     "you don't want to install os") % host_meta['name']
+                LOG.error(msg)
                 raise HTTPForbidden(explanation=msg)
             else:
                 host_meta['isolcpus'] = orig_host_meta['isolcpus']
-        else:
+        elif orig_host_meta.get('discover_mode'):
             if host_meta.get('isolcpus', None):
                 isolcpus = host_meta['isolcpus']
             elif orig_host_meta.get('isolcpus', None):
@@ -1293,6 +1483,7 @@ class Controller(controller.BaseController):
                 isolcpus = host_meta['isolcpus']
             if not orig_host_meta.get('cpu', None):
                 msg = "there is no cpu in %s" % orig_host_meta['id']
+                LOG.error(msg)
                 raise HTTPNotFound(msg)
             cpu_num = orig_host_meta['cpu']['total']
             if isolcpus:
@@ -1306,6 +1497,7 @@ class Controller(controller.BaseController):
                         msg = "isolcpus number must be lager than 0 and " \
                               "less than %d" % (
                                   cpu_num - 1)
+                        LOG.error(msg)
                         raise HTTPForbidden(explanation=msg,
                                             request=req,
                                             content_type="text/plain")
@@ -1335,10 +1527,12 @@ class Controller(controller.BaseController):
                         host_roles) and host_meta['role'] != u"[u'']":
                     msg = "The role of params %s is not exist, " \
                           "please use the right name" % host_roles
+                    LOG.error(msg)
                     raise HTTPNotFound(msg)
                 host_meta['role'] = role_id_list
             else:
                 msg = "cluster params is none"
+                LOG.error(msg)
                 raise HTTPNotFound(msg)
 
         if 'interfaces' in host_meta:
@@ -1423,6 +1617,7 @@ class Controller(controller.BaseController):
             if host_meta['os_status'] not in \
                     ['init', 'installing', 'active', 'failed', 'none']:
                 msg = "os_status is not valid."
+                LOG.error(msg)
                 raise HTTPNotFound(msg)
 
         if (('ipmi_addr' in host_meta and host_meta['ipmi_addr']) or
@@ -1442,11 +1637,13 @@ class Controller(controller.BaseController):
                 msg = _("Forbidden to update hugepages of %s"
                         " when os_status is active if "
                         "you don't want to install os") % host_meta['name']
+                LOG.error(msg)
                 raise HTTPForbidden(explanation=msg)
         else:
             if 'hugepages' in host_meta:
                 if not orig_host_meta.get('memory', {}).get('total', None):
                     msg = "The host %s has no memory" % id
+                    LOG.error(msg)
                     raise HTTPNotFound(explanation=msg)
                 memory = orig_host_meta.get('memory', {}).get('total', None)
                 if host_meta['hugepages'] is None:
@@ -1454,6 +1651,7 @@ class Controller(controller.BaseController):
                 if int(host_meta['hugepages']) < 0:
                     msg = "The parameter hugepages must be zero or " \
                           "positive integer."
+                    LOG.error(msg)
                     raise HTTPBadRequest(explanation=msg)
                 if 'hugepagesize' not in host_meta and \
                         orig_host_meta.get('hugepagesize', None):
@@ -1477,11 +1675,13 @@ class Controller(controller.BaseController):
                     "Forbidden to update hugepagesize of %s"
                     " when os_status is active if you don't "
                     "want to install os") % host_meta['name']
+                LOG.error(msg)
                 raise HTTPForbidden(explanation=msg)
         else:
             if 'hugepagesize' in host_meta:
                 if not orig_host_meta.get('memory', {}).get('total', None):
                     msg = "The host %s has no memory" % id
+                    LOG.error(msg)
                     raise HTTPNotFound(explanation=msg)
                 memory = orig_host_meta.get('memory', {}).get('total', None)
                 if host_meta['hugepagesize'] is None:
@@ -1491,18 +1691,21 @@ class Controller(controller.BaseController):
                     if host_meta['hugepagesize'] not in SUPPORT_HOST_PAGE_SIZE:
                         msg = "The value 0f parameter hugepagesize " \
                               "is not supported."
+                        LOG.error(msg)
                         raise HTTPBadRequest(explanation=msg)
                 if host_meta['hugepagesize'] == '2M' and \
                         int(host_meta['hugepagesize'][0]) * 1024 > \
                         int(memory.strip().split(' ')[0]):
                     msg = "The host %s forbid to use hugepage because it's " \
                           "memory is too small" % id
+                    LOG.error(msg)
                     raise HTTPForbidden(explanation=msg)
                 if host_meta['hugepagesize'] == '1G' and \
                         int(host_meta['hugepagesize'][0]) * 1024 * 1024 > \
                         int(memory.strip().split(' ')[0]):
                     msg = "The hugepagesize is too big, you can choose 2M " \
                           "for a try."
+                    LOG.error(msg)
                     raise HTTPBadRequest(explanation=msg)
                 if 'hugepages' in host_meta:
                     self._compute_hugepage_memory(host_meta['hugepages'], int(
@@ -1519,12 +1722,36 @@ class Controller(controller.BaseController):
 
         if host_meta.get('os_status', None) != 'init' \
                 and orig_host_meta.get('os_status', None) == 'active':
-            if host_meta.get('os_version', None) and host_meta['os_version'] \
-                    != orig_host_meta['os_version_file']:
-                msg = _("Forbidden to update os_version of %s "
-                        "when os_status is active if "
+            if host_meta.get('os_version', None) and utils.is_uuid_like(
+                    host_meta['os_version']) and host_meta['os_version'] != \
+                    orig_host_meta['os_version_id']:
+                msg = _("Forbidden to update os version of %s "
+                        "when os status is active if "
                         "you don't want to install os") % host_meta['name']
                 raise HTTPForbidden(explanation=msg)
+            if host_meta.get('os_version', None) and not utils.is_uuid_like(
+                    host_meta['os_version']) and host_meta['os_version'] != \
+                    orig_host_meta['os_version_file']:
+                msg = _("Forbidden to update os version of %s "
+                        "when os status is active if "
+                        "you don't want to install os") % host_meta['name']
+                raise HTTPForbidden(explanation=msg)
+            if host_meta.get('group_list', None) and host_meta[
+                'group_list'] != orig_host_meta['group_list']:
+                msg = _("Forbidden to update group list of %s "
+                        "when os status is active if "
+                        "you don't want to install os") % host_meta['name']
+                LOG.error(msg)
+                raise HTTPForbidden(explanation=msg)
+        else:
+            os_version = self._get_os_version(host_meta, orig_host_meta)
+            if os_version:
+                self._check_os_version(req, os_version)
+                os_version_type = self._get_os_version_type(req, os_version)
+                host_meta, group_list = self._get_group_list(host_meta,
+                                                             orig_host_meta,
+                                                             os_version_type)
+                self._check_group_list(os_version_type, group_list)
 
         if (host_meta.get('config_set_id') and
                 host_meta['config_set_id'] !=
@@ -1532,9 +1759,19 @@ class Controller(controller.BaseController):
             self.get_config_set_meta_or_404(req,
                                             host_meta['config_set_id'])
 
-        if host_meta.get('os_status', None) == 'init':
-            self._ready_to_discover_host(host_meta, orig_host_meta)
-
+        if host_meta.get('os_status') == 'init' and orig_host_meta.get(
+                'os_status') == 'active':
+            self._ready_to_discover_host(req, host_meta, orig_host_meta)
+            path = os.path.join(os.path.abspath(os.path.dirname(
+                os.path.realpath(__file__))), 'ext')
+            for root, dirs, names in os.walk(path):
+                filename = 'router.py'
+                if filename in names:
+                    ext_name = root.split(path)[1].strip('/')
+                    ext_func = "%s.api.hosts" % ext_name
+                    extension = importutils.import_module('daisy.api.v1.ext',
+                                                          ext_func)
+                    extension.update_host_state(orig_host_meta)
         try:
             if host_meta.get('cluster', None):
                 host_detail = self.get_host_meta_or_404(req, id)
@@ -1547,6 +1784,17 @@ class Controller(controller.BaseController):
             host_meta = registry.update_host_metadata(req.context, id,
                                                       host_meta)
 
+            if orig_mac_list:
+                orig_min_mac = min(orig_mac_list)
+                discover_host = self._get_discover_host_by_mac(req,
+                                                               orig_min_mac)
+                if discover_host:
+                    discover_host_params = {
+                        "mac": orig_min_mac,
+                        "status": "DISCOVERY_SUCCESSFUL"
+                    }
+                    self.update_pxe_host(req, discover_host['id'],
+                                         discover_host_params)
         except exception.Invalid as e:
             msg = (_("Failed to update host metadata. Got error: %s") %
                    utils.exception_to_str(e))
@@ -1578,125 +1826,6 @@ class Controller(controller.BaseController):
 
         return {'host_meta': host_meta}
 
-    def _checker_the_ip_or_hostname_valid(self, ip_str):
-        try:
-            socket.gethostbyname_ex(ip_str)
-            return True
-        except Exception:
-            if netaddr.IPAddress(ip_str).version == 6:
-                return True
-            else:
-                return False
-
-    def check_vlan_nic_and_join_vlan_network(
-            self, req, cluster_id, host_list, networks):
-        father_vlan_list = []
-        for host_id in host_list:
-            host_meta_detail = self.get_host_meta_or_404(req, host_id)
-            if 'interfaces' in host_meta_detail:
-                interfac_list = host_meta_detail.get('interfaces', None)
-                for interface_info in interfac_list:
-                    host_ip = interface_info.get('ip', None)
-                    if interface_info['type'] == 'vlan' and host_ip:
-                        check_ip_if_valid =\
-                            self._checker_the_ip_or_hostname_valid(host_ip)
-                        if not check_ip_if_valid:
-                            msg = "Error:The %s is not the right ip!" % host_ip
-                            LOG.error(msg)
-                            raise exception.Forbidden(msg)
-                        nic_name = interface_info['name'].split('.')[0]
-                        vlan_id = interface_info['name'].split('.')[1]
-                        for network in networks:
-                            if vlan_id == network['vlan_id']:
-                                if network['network_type'] not in \
-                                        ['DATAPLANE', 'EXTERNAL']:
-                                    father_vlan_list.append(
-                                        {nic_name: {'name': network['name'],
-                                                    'ip': host_ip}})
-                                    interface_info['assigned_networks'].\
-                                        append({'name': network['name'],
-                                                'ip': host_ip})
-                                    LOG.info(
-                                        "add the nic %s of the host %s to"
-                                        " assigned_network %s" %
-                                        (interface_info['name'], host_id,
-                                         interface_info['assigned_networks']))
-        return father_vlan_list
-
-    def check_bond_or_ether_nic_and_join_network(
-            self, req, cluster_id, host_list, networks, father_vlan_list):
-        for host_id in host_list:
-            host_info = self.get_host_meta_or_404(req, host_id)
-            if 'interfaces' in host_info:
-                update_host_interface = 0
-                interfac_meta_list = host_info.get('interfaces', None)
-                for interface_info in interfac_meta_list:
-                    update_flag = 0
-                    host_info_ip = interface_info.get('ip', None)
-                    if interface_info['type'] != 'vlan':
-                        nic_name = interface_info['name']
-                        for nic in father_vlan_list:
-                            if nic.keys()[0] == nic_name:
-                                update_flag = 1
-                                update_host_interface = 1
-                                interface_info['assigned_networks']\
-                                    .append(nic.values()[0])
-                        if update_flag:
-                            continue
-                        if host_info_ip:
-                            check_ip_if_valid =\
-                                self._checker_the_ip_or_hostname_valid(
-                                    host_info_ip)
-                            if not check_ip_if_valid:
-                                msg = "Error:The %s is not the right ip!"\
-                                      % host_info_ip
-                                LOG.error(msg)
-                                raise exception.Forbidden(msg)
-                            for network in networks:
-                                if network.get('cidr', None):
-                                    ip_in_cidr = utils.is_ip_in_cidr(
-                                        host_info_ip, network['cidr'])
-                                    if ip_in_cidr:
-                                        vlan_id = network['vlan_id']
-                                        if not vlan_id:
-                                            update_host_interface = 1
-                                            if network['network_type'] not in\
-                                                    ['DATAPLANE', 'EXTERNAL']:
-                                                interface_info[
-                                                    'assigned_networks']\
-                                                    .append({'name':
-                                                             network['name'],
-                                                             'ip':
-                                                                 host_info_ip})
-                                                LOG.info(
-                                                    "add the nic %s "
-                                                    "of the host"
-                                                    " %s to assigned_network"
-                                                    " %s" %
-                                                    (nic_name, host_id,
-                                                     interface_info[
-                                                         'assigned_networks']))
-                                        else:
-                                            msg = (
-                                                "the nic %s of ip %s is "
-                                                "in the %s cidr "
-                                                "range,but the network vlan "
-                                                "id is %s " %
-                                                (nic_name, host_info_ip,
-                                                 network['name'], vlan_id))
-                                            LOG.error(msg)
-                                            raise exception.Forbidden(msg)
-                if update_host_interface:
-                    host_meta = {}
-                    host_meta['cluster'] = cluster_id
-                    host_meta['interfaces'] = str(interfac_meta_list)
-                    host_meta = registry.update_host_metadata(req.context,
-                                                              host_id,
-                                                              host_meta)
-                    LOG.info("add the host %s join the cluster %s and"
-                             " assigned_network successful" %
-                             (host_id, cluster_id))
-
     def add_ssh_host_to_cluster_and_assigned_network(
             self, req, cluster_id, host_id):
         if cluster_id:
@@ -1726,9 +1855,9 @@ class Controller(controller.BaseController):
                 params = {'filters': {'cluster_id': cluster_id}}
                 networks = registry.get_networks_detail(req.context,
                                                         cluster_id, **params)
-                father_vlan_list = self.check_vlan_nic_and_join_vlan_network(
+                father_vlan_list = daisy_cmn.check_vlan_nic_and_join_vlan_network(
                     req, cluster_id, host_list, networks)
-                self.check_bond_or_ether_nic_and_join_network(
+                daisy_cmn.check_bond_or_ether_nic_and_join_network(
                     req, cluster_id, host_list, networks, father_vlan_list)
 
     def update_progress_to_db(self, req, update_info, discover_host_meta):
@@ -1742,6 +1871,12 @@ class Controller(controller.BaseController):
                                                discover_host_meta['id'],
                                                discover)
 
+    def is_host_discover_success_4_ssh(self, req, host_id):
+        orig_host_meta = self.get_host_meta_or_404(req, host_id)
+        return True \
+            if (orig_host_meta.get("discover_mode")) and \
+               (orig_host_meta.get("discover_mode") == 'SSH') else False
+
     def thread_bin(self, req, cluster_id, discover_host_meta):
         cmd = 'mkdir -p /var/log/daisy/discover_host/'
         daisy_cmn.subprocess_call(cmd)
@@ -1751,137 +1886,12 @@ class Controller(controller.BaseController):
             raise HTTPForbidden(msg)
         var_log_path = "/var/log/daisy/discover_host/%s_discovery_host.log" \
                        % discover_host_meta['ip']
+        backends = instl.get_deployment_backends(
+                        req, cluster_id, instl.BACKENDS_INSTALL_ORDER)
         with open(var_log_path, "w+") as fp:
-            try:
-                trustme_result = subprocess.check_output(
-                    '/var/lib/daisy/kolla/trustme.sh %s %s' %
-                    (discover_host_meta['ip'], discover_host_meta['passwd']),
-                    shell=True, stderr=subprocess.STDOUT)
-                if 'Permission denied' in trustme_result:
-                    # when passwd was wrong
-                    update_info = {}
-                    update_info['status'] = 'DISCOVERY_FAILED'
-                    update_info['message'] = "Passwd was wrong, do" \
-                                             "trustme.sh %s failed!"\
-                                             % discover_host_meta['ip']
-                    self.update_progress_to_db(req, update_info,
-                                               discover_host_meta)
-                    msg = (_("Do trustme.sh %s failed!" %
-                             discover_host_meta['ip']))
-                    LOG.warn(_(msg))
-                    fp.write(msg)
-                elif 'is unreachable' in trustme_result:
-                    # when host ip was unreachable
-                    update_info = {}
-                    update_info['status'] = 'DISCOVERY_FAILED'
-                    update_info['message'] = "Host ip was unreachable," \
-                                             " do trustme.sh %s failed!" %\
-                                             discover_host_meta['ip']
-                    self.update_progress_to_db(req, update_info,
-                                               discover_host_meta)
-                    msg = (_("Do trustme.sh %s failed!" %
-                             discover_host_meta['ip']))
-                    LOG.warn(_(msg))
-            except subprocess.CalledProcessError as e:
-                update_info = {}
-                update_info['status'] = 'DISCOVERY_FAILED'
-                msg = "discover host for %s failed! raise CalledProcessError" \
-                      " when execute trustme.sh." % discover_host_meta['ip']
-                update_info['message'] = msg
-                self.update_progress_to_db(
-                    req, update_info, discover_host_meta)
-                LOG.error(_(msg))
-                fp.write(e.output.strip())
-                return
-            except:
-                update_info = {}
-                update_info['status'] = 'DISCOVERY_FAILED'
-                update_info['message'] = "discover host for %s failed!" \
-                                         % discover_host_meta['ip']
-                self.update_progress_to_db(
-                    req, update_info, discover_host_meta)
-                LOG.error(_("discover host for %s failed!"
-                            % discover_host_meta['ip']))
-                fp.write("discover host for %s failed!"
-                         % discover_host_meta['ip'])
-                return
-
-            try:
-                cmd = 'clush -S -b -w %s "rm -rf /home/daisy/discover_host"'\
-                      % (discover_host_meta['ip'],)
-                daisy_cmn.subprocess_call(cmd, fp)
-                cmd = 'clush -S -w %s "mkdir -p /home/daisy/discover_host"'\
-                      % (discover_host_meta['ip'],)
-                daisy_cmn.subprocess_call(cmd, fp)
-                cmd = 'clush -S -w %s "chmod 777 /home/daisy/discover_host"'\
-                      % (discover_host_meta['ip'],)
-                daisy_cmn.subprocess_call(cmd, fp)
-            except subprocess.CalledProcessError as e:
-                update_info = {}
-                update_info['status'] = 'DISCOVERY_FAILED'
-                msg = "raise CalledProcessError when execute cmd for host %s."\
-                      % discover_host_meta['ip']
-                update_info['message'] = msg
-                self.update_progress_to_db(
-                    req, update_info, discover_host_meta)
-                LOG.error(_(msg))
-                fp.write(e.output.strip())
-                return
-
-            try:
-                subprocess.check_output(
-                    'clush -S -w %s -c /var/lib/daisy/kolla/getnodeinfo.sh '
-                    '--dest=/home/daisy/discover_host' %
-                    (discover_host_meta['ip'],),
-                    shell=True, stderr=subprocess.STDOUT)
-            except subprocess.CalledProcessError as e:
-                update_info = {}
-                update_info['status'] = 'DISCOVERY_FAILED'
-                update_info['message'] = "scp getnodeinfo.sh" \
-                                         " failed!" % discover_host_meta['ip']
-                self.update_progress_to_db(req, update_info,
-                                           discover_host_meta)
-                LOG.error(_("scp getnodeinfo.sh for %s failed!"
-                            % discover_host_meta['ip']))
-                fp.write(e.output.strip())
-                return
-
-            try:
-                subprocess.check_output(
-                    'clush -S -w %s yum install -y epel-release'
-                    % (discover_host_meta['ip'],),
-                    shell=True, stderr=subprocess.STDOUT)
-            except subprocess.CalledProcessError as e:
-                update_info = {}
-                update_info['status'] = 'DISCOVERY_FAILED'
-                update_info['message'] = \
-                    "creat repo epel for %s failed!"\
-                    % discover_host_meta['ip']
-                self.update_progress_to_db(req, update_info,
-                                           discover_host_meta)
-                LOG.error(_("creat repo epel for %s failed!"
-                            % discover_host_meta['ip']))
-                fp.write(e.output.strip())
-                return
-
-            try:
-                subprocess.check_output(
-                    'clush -S -w %s yum install -y jq'
-                    % (discover_host_meta['ip'],),
-                    shell=True, stderr=subprocess.STDOUT)
-            except subprocess.CalledProcessError as e:
-                update_info = {}
-                update_info['status'] = 'DISCOVERY_FAILED'
-                update_info['message'] = \
-                    "install jq rpm for %s failed!"\
-                    % discover_host_meta['ip']
-                self.update_progress_to_db(req, update_info,
-                                           discover_host_meta)
-                LOG.error(_("install jq rpm for %s failed!"
-                            % discover_host_meta['ip']))
-                fp.write(e.output.strip())
-                return
-
+            for backend in backends:
+                backend_driver = driver.load_deployment_dirver(backend)
+                backend_driver.prepare_ssh_discovered_node(req, fp, discover_host_meta)
             try:
                 exc_result = subprocess.check_output(
                     'clush -S -w %s /home/daisy/discover_host/getnodeinfo.sh'
@@ -1906,7 +1916,9 @@ class Controller(controller.BaseController):
                     update_info = {}
                     host_interfaces =\
                         registry.get_all_host_interfaces(req.context, filters)
-                    if host_interfaces:
+                    if host_interfaces and \
+                            (self.is_host_discover_success_4_ssh(
+                            req, host_interfaces[0]['host_id'])):
                         update_info['status'] = 'DISCOVERY_SUCCESSFUL'
                         update_info['message'] =\
                             "discover host for %s successfully!" %\
@@ -2021,23 +2033,21 @@ class Controller(controller.BaseController):
         config.read(daisy_cmn.daisy_conf_file)
         daisy_management_ip = config.get("DEFAULT", "daisy_management_ip")
         if daisy_management_ip:
-            cmd = 'dhcp_linenumber=`grep -n "dhcp_ip="' \
-                  ' /var/lib/daisy/kolla/getnodeinfo.sh|cut -d ":" -f 1` && ' \
-                  'sed -i "${dhcp_linenumber}c dhcp_ip=\'%s\'" ' \
-                  '/var/lib/daisy/kolla/getnodeinfo.sh' \
-                  % (daisy_management_ip,)
-            daisy_cmn.subprocess_call(cmd)
-
+            backends = instl.get_deployment_backends(
+                req, cluster_id, instl.BACKENDS_INSTALL_ORDER)
+            for backend in backends:
+                backend_driver = driver.load_deployment_dirver(backend)
+                backend_driver.getnodeinfo_ip(daisy_management_ip)
         config_discoverd = ConfigParser.ConfigParser(
             defaults=DISCOVER_DEFAULTS)
         config_discoverd.read("/etc/ironic-discoverd/discoverd.conf")
         listen_port = config_discoverd.get("discoverd", "listen_port")
         if listen_port:
-            cmd = 'port_linenumber=`grep -n "listen_port="' \
-                  ' /var/lib/daisy/kolla/getnodeinfo.sh|cut -d ":" -f 1` && ' \
-                  'sed -i "${port_linenumber}c listen_port=\'%s\'" ' \
-                  '/var/lib/daisy/kolla/getnodeinfo.sh' % (listen_port,)
-            daisy_cmn.subprocess_call(cmd)
+            backends = instl.get_deployment_backends(
+                req, cluster_id, instl.BACKENDS_INSTALL_ORDER)
+            for backend in backends:
+                backend_driver = driver.load_deployment_dirver(backend)
+                backend_driver.getnodeinfo_listen_port(listen_port)
 
         discovery_host_thread = threading.Thread(
             target=self.discover_host_bin, args=(req, host_meta))
@@ -2058,13 +2068,15 @@ class Controller(controller.BaseController):
         LOG.warn("host_meta: %s" % host_meta)
         if not host_meta.get('ip', None):
             msg = "IP parameter can not be None."
+            LOG.error(msg)
             raise HTTPBadRequest(explanation=msg,
                                  request=req,
                                  content_type="text/plain")
         else:
             discover_hosts_ip = self._get_discover_host_ip(req)
             if host_meta['ip'] in discover_hosts_ip:
-                host = self._get_host_by_ip(req, host_meta['ip'])
+                host = self._get_discover_host_filter_by_ip(req,
+                                                            host_meta['ip'])
                 if host and host['status'] != 'DISCOVERY_SUCCESSFUL':
                     host_info = {}
                     host_info['ip'] = host_meta.get('ip', host.get('ip'))
@@ -2094,6 +2106,7 @@ class Controller(controller.BaseController):
 
         if not host_meta.get('passwd', None):
             msg = "PASSWD parameter can not be None."
+            LOG.error(msg)
             raise HTTPBadRequest(explanation=msg,
                                  request=req,
                                  content_type="text/plain")
@@ -2237,11 +2250,11 @@ class Controller(controller.BaseController):
                 hosts_ip.append(host['ip'])
         return hosts_ip
 
-    def _get_host_by_ip(self, req, host_ip):
+    def _get_discover_host_filter_by_ip(self, req, host_ip):
         params = {}
         discover_hosts = \
             registry.get_discover_hosts_detail(req.context, **params)
-        LOG.info("%s" % discover_hosts)
+        LOG.debug("%s" % discover_hosts)
         for host in discover_hosts:
             if host.get('ip') == host_ip:
                 return host
@@ -2284,6 +2297,163 @@ class Controller(controller.BaseController):
 
         return {'host_meta': host_meta}
 
+    def _get_discover_host_mac(self, req):
+        params = dict()
+        hosts_mac = list()
+        discover_hosts =\
+            registry.get_discover_hosts_detail(req.context, **params)
+        for host in discover_hosts:
+            if host.get('mac'):
+                hosts_mac.append(host['mac'])
+        return hosts_mac
+
+    def _get_discover_host_by_mac(self, req, host_mac):
+        params = dict()
+        discover_hosts = \
+            registry.get_discover_hosts_detail(req.context, **params)
+        LOG.debug("%s" % discover_hosts)
+        for host in discover_hosts:
+            if host.get('mac') == host_mac:
+                return host
+        return
+
+    @utils.mutating
+    def add_pxe_host(self, req, host_meta):
+        """
+        Adds a new pxe host to Daisy
+
+        :param req: The WSGI/Webob Request object
+        :param host_meta: Mapping of metadata about host
+
+        :raises HTTPBadRequest if x-host-name is missing
+        """
+        self._enforce(req, 'add_pxe_host')
+        LOG.warn("host_meta: %s" % host_meta)
+        if not host_meta.get('mac'):
+            msg = "MAC parameter can not be None."
+            LOG.error(msg)
+            raise HTTPBadRequest(explanation=msg,
+                                 request=req,
+                                 content_type="text/plain")
+
+        self.validate_mac_format(host_meta['mac'])
+        pxe_hosts_mac = self._get_discover_host_mac(req)
+        if host_meta['mac'] in pxe_hosts_mac:
+            host = self._get_discover_host_by_mac(req, host_meta['mac'])
+            host_meta = registry.update_discover_host_metadata(
+                req.context, host['id'], host_meta)
+            return {'host_meta': host_meta}
+
+        if not host_meta.get('status', None):
+            host_meta['status'] = 'None'
+
+        try:
+            pxe_host_info = \
+                registry.add_discover_host_metadata(req.context, host_meta)
+        except exception.Invalid as e:
+            raise HTTPBadRequest(explanation=e.msg, request=req)
+        return {'host_meta': pxe_host_info}
+
+    @utils.mutating
+    def update_pxe_host(self, req, id, host_meta):
+        """
+        Update a new pxe host to Daisy
+        """
+        self._enforce(req, 'update_pxe_host')
+        if not host_meta.get('mac'):
+            msg = "MAC parameter can not be None."
+            raise HTTPBadRequest(explanation=msg,
+                                 request=req,
+                                 content_type="text/plain")
+
+        self.validate_mac_format(host_meta['mac'])
+        orig_host_meta = registry.get_discover_host_metadata(req.context, id)
+        try:
+            if host_meta['mac'] == orig_host_meta['mac']:
+                host_meta = registry.update_discover_host_metadata(
+                    req.context, id, host_meta)
+
+        except exception.Invalid as e:
+            msg = (_("Failed to update discover host metadata. "
+                     "Got error: %s") % utils.exception_to_str(e))
+            LOG.error(msg)
+            raise HTTPBadRequest(explanation=msg,
+                                 request=req,
+                                 content_type="text/plain")
+        except exception.NotFound as e:
+            msg = (_("Failed to find discover host to update: %s") %
+                   utils.exception_to_str(e))
+            LOG.error(msg)
+            raise HTTPNotFound(explanation=msg,
+                               request=req,
+                               content_type="text/plain")
+        except exception.Forbidden as e:
+            msg = (_("Forbidden to update discover host: %s") %
+                   utils.exception_to_str(e))
+            LOG.error(msg)
+            raise HTTPForbidden(explanation=msg,
+                                request=req,
+                                content_type="text/plain")
+        except (exception.Conflict, exception.Duplicate) as e:
+            LOG.error(utils.exception_to_str(e))
+            raise HTTPConflict(body=_('Host operation conflicts'),
+                               request=req,
+                               content_type='text/plain')
+        else:
+            self.notifier.info('host.update', host_meta)
+
+        return {'host_meta': host_meta}
+
+    @utils.mutating
+    def host_check(self, req, host_meta):
+        host_id = host_meta['id']
+        orig_host_meta = self.get_host_meta_or_404(req, host_id)
+        check_item = host_meta['check_item']
+        if check_item == 'ipmi':
+            ipmi_check_result = {}
+            if orig_host_meta.get('hwm_id'):
+                daisy_cmn.check_discover_state_with_hwm(req, orig_host_meta)
+            else:
+                daisy_cmn.check_discover_state_with_no_hwm(req, orig_host_meta)
+            if orig_host_meta.get('discover_state') \
+                    and 'SSH' in orig_host_meta['discover_state']:
+                ipmi_check_result['ipmi_check_result'] = \
+                    'host discovered by ssh do not need ipmi check'
+            elif orig_host_meta.get('discover_state') \
+                    and 'PXE' in orig_host_meta['discover_state']:
+                ipmi_check_result['ipmi_check_result'] = \
+                    'host discovered by hwm do not need ipmi check'
+            elif orig_host_meta['os_status'] == 'active':
+                ipmi_check_result['ipmi_check_result'] = \
+                    'active host do not need ipmi check'
+            else:
+                ipmi_ip = orig_host_meta.get('ipmi_addr', None)
+                ipmi_user = orig_host_meta.get('ipmi_user', None)
+                ipmi_password = orig_host_meta.get('ipmi_passwd', None)
+                ipmi_config = [{'ipmi address': ipmi_ip},
+                               {'ipmi user': ipmi_user}
+                               ]
+                for i in ipmi_config:
+                    if not i.values()[0]:
+                        ipmi_check_result['ipmi_check_result'] = \
+                            "No %s configed for host %s, please " \
+                            "check" % (i.keys()[0],orig_host_meta['name'])
+                        return {'check_result': ipmi_check_result}
+                cmd = 'ipmitool -I lanplus -H %s  -U %s -P %s chassis ' \
+                      'power status' % (ipmi_ip, ipmi_user, ipmi_password)
+                obj = subprocess.Popen(cmd,
+                                       shell=True,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+                (stdoutput, erroutput) = obj.communicate()
+                if 'Chassis Power is on' in stdoutput:
+                    ipmi_check_result['ipmi_check_result'] = \
+                        'ipmi check successfully'
+                elif 'Unable to get Chassis Power Status' in erroutput:
+                    ipmi_check_result['ipmi_check_result'] = \
+                        'ipmi check failed'
+            return {'check_result': ipmi_check_result}
+
 
 class HostDeserializer(wsgi.JSONRequestDeserializer):
     """Handles deserialization of specific controller method requests."""
@@ -2312,6 +2482,9 @@ class HostDeserializer(wsgi.JSONRequestDeserializer):
         return self._deserialize(request)
 
     def update_pxe_host(self, request):
+        return self._deserialize(request)
+
+    def host_check(self, request):
         return self._deserialize(request)
 
 
@@ -2378,6 +2551,12 @@ class HostSerializer(wsgi.JSONResponseSerializer):
 
     def update_pxe_host(self, response, result):
         host_meta = result['host_meta']
+        response.status = 201
+        response.headers['Content-Type'] = 'application/json'
+        response.body = self.to_json(dict(host=host_meta))
+
+    def host_check(self, response, result):
+        host_meta = result['check_result']
         response.status = 201
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(dict(host=host_meta))
