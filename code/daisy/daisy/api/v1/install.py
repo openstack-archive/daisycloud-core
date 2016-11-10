@@ -19,6 +19,7 @@
 import time
 import webob.exc
 
+from oslo_config import cfg
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
 from webob.exc import HTTPForbidden
@@ -51,7 +52,12 @@ _LW = i18n._LW
 SUPPORTED_PARAMS = daisy.api.v1.SUPPORTED_PARAMS
 SUPPORTED_FILTERS = daisy.api.v1.SUPPORTED_FILTERS
 ACTIVE_IMMUTABLE = daisy.api.v1.ACTIVE_IMMUTABLE
-
+CONF = cfg.CONF
+install_opts = [
+    cfg.StrOpt('max_parallel_os_number', default=10,
+               help='Maximum number of hosts install os at the same time.'),
+]
+CONF.register_opts(install_opts)
 # if some backends have order constraint, please add here
 # if backend not in the next three order list, we will be
 # think it does't have order constraint.
@@ -64,7 +70,16 @@ config.read(daisy_cmn.daisy_conf_file)
 OS_INSTALL_TYPE = 'pxe'
 OS_INSTALL_TYPE = config.get("OS", "os_install_type")
 
-os_handle = osdriver.load_install_os_driver(OS_INSTALL_TYPE)
+_OS_HANDLE = None
+
+
+def get_os_handle():
+    global _OS_HANDLE
+    if _OS_HANDLE is not None:
+        return _OS_HANDLE
+
+    _OS_HANDLE = osdriver.load_install_os_driver(OS_INSTALL_TYPE)
+    return _OS_HANDLE
 
 
 def get_deployment_backends(req, cluster_id, backends_order):
@@ -82,6 +97,7 @@ def get_deployment_backends(req, cluster_id, backends_order):
 
 
 class InstallTask(object):
+
     """
     Class for install OS and TECS.
     """
@@ -106,6 +122,9 @@ class InstallTask(object):
         try:
             self._run()
         except Exception as e:
+            if daisy_cmn.in_cluster_list(self.cluster_id):
+                LOG.info("os install clear install global variables")
+                daisy_cmn.cluster_list_delete(self.cluster_id)
             LOG.exception(e.message)
 
     def _run(self):
@@ -114,6 +133,7 @@ class InstallTask(object):
         :return:
         """
         # get hosts config which need to install OS
+        os_handle = get_os_handle()
         all_hosts_need_os = os_handle.get_cluster_hosts_config(
             self.req, self.cluster_id)
         if all_hosts_need_os:
@@ -146,18 +166,54 @@ class InstallTask(object):
         # hosts with role put the head of the list
         order_hosts_need_os = hosts_with_role_need_os + \
             hosts_without_role_need_os
-        os_driver = os_handle.load_install_os_driver(OS_INSTALL_TYPE)
+        max_parallel_os_num = int(CONF.max_parallel_os_number)
+        #recycle_num_of_hosts_with_role is the recycle number of
+        # hosts_with_role install.for example, if max_parallel_os_num is 10
+        # and number of hosts_with_role is from 1 to 10, so recycle number is
+        # 1, if number of hosts_with_role is 11 to 20,so recycle number is 2
+        recycle_num_of_hosts_with_role = (
+            len(hosts_with_role_need_os) +
+            max_parallel_os_num - 1) / max_parallel_os_num
+        recycle_number = 0
         while order_hosts_need_os:
+            os_install = os_handle.OSInstall(self.req, self.cluster_id)
             # all os will be installed batch by batch with
             # max_parallel_os_number which was set in daisy-api.conf
-            os_install = os_handle.OSInstall(self.req, self.cluster_id)
             (order_hosts_need_os, role_hosts_need_os) = os_install.install_os(
                 order_hosts_need_os, role_hosts_need_os)
             # after a batch of os install over, judge if all
             # role hosts install os completely,
-            # if role_hosts_need_os is empty, install TECS immediately
-            if run_once_flag and not role_hosts_need_os:
-                run_once_flag = False
+            # if role_hosts_need_os all install(including success and failed),
+            # install TECS immediately
+            recycle_number = recycle_number + 1
+            if run_once_flag and \
+                    recycle_number == recycle_num_of_hosts_with_role:
+                if role_hosts_need_os:
+                    install_backends_flag = daisy_cmn.whether_insl_backends(
+                        self.req, role_hosts_need_os)
+                    if install_backends_flag:
+                        run_once_flag = False
+                        # wait to reboot os after new os installed
+                        time.sleep(10)
+                        LOG.info(_("hosts of controller role install "
+                                   "successfully,begin to install backend "
+                                   "applications for "
+                                   "cluster %s." % self.cluster_id))
+                        self._backends_install()
+                    else:
+                        LOG.info(_("host of controller role install failed,"
+                                   "stop installing backend for "
+                                   "cluster %s." % self.cluster_id))
+                        host_status = {'messages': 'host of controller role '
+                                       'install failed,stop'
+                                       ' installing backend'}
+                        run_once_flag = False
+                        for role_host_need_os in role_hosts_need_os:
+                            daisy_cmn.update_db_host_status(self.req,
+                                                            role_host_need_os,
+                                                            host_status)
+                else:
+                    run_once_flag = False
                 # wait to reboot os after new os installed
                 time.sleep(10)
                 LOG.info(_("All hosts with role install successfully, "
@@ -168,6 +224,7 @@ class InstallTask(object):
 
 
 class Controller(controller.BaseController):
+
     """
     WSGI controller for hosts resource in Daisy v1 API
 
@@ -249,6 +306,7 @@ class Controller(controller.BaseController):
         :raises HTTPBadRequest if x-install-cluster is missing
         """
         if 'deployment_interface' in install_meta:
+            os_handle = get_os_handle()
             os_handle.pxe_server_build(req, install_meta)
             return {"status": "pxe is installed"}
 
@@ -260,15 +318,34 @@ class Controller(controller.BaseController):
             req, cluster_id, 'install',
             {'messages': 'Waiting for TECS installation', 'progress': '0'},
             'tecs')
-        # if have hosts need to install os,
-        # TECS installataion executed in InstallTask
-        os_install_obj = InstallTask(req, cluster_id)
-        os_install_thread = Thread(target=os_install_obj.run)
-        os_install_thread.start()
-        return {"status": "begin install"}
+
+        #through the global variables, to determine whether the re installation
+        if not daisy_cmn.in_cluster_list(cluster_id):
+            LOG.info(_("daisy_cmn.cluster_install_entry_list "
+                     "append %s" % cluster_id))
+            daisy_cmn.cluster_list_add(cluster_id)
+            # if have hosts need to install os,
+            # TECS installataion executed in InstallTask
+            os_install_obj = InstallTask(req, cluster_id)
+            os_install_thread = Thread(target=os_install_obj.run)
+            os_install_thread.start()
+            return {"status": "begin install"}
+        else:
+            LOG.warn(_("the cluster %s is installing" % cluster_id))
+            return {"status": "Cluster %s is already installing" % cluster_id}
+
+    def _get_uninstall_hosts(self, req, install_meta):
+        uninstall_hosts = []
+        if 'hosts' in install_meta and install_meta['hosts']:
+            uninstall_hosts = install_meta['hosts']
+            if not isinstance(uninstall_hosts, list):
+                uninstall_hosts = eval(uninstall_hosts)
+        for host_id in uninstall_hosts:
+            self.get_host_meta_or_404(req, host_id)
+        return uninstall_hosts
 
     @utils.mutating
-    def uninstall_cluster(self, req, cluster_id):
+    def uninstall_cluster(self, req, cluster_id, install_meta):
         """
         Uninstall TECS to a cluster.
 
@@ -279,13 +356,15 @@ class Controller(controller.BaseController):
         self._enforce(req, 'uninstall_cluster')
         self._raise_404_if_cluster_deleted(req, cluster_id)
 
+        uninstall_hosts = self._get_uninstall_hosts(req, install_meta)
+
         backends = get_deployment_backends(
             req, cluster_id, BACKENDS_UNINSTALL_ORDER)
         for backend in backends:
             backend_driver = driver.load_deployment_dirver(backend)
             uninstall_thread = Thread(
                 target=backend_driver.uninstall, args=(
-                    req, cluster_id))
+                    req, cluster_id, uninstall_hosts))
             uninstall_thread.start()
         return {"status": "begin uninstall"}
 
@@ -307,30 +386,66 @@ class Controller(controller.BaseController):
         return all_nodes
 
     @utils.mutating
-    def update_cluster(self, req, cluster_id):
+    def update_cluster(self, req, cluster_id, install_meta):
         """
-        Uninstall TECS to a cluster.
-
-        :param req: The WSGI/Webob Request object
-
-        :raises HTTPBadRequest if x-install-cluster is missing
+        upgrade cluster.
         """
         self._enforce(req, 'update_cluster')
         self._raise_404_if_cluster_deleted(req, cluster_id)
+        if not install_meta.get('version_id', None):
+            raise ValueError('version_id is null!')
+        update_file = ""
+        if install_meta.get('version_patch_id', None):
+            version_patch = self.get_version_patch_meta_or_404(
+                req,
+                install_meta['version_patch_id'])
+            update_file = version_patch['name']
+        elif install_meta.get('version_id', None):
+            version = self.get_version_meta_or_404(req,
+                                                   install_meta['version_id'])
+            update_file = version['name']
+        if install_meta['update_object'] in BACKENDS_UPGRADE_ORDER:
+            backends = get_deployment_backends(
+                req, cluster_id, BACKENDS_UPGRADE_ORDER)
+            if not backends:
+                LOG.info(_("No backends need to update."))
+                return {"status": ""}
+            daisy_cmn.set_role_status_and_progress(
+                req, cluster_id, 'upgrade',
+                {'messages': 'Waiting for TECS upgrading', 'progress': '0'},
+                'tecs')
+            for backend in backends:
+                backend_driver = driver.load_deployment_dirver(backend)
+                update_thread = Thread(target=backend_driver.upgrade,
+                                       args=(req, cluster_id,
+                                             install_meta['version_id'],
+                                             update_file))
+                update_thread.start()
 
-        backends = get_deployment_backends(
-            req, cluster_id, BACKENDS_UPGRADE_ORDER)
-        if not backends:
-            LOG.info(_("No backends need to update."))
-            return {"status": ""}
-        daisy_cmn.set_role_status_and_progress(
-            req, cluster_id, 'upgrade',
-            {'messages': 'Waiting for TECS upgrading', 'progress': '0'},
-            'tecs')
-        for backend in backends:
-            backend_driver = driver.load_deployment_dirver(backend)
-            update_thread = Thread(target=backend_driver.upgrade,
-                                   args=(req, cluster_id))
+        else:
+            if install_meta['update_object'] != "vplat":
+                if not install_meta.get('update_script', None):
+                    raise ValueError('update script is null!')
+            else:
+                install_meta['update_script'] = "tfg_upgrade.sh"
+            if not install_meta.get('hosts', None):
+                raise ValueError('hosts is null!')
+            else:
+                hosts = eval(install_meta['hosts'])
+
+            os_handle = get_os_handle()
+            update_thread = Thread(target=os_handle.upgrade,
+                                   args=(self, req,
+                                         cluster_id,
+                                         install_meta.get('version_id', None),
+                                         install_meta.get('version_patch_id',
+                                                          None),
+                                         install_meta.get('update_script',
+                                                          None),
+                                         update_file,
+                                         hosts,
+                                         install_meta.get('update_object',
+                                                          None)))
             update_thread.start()
         return {"status": "begin update"}
 
@@ -408,11 +523,17 @@ class InstallDeserializer(wsgi.JSONRequestDeserializer):
     def install_cluster(self, request):
         return self._deserialize(request)
 
+    def update_cluster(self, request):
+        return self._deserialize(request)
+
     def export_db(self, request):
         return self._deserialize(request)
 
     def update_disk_array(self, request):
         return {}
+
+    def uninstall_cluster(self, request):
+        return self._deserialize(request)
 
 
 class InstallSerializer(wsgi.JSONResponseSerializer):
@@ -422,6 +543,12 @@ class InstallSerializer(wsgi.JSONResponseSerializer):
         self.notifier = notifier.Notifier()
 
     def install_cluster(self, response, result):
+        response.status = 201
+        response.headers['Content-Type'] = 'application/json'
+        response.body = self.to_json(result)
+        return response
+
+    def update_cluster(self, response, result):
         response.status = 201
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(result)
