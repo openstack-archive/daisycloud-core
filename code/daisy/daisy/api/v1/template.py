@@ -26,7 +26,7 @@ from webob.exc import HTTPNotFound
 from webob import Response
 import copy
 import json
-
+import subprocess
 from daisy.api import policy
 import daisy.api.v1
 from daisy.api.v1 import controller
@@ -265,6 +265,16 @@ class Controller(controller.BaseController):
             self._del_general_params(cinder_volume)
         return cinder_volumes
 
+    def _get_optical_switchs(self, req, role):
+        optical_switch_params = {'filters': {'role_id': role['id']}}
+        optical_switchs = registry.list_optical_switch_metadata(
+            req.context, **optical_switch_params)
+        for optical_switch in optical_switchs:
+            if optical_switch.get('role_id', None):
+                optical_switch['role_id'] = role['name']
+            self._del_general_params(optical_switch)
+        return optical_switchs
+
     def _get_services_disk(self, req, role):
         params = {'filters': {'role_id': role['id']}}
         services_disk = registry.list_service_disk_metadata(
@@ -289,6 +299,7 @@ class Controller(controller.BaseController):
         self._enforce(req, 'export_db_to_json')
         cinder_volume_list = []
         service_disk_list = []
+        optical_switch_list = []
         template_content = {}
         template_json = {}
         template_id = ""
@@ -317,11 +328,14 @@ class Controller(controller.BaseController):
                     cinder_volume_list += cinder_volumes
                     services_disk = self._get_services_disk(req, role)
                     service_disk_list += services_disk
+                    optical_switchs = self._get_optical_switchs(req, role)
+                    optical_switch_list += optical_switchs
 
                     if role.get('config_set_id', None):
                         config_set = registry.get_config_set_metadata(
                             req.context, role['config_set_id'])
-                        role['config_set_id'] = config_set['name']
+                        if config_set.get("config", None):
+                            role['config_set'] = config_set['config']
                     del role['cluster_id']
                     del role['status']
                     del role['progress']
@@ -351,10 +365,13 @@ class Controller(controller.BaseController):
                     del cluster['nodes']
                 self._del_general_params(cluster)
                 self._del_cluster_params(cluster)
+                cluster['tecs_version_id'] = ""
                 template_content['cluster'] = cluster
+                template_content['cluster_name'] = cluster_name
                 template_content['roles'] = roles
                 template_content['networks'] = networks
                 template_content['cinder_volumes'] = cinder_volume_list
+                template_content['optical_switchs'] = optical_switch_list
                 template_content['services_disk'] = service_disk_list
                 template_json['content'] = json.dumps(template_content)
                 template_json['type'] = 'tecs'
@@ -373,7 +390,7 @@ class Controller(controller.BaseController):
                 template_list = registry.template_lists_metadata(
                     req.context, **template_params)
                 if template_list:
-                    registry.update_template_metadata(
+                    update_template = registry.update_template_metadata(
                         req.context, template_list[0]['id'], template_json)
                     template_id = template_list[0]['id']
                 else:
@@ -459,6 +476,24 @@ class Controller(controller.BaseController):
                        % template_cinder_volume['role_id']
                 raise HTTPBadRequest(explanation=msg, request=req)
 
+    def _import_optical_switchs_to_db(self, req,
+                                      template_optical_switchs, roles):
+        for template_optical_switch in template_optical_switchs:
+            has_template_role = False
+            for role in roles:
+                if template_optical_switch['role_id'] == role['name']:
+                    has_template_role = True
+                    template_optical_switch['role_id'] = role['id']
+                    break
+            if has_template_role:
+                registry.add_optical_switch_metadata(req.context,
+                                                     template_optical_switch)
+            else:
+                msg = "can't find role %s in new cluster when\
+                       import optical_switchs from template"\
+                       % template_optical_switch['role_id']
+                raise HTTPBadRequest(explanation=msg, request=req)    
+
     def _import_services_disk_to_db(self, req,
                                     template_services_disk, roles):
         for template_service_disk in template_services_disk:
@@ -479,11 +514,14 @@ class Controller(controller.BaseController):
 
     @utils.mutating
     def import_template_to_db(self, req, template):
+        """
+        create cluster 
+        """
         cluster_id = ""
         template_cluster = {}
         cluster_meta = {}
         template_meta = copy.deepcopy(template)
-        template_name = template_meta.get('name', None)
+        template_name = template_meta.get('template_name',None)
         cluster_name = template_meta.get('cluster', None)
         template_params = {'filters': {'name': template_name}}
         template_list = registry.template_lists_metadata(
@@ -564,14 +602,14 @@ class Controller(controller.BaseController):
                 network_exist = 'false'
                 for network in networks:
                     if template_content_network['name'] == network['name']:
-                        registry.update_network_metadata(
+                        update_network_meta = registry.update_network_metadata(
                             req.context, network['id'],
                             template_content_network)
                         network_exist = 'true'
 
                 if network_exist == 'false':
                     template_content_network['cluster_id'] = cluster_id
-                    registry.add_network_metadata(
+                    add_network_meta = registry.add_network_metadata(
                         req.context, template_content_network)
 
             params = {'filters': {'cluster_id': cluster_id}}
@@ -582,7 +620,7 @@ class Controller(controller.BaseController):
                 del template_content_role['config_set_id']
                 for role in roles:
                     if template_content_role['name'] == role['name']:
-                        registry.update_role_metadata(
+                        update_role_meta = registry.update_role_metadata(
                             req.context, role['id'], template_content_role)
                         role_exist = 'true'
 
@@ -593,6 +631,9 @@ class Controller(controller.BaseController):
 
             self._import_cinder_volumes_to_db(
                 req, template_content['cinder_volumes'], roles)
+            if 'optical_switchs' in template_content:
+                self._import_optical_switchs_to_db(
+                    req, template_content['optical_switchs'], roles)
             self._import_services_disk_to_db(req,
                                              template_content['services_disk'],
                                              roles)
@@ -613,6 +654,15 @@ class Controller(controller.BaseController):
         try:
             template = registry.template_detail_metadata(
                 req.context, template_id)
+            if template.get("tecs_version_id", None):
+                template['tecs_version_id'] = ""
+            obj = subprocess.Popen("which daisy-manage >/dev/null && daisy-manage db_version",
+                                    shell=True,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
+            (stdoutput, erroutput) = obj.communicate()
+            if stdoutput:
+                template['version'] = stdoutput.strip('\n')
             return {'template': template}
         except exception.NotFound as e:
             msg = (_("Failed to find template: %s") %
