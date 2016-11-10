@@ -32,6 +32,7 @@ from daisy.api.v1 import filters
 from daisy.common import exception
 from daisy.common import utils
 from daisy.common import wsgi
+from daisy.api import common
 from daisy import i18n
 from daisy import notifier
 import daisy.registry.client.v1.api as registry
@@ -59,7 +60,8 @@ SUPPORT_NETWORK_TYPE = (
     'MANAGEMENT',
     'EXTERNAL',
     'DEPLOYMENT',
-    'HEARTBEAT')
+    'HEARTBEAT',
+    'OUTBAND')
 SUPPORT_NETWORK_TEMPLATE_TYPE = ('custom', 'template', 'default', 'system')
 SUPPORT_ML2_TYPE = ('ovs', 'sriov(direct)', 'sriov(macvtap)',
                     'ovs,sriov(direct)', 'ovs,sriov(macvtap)')
@@ -152,24 +154,6 @@ class Controller(controller.BaseController):
                 params[PARAM] = req.params.get(PARAM)
         return params
 
-    def validate_ip_format(self, ip_str):
-        '''
-        valid ip_str format = '10.43.178.9'
-        invalid ip_str format : '123. 233.42.12', spaces existed in field
-                                '3234.23.453.353', out of range
-                                '-2.23.24.234', negative number in field
-                                '1.2.3.4d', letter in field
-                                '10.43.1789', invalid format
-        '''
-        valid_fromat = False
-        if ip_str.count('.') == 3 and all(num.isdigit() and 0 <= int(
-                num) < 256 for num in ip_str.rstrip().split('.')):
-            valid_fromat = True
-        if not valid_fromat:
-            msg = (_("%s invalid ip format!") % ip_str)
-            LOG.warn(msg)
-            raise HTTPForbidden(msg)
-
     def _ip_into_int(self, ip):
         """
         Switch ip string to decimalism integer..
@@ -245,92 +229,31 @@ class Controller(controller.BaseController):
                     (network_meta['network_type'], network_name))
                 raise HTTPConflict(msg, request=req, content_type="text/plain")
 
-    def _valid_network_range(self, req, network_meta):
-        if (('vlan_start' in network_meta and 'vlan_end' not in
-            network_meta) or (
-                'vlan_start' not in network_meta and
-                'vlan_end' in network_meta)):
-            msg = "vlan-start and vlan-end must be appeared "\
-                  "at the same time"
-            LOG.error(msg)
-            raise HTTPBadRequest(explanation=msg, request=req)
-        if 'vlan_start' in network_meta:
-            if not (int(network_meta['vlan_start']) >= 1 and
-                    int(network_meta['vlan_start']) <= 4094):
-                msg = "vlan_start must be a integer in 1~4096"
-                LOG.error(msg)
-                raise HTTPBadRequest(explanation=msg, request=req)
-        if 'vlan_end' in network_meta:
-            if not (int(network_meta['vlan_end']) >= 1 and
-                    int(network_meta['vlan_end']) <= 4094):
-                msg = "vlan_end must be a integer in 1~4096"
-                LOG.error(msg)
-                raise HTTPBadRequest(explanation=msg, request=req)
-            if int(network_meta['vlan_start']) > int(network_meta['vlan_end']):
-                msg = "vlan_start must be less than vlan_end"
-                LOG.error(msg)
-                raise HTTPBadRequest(explanation=msg, request=req)
-
-        if (('vni_start' in network_meta and 'vni_end' not in
-            network_meta) or (
-                'vni_start' not in network_meta and
-                'vni_end' in network_meta)):
-
-            msg = "vni_start and vni_end must be appeared at the same time"
-            LOG.error(msg)
-            raise HTTPBadRequest(explanation=msg, request=req)
-        if 'vni_start' in network_meta:
-            if not (int(network_meta['vni_start']) >= 1 and
-                    int(network_meta['vni_start']) <= 16777216):
-                msg = "vni_start must be a integer in 1~16777216"
-                LOG.error(msg)
-                raise HTTPBadRequest(explanation=msg, request=req)
-        if 'vni_end' in network_meta:
-            if not (int(network_meta['vni_end']) >= 1 and
-                    int(network_meta['vni_end']) <= 16777216):
-                msg = "vni_end must be a integer in 1~16777216"
-                LOG.error(msg)
-                raise HTTPBadRequest(explanation=msg, request=req)
-            if int(network_meta['vni_start']) > int(network_meta['vni_end']):
-                msg = "vni_start must be less than vni_end"
-                LOG.error(msg)
-                raise HTTPBadRequest(explanation=msg, request=req)
-
-        if (('gre_id_start' in network_meta and 'gre_id_end' not in
-            network_meta) or (
-                'gre_id_start' not in network_meta and
-                'gre_id_end' in network_meta)):
-            msg = "gre_id_start and gre_id_end must"\
-                "be appeared at the same time"
-            LOG.error(msg)
-            raise HTTPBadRequest(explanation=msg, request=req)
-        if 'gre_id_start' in network_meta:
-            if not (int(network_meta['gre_id_start']) >= 1 and
-                    int(network_meta['gre_id_start']) <= 4094):
-                msg = "gre_id_start must be a integer in 1~4094"
-                LOG.error(msg)
-                raise HTTPBadRequest(explanation=msg, request=req)
-        if 'gre_id_end' in network_meta:
-            if not (int(network_meta['gre_id_end']) >= 1 and
-                    int(network_meta['gre_id_end']) <= 4094):
-                msg = "gre_id_end must be a integer in 1~4094"
-                LOG.error(msg)
-                raise HTTPBadRequest(explanation=msg, request=req)
-            if int(network_meta['gre_id_start']) >\
-                    int(network_meta['gre_id_end']):
-                msg = "gre_id_start must be less than gre_id_end"
-                LOG.error(msg)
-                raise HTTPBadRequest(explanation=msg, request=req)
+    def _verify_uniqueness_of_network_custom_name(
+            self, req, network_list, network_meta, is_update=False):
+        """custom name of network in cluster must be unique"""
+        custom_name = network_meta['custom_name']
+        for network in network_list['networks']:
+            if is_update and custom_name == network.get('custom_name', None) \
+                    and network_meta['id'] == network['id']:
+                return
+        network_custom_name_list = [network['custom_name'] for network
+                                    in network_list['networks'] if
+                                    network.get('custom_name', None)]
+        if custom_name in network_custom_name_list:
+            msg = _("Custom name %s of network already exits in the "
+                    "cluster." % custom_name)
+            raise HTTPConflict(msg, request=req, content_type="text/plain")
 
     def _verify_heartbeat_network(self, req, network_list, network_meta):
         heartbeat_networks = [
             network for network in network_list['networks'] if network.get(
                 'network_type',
                 None) and network['network_type'] == "HEARTBEAT"]
-        if len(heartbeat_networks) >= 2:
+        if len(heartbeat_networks) >= 3:
             raise HTTPBadRequest(
                 explanation="HEARTBEAT network plane number must be "
-                            "less than two",
+                            "less than three",
                 request=req)
 
     @utils.mutating
@@ -350,6 +273,9 @@ class Controller(controller.BaseController):
             network_list = self.detail(req, cluster_id)
             self._verify_uniqueness_of_network_name(
                 req, network_list, network_meta)
+            if network_meta.get('custom_name', None):
+                self._verify_uniqueness_of_network_custom_name(
+                    req, network_list, network_meta)
             if 'network_type' in network_meta and network_meta[
                     'network_type'] == "HEARTBEAT":
                 self._verify_heartbeat_network(req, network_list, network_meta)
@@ -382,7 +308,7 @@ class Controller(controller.BaseController):
                 explanation="unsupported capability type",
                 request=req)
 
-        self._valid_network_range(req, network_meta)
+        common.valid_network_range(req, network_meta)
 
         if network_meta.get('ip_ranges', None) and \
                 eval(network_meta['ip_ranges']):
@@ -403,7 +329,7 @@ class Controller(controller.BaseController):
                     msg = (_("Wrong CIDR format."))
                     LOG.warn(msg)
                     raise HTTPForbidden(msg)
-                self.validate_ip_format(cidr_division[0])
+                utils.validate_ip_format(cidr_division[0])
 
                 ip_ranges = eval(network_meta['ip_ranges'])
                 last_ip_range_end = 0
@@ -418,8 +344,8 @@ class Controller(controller.BaseController):
                         raise HTTPForbidden(msg)
                     ip_start = ip_pair['start']
                     ip_end = ip_pair['end']
-                    self.validate_ip_format(ip_start)  # check ip format
-                    self.validate_ip_format(ip_end)
+                    utils.validate_ip_format(ip_start)  # check ip format
+                    utils.validate_ip_format(ip_end)
 
                     if not self._is_in_network_range(ip_start, cidr):
                         msg = (
@@ -484,7 +410,7 @@ class Controller(controller.BaseController):
             gateway = network_meta['gateway']
             cidr = network_meta['cidr']
 
-            self.validate_ip_format(gateway)
+            utils.validate_ip_format(gateway)
             return_flag = self._is_in_network_range(gateway, cidr)
             if not return_flag:
                 msg = (
@@ -494,11 +420,13 @@ class Controller(controller.BaseController):
                         (gateway, cidr)))
                 raise HTTPBadRequest(explanation=msg)
 
-        if network_meta.get('cluster_id') and network_meta.get('gateway'):
+        if network_meta.get('network_type', None) != "DATAPLANE" and \
+                network_meta.get('cluster_id') and network_meta.get('gateway'):
             networks = registry.get_networks_detail(req.context, cluster_id)
             gateways = [network['gateway'] for network in networks
                         if network['name'] != network_meta['name'] and
-                        network['gateway']]
+                        network['gateway'] and
+                        network['network_type'] != "DATAPLANE"]
             if gateways:
                 msg = (_('More than one gateway found in cluster.'))
                 LOG.error(msg)
@@ -666,7 +594,7 @@ class Controller(controller.BaseController):
                 explanation="unsupported capability type",
                 request=req)
 
-        self._valid_network_range(req, network_meta)
+        common.valid_network_range(req, network_meta)
 
         network_name = network_meta.get('name', None)
         cluster_id = orig_network_meta['cluster_id']
@@ -678,6 +606,12 @@ class Controller(controller.BaseController):
                 'network_type'] if not network_type else network_type
             network_list = self.detail(req, cluster_id)
             self._verify_uniqueness_of_network_name(
+                req, network_list, network_updated, True)
+        if network_meta.get('custom_name', None) and cluster_id:
+            network_list = self.detail(req, cluster_id)
+            network_updated = copy.deepcopy(network_meta)
+            network_updated['id'] = network_id
+            self._verify_uniqueness_of_network_custom_name(
                 req, network_list, network_updated, True)
 
         cidr = network_meta.get('cidr', orig_network_meta['cidr'])
@@ -691,7 +625,7 @@ class Controller(controller.BaseController):
                 msg = (_("Wrong CIDR format."))
                 LOG.warn(msg)
                 raise HTTPForbidden(msg)
-            self.validate_ip_format(cidr_division[0])
+            utils.validate_ip_format(cidr_division[0])
 
         if cidr and vlan_id and cluster_id:
             networks = registry.get_networks_detail(req.context, cluster_id)
@@ -731,8 +665,8 @@ class Controller(controller.BaseController):
                     raise HTTPForbidden(msg)
                 ip_start = ip_pair['start']
                 ip_end = ip_pair['end']
-                self.validate_ip_format(ip_start)  # check ip format
-                self.validate_ip_format(ip_end)
+                utils.validate_ip_format(ip_start)  # check ip format
+                utils.validate_ip_format(ip_end)
 
                 if not self._is_in_network_range(ip_start, cidr):
                     msg = (
@@ -778,7 +712,7 @@ class Controller(controller.BaseController):
                 orig_network_meta['cidr']):
             gateway = network_meta.get('gateway', orig_network_meta['gateway'])
             cidr = network_meta.get('cidr', orig_network_meta['cidr'])
-            self.validate_ip_format(gateway)
+            utils.validate_ip_format(gateway)
             return_flag = self._is_in_network_range(gateway, cidr)
             if not return_flag:
                 msg = (
@@ -789,11 +723,13 @@ class Controller(controller.BaseController):
                 raise HTTPBadRequest(explanation=msg)
 
         # allow one gateway in one cluster
-        if network_meta.get('cluster_id') and (network_meta.get('gateway')):
+        if network_meta.get('network_type', None) != "DATAPLANE" and \
+                network_meta.get('cluster_id') and network_meta.get('gateway'):
             networks = registry.get_networks_detail(req.context, cluster_id)
             gateways = [network['gateway'] for network in networks
                         if network['name'] != orig_network_meta['name'] and
-                        network['gateway']]
+                        network['gateway'] and
+                        network['network_type'] != "DATAPLANE"]
             if gateways:
                 msg = (_('More than one gateway found in cluster.'))
                 LOG.error(msg)

@@ -24,8 +24,7 @@ from webob.exc import HTTPConflict
 from webob.exc import HTTPForbidden
 from webob.exc import HTTPNotFound
 from webob import Response
-
-# import json
+import json
 
 from daisy.api import policy
 import daisy.api.v1
@@ -39,11 +38,7 @@ from daisy import notifier
 import daisy.registry.client.v1.api as registry
 from daisy.registry.api.v1 import template
 
-try:
-    import simplejson as json
-except ImportError:
-    import json
-
+import daisy.api.backends.common as daisy_cmn
 
 LOG = logging.getLogger(__name__)
 _ = i18n._
@@ -137,7 +132,7 @@ class Controller(controller.BaseController):
             raise HTTPNotFound(msg)
 
     @utils.mutating
-    def add_template(self, req, host_template):
+    def add_host_template(self, req, host_template):
         """
         Adds a new cluster template to Daisy.
 
@@ -148,10 +143,10 @@ class Controller(controller.BaseController):
         """
         self._enforce(req, 'add_host_template')
 
-        host_template = registry.add_host_template_metadata(
+        host_template_meta = registry.add_host_template_metadata(
             req.context, host_template)
 
-        return {'host_template': template}
+        return {'host_template': host_template_meta}
 
     @utils.mutating
     def update_host_template(self, req, template_id, host_template):
@@ -207,11 +202,22 @@ class Controller(controller.BaseController):
 
         return {'host_template': host_template}
 
+    # TODO:move the additional deletion of
+    # the hwm* to host_to_template extension
     def _filter_params(self, host_meta):
         for key in host_meta.keys():
             if key == "id" or key == "updated_at" or key == "deleted_at" or \
-                    key == "created_at" or key == "deleted":
+                    key == "created_at" or key == "deleted" or \
+                    key == "hwm_id" or key == "hwm_ip":
                 del host_meta[key]
+        if "config_set_id" in host_meta:
+            host_meta['config_set_id'] = ""
+        if "tecs_version_id" in host_meta:
+            host_meta['tecs_version_id'] = ""
+
+        if "os_version_id" in host_meta:
+            del host_meta['os_version_id']
+
         if "memory" in host_meta:
             del host_meta['memory']
 
@@ -250,6 +256,39 @@ class Controller(controller.BaseController):
                     if "ip" in assigned_network:
                         assigned_network['ip'] = ""
         return host_meta
+
+    def _judge_ssh_host(self, req, cluster_id, host_id):
+        ssh_host_flag = False
+        kwargs = {}
+        nodes = registry.get_hosts_detail(req.context, **kwargs)
+        for node in nodes:
+            if node.get("hwm_id"):
+                daisy_cmn.check_discover_state_with_hwm(req, node)
+            else:
+                daisy_cmn.check_discover_state_with_no_hwm(req, node)
+        ssh_hosts_list = []
+        for node in nodes:
+            if node['discover_state'] and 'SSH' in node['discover_state']:
+                ssh_hosts_list.append(node)
+        if not ssh_hosts_list:
+            return ssh_host_flag
+        for ssh_host in ssh_hosts_list:
+            if host_id == ssh_host['id'] and ssh_host[
+                    'discover_state'] == 'SSH:DISCOVERING':
+                msg = (_(
+                    'host %s is in  DISCOVERING status,please wait') % host_id)
+                raise HTTPBadRequest(explanation=msg)
+            if host_id == ssh_host['id'] and ssh_host[
+                    'discover_state'] == 'SSH:DISCOVERY_FAILED':
+                msg = (_(
+                    'host %s discover faild ,please make sure success')
+                    % host_id)
+                raise HTTPBadRequest(explanation=msg)
+            if host_id == ssh_host['id'] and ssh_host[
+                    'discover_state'] == 'SSH:DISCOVERY_SUCCESSFUL':
+                ssh_host_flag = True
+                break
+        return ssh_host_flag
 
     @utils.mutating
     def get_host_template_detail(self, req, template_id):
@@ -368,6 +407,19 @@ class Controller(controller.BaseController):
         if not host_template.get('cluster_name', None):
             msg = "cluster name is null"
             raise HTTPNotFound(explanation=msg)
+        if host_template.get('host_id', None):
+            self.get_host_meta_or_404(req, host_template['host_id'])
+        else:
+            msg = "host id which need to template instantiate can't be null"
+            raise HTTPBadRequest(explanation=msg)
+        host_id = host_template['host_id']
+        orig_host_meta = registry.get_host_metadata(req.context, host_id)
+        if orig_host_meta.get("hwm_ip", None):
+            msg = "hwm host forbidden to use template"
+            LOG.error(msg)
+            raise HTTPForbidden(explanation=msg,
+                                request=req,
+                                content_type="text/plain")
         params = {'filters': {'cluster_name': host_template['cluster_name']}}
         templates = registry.host_template_lists_metadata(
             req.context, **params)
@@ -385,12 +437,6 @@ class Controller(controller.BaseController):
                 explanation=msg,
                 request=req,
                 content_type="text/plain")
-        if host_template.get('host_id', None):
-            self.get_host_meta_or_404(req, host_template['host_id'])
-        else:
-            msg = "host_id is not null"
-            raise HTTPBadRequest(explanation=msg)
-        host_id = host_template['host_id']
         params = {'filters': {'name': host_template['cluster_name']}}
         clusters = registry.get_clusters_detail(req.context, **params)
         if clusters and clusters[0]:
@@ -408,47 +454,116 @@ class Controller(controller.BaseController):
                         if role_name['name'] in host_role_list:
                             role_id_list.append(role_name['id'])
                 host_template_used['role'] = role_id_list
-        if 'name' in host_template_used:
-            host_template_used.pop('name')
-        if 'dmi_uuid' in host_template_used:
-            host_template_used.pop('dmi_uuid')
-        if 'ipmi_user' in host_template_used:
-            host_template_used.pop('ipmi_user')
-        if 'ipmi_passwd' in host_template_used:
-            host_template_used.pop('ipmi_passwd')
-        if 'ipmi_addr' in host_template_used:
-            host_template_used.pop('ipmi_addr')
+        ignore_common_key_list = ["name", "dmi_uuid", "ipmi_addr"]
+        for ignore_key in ignore_common_key_list:
+            if host_template_used.get(ignore_key, None):
+                host_template_used.pop(ignore_key)
+        ssh_host_flag = self._judge_ssh_host(req,
+                                             host_template_used['cluster'],
+                                             host_id)
+        ignore_ssh_key_list = ["root_disk", "root_lv_size",
+                               "swap_lv_size", "isolcpus",
+                               "os_version_file", "os_version_id",
+                               "root_pwd", "hugepages", "hugepagesize"]
+        if ssh_host_flag:
+            for ignore_key in ignore_ssh_key_list:
+                if host_template_used.get(ignore_key, None):
+                    host_template_used.pop(ignore_key)
+            daisy_cmn.add_ssh_host_to_cluster_and_assigned_network(
+                req,
+                host_template_used['cluster'],
+                host_id)
+        else:
+            if not host_template_used.get("root_disk", None):
+                raise HTTPBadRequest(
+                    explanation="ssh host template can't be used by pxe host")
+            host_template_used['os_status'] = "init"
+            host_template_used['messages'] = ""
+            host_template_used['os_progress'] = 0
+            host_template_used['description'] = ""
         host_template_interfaces = host_template_used.get('interfaces', None)
         if host_template_interfaces:
-            template_ether_interface = [
-                interface for interface in host_template_interfaces if
-                interface['type'] == "ether"]
+            template_ether_interface = [interface for interface in
+                                        host_template_interfaces if
+                                        interface['type'] == "ether"]
+            template_bond_interface = [interface for interface in
+                                       host_template_interfaces if
+                                       interface['type'] == "bond"]
             orig_host_meta = registry.get_host_metadata(req.context, host_id)
             orig_host_interfaces = orig_host_meta.get('interfaces', None)
-            temp_orig_host_interfaces = [
-                interface for interface in orig_host_interfaces if
-                interface['type'] == "ether"]
+            temp_orig_host_interfaces = [interface for interface in
+                                         orig_host_interfaces if
+                                         interface['type'] == "ether"]
             if len(temp_orig_host_interfaces) != len(template_ether_interface):
-                msg = (_('host_id %s does not match the host_id host_template '
+                msg = (_('host_id %s number of interface '
+                         'does not match host template'
                          '%s.') % (host_id,
                                    host_template['host_template_name']))
                 raise HTTPBadRequest(explanation=msg)
             interface_match_flag = 0
+            host_template_interfaces = \
+                filter(lambda interface: 'vlan' != interface['type'],
+                       host_template_interfaces)
             for host_template_interface in host_template_interfaces:
                 if host_template_interface['type'] == 'ether':
                     for orig_host_interface in orig_host_interfaces:
-                        if orig_host_interface[
-                                'pci'] == host_template_interface['pci']:
+                        if orig_host_interface['pci'] ==\
+                                host_template_interface['pci']:
                             interface_match_flag += 1
-                            host_template_interface[
-                                'mac'] = orig_host_interface['mac']
-                            if 'ip' in host_template_interface:
+                            host_template_interface['mac'] =\
+                                orig_host_interface['mac']
+                            if host_template_interface.has_key('ip') and\
+                                    ssh_host_flag:
+                                host_template_interface['ip'] =\
+                                    orig_host_interface['ip']
+                            else:
                                 host_template_interface.pop('ip')
-            if interface_match_flag != len(template_ether_interface):
-                msg = (_('host_id %s does not match the host '
-                         'host_template %s.') % (
-                    host_id, host_template['host_template_name']))
-                raise HTTPBadRequest(explanation=msg)
+                            if orig_host_interface.get('assigned_networks',
+                                                       None) and ssh_host_flag:
+                                host_template_interface['assigned_networks']\
+                                    = orig_host_interface['assigned_networks']
+                if host_template_interface['type'] == 'bond':
+                    for orig_host_interface in orig_host_interfaces:
+                        if orig_host_interface['name'] ==\
+                                host_template_interface['name']:
+                            if ssh_host_flag:
+                                interface_match_flag += 1
+                            interface_list = ["mac", "slave1", "slave2",
+                                              "ip"]
+                            for interface_key in interface_list:
+                                if host_template_interface.get(
+                                        interface_key, None) and ssh_host_flag:
+                                    host_template_interface[interface_key]\
+                                        = orig_host_interface[interface_key]
+                            if host_template_interface.has_key('ip')\
+                                    and not ssh_host_flag:
+                                host_template_interface.pop('ip')
+                            if orig_host_interface.get('assigned_networks',
+                                                       None) and ssh_host_flag:
+                                host_template_interface['assigned_networks']\
+                                    = orig_host_interface['assigned_networks']
+                if host_template_interface['type'] == 'vlan':
+                    host_template_interfaces.remove(host_template_interface)
+            if ssh_host_flag:
+                vlan_interfaces = []
+                for orig_host_interface in orig_host_interfaces:
+                    if orig_host_interface['type'] == 'vlan':
+                        vlan_interfaces.append(orig_host_interface)
+                host_template_interfaces.extend(vlan_interfaces)
+                if interface_match_flag != (len(
+                        template_ether_interface) + len(
+                        template_bond_interface)):
+                    msg = (_('ssh discover host_id '
+                             'interface %s does not match the '
+                             'host_template %s.') % (
+                        host_id, host_template['host_template_name']))
+                    raise HTTPBadRequest(explanation=msg)
+            else:
+                if interface_match_flag != len(template_ether_interface):
+                    msg = (_('host_id %s interface does not match the '
+                             'host_template %s.') % (
+                        host_id, host_template['host_template_name']))
+                    raise HTTPBadRequest(explanation=msg)
             host_template_used['interfaces'] = str(host_template_interfaces)
             host_template = registry.update_host_metadata(
                 req.context, host_id, host_template_used)
@@ -489,10 +604,17 @@ class Controller(controller.BaseController):
                     raise HTTPNotFound(explanation=msg)
                 else:
                     host_templates[0]['hosts'] = json.dumps(template_param)
-                    host_template = registry.update_host_template_metadata(
-                        req.context, host_templates[0]['id'],
-                        host_templates[0])
-                    return {"host_template": host_template}
+                    host_template_meta = \
+                        registry.update_host_template_metadata(
+                            req.context, host_templates[0]['id'],
+                            host_templates[0])
+                    if host_template.get('template_id', None):
+                        template = {'hosts': host_templates[0]['hosts']}
+                        registry.update_template_metadata(
+                            req.context,
+                            host_template['template_id'],
+                            template)
+                    return {"host_template": host_template_meta}
             else:
                 msg = "host template cluster name %s is null" % host_template[
                     'cluster_name']
