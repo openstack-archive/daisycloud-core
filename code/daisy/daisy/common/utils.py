@@ -350,13 +350,6 @@ def get_host_meta(response):
     return result
 
 
-def get_hwm_meta(response):
-    result = {}
-    for key, value in response.json.items():
-        result[key] = value
-    return result
-
-
 def get_cluster_meta(response):
     result = {}
     for key, value in response.json.items():
@@ -1211,8 +1204,3 @@ def get_numa_node_from_cpus(numa, str_cpus):
     numa_nodes.sort()
     return numa_nodes
 
-
-def get_provider_client(hwm_ip):
-    endpoint = "http://" + hwm_ip + ":8089"
-    args = {'version': 1.0, 'endpoint': endpoint}
-    return provider_client.Client(**args)

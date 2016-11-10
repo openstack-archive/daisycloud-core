@@ -198,6 +198,8 @@ update ".data_name = \"baremetal_source\""
 
 update ".os_status = \"active\"" 
 
+update ".discover_mode = \"SSH\""
+
 echo Collected:
 cat data.json
 
