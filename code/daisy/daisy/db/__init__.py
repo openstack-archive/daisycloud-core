@@ -18,7 +18,6 @@
 
 from oslo_config import cfg
 from oslo_utils import importutils
-
 from daisy import i18n
 
 _ = i18n._
