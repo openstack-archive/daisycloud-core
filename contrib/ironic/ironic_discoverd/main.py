@@ -72,8 +72,16 @@ def api_continue():
         hostname = data.pop('hostname')
     else:
         hostname = None
-    if data_name == "baremetal_source":
-        process.write_data_to_daisy(data, ipmi_addr, os_status, hostname)
+    if 'discover_mode' in data.keys():
+        discover_mode = data.pop('discover_mode')
+    else:
+        discover_mode = None
+    try:
+        if data_name == "baremetal_source":
+            process.write_data_to_daisy(data, ipmi_addr, os_status, hostname,
+                                        discover_mode)
+    except Exception as ex:
+        LOG.error("Write data to daisy failed: %s", ex)
     return json.dumps(""), 200, {'Content-Type': 'applications/json'}
 
 

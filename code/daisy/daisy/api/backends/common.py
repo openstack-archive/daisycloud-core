@@ -32,6 +32,8 @@ from daisy import i18n
 from daisy.common import utils
 from daisy.common import exception
 import daisy.registry.client.v1.api as registry
+from daisy.api.backends.osinstall import osdriver
+import ConfigParser
 import copy
 import fcntl
 import json
@@ -103,6 +105,76 @@ service_map = {
     'nova-cells': 'openstack-nova-cells',
     'camellia-api': 'camellia-api'
 }
+try:
+    OS_INSTALL_TYPE = config.get("OS", "os_install_type")
+except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
+    OS_INSTALL_TYPE = 'pxe'
+
+_OS_HANDLE = None
+
+
+def get_os_handle():
+    global _OS_HANDLE
+    if _OS_HANDLE is not None:
+        return _OS_HANDLE
+
+    _OS_HANDLE = osdriver.load_install_os_driver(OS_INSTALL_TYPE)
+    return _OS_HANDLE
+
+
+def list_2_file(f, cluster_list):
+    f.seek(0)
+    for cluster_id in cluster_list:
+        f.write(cluster_id+"\n")
+
+
+def file_2_list(f, cluster_list):
+    f.seek(0)
+    cluster_ids = f.readlines()
+    for cluster_id in cluster_ids:
+        cluster_list.append(cluster_id.strip("\n"))
+ 
+
+def cluster_list_add(cluster_id):
+    cluster_list = []
+    with open(cluster_list_file, "a+") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        file_2_list(f, cluster_list)
+        cluster_list.append(cluster_id)
+        f.seek(0)
+        f.truncate()
+        list_2_file(f, cluster_list)
+        fcntl.flock(f, fcntl.LOCK_UN)
+
+
+def cluster_list_delete(cluster_id):
+    cluster_list = []
+    with open(cluster_list_file, "a+") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        file_2_list(f, cluster_list)
+        cluster_list.remove(cluster_id)
+        f.seek(0)
+        f.truncate()
+        list_2_file(f, cluster_list)
+        fcntl.flock(f, fcntl.LOCK_UN)
+
+
+def in_cluster_list(cluster_id):
+    cluster_list = []
+    with open(cluster_list_file, "a+") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        file_2_list(f, cluster_list)
+        fcntl.flock(f, fcntl.LOCK_UN)
+    return cluster_id in cluster_list
+
+
+def cluster_list_get():
+    cluster_list = []
+    with open(cluster_list_file, "a+") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        file_2_list(f, cluster_list)
+        fcntl.flock(f, fcntl.LOCK_UN)
+    return cluster_list
 
 
 def list_2_file(f, cluster_list):
@@ -273,9 +345,11 @@ def get_role_hosts(req, role_id):
 
 def delete_role_hosts(req, role_id):
     try:
-        registry.delete_role_host_metadata(req.context, role_id)
+        role_hosts = registry.get_role_host_metadata(
+            req.context, role_id)
     except exception.Invalid as e:
         raise HTTPBadRequest(explanation=e.msg, request=req)
+    return role_hosts
 
 
 def set_role_status_and_progress(req, cluster_id, opera, status,
@@ -803,11 +877,9 @@ def _judge_ssh_host(req, host_id):
     kwargs = {}
     nodes = registry.get_hosts_detail(req.context, **kwargs)
     for node in nodes:
-        if node.get("hwm_id"):
-            check_discover_state_with_hwm(req, node)
-        else:
-            check_discover_state_with_no_hwm(req, node)
-
+        os_handle = get_os_handle()
+        os_handle.check_discover_state(req,
+                                       node)
         if node['discover_state'] and \
                 'SSH:DISCOVERY_SUCCESSFUL' in node['discover_state']:
             if host_id == node['id']:
