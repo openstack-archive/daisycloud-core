@@ -16,6 +16,7 @@ from oslo_log import log as logging
 from tempest import config
 import tempest.test
 from daisyclient.v1 import client as daisy_client
+from tempest.api.daisy.v1.fake.logical_network_fake import FakeDiscoverHosts
 
 CONF = config.CONF
 
@@ -460,15 +461,6 @@ class BaseDaisyTest(tempest.test.BaseTestCase):
         return service_disk_detail
 
     @classmethod
-    def _clean_all_physical_node(self):
-        physical_node_list_generator = self.ironic_client.physical_node.list()
-        physical_node_list = [physical_node for physical_node
-                              in physical_node_list_generator]
-        if physical_node_list:
-            for physical_node in physical_node_list:
-                self.ironic_client.physical_node.delete(physical_node.uuid)
-
-    @classmethod
     def template_add(self, **template):
         template = self.daisy_client.template.add(**template)
         return template
@@ -537,3 +529,7 @@ class BaseDaisyTest(tempest.test.BaseTestCase):
     def delete_host_template(self, **kwargs):
         template = self.daisy_client.template.delete_host_template(**kwargs)
         return template
+
+    @classmethod
+    def add_fake_node(cls, num):
+        return cls.daisy_client.hosts.add(**FakeDiscoverHosts.daisy_data[num])

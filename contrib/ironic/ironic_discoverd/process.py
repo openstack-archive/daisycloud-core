@@ -39,15 +39,17 @@ _POWER_CHECK_PERIOD = 5
 _POWER_OFF_CHECK_PERIOD = 5
 
 
-def write_data_to_daisy(node_info, ipmi_addr, os_status=None, hostname=None):
+def write_data_to_daisy(node_info, ipmi_addr, os_status=None, hostname=None,
+                        discover_mode=None):
     daisy_client = utils.get_daisy_client()
     daisy_data = format_node_info_for_daisy_client(node_info, ipmi_addr,
-                                                   os_status, hostname)
+                                                   os_status, hostname,
+                                                   discover_mode)
     daisy_client.hosts.add(**daisy_data)
 
 
-def format_node_info_for_daisy_client(node_info, ipmi_addr,
-                                      os_status, hostname):
+def format_node_info_for_daisy_client(node_info, ipmi_addr, os_status,
+                                      hostname, discover_mode):
     interface_list = []
     interfaces = node_info.get('interfaces', {})
     for value in interfaces.values():
@@ -65,18 +67,17 @@ def format_node_info_for_daisy_client(node_info, ipmi_addr,
             'current_speed': value['current_speed'],
             'netmask': value['netmask'],
             'type': value['type'],
-            'slaves': slaves,
+            'slaves': slaves
         }
         interface_list.append(interface)
 
-    min_mac = find_min_mac_in_node_info(node_info)
-    unique_mac = ''.join(min_mac.split(":"))
     daisy_data = {'description': 'default',
-                  'name': unique_mac,
+                  'name': '',
                   'ipmi_addr': ipmi_addr,
                   'interfaces': interface_list,
                   'os_status': 'init',
                   'dmi_uuid': node_info.get('system').get('uuid', None),
+                  'discover_mode': discover_mode if discover_mode else 'PXE',
                   'system': node_info.get('system'),
                   'cpu': node_info.get('cpu'),
                   'memory': node_info.get('memory'),
