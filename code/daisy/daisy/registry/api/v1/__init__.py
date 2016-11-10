@@ -23,6 +23,12 @@ from daisy.registry.api.v1 import configs
 from daisy.registry.api.v1 import networks
 from daisy.registry.api.v1 import disk_array
 from daisy.registry.api.v1 import template
+from daisy.registry.api.v1 import hwms
+from daisy.registry.api.v1 import versions
+from daisy.registry.api.v1 import version_patchs
+from daisy.registry.api.v1 import template_configs
+from daisy.registry.api.v1 import template_funcs
+from daisy.registry.api.v1 import template_services
 
 
 def init(mapper):
@@ -50,6 +56,33 @@ def init(mapper):
                    controller=members_resource,
                    action="get_host_clusters",
                    conditions={'method': ['GET']})
+
+    hwms_resource = hwms.create_resource()
+
+    mapper.connect("/hwm",
+                   controller=hwms_resource,
+                   action="add_hwm",
+                   conditions={'method': ['POST']})
+
+    mapper.connect("/hwm/{id}",
+                   controller=hwms_resource,
+                   action="delete_hwm",
+                   conditions={'method': ['DELETE']})
+
+    mapper.connect("/hwm/{id}",
+                   controller=hwms_resource,
+                   action="update_hwm",
+                   conditions={'method': ['PUT']})
+
+    mapper.connect("/hwm",
+                   controller=hwms_resource,
+                   action="hwm_list",
+                   conditions={'method': ['GET']})
+
+    mapper.connect("/hwm/{id}",
+                   controller=hwms_resource,
+                   action="detail",
+                   conditions=dict(method=["GET"]))
 
     hosts_resource = hosts.create_resource()
 
@@ -105,6 +138,10 @@ def init(mapper):
                    controller=hosts_resource,
                    action="get_host_interface",
                    conditions=dict(method=["GET"]))
+    mapper.connect("/host-interface/{id}",
+                   controller=hosts_resource,
+                   action="get_host_interface_by_host_id",
+                   conditions=dict(method=["GET"]))
     mapper.connect("/interfaces/{interface_id}/network/{network_id}",
                    controller=hosts_resource,
                    action="get_assigned_network",
@@ -113,6 +150,10 @@ def init(mapper):
                    controller=hosts_resource,
                    action="get_all_host_interfaces",
                    conditions=dict(method=["PUT"]))
+    mapper.connect("/host-roles/{host_id}",
+                   controller=hosts_resource,
+                   action="get_host_roles_by_host_id",
+                   conditions=dict(method=["GET"]))
 
     mapper.connect("/clusters",
                    controller=hosts_resource,
@@ -397,6 +438,27 @@ def init(mapper):
                    action='cinder_volume_detail',
                    conditions={'method': ['GET']})
 
+    mapper.connect("/optical_switch",
+                   controller=array_resource,
+                   action='optical_switch_add',
+                   conditions={'method': ['POST']})
+    mapper.connect("/optical_switch/list",
+                   controller=array_resource,
+                   action='optical_switch_list',
+                   conditions={'method': ['GET']})
+    mapper.connect("/optical_switch/{id}",
+                   controller=array_resource,
+                   action='optical_switch_detail',
+                   conditions={'method': ['GET']})
+    mapper.connect("/optical_switch/{id}",
+                   controller=array_resource,
+                   action='optical_switch_update',
+                   conditions={'method': ['PUT']})
+    mapper.connect("/optical_switch/{id}",
+                   controller=array_resource,
+                   action='optical_switch_delete',
+                   conditions={'method': ['DELETE']})
+
     template_resource = template.create_resource()
     mapper.connect("/template",
                    controller=template_resource,
@@ -439,6 +501,89 @@ def init(mapper):
                    controller=template_resource,
                    action='host_template_detail',
                    conditions={'method': ['GET']})
+
+    version_resource = versions.create_resource()
+    mapper.connect("/versions",
+                   controller=version_resource,
+                   action='add_version',
+                   conditions={'method': ['POST']})
+    mapper.connect("/versions/{version_id}",
+                   controller=version_resource,
+                   action='update_version',
+                   conditions={'method': ['PUT']})
+    mapper.connect("/versions/{version_id}",
+                   controller=version_resource,
+                   action='delete_version',
+                   conditions={'method': ['DELETE']})
+    mapper.connect("/versions/list",
+                   controller=version_resource,
+                   action='get_all_versions',
+                   conditions={'method': ['GET']})
+    mapper.connect("/versions/{version_id}",
+                   controller=version_resource,
+                   action='get_version',
+                   conditions={'method': ['GET']})
+
+    version_patch_resource = version_patchs.create_resource()
+    mapper.connect("/version_patchs",
+                   controller=version_patch_resource,
+                   action='add_version_patch',
+                   conditions={'method': ['POST']})
+    mapper.connect("/version_patchs/{version_patch_id}",
+                   controller=version_patch_resource,
+                   action='update_version_patch',
+                   conditions={'method': ['PUT']})
+    mapper.connect("/version_patchs/{version_patch_id}",
+                   controller=version_patch_resource,
+                   action='delete_version_patch',
+                   conditions={'method': ['DELETE']})
+    mapper.connect("/version_patchs/{version_patch_id}",
+                   controller=version_patch_resource,
+                   action='get_version_patch',
+                   conditions={'method': ['GET']})
+
+    template_configs_resource = template_configs.create_resource()
+    mapper.connect("/import_template_configs",
+                   controller=template_configs_resource,
+                   action="import_template_config",
+                   conditions={'method': ['POST']})
+
+    mapper.connect("/template_configs/list",
+                   controller=template_configs_resource,
+                   action="list_template_config",
+                   conditions={'method': ['GET']})
+
+    mapper.connect("/template_configs/{template_config_id}",
+                   controller=template_configs_resource,
+                   action="get_template_config",
+                   conditions=dict(method=["GET"]))
+
+    template_funcs_resource = template_funcs.create_resource()
+    mapper.connect("/import_template_funcs",
+                   controller=template_funcs_resource,
+                   action="import_template_func",
+                   conditions={'method': ['POST']})
+
+    mapper.connect("/template_funcs/list",
+                   controller=template_funcs_resource,
+                   action="list_template_func",
+                   conditions={'method': ['GET']})
+
+    mapper.connect("/template_funcs/{template_func_id}",
+                   controller=template_funcs_resource,
+                   action="get_template_func",
+                   conditions=dict(method=["GET"]))
+
+    template_services_resource = template_services.create_resource()
+    mapper.connect("/template_services/list",
+                   controller=template_services_resource,
+                   action="list_template_service",
+                   conditions={'method': ['GET']})
+
+    mapper.connect("/template_services/{template_service_id}",
+                   controller=template_services_resource,
+                   action="get_template_service",
+                   conditions=dict(method=["GET"]))
 
 
 class API(wsgi.Router):
