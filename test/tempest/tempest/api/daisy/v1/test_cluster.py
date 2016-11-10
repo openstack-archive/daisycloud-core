@@ -187,7 +187,7 @@ class TecsClusterTest(base.BaseDaisyTest):
             self.delete_cluster(cluster_info.id)
 
     def test_add_cluster_with_nodes(self):
-        host_info = self.add_host(**self.host_meta)
+        host_info = self.add_fake_node(0)
         nodes = []
         nodes.append(host_info.id)
         self.cluster_meta1['nodes'] = nodes
@@ -222,7 +222,7 @@ class TecsClusterTest(base.BaseDaisyTest):
         self.delete_cluster(cluster_info.id)
 
     def test_update_cluster_with_nodes(self):
-        host_info = self.add_host(**self.host_meta)
+        host_info = self.add_fake_node(0)
         nodes = []
         nodes.append(host_info.id)
         self.private_network_add()
