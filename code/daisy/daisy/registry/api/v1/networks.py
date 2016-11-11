@@ -44,7 +44,7 @@ DISPLAY_FIELDS_IN_INDEX = ['id', 'name', 'size',
 
 SUPPORTED_FILTERS = ['name', 'status', 'container_format', 'disk_format',
                      'min_ram', 'min_disk', 'size_min', 'size_max',
-                     'changes-since', 'protected', 'type']
+                     'changes-since', 'protected', 'type', 'cluster_id']
 
 SUPPORTED_SORT_KEYS = ('name', 'status', 'container_format', 'disk_format',
                        'size', 'id', 'created_at', 'updated_at')

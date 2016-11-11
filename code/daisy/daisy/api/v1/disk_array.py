@@ -47,17 +47,27 @@ _LW = i18n._LW
 SUPPORTED_PARAMS = daisy.api.v1.SUPPORTED_PARAMS
 SUPPORTED_FILTERS = daisy.api.v1.SUPPORTED_FILTERS
 ACTIVE_IMMUTABLE = daisy.api.v1.ACTIVE_IMMUTABLE
-SERVICE_DISK_SERVICE = ('db', 'glance', 'db_backup', 'mongodb', 'nova')
+SERVICE_DISK_SERVICE = ('db', 'glance', 'db_backup', 'mongodb', 'nova',
+                        'provider')
 DISK_LOCATION = ('local', 'share', 'share_cluster')
 PROTOCOL_TYPE = ('FIBER', 'ISCSI', 'CEPH')
+FC_DRIVER = ('brocade', 'cisco')
+FC_ZONEING_POLICY = ('initiator-target', 'initiator')
 CINDER_VOLUME_BACKEND_PARAMS = ('management_ips', 'data_ips', 'pools',
                                 'volume_driver', 'volume_type',
-                                'role_id', 'user_name', 'user_pwd')
+                                'resource_pools', 'role_id', 'user_name',
+                                'user_pwd', 'root_pwd')
+OPTICAL_SWITCH_PARAMS = ('user_name', 'user_pwd', 'switch_ip',
+                         'switch_port', 'fc_driver',
+                         'fc_zoneing_policy', 'role_id')
 CINDER_VOLUME_BACKEND_DRIVER = ['KS3200_IPSAN', 'KS3200_FCSAN',
-                                'FUJITSU_ETERNUS', 'HP3PAR_FCSAN']
+                                'FUJITSU_ETERNUS', 'HP3PAR_FCSAN',
+                                'FUJITSU_FCSAN', 'MacroSAN_FCSAN',
+                                'NETAPP_FCSAN']
 
 
 class Controller(controller.BaseController):
+
     """
     WSGI controller for hosts resource in Daisy v1 API
 
@@ -236,6 +246,16 @@ class Controller(controller.BaseController):
             raise HTTPBadRequest(explanation=msg,
                                  request=req,
                                  content_type="text/plain")
+        if disk_meta.get('service', None) == 'provider':
+            # default lv_provider_size > 5G
+            if disk_meta.get('size', None):
+                if disk_meta['size'] < 5:
+                    msg = "When the service disk is provider, the disk "+ \
+                            "size should be greater than 5G."
+                    LOG.error(msg)
+                    raise HTTPBadRequest(explanation=msg,
+                                 request=req,
+                                 content_type="text/plain")
 
         self._unique_service_in_role(req, disk_meta)
 
@@ -278,6 +298,16 @@ class Controller(controller.BaseController):
                 raise HTTPBadRequest(explanation=msg,
                                      request=req,
                                      content_type="text/plain")
+            if disk_meta.get('service', None) == 'provider' or \
+                    orig_disk_meta['service'] == 'provider' :
+            # default lv_provider_size > 5G
+                if disk_meta['size'] < 5:
+                    msg = "When the service disk is provider, the disk "+ \
+                            "size should be greater than 5G."
+                    LOG.error(msg)
+                    raise HTTPBadRequest(explanation=msg,
+                                 request=req,
+                                 content_type="text/plain")
 
         if disk_meta.get('protocol_type', None) \
                 and disk_meta['protocol_type'] not in PROTOCOL_TYPE:
@@ -300,6 +330,10 @@ class Controller(controller.BaseController):
         self._enforce(req, 'service_disk_add')
         self._default_value_set(disk_meta)
         self._service_disk_add_meta_valid(req, disk_meta)
+        # set default size value when service disk was provider
+        if disk_meta.get('service', None) == 'provider' and not \
+                disk_meta.get('size', None):
+            disk_meta['size'] = 5
         service_disk_meta = registry.add_service_disk_metadata(
             req.context, disk_meta)
         return {'disk_meta': service_disk_meta}
@@ -419,35 +453,32 @@ class Controller(controller.BaseController):
             raise HTTPBadRequest(explanation=e.msg, request=req)
         return cinder_volumes
 
-    def _is_cinder_volume_repeat(self, req, array_disk_info, update_id=None):
-        params = {'filters': {}}
+    def _optical_switch_list(self, req, params):
+        try:
+            optical_switchs = registry.list_optical_switch_metadata(
+                req.context, **params)
+        except exception.Invalid as e:
+            raise HTTPBadRequest(explanation=e.msg, request=req)
+        return optical_switchs
 
-        if update_id:
-            cinder_volume_metal = self.get_cinder_volume_meta_or_404(
-                req, update_id)
-            new_management_ips = array_disk_info.get(
-                'management_ips', cinder_volume_metal[
-                    'management_ips']).split(",")
-            new_pools = array_disk_info.get(
-                'pools', cinder_volume_metal['pools']).split(",")
-        else:
-            new_management_ips = array_disk_info['management_ips'].split(",")
-            new_pools = array_disk_info['pools'].split(",")
+    def _get_cluster_roles(self, req, cluster_id):
+        params = {'filters': {'cluster_id': cluster_id}}
+        try:
+            roles = registry.get_roles_detail(req.context, **params)
+        except exception.Invalid as e:
+            raise HTTPBadRequest(explanation=e.msg, request=req)
+        return roles
 
-        org_cinder_volumes = self._cinder_volume_list(req, params)
-        for cinder_volume in org_cinder_volumes:
-            if (set(cinder_volume['management_ips'].split(",")) == set(
-                    new_management_ips) and
-                    set(cinder_volume['pools'].split(",")) == set(new_pools)):
-                if cinder_volume['id'] != update_id:
-                    msg = 'cinder_volume array disks ' \
-                          'conflict with cinder_volume %s' % cinder_volume[
-                              'id']
-                    raise HTTPBadRequest(explanation=msg, request=req)
+    # backend_index should be unique in cluster
+    def _get_cinder_volume_backend_index(self, req, disk_array, cluster_id):
+        cluster_roles = self._get_cluster_roles(req, cluster_id)
+        cinder_volumes = []
+        for role in cluster_roles:
+            params = {'filters': {'role_id': role['id']}}
+            role_cinder_volumes = self._cinder_volume_list(req, params)
+            if role_cinder_volumes:
+                cinder_volumes += role_cinder_volumes
 
-    def _get_cinder_volume_backend_index(self, req, disk_array):
-        params = {'filters': {}}
-        cinder_volumes = self._cinder_volume_list(req, params)
         index = 1
         while True:
             backend_index = "%s-%s" % (disk_array['volume_driver'], index)
@@ -477,7 +508,8 @@ class Controller(controller.BaseController):
                                  request=req,
                                  content_type="text/plain")
         else:
-            self._raise_404_if_role_deleted(req, disk_meta['role_id'])
+            role_detail = self.get_role_meta_or_404(
+                req, disk_meta['role_id'])
 
         disk_arrays = eval(disk_meta['disk_array'])
         for disk_array in disk_arrays:
@@ -485,6 +517,7 @@ class Controller(controller.BaseController):
                 if (key not in CINDER_VOLUME_BACKEND_PARAMS and
                         key != 'data_ips'):
                     msg = "'%s' must be given for cinder volume config" % key
+                    LOG.error(msg)
                     raise HTTPBadRequest(explanation=msg,
                                          request=req,
                                          content_type="text/plain")
@@ -492,22 +525,40 @@ class Controller(controller.BaseController):
                         'volume_driver'] not in CINDER_VOLUME_BACKEND_DRIVER:
                     msg = "volume_driver %s is not supported" % disk_array[
                         'volume_driver']
+                    LOG.error(msg)
                     raise HTTPBadRequest(explanation=msg,
                                          request=req,
                                          content_type="text/plain")
-                if (disk_array['volume_driver'] == 'FUJITSU_ETERNUS' and
-                    ('data_ips' not in disk_array or
-                     not disk_array['data_ips'])):
-                    msg = "data_ips must be given " \
-                          "when using FUJITSU Disk Array"
-                    raise HTTPBadRequest(explanation=msg,
-                                         request=req,
-                                         content_type="text/plain")
-            self._is_cinder_volume_repeat(req, disk_array)
+                if disk_array['volume_driver'] == 'FUJITSU_ETERNUS':
+                    if not disk_array.get('data_ips', None):
+                        msg = "data_ips must be given " + \
+                              "when using FUJITSU Disk Array"
+                        LOG.error(msg)
+                        raise HTTPBadRequest(explanation=msg,
+                                             request=req,
+                                             content_type="text/plain")
+                if disk_array['volume_driver'] in ['FUJITSU_ETERNUS',
+                                                   'FUJITSU_FCSAN']:
+                    if not disk_array.get('root_pwd', None):
+                        msg = "root_pwd must be given " + \
+                              "when using FUJITSU Disk Array"
+                        LOG.error(msg)
+                        raise HTTPBadRequest(explanation=msg,
+                                             request=req,
+                                             content_type="text/plain")
+                    if disk_array.get('resource_pools', None):
+                        resource_pools_str = disk_array['resource_pools']
+                        if len(disk_array['resource_pools'].split(',')) != 1:
+                            msg = "Only one resource pool can be specified."
+                            LOG.error(msg)
+                            raise HTTPBadRequest(explanation=msg,
+                                             request=req,
+                                             content_type="text/plain")
+
             disk_array['role_id'] = disk_meta['role_id']
             disk_array['backend_index'] = \
                 self._get_cinder_volume_backend_index(
-                req, disk_array)
+                req, disk_array, role_detail['cluster_id'])
             cinder_volumes = registry.add_cinder_volume_metadata(
                 req.context, disk_array)
         return {'disk_meta': cinder_volumes}
@@ -584,8 +635,18 @@ class Controller(controller.BaseController):
             raise HTTPBadRequest(explanation=msg,
                                  request=req,
                                  content_type="text/plain")
+        orgin_cinder_volume = self.get_cinder_volume_meta_or_404(req, id)
+        volume_driver = disk_meta.get('volume_driver',
+                                        orgin_cinder_volume['volume_driver'])
+        if volume_driver == 'FUJITSU_ETERNUS':
+            if not disk_meta.get('root_pwd', orgin_cinder_volume['root_pwd']):
+                msg = "root_pwd must be given " + \
+                      "when using FUJITSU Disk Array"
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg,
+                                     request=req,
+                                     content_type="text/plain")
 
-        self._is_cinder_volume_repeat(req, disk_meta, id)
         self._is_data_ips_valid(req, id, disk_meta)
 
         try:
@@ -649,8 +710,166 @@ class Controller(controller.BaseController):
         cinder_volumes = self._cinder_volume_list(req, params)
         return dict(disk_meta=cinder_volumes)
 
+    @utils.mutating
+    def optical_switch_add(self, req, disk_meta):
+        """
+        Export daisy db data to tecs.conf and HA.conf.
+
+        :param req: The WSGI/Webob Request object
+
+        :raises HTTPBadRequest if x-install-cluster is missing
+        """
+        self._enforce(req, 'optical_switch_add')
+        if 'role_id' not in disk_meta:
+            msg = "'role_id' must be given"
+            raise HTTPBadRequest(explanation=msg,
+                                 request=req,
+                                 content_type="text/plain")
+        else:
+                self.get_role_meta_or_404(req, disk_meta['role_id'])
+        optical_switchs = eval(disk_meta['switch_array'])
+        for optical_switch in optical_switchs:
+            for switch_config in optical_switch.keys():
+                if switch_config not in OPTICAL_SWITCH_PARAMS:
+                    msg = "'%s' is not needed when config optical " \
+                          "switch" % switch_config
+                    LOG.error(msg)
+                    raise HTTPBadRequest(explanation=msg,
+                                         request=req,
+                                         content_type="text/plain")
+                if switch_config == 'fc_driver' and \
+                                optical_switch['fc_driver'] not in FC_DRIVER:
+                    msg = "'%s' is not supported as fc driver when " \
+                          "config optical switch" % \
+                          optical_switch['fc_driver']
+                    LOG.error(msg)
+                    raise HTTPBadRequest(explanation=msg,
+                                         request=req,
+                                         content_type="text/plain")
+                if switch_config == 'fc_zoneing_policy' \
+                        and optical_switch['fc_zoneing_policy'] \
+                                not in FC_ZONEING_POLICY:
+                    msg = "'%s' is not supported as " \
+                          "fc_zoneing_policy when config optical " \
+                          "switch" % optical_switch['fc_zoneing_policy']
+                    LOG.error(msg)
+                    raise HTTPBadRequest(explanation=msg,
+                                         request=req,
+                                         content_type="text/plain")
+            optical_switch['role_id'] = disk_meta['role_id']
+            optical_switchs = registry.\
+                add_optical_switch_metadata(req.context, optical_switch)
+        return {'disk_meta': optical_switchs}
+
+    @utils.mutating
+    def optical_switch_list(self, req):
+        self._enforce(req, 'optical_switch_list')
+        params = self._get_query_params(req)
+        filters = params.get('filters', None)
+        if 'role_id' in filters:
+            role_id = filters['role_id']
+            self._raise_404_if_role_deleted(req, role_id)
+        optical_switchs = self._optical_switch_list(req, params)
+        return dict(disk_meta=optical_switchs)
+
+    @utils.mutating
+    def optical_switch_update(self, req, id, disk_meta):
+        self._enforce(req, 'optical_switch_update')
+        for key in disk_meta.keys():
+            if key not in OPTICAL_SWITCH_PARAMS:
+                msg = "'%s' is not needed for optical " \
+                      "switch config" % key
+                raise HTTPBadRequest(explanation=msg,
+                                     request=req,
+                                     content_type="text/plain")
+            if key == 'fc_driver' \
+                    and disk_meta['fc_driver'] not in FC_DRIVER:
+                    msg = "'%s' is not supported as fc driver when " \
+                          "config optical switch" % \
+                          disk_meta['fc_driver']
+                    LOG.error(msg)
+                    raise HTTPBadRequest(explanation=msg,
+                                         request=req,
+                                         content_type="text/plain")
+            if key == 'fc_zoneing_policy' \
+                    and disk_meta['fc_zoneing_policy'] not in \
+                            FC_ZONEING_POLICY:
+                    msg = "'%s' is not supported as " \
+                          "fc_zoneing_policy when config optical " \
+                          "switch" % disk_meta['fc_zoneing_policy']
+                    LOG.error(msg)
+                    raise HTTPBadRequest(explanation=msg,
+                                         request=req,
+                                         content_type="text/plain")
+        if 'role_id' in disk_meta:
+            self._raise_404_if_role_deleted(req, disk_meta['role_id'])
+        orgin_optical_switch = self.get_optical_switch_meta_or_404(req, id)
+        orgin_optical_switch.update(disk_meta)
+        try:
+            optical_switch_meta = registry.update_optical_switch_metadata(
+                req.context, id, orgin_optical_switch)
+
+        except exception.Invalid as e:
+            msg = (
+                _("Failed to update optical_switch metadata. "
+                  "Got error: %s") % utils.exception_to_str(e))
+            LOG.warn(msg)
+            raise HTTPBadRequest(explanation=msg,
+                                 request=req,
+                                 content_type="text/plain")
+        except exception.NotFound as e:
+            msg = (_("Failed to find optical_switch to update: %s") %
+                   utils.exception_to_str(e))
+            LOG.warn(msg)
+            raise HTTPNotFound(explanation=msg,
+                               request=req,
+                               content_type="text/plain")
+        except exception.Forbidden as e:
+            msg = (_("Forbidden to update cinder_volume: %s") %
+                   utils.exception_to_str(e))
+            LOG.warn(msg)
+            raise HTTPForbidden(explanation=msg,
+                                request=req,
+                                content_type="text/plain")
+        else:
+            self.notifier.info('optical_switch.update',
+                               optical_switch_meta)
+
+        return {'disk_meta': optical_switch_meta}
+
+    @utils.mutating
+    def optical_switch_delete(self, req, id):
+        """
+        Deletes a optical_switch from Daisy.
+
+        :param req: The WSGI/Webob Request object
+        :param image_meta: Mapping of metadata about optical_switch
+
+        :raises HTTPBadRequest if x-service-disk-name is missing
+        """
+        self._enforce(req, 'optical_switch_delete')
+        try:
+            registry.delete_optical_switch_metadata(req.context, id)
+        except exception.NotFound as e:
+            msg = (_("Failed to find optical switch to delete: %s") %
+                   utils.exception_to_str(e))
+            LOG.warn(msg)
+            raise HTTPNotFound(explanation=msg,
+                               request=req,
+                               content_type="text/plain")
+        except exception.Forbidden as e:
+            msg = (_("Forbidden to delete optical switch: %s") %
+                   utils.exception_to_str(e))
+            LOG.warn(msg)
+            raise HTTPForbidden(explanation=msg,
+                                request=req,
+                                content_type="text/plain")
+        else:
+            return Response(body='', status=200)
+
 
 class DiskArrayDeserializer(wsgi.JSONRequestDeserializer):
+
     """Handles deserialization of specific controller method requests."""
 
     def _deserialize(self, request):
@@ -670,8 +889,15 @@ class DiskArrayDeserializer(wsgi.JSONRequestDeserializer):
     def cinder_volume_update(self, request):
         return self._deserialize(request)
 
+    def optical_switch_add(self, request):
+        return self._deserialize(request)
+
+    def optical_switch_update(self, request):
+        return self._deserialize(request)
+
 
 class DiskArraySerializer(wsgi.JSONResponseSerializer):
+
     """Handles serialization of specific controller method responses."""
 
     def __init__(self):
@@ -701,6 +927,17 @@ class DiskArraySerializer(wsgi.JSONResponseSerializer):
         response.body = self.to_json(result)
         return response
 
+    def optical_switch_add(self, response, result):
+        response.status = 201
+        response.headers['Content-Type'] = 'application/json'
+        response.body = self.to_json(result)
+        return response
+
+    def optical_switch_update(self, response, result):
+        response.status = 201
+        response.headers['Content-Type'] = 'application/json'
+        response.body = self.to_json(result)
+        return response
 
 def create_resource():
     """Image members resource factory method"""

@@ -298,29 +298,44 @@ class Controller(controller.BaseController):
             raise HTTPBadRequest(explanation=e.msg, request=req)
         return role_id_list
 
+    def get_config_meta(self, req, template_configs):
+        configs = []
+        for template_config in template_configs:
+            meta = self.get_template_config_meta_or_404(req, template_config)
+            config = {'config_file': meta['config_file'],
+                      'section': meta['section_name'],
+                      'key': meta['name'],
+                      'default_value': meta['default_value'],
+                      'id': template_config}
+            configs.append(config)
+        return configs
+
+
     @utils.mutating
     def cluster_config_set_update(self, req, config_set_meta):
         if 'cluster' in config_set_meta:
             orig_cluster = str(config_set_meta['cluster'])
             self._raise_404_if_cluster_deleted(req, orig_cluster)
+            backend = manager.configBackend('clushshell', req)
             try:
                 if config_set_meta.get('role', None):
                     role_id_list = self._raise_404_if_role_exist(
                         req, config_set_meta)
                     if len(role_id_list) == len(eval(config_set_meta['role'])):
-                        backend = manager.configBackend('clushshell', req)
                         backend.push_config_by_roles(role_id_list)
                     else:
                         msg = "the role is not exist"
                         LOG.error(msg)
                         raise HTTPNotFound(msg)
+                elif config_set_meta.get('host_id'):
+                    hosts = eval(config_set_meta['host_id'])
+                    backend.push_config_by_hosts(hosts)
                 else:
                     roles = registry.get_roles_detail(req.context)
                     role_id_list = []
                     for role in roles:
                         if role['cluster_id'] == config_set_meta['cluster']:
                             role_id_list.append(role['id'])
-                    backend = manager.configBackend('clushshell', req)
                     backend.push_config_by_roles(role_id_list)
 
             except exception.Invalid as e:
@@ -370,9 +385,24 @@ class Controller(controller.BaseController):
             except exception.Invalid as e:
                 raise HTTPBadRequest(explanation=e.msg, request=req)
             return role_list
-
         else:
             msg = "the cluster is not exist"
+            LOG.error(msg)
+            raise HTTPNotFound(msg)
+
+    @utils.mutating
+    def cluster_config_set_get(self, req, config_set_meta):
+        self._enforce(req, 'cluster_config_set_get')
+        if config_set_meta.get('host_id') and config_set_meta.get(
+                'template_config_id'):
+            backend = manager.configBackend('clushshell', req)
+            template_config_ids = eval(config_set_meta['template_config_id'])
+            configs = self.get_config_meta(req, template_config_ids)
+            host_configs = backend.get_config_by_host(
+                config_set_meta['host_id'], configs)
+            return {'configs': host_configs}
+        else:
+            msg = "lack of host_id or template_config_id!"
             LOG.error(msg)
             raise HTTPNotFound(msg)
 
@@ -395,6 +425,9 @@ class Config_setDeserializer(wsgi.JSONRequestDeserializer):
         return self._deserialize(request)
 
     def cluster_config_set_progress(self, request):
+        return self._deserialize(request)
+
+    def cluster_config_set_get(self, request):
         return self._deserialize(request)
 
 
@@ -435,6 +468,12 @@ class Config_setSerializer(wsgi.JSONResponseSerializer):
         response.status = 201
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(dict(config_set=result))
+        return response
+
+    def cluster_config_set_get(self, response, result):
+        response.status = 201
+        response.headers['Content-Type'] = 'application/json'
+        response.body = self.to_json(result)
         return response
 
 

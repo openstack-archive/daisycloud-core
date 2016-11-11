@@ -44,7 +44,7 @@ _LW = i18n._LW
 SUPPORTED_PARAMS = daisy.api.v1.SUPPORTED_PARAMS
 SUPPORTED_FILTERS = daisy.api.v1.SUPPORTED_FILTERS
 ACTIVE_IMMUTABLE = daisy.api.v1.ACTIVE_IMMUTABLE
-SUPPORTED_DEPLOYMENT_BACKENDS = ('tecs', 'zenic', 'proton', 'kolla')
+SUPPORTED_DEPLOYMENT_BACKENDS = ('tecs', 'zenic', 'proton')
 SUPPORTED_ROLE = (
     'CONTROLLER_LB',
     'CONTROLLER_HA',
@@ -186,6 +186,12 @@ class Controller(controller.BaseController):
         host_disk_size_m = 0
         if host_disks:
             for key, value in host_disks.items():
+                if value['disk'].find("-fc-") != -1 \
+                        or value['disk'].find("-iscsi-") != -1 \
+                        or value['name'].find("mpath") != -1 \
+                        or value['name'].find("spath") != -1 \
+                        or value['removable'] == 'removable':
+                    continue
                 disk_size_b = str(value.get('size', None))
                 disk_size_b_str = disk_size_b.strip().split()[0]
                 if disk_size_b_str:

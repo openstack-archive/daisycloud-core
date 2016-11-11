@@ -300,6 +300,10 @@ class Server(object):
         self.start_wsgi()
 
     def start_wsgi(self):
+        if os.path.exists("/var/lib/daisy/cluster-list"):
+            LOG.info(_LI("Remove /var/lib/daisy/cluster-list"))
+            os.remove("/var/lib/daisy/cluster-list")
+
         if CONF.workers == 0:
             # Useful for profiling, test, debug etc.
             self.pool = self.create_pool()

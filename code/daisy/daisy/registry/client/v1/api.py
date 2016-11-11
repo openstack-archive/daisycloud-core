@@ -165,6 +165,16 @@ def get_host_interface(context, host_meta):
     return c.get_host_interface(host_meta)
 
 
+def get_host_interface_by_host_id(context, host_id):
+    registry_client = get_registry_client(context)
+    return registry_client.get_host_interface_by_host_id(host_id)
+
+
+def get_host_roles_by_host_id(context, host_id):
+    registry_client = get_registry_client(context)
+    return registry_client.get_host_roles_by_host_id(host_id)
+
+
 def get_all_host_interfaces(context, params):
     c = get_registry_client(context)
     return c.get_all_host_interfaces(params)
@@ -261,6 +271,31 @@ def add_component_metadata(context, component_meta):
     LOG.debug("Adding component...")
     c = get_registry_client(context)
     return c.add_component(component_meta)
+
+
+def add_hwm_metadata(context, hwm):
+    c = get_registry_client(context)
+    return c.add_hwm(hwm)
+
+
+def update_hwm_metadata(context, hwm_id, hwm):
+    c = get_registry_client(context)
+    return c.update_hwm(hwm_id, hwm)
+
+
+def delete_hwm_metadata(context, hwm_id):
+    c = get_registry_client(context)
+    return c.delete_hwm(hwm_id)
+
+
+def hwm_list_metadata(context, **kwargs):
+    c = get_registry_client(context)
+    return c.list_hwm(**kwargs)
+
+
+def hwm_detail_metadata(context, hwm_id):
+    c = get_registry_client(context)
+    return c.get_hwm_detail(hwm_id)
 
 
 def add_template_metadata(context, template):
@@ -611,3 +646,131 @@ def get_cinder_volume_detail_metadata(context, cinder_volume_id):
 def list_cinder_volume_metadata(context, **kwargs):
     c = get_registry_client(context)
     return c.list_cinder_volume(**kwargs)
+
+
+def add_optical_switch_metadata(context, optical_switch_meta):
+    c = get_registry_client(context)
+    return c.add_optical_switch(optical_switch_meta)
+
+
+def list_optical_switch_metadata(context, **kwargs):
+    c = get_registry_client(context)
+    return c.list_optical_switch(**kwargs)
+
+
+def get_optical_switch_detail_metadata(context, optical_switch_id):
+    c = get_registry_client(context)
+    return c.get_optical_switch_detail(optical_switch_id)
+
+
+def update_optical_switch_metadata(
+        context, optical_switch_id, optical_switch_meta):
+    LOG.debug(
+        "Updating config metadata for cinder_volume %s...",
+        optical_switch_id)
+    c = get_registry_client(context)
+    return c.update_optical_switch(optical_switch_id, optical_switch_meta)
+
+
+def delete_optical_switch_metadata(context, optical_switch_id):
+    LOG.debug("Deleting optical_switch metadata "
+              "%s...", optical_switch_id)
+    c = get_registry_client(context)
+    return c.delete_optical_switch(optical_switch_id)
+
+
+def add_version_metadata(context, version_meta):
+    c = get_registry_client(context)
+    return c.add_version(version_meta)
+
+
+def delete_version_metadata(context, version_id):
+    LOG.debug("Deleting version metadata %s...", version_id)
+    c = get_registry_client(context)
+    return c.delete_version(version_id)
+
+
+def update_version_metadata(
+        context, version_id, version_meta):
+    LOG.debug(
+        "Updating version metadata for version %s...",
+        version_id)
+    c = get_registry_client(context)
+    return c.update_version(version_id, version_meta)
+
+
+def get_version_metadata(context, version_id):
+    c = get_registry_client(context)
+    return c.get_version(version_id)
+
+
+def list_version_metadata(context, **kwargs):
+    c = get_registry_client(context)
+    return c.list_version(**kwargs)
+
+
+def add_version_patch_metadata(context, version_patch_meta):
+    c = get_registry_client(context)
+    return c.add_version_patch(version_patch_meta)
+
+
+def delete_version_patch_metadata(context, version_patch_id):
+    LOG.debug("Deleting version metadata %s...", version_patch_id)
+    c = get_registry_client(context)
+    return c.delete_version_patch(version_patch_id)
+
+
+def update_version_patch_metadata(context, version_patch_id,
+                                  version_patch_meta):
+    LOG.debug(
+        "Updating version metadata for version %s...",
+        version_patch_id)
+    c = get_registry_client(context)
+    return c.update_version_patch(version_patch_id, version_patch_meta)
+
+
+def get_version_patch_metadata(context, version_patch_id):
+    c = get_registry_client(context)
+    return c.get_version_patch(version_patch_id)
+
+
+def get_template_config_metadata(context, template_config_id):
+    c = get_registry_client(context)
+    return c.get_template_config(template_config_id)
+
+
+def list_template_config_metadata(context, **kwargs):
+    c = get_registry_client(context)
+    return c.list_template_config(**kwargs)
+
+
+def import_template_config_metadata(context, template_config_meta):
+    LOG.debug("Importing template config...")
+    c = get_registry_client(context)
+    return c.import_template_config(template_config_meta)
+
+
+def get_template_func_metadata(context, template_func_id, **kwargs):
+    c = get_registry_client(context)
+    return c.get_template_func(template_func_id, **kwargs)
+
+
+def list_template_func_metadata(context, **kwargs):
+    c = get_registry_client(context)
+    return c.list_template_func(**kwargs)
+
+
+def import_template_func_metadata(context, template_func_meta):
+    LOG.debug("Importing template function...")
+    c = get_registry_client(context)
+    return c.import_template_func(template_func_meta)
+
+
+def get_template_service_metadata(context, template_service_id):
+    c = get_registry_client(context)
+    return c.get_template_service(template_service_id)
+
+
+def list_template_service_metadata(context, **kwargs):
+    c = get_registry_client(context)
+    return c.list_template_service(**kwargs)

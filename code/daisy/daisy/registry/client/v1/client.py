@@ -1,8 +1,8 @@
 # Copyright 2013 OpenStack Foundation
 # All Rights Reserved.
 #
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
 #
 #         http://www.apache.org/licenses/LICENSE-2.0
@@ -22,7 +22,8 @@ from oslo_serialization import jsonutils
 from oslo_log import log as logging
 from oslo_utils import excutils
 
-from daisy.common import client
+from daisy.common.client import BaseClient
+from daisy.common import crypt
 from daisy import i18n
 from daisy.registry.api.v1 import hosts
 from daisy.registry.api.v1 import config_files
@@ -30,14 +31,19 @@ from daisy.registry.api.v1 import config_sets
 from daisy.registry.api.v1 import configs
 from daisy.registry.api.v1 import networks
 from daisy.registry.api.v1 import template
+from daisy.registry.api.v1 import hwms
+from daisy.registry.api.v1 import versions
+from daisy.registry.api.v1 import disk_array
+from daisy.registry.api.v1 import template_configs
+from daisy.registry.api.v1 import template_funcs
+from daisy.registry.api.v1 import template_services
 
 LOG = logging.getLogger(__name__)
 _LE = i18n._LE
 _LI = i18n._LI
 
 
-class RegistryClient(client.BaseClient):
-
+class RegistryClient(BaseClient):
     """A client for the Registry image metadata service."""
 
     DEFAULT_PORT = 19191
@@ -50,8 +56,8 @@ class RegistryClient(client.BaseClient):
         # settings when using keystone. configure_via_auth=False disables
         # this behaviour to ensure we still send requests to the Registry API
         self.identity_headers = identity_headers
-        client.BaseClient.__init__(self, host, port, configure_via_auth=False,
-                                   **kwargs)
+        BaseClient.__init__(self, host, port, configure_via_auth=False,
+                            **kwargs)
 
     def do_request(self, method, action, **kwargs):
         try:
@@ -128,6 +134,18 @@ class RegistryClient(client.BaseClient):
         host_interface = jsonutils.loads(res.read())
 
         return host_interface
+
+    def get_host_interface_by_host_id(self, host_id):
+        """Returns host interfaces."""
+        res = self.do_request("GET", "/host-interface/%s" % host_id)
+        host_interface = jsonutils.loads(res.read())
+        return host_interface
+
+    def get_host_roles_by_host_id(self, host_id):
+        """Returns host roles."""
+        res = self.do_request("GET", "/host-roles/%s" % host_id)
+        host_roles = jsonutils.loads(res.read())
+        return host_roles
 
     def get_all_host_interfaces(self, kwargs):
         """Returns a mapping of host_interface metadata from Registry."""
@@ -242,7 +260,7 @@ class RegistryClient(client.BaseClient):
 
         res = self.do_request(
             "PUT", "/discover/nodes/%s" %
-            host_id, body=body, headers=headers)
+                   host_id, body=body, headers=headers)
         # Registry returns a JSONified dict(image=image_info)
         data = jsonutils.loads(res.read())
         return data['discover_host']
@@ -355,7 +373,7 @@ class RegistryClient(client.BaseClient):
         if host_id:
             res = self.do_request(
                 "GET", "/clusters/%s/nodes/%s" %
-                (cluster_id, host_id))
+                       (cluster_id, host_id))
         else:
             res = self.do_request("GET", "/clusters/%s/nodes" % cluster_id)
         data = jsonutils.loads(res.read())['members']
@@ -382,6 +400,58 @@ class RegistryClient(client.BaseClient):
         # Registry returns a JSONified dict(image=image_info)
         data = jsonutils.loads(res.read())
         return data['template']
+
+    def add_hwm(self, hwm):
+        """ """
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        if 'hwm' not in hwm:
+            hwm = dict(hwm=hwm)
+
+        body = jsonutils.dumps(hwm)
+
+        res = self.do_request("POST", "/hwm", body=body, headers=headers)
+        # Registry returns a JSONified dict(image=image_info)
+        data = jsonutils.loads(res.read())
+        return data['hwm']
+
+    def update_hwm(self, hwm_id, hwm):
+        headers = {
+            'Content-Type': 'application/json',
+        }
+        if 'hwm' not in hwm:
+            hwm = dict(hwm=hwm)
+
+        body = jsonutils.dumps(hwm)
+
+        res = self.do_request(
+            "PUT",
+            "/hwm/%s" %
+            hwm_id,
+            body=body,
+            headers=headers)
+        # Registry returns a JSONified dict(image=image_info)
+        data = jsonutils.loads(res.read())
+        return data['hwm']
+
+    def delete_hwm(self, hwm_id):
+        res = self.do_request("DELETE", "/hwm/%s" % hwm_id)
+        data = jsonutils.loads(res.read())
+        return data['hwm']
+
+    def list_hwm(self, **kwargs):
+        """ """
+        params = self._extract_params(kwargs, hwms.SUPPORTED_PARAMS)
+        res = self.do_request("GET", "/hwm", params=params)
+        data = jsonutils.loads(res.read())
+        return data
+
+    def get_hwm_detail(self, hwm_id):
+        res = self.do_request("GET", "/hwm/%s" % hwm_id)
+        data = jsonutils.loads(res.read())
+        return data['hwm']
 
     def add_host_template(self, template):
         """ """
@@ -1013,7 +1083,7 @@ class RegistryClient(client.BaseClient):
         params = self._extract_params(kwargs, networks.SUPPORTED_PARAMS)
         res = self.do_request(
             "GET", "/clusters/%s/networks" %
-            cluster_id, params=params)
+                   cluster_id, params=params)
         network_list = jsonutils.loads(res.read())['networks']
         return network_list
 
@@ -1098,7 +1168,7 @@ class RegistryClient(client.BaseClient):
         """
         Returns a list of service_disk data mappings from Registry
         """
-        params = self._extract_params(kwargs, hosts.SUPPORTED_PARAMS)
+        params = self._extract_params(kwargs, disk_array.SUPPORTED_PARAMS)
         res = self.do_request("GET", "/service_disk/list", params=params)
         service_disk_list = jsonutils.loads(res.read())['service_disks']
         return service_disk_list
@@ -1165,3 +1235,281 @@ class RegistryClient(client.BaseClient):
         res = self.do_request("GET", "/cinder_volume/list", params=params)
         cinder_volume_list = jsonutils.loads(res.read())['cinder_volumes']
         return cinder_volume_list
+
+    def add_optical_switch(self, optical_switch_metadata):
+        """
+        Tells registry about an network's metadata
+        """
+        headers = {
+            'Content-Type': 'application/json',
+        }
+        if 'optical_switch' not in optical_switch_metadata:
+            optical_switch_metadata = \
+                dict(optical_switch=optical_switch_metadata)
+
+        body = jsonutils.dumps(optical_switch_metadata)
+
+        res = self.do_request(
+            "POST",
+            "/optical_switch",
+            body=body,
+            headers=headers)
+        # Registry returns a JSONified dict(image=image_info)
+        data = jsonutils.loads(res.read())
+        return data['optical_switch']
+
+    def list_optical_switch(self, **kwargs):
+        """
+        Returns a list of cinder_volume data mappings from Registry
+        """
+        params = self._extract_params(kwargs, disk_array.SUPPORTED_PARAMS)
+        res = self.do_request("GET", "/optical_switch/list", params=params)
+        optical_switch_list = jsonutils.loads(res.read())['optical_switchs']
+        return optical_switch_list
+
+    def get_optical_switch_detail(self, optical_switch_id):
+        """Return a list of cinder_volume associations from Registry."""
+        res = self.do_request("GET", "/optical_switch/%s" %
+                              optical_switch_id)
+        data = jsonutils.loads(res.read())['optical_switch']
+        return data
+
+    def update_optical_switch(self,
+                              optical_switch_id,
+                              optical_switch_metadata):
+        """
+        Updates Registry's information about an optical_switch
+        """
+        if 'optical_switch' not in optical_switch_metadata:
+            optical_switch_metadata = \
+                dict(optical_switch=optical_switch_metadata)
+
+        body = jsonutils.dumps(optical_switch_metadata)
+
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        res = self.do_request("PUT", "/optical_switch/%s" %
+                              optical_switch_id,
+                              body=body, headers=headers)
+        data = jsonutils.loads(res.read())
+        return data['optical_switch']
+
+    def delete_optical_switch(self, optical_switch_id):
+        res = self.do_request("DELETE", "/optical_switch/%s" %
+                              optical_switch_id)
+        data = jsonutils.loads(res.read())
+        return data['optical_switch']
+
+    def add_version(self, version_metadata):
+        """
+        Tells registry about an version's metadata
+        """
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        if 'version_metadata' not in version_metadata:
+            version_metadata = dict(version_metadata=version_metadata)
+
+        body = jsonutils.dumps(version_metadata)
+
+        res = self.do_request(
+            "POST",
+            "/versions",
+            body=body,
+            headers=headers)
+        # Registry returns a JSONified dict(image=image_info)
+        data = jsonutils.loads(res.read())
+        return data['version_metadata']
+
+    def delete_version(self, version_id):
+        """
+        Deletes Registry's information about an network
+        """
+        res = self.do_request("DELETE", "/versions/%s" % version_id)
+        data = jsonutils.loads(res.read())
+        return data['version']
+
+    def update_version(self, version_id, version_metadata):
+        """
+        Updates Registry's information about an version
+        """
+        if 'version_metadata' not in version_metadata:
+            version_metadata = dict(version_metadata=version_metadata)
+
+        body = jsonutils.dumps(version_metadata)
+
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        res = self.do_request("PUT", "/versions/%s" % version_id,
+                              body=body, headers=headers)
+        data = jsonutils.loads(res.read())
+        return data['version_metadata']
+
+    def get_version(self, version_id):
+        """Return a list of version associations from Registry."""
+        res = self.do_request("GET", "/versions/%s" % version_id)
+        data = jsonutils.loads(res.read())['version']
+        return data
+
+    def list_version(self, **kwargs):
+        """
+        Returns a list of version data mappings from Registry
+        """
+        params = self._extract_params(kwargs, versions.SUPPORTED_PARAMS)
+        res = self.do_request("GET", "/versions/list", params=params)
+        version_list = jsonutils.loads(res.read())['version']
+        return version_list
+
+    def add_version_patch(self, version_patch_metadata):
+        """
+        Tells registry about an version's metadata
+        """
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        if 'version_patch' not in version_patch_metadata:
+            version_patch_metadata = dict(version_patch=version_patch_metadata)
+
+        body = jsonutils.dumps(version_patch_metadata)
+
+        res = self.do_request(
+            "POST",
+            "/version_patchs",
+            body=body,
+            headers=headers)
+        # Registry returns a JSONified dict(image=image_info)
+        data = jsonutils.loads(res.read())
+        return data['version_patch']
+
+    def delete_version_patch(self, version_patch_id):
+        """
+        Deletes Registry's information about an network
+        """
+        res = self.do_request("DELETE", "/version_patchs/%s"
+                              % version_patch_id)
+        data = jsonutils.loads(res.read())
+        return data
+
+    def update_version_patch(self, version_patch_id, version_patch_metadata):
+        """
+        Updates Registry's information about an version
+        """
+        if 'version_patch' not in version_patch_metadata:
+            version_patch_metadata = dict(version_patch=version_patch_metadata)
+
+        body = jsonutils.dumps(version_patch_metadata)
+
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        res = self.do_request("PUT", "/version_patchs/%s" % version_patch_id,
+                              body=body, headers=headers)
+        data = jsonutils.loads(res.read())
+        return data['version_patch']
+
+    def get_version_patch(self, version_patch_id):
+        """Return a list of version patch associations from Registry."""
+        res = self.do_request("GET", "/version_patchs/%s" % version_patch_id)
+        data = jsonutils.loads(res.read())['version_patch']
+        return data
+
+    def get_template_config(self, template_config_id):
+        """Return a list of template config associations from Registry."""
+        res = self.do_request("GET", "/template_configs/%s" %
+                              template_config_id)
+        data = jsonutils.loads(res.read())['template_config']
+        return data
+
+    def list_template_config(self, **kwargs):
+        """
+        Returns a list of template config data mappings from Registry
+        """
+        params = self._extract_params(kwargs,
+                                      template_configs.SUPPORTED_PARAMS)
+        res = self.do_request("GET", "/template_configs/list", params=params)
+        template_config_list = jsonutils.loads(res.read())['template_configs']
+        return template_config_list
+
+    def import_template_config(self, template_config_metadata):
+        """
+        Import registry about an template function's metadata
+        """
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        if 'template_config_metadata' not in template_config_metadata:
+            template_config_metadata = dict(
+                template_config_metadata=template_config_metadata)
+
+        body = jsonutils.dumps(template_config_metadata)
+
+        res = self.do_request(
+            "POST",
+            "/import_template_configs",
+            body=body,
+            headers=headers)
+        # Registry returns a JSONified dict(image=image_info)
+        data = jsonutils.loads(res.read())
+        return data['template_config_metadata']
+
+    def get_template_func(self, template_func_id, **kwargs):
+        """Return a list of template function associations from Registry."""
+        params = self._extract_params(kwargs, hosts.SUPPORTED_PARAMS)
+        res = self.do_request("GET", "/template_funcs/%s" % template_func_id,
+                              params=params)
+        data = jsonutils.loads(res.read())['template_func']
+        return data
+
+    def list_template_func(self, **kwargs):
+        """
+        Returns a list of template function data mappings from Registry
+        """
+        params = self._extract_params(kwargs, template_funcs.SUPPORTED_PARAMS)
+        res = self.do_request("GET", "/template_funcs/list", params=params)
+        template_func_list = jsonutils.loads(res.read())['template_funcs']
+        return template_func_list
+
+    def import_template_func(self, template_func_metadata):
+        """
+        Import registry about an template function's metadata
+        """
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        if 'template_func_metadata' not in template_func_metadata:
+            template_func_metadata = dict(template_func_metadata=template_func_metadata)
+
+        body = jsonutils.dumps(template_func_metadata)
+
+        res = self.do_request(
+            "POST",
+            "/import_template_funcs",
+            body=body,
+            headers=headers)
+        # Registry returns a JSONified dict(image=image_info)
+        data = jsonutils.loads(res.read())
+        return data['template_func_metadata']
+
+    def get_template_service(self, template_service_id):
+        """Return a list of template function associations from Registry."""
+        res = self.do_request("GET", "/template_services/%s" % template_service_id)
+        data = jsonutils.loads(res.read())['template_service']
+        return data
+
+    def list_template_service(self, **kwargs):
+        """
+        Returns a list of template function data mappings from Registry
+        """
+        params = self._extract_params(kwargs, template_services.SUPPORTED_PARAMS)
+        res = self.do_request("GET", "/template_services/list", params=params)
+        template_service_list = jsonutils.loads(res.read())['template_services']
+        return template_service_list
