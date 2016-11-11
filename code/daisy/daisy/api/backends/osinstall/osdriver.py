@@ -38,7 +38,7 @@ def load_install_os_driver(os_install_type):
     LOG.info(_("Loading os driver '%s'") % os_installation_driver)
     try:
         driver = importutils.import_object_ns(
-            'daisy.api.backends.os', os_installation_driver)
+            'daisy.api.backends.osinstall', os_installation_driver)
         return driver
     except ImportError:
         LOG.exception(
