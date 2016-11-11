@@ -157,6 +157,8 @@ def get_controller_node_cfg(req, host_detail, cluster_networks):
                                       cluster_networks, 'MANAGEMENT')
     host_pub_network = get_host_interface_by_network(host_detail, 'PUBLICAPI')
     host_pub_macname = host_pub_network['name']
+    host_sto_network = get_host_interface_by_network(host_detail, 'STORAGE')
+    host_sto_macname = host_sto_network['name']
     if not host_mgt_ip:
         msg = "management ip of host %s can't be empty" % host_detail['id']
         raise exception.InvalidNetworkConfig(msg)
@@ -164,6 +166,7 @@ def get_controller_node_cfg(req, host_detail, cluster_networks):
     deploy_node_cfg.update({'mgtip': host_mgt_ip})
     deploy_node_cfg.update({'mgt_macname': host_mgt_macname})
     deploy_node_cfg.update({'pub_macname': host_pub_macname})
+    deploy_node_cfg.update({'sto_macname': host_sto_macname})
     deploy_node_cfg.update({'host_name': host_name})
     return deploy_node_cfg
 
@@ -175,12 +178,15 @@ def get_computer_node_cfg(req, host_detail, cluster_networks):
                                       cluster_networks, 'MANAGEMENT')
     host_dat_network = get_host_interface_by_network(host_detail, 'physnet1')
     host_dat_macname = host_dat_network['name']
+    host_ext_network = get_host_interface_by_network(host_detail, 'EXTERNAL')
+    host_ext_macname = host_ext_network['name']
     if not host_mgt_ip:
         msg = "management ip of host %s can't be empty" % host_detail['id']
         raise exception.InvalidNetworkConfig(msg)
     deploy_node_cfg = {}
     deploy_node_cfg.update({'mgtip': host_mgt_ip})
     deploy_node_cfg.update({'dat_macname': host_dat_macname})
+    deploy_node_cfg.update({'ext_macname': host_ext_macname})
     deploy_node_cfg.update({'host_name': host_name})
     return deploy_node_cfg
 

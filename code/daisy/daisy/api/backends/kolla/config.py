@@ -93,6 +93,8 @@ def update_globals_yml(config_data):
     IntIfMac = config_data['IntIfMac']
     ExtIfMac = config_data['ExtIfMac']
     TulIfMac = config_data['TulIfMac']
+    PubIfMac = config_data['PubIfMac']
+    StoIfMac = config_data['StoIfMac']
     local_ip = config_data['LocalIP']
     # kolla_yml = yaml.load(file('/etc/kolla/globals.yml'))
     kolla_yml = {'openstack_release': '2.0.3',
@@ -101,6 +103,8 @@ def update_globals_yml(config_data):
                  'kolla_internal_vip_address': '10.10.10.254',
                  'network_interface': 'eth0',
                  'tunnel_interface': 'eth0',
+                 'storage_interface': 'eth0',
+                 'kolla_external_vip_interface': 'eth0',
                  'neutron_external_interface': 'eth1'
                  }
     kolla_yml['openstack_release'] = Version.encode()
@@ -110,6 +114,8 @@ def update_globals_yml(config_data):
     kolla_yml['network_interface'] = IntIfMac.encode()
     kolla_yml['tunnel_interface'] = TulIfMac.encode()
     kolla_yml['neutron_external_interface'] = ExtIfMac.encode()
+    kolla_yml['kolla_external_vip_interface'] = PubIfMac.encode()
+    kolla_yml['storage_interface'] = StoIfMac.encode()
     yaml.dump(kolla_yml, file('/etc/kolla/globals.yml', 'w'),
               default_flow_style=False)
 
