@@ -19,8 +19,12 @@
 
 from oslo_config import cfg
 from oslo_log import log as logging
+from webob.exc import HTTPNotFound
 
 from daisy.common import exception
+from daisy.common import utils
+from daisyclient.v1.client import Client
+import ConfigParser
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -32,7 +36,7 @@ class OrchestrationManager():
         """Load orchestration options and initialization."""
         pass
 
-    def _os_install(self, cluster_id, daisy_client):
+    def _os_tecs_install(self, cluster_id, daisy_client):
         try:
             install_meta = {'cluster_id': cluster_id}
             daisy_client.install.install(**install_meta)
@@ -47,10 +51,16 @@ class OrchestrationManager():
         active_compute_list = []
         host_list = [host for host in host_list_generator if hasattr(
             host, "role_status") and host.role_status == "active"]
+        if not host_list:
+            LOG.warn("No installed active node in cluster")
+        host_list = [host for host in host_list
+                     if host.discover_state == "PXE:DISCOVERY_SUCCESSFUL"]
+        if not host_list:
+            LOG.warn("No PXE:DISCOVERY_SUCCESSFUL node in cluster")
         for host in host_list:
             host_info = daisy_client.hosts.get(host.id)
-            if hasattr(host_info, "role") and "COMPUTER" in host_info.role and\
-               hasattr(host_info, "interfaces"):
+            if hasattr(host_info, "role") and ["COMPUTER"] == host_info.role \
+                    and hasattr(host_info, "interfaces"):
                 active_compute_list.append(host_info)
         return active_compute_list
 
@@ -60,20 +70,39 @@ class OrchestrationManager():
         compute_list = self.get_active_compute(cluster_id, daisy_client)
         if compute_list and hasattr(host_info, "interfaces"):
             active_compute_host = self.check_isomorphic_host(
-                compute_list, host_info.interfaces)
+                compute_list, host_info)
             if not active_compute_host:
                 LOG.info("%s not isomorphic host" % host_info.name)
                 return None
             host_info.os_version_file = active_compute_host.os_version_file
+            host_info.os_version_id = active_compute_host.os_version_id
             host_info.root_lv_size = active_compute_host.root_lv_size
             host_info.swap_lv_size = active_compute_host.swap_lv_size
-            host_info.name = "computer-" + host_info.name[-12:]
-            # add for autoscale computer host
+            host_info.name = "host-" + host_info.name[-12:]
+            host_info.hwm_ip = active_compute_host.hwm_ip
             host_info.hugepagesize = active_compute_host.hugepagesize
             host_info.hugepages = active_compute_host.hugepages
             host_info.isolcpus = active_compute_host.isolcpus
+            host_info.ipmi_user = active_compute_host.ipmi_user
+            host_info.ipmi_passwd = active_compute_host.ipmi_passwd
+            host_info.isolcpus = active_compute_host.isolcpus
+            host_info.vcpu_pin_set = active_compute_host.vcpu_pin_set
+            host_info.dvs_high_cpuset = active_compute_host.dvs_high_cpuset
+            host_info.pci_high_cpuset = active_compute_host.pci_high_cpuset
+            host_info.os_cpus = active_compute_host.os_cpus
+            host_info.dvs_cpus = active_compute_host.dvs_cpus
+            host_info.root_disk = active_compute_host.root_disk
+            host_info.config_set_id = active_compute_host.config_set_id
+            host_info.group_list = active_compute_host.group_list
+            host_info.dvsc_cpus = active_compute_host.dvsc_cpus
+            host_info.dvsp_cpus = active_compute_host.dvsp_cpus
+            host_info.dvsv_cpus = active_compute_host.dvsv_cpus
+            host_info.dvsblank_cpus = active_compute_host.dvsblank_cpus
+            host_info.flow_mode = active_compute_host.flow_mode
+            host_info.virtio_queue_size = active_compute_host.virtio_queue_size
+            host_info.dvs_config_type = active_compute_host.dvs_config_type
         else:
-            LOG.error("no active compute node in cluster")
+            LOG.warn("No installed active computer node in cluster")
             return None
 
         if active_compute_host:
@@ -104,7 +133,9 @@ class OrchestrationManager():
                         host_info.interfaces.append(compute_interface)
         return host_info
 
-    def check_isomorphic_host(self, compute_list, new_interfaces):
+    def check_isomorphic_host(self, compute_list, host_info):
+        new_interfaces = host_info.interfaces
+        host_numa_cpus = utils.get_numa_node_cpus((host_info.cpu or {}))
         for compute_host in compute_list:
             new_interface_count = len(
                 [interface for interface in
@@ -113,6 +144,12 @@ class OrchestrationManager():
                 [interface for interface in
                  compute_host.interfaces if interface['type'] == "ether"])
             if new_interface_count != compute_interface_count:
+                continue
+            if host_info.cpu['total'] != compute_host.cpu['total']:
+                continue
+            compute_numa_cpus = utils.get_numa_node_cpus(
+                (compute_host.cpu or {}))
+            if compute_numa_cpus != host_numa_cpus:
                 continue
             is_isomorphic = False
             for interface in new_interfaces:
