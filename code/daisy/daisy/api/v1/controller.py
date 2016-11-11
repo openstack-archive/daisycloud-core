@@ -334,7 +334,7 @@ class BaseController(object):
         try:
             return registry.get_service_disk_detail_metadata(context, id)
         except exception.NotFound:
-            msg = "config with identifier %s not found" % id
+            msg = "service_disk with identifier %s not found" % id
             LOG.debug(msg)
             raise webob.exc.HTTPNotFound(
                 msg, request=request, content_type='text/plain')
@@ -359,6 +359,31 @@ class BaseController(object):
         try:
             return registry.get_cinder_volume_detail_metadata(context, id)
         except exception.NotFound:
+            msg = "cinder_volume with identifier %s not found" % id
+            LOG.debug(msg)
+            raise webob.exc.HTTPNotFound(
+                msg, request=request, content_type='text/plain')
+        except exception.Forbidden:
+            msg = "Forbidden config access"
+            LOG.debug(msg)
+            raise webob.exc.HTTPForbidden(msg,
+                                          request=request,
+                                          content_type='text/plain')
+
+    def get_optical_switch_meta_or_404(self, request, id):
+        """
+        Grabs the config metadata for an config with a supplied
+        identifier or raises an HTTPNotFound (404) response
+
+        :param request: The WSGI/Webob Request object
+        :param host_id: The opaque config identifier
+
+        :raises HTTPNotFound if config does not exist
+        """
+        context = request.context
+        try:
+            return registry.get_optical_switch_detail_metadata(context, id)
+        except exception.NotFound:
             msg = "config with identifier %s not found" % id
             LOG.debug(msg)
             raise webob.exc.HTTPNotFound(
@@ -369,3 +394,135 @@ class BaseController(object):
             raise webob.exc.HTTPForbidden(msg,
                                           request=request,
                                           content_type='text/plain')
+
+    def get_version_meta_or_404(self, request, id):
+        """
+        Grabs the version metadata for an version with a supplied
+        identifier or raises an HTTPNotFound (404) response
+        """
+        context = request.context
+        try:
+            return registry.get_version_metadata(context, id)
+        except exception.NotFound:
+            msg = "version with identifier %s not found" % id
+            LOG.debug(msg)
+            raise webob.exc.HTTPNotFound(
+                msg, request=request, content_type='text/plain')
+        except exception.Forbidden:
+            msg = "Forbidden version access"
+            LOG.debug(msg)
+            raise webob.exc.HTTPForbidden(msg,
+                                          request=request,
+                                          content_type='text/plain')
+
+    def get_version_patch_meta_or_404(self, request, id):
+        """
+        Grabs the version patch metadata for an version patch with a supplied
+        identifier or raises an HTTPNotFound (404) response
+        """
+        context = request.context
+        try:
+            return registry.get_version_patch_metadata(context, id)
+        except exception.NotFound:
+            msg = "version patch patch with identifier %s not found" % id
+            LOG.debug(msg)
+            raise webob.exc.HTTPNotFound(
+                msg, request=request, content_type='text/plain')
+        except exception.Forbidden:
+            msg = "Forbidden version patch access"
+            LOG.debug(msg)
+            raise webob.exc.HTTPForbidden(msg,
+                                          request=request,
+                                          content_type='text/plain')
+
+    def get_template_func_meta_or_404(self, request, template_func_id,
+                                      **params):
+        """
+        Grabs the template_func metadata for an template_func with a supplied
+        identifier or raises an HTTPNotFound (404) response
+
+        :param request: The WSGI/Webob Request object
+        :param host_id: The opaque template_func identifier
+
+        :raises HTTPNotFound if template_func does not exist
+        """
+        context = request.context
+        try:
+            return registry.get_template_func_metadata(context,
+                                                       template_func_id,
+                                                       **params)
+        except exception.NotFound:
+            msg = "template_func with identifier %s not found" % \
+                  template_func_id
+            LOG.debug(msg)
+            raise webob.exc.HTTPNotFound(
+                msg, request=request, content_type='text/plain')
+        except exception.Forbidden:
+            msg = "Forbidden template_func access"
+            LOG.debug(msg)
+            raise webob.exc.HTTPForbidden(msg,
+                                          request=request,
+                                          content_type='text/plain')
+
+    def get_template_config_meta_or_404(self, request, template_config_id):
+        """
+        Grabs the template_config metadata for an
+        template_config with a supplied
+        identifier or raises an HTTPNotFound (404) response
+
+        :param request: The WSGI/Webob Request object
+        :param host_id: The opaque template_config identifier
+
+        :raises HTTPNotFound if template_config does not exist
+        """
+        context = request.context
+        try:
+            return registry.get_template_config_metadata(context,
+                                                         template_config_id)
+        except exception.NotFound:
+            msg = "template_config with " \
+                  "identifier %s not found" % template_config_id
+            LOG.debug(msg)
+            raise webob.exc.HTTPNotFound(
+                msg, request=request, content_type='text/plain')
+        except exception.Forbidden:
+            msg = "Forbidden template_config access"
+            LOG.debug(msg)
+            raise webob.exc.HTTPForbidden(msg,
+                                          request=request,
+                                          content_type='text/plain')
+
+    def get_template_service_meta_or_404(self, request, template_service_id):
+        """
+        Grabs the template_service metadata for 
+        an template_service with a supplied
+        identifier or raises an HTTPNotFound (404) response
+
+        :param request: The WSGI/Webob Request object
+        :param host_id: The opaque template_service identifier
+
+        :raises HTTPNotFound if template_service does not exist
+        """
+        context = request.context
+        try:
+            return registry.get_template_service_metadata(context,
+                                                          template_service_id)
+        except exception.NotFound:
+            msg = "template_service with"\
+                  " identifier %s not found" % template_service_id
+            LOG.debug(msg)
+            raise webob.exc.HTTPNotFound(
+                msg, request=request, content_type='text/plain')
+        except exception.Forbidden:
+            msg = "Forbidden template_service access"
+            LOG.debug(msg)
+            raise webob.exc.HTTPForbidden(msg,
+                                          request=request,
+                                          content_type='text/plain')
+
+    def _raise_404_if_cluster_deleted(self, req, cluster_id):
+        cluster = self.get_cluster_meta_or_404(req, cluster_id)
+        if cluster['deleted']:
+            msg = _("Cluster with identifier %s has been deleted.") % \
+                cluster_id
+            raise webob.exc.HTTPNotFound(msg)

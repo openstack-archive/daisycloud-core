@@ -41,6 +41,8 @@ import sqlalchemy.sql as sa_sql
 import types
 import socket
 import netaddr
+import copy
+import json
 
 from daisy.common import exception
 from daisy.common import utils
@@ -210,15 +212,25 @@ def get_ip_with_equal_cidr(cluster_id,network_plane_name,session, exclude_ips=[]
         if str_network_cidr == str_query_network_plane_cidr:
             equal_cidr_network_plane_id_list.append(
                 query_network_plane_tmp_info[0])
-            if query_network_plane_tmp_info[2] == 'MANAGEMENT':
+            if query_network_plane_tmp_info[2] == 'MANAGEMENT' or \
+                    query_network_plane_tmp_info[2] == 'PUBLICAPI':
                 roles_info_sql = "select roles.db_vip,roles.glance_vip,\
-                                 roles.vip from roles where \
+                                 roles.vip, roles.provider_public_vip,\
+                                 roles.public_vip from roles where \
                                  roles.cluster_id='" + cluster_id + \
                                  "' and roles.deleted=0"
                 roles_vip = session.execute(roles_info_sql).fetchall()
                 available_ip_list.extend([vip for role_vip in
                                           roles_vip for vip in
-                                          role_vip if vip])
+                                          role_vip.values() if vip])
+            if query_network_plane_tmp_info[2] == 'OUTBAND':
+                roles_info_sql = "select roles.outband_vip from roles where " +\
+                            "roles.cluster_id='" + cluster_id + \
+                            "' and roles.deleted=0"
+                outband_vip = session.execute(roles_info_sql).fetchall()
+                available_ip_list.extend([vip for role_vip in
+                                          outband_vip for vip in
+                                          role_vip.values() if vip])
 
     for network_id in equal_cidr_network_plane_id_list:
         sql_ip = "select assigned_networks.ip from assigned_networks \
@@ -271,49 +283,35 @@ def merge_networks_for_unifiers(cluster_id, assigned_networks):
 
     merged_networks = []
     for networks in merged_by_cidr_vlan.values():
-        networks_name = []
-        networks_ip = ''
+        same_networks = []
         for network in networks:
-            networks_name.append(network['name'])
-            if not networks_ip:
-                networks_ip = network.get('ip')
-        merged_networks.append({'name': ','.join(networks_name),
-                                'ip': networks_ip})
-
+            is_network_merged = False
+            for merged_network in same_networks:
+                if (network.get('ip', None) ==
+                        merged_network.get('ip', None)):
+                    is_network_merged = True
+                    merged_network['name'] = \
+                        merged_network['name'] + ',' + network['name']
+            if not is_network_merged:
+                same_networks.append({'name': network['name'],
+                                        'ip': network.get('ip', None)})
+        merged_networks += same_networks
     return merged_networks
 
 
-def check_ip_exist_and_in_cidr_range(cluster_id, network_plane_name,
-                                     network_plane_ip,
-                                     occupied_network_ips, session):
-    # equal_cidr_network_plane_id = []
-
+def check_ip_exist(cluster_id, network_plane_name,
+                   network_plane_ip,
+                   session):
     check_ip_if_valid = _checker_the_ip_or_hostname_valid(network_plane_ip)
     if not check_ip_if_valid:
         msg = "Error:The %s is not the right ip!" % network_plane_ip
         LOG.error(msg)
         raise exception.Forbidden(msg)
 
-    sql_network_plane_cidr = \
-        "select networks.cidr from networks \
-        where networks.name='" + network_plane_name + \
-        "' and networks.cluster_id='" + cluster_id + \
-        "' and networks.deleted=0"
-    query_network_plane_cidr = \
-        session.execute(sql_network_plane_cidr).fetchone()
-    network_cidr = query_network_plane_cidr.values().pop()
-
-    check_ip_if_in_cidr = is_in_cidr_range(network_plane_ip, network_cidr)
-    if not check_ip_if_in_cidr:
-        msg = "Error:The ip %s is not in cidr %s range!" \
-              % (network_plane_ip, network_cidr)
-        raise exception.Forbidden(msg)
-
     available_ip_list = \
         get_ip_with_equal_cidr(cluster_id, network_plane_name, session)
     # allow different networks with same ip in the same interface
-    if (network_plane_ip in available_ip_list or
-       network_plane_ip in occupied_network_ips):
+    if network_plane_ip in available_ip_list:
         msg = "Error:The IP %s already exist." % network_plane_ip
         LOG.error(msg)
         raise exception.Forbidden(msg)
@@ -342,9 +340,25 @@ def check_ip_ranges(ip_ranges_one,available_ip_list):
     return [False, None]
 
 
-def change_host_name(values, mangement_ip,host_ref):
+def change_host_name(context, values, mangement_ip, host_ref):
+
+    def is_host_name_exist(in_hosts, origin_name, origin_id):
+        for host in in_hosts:
+            if (host.get("name", "") == origin_name) and\
+                    (host.get("id", "") != origin_id):
+                return True
+        return False
+
+    # The host name has been assigned and no redistribution is required.
+    if getattr(host_ref, "name", None):
+        return
     if mangement_ip and host_ref.os_status != "active":
-        values['name'] = "host-" + mangement_ip.replace('.', '-')
+        host_name = "host-" + mangement_ip.replace('.', '-')
+        hosts = host_get_all(context)
+        if is_host_name_exist(hosts, host_name, getattr(host_ref, "id")):
+            raise exception.Duplicate("Host name %s already exists!"
+                                          % host_name)
+        values['name'] = host_name
 
 
 def compare_same_cidr_ip(x, y):
@@ -357,7 +371,7 @@ def according_to_cidr_distribution_ip(cluster_id, network_plane_name,
     distribution_ip = ""
 
     sql_network_plane_info = "select networks.id,networks.cidr,\
-                             networks.network_type from networks \
+            networks.network_type,networks.segmentation_type from networks \
                              where networks.name='" + network_plane_name + \
                              "' and networks.cluster_id='" + cluster_id + \
                              "' and networks.deleted=0"
@@ -366,8 +380,10 @@ def according_to_cidr_distribution_ip(cluster_id, network_plane_name,
     network_id = query_network_plane_info.values()[0]
     network_cidr = query_network_plane_info.values()[1]
     network_type = query_network_plane_info.values()[2]
-
-    if network_type not in ['DATAPLANE','EXTERNAL']:
+    segmentation_type = query_network_plane_info.values()[3]
+    if network_type not in ['EXTERNAL']:
+        if network_type == 'DATAPLANE' and segmentation_type == 'vlan':
+            return distribution_ip
         available_ip_list = get_ip_with_equal_cidr(
             cluster_id, network_plane_name, session, exclude_ips)
         sql_ip_ranges = "select ip_ranges.start,end from \
@@ -501,6 +517,42 @@ def _according_interface_to_add_network_alias(context,
                 query_network.update({"alias": alias_name})
 
 
+def _modify_os_version(os_version, host_ref):
+    if utils.is_uuid_like(os_version):
+        host_ref.os_version_id =os_version
+        host_ref.os_version_file = None
+    else:
+        host_ref.os_version_file = os_version
+        host_ref.os_version_id = None
+    return host_ref
+
+
+def _delete_host_fields(host_ref, values):
+    delete_fields = ['config_set_id',
+                     'vcpu_pin_set',
+                     'dvs_high_cpuset',
+                     'pci_high_cpuset',
+                     'os_cpus',
+                     'dvs_cpus',
+                     'dvs_config_type',
+                     'dvsc_cpus',
+                     'dvsp_cpus',
+                     'dvsv_cpus',
+                     'dvsblank_cpus',
+                     'flow_mode',
+                     'virtio_queue_size',
+                     'dvs_config_desc']
+    for field in delete_fields:
+        values[field] = None
+
+    if values.has_key('os_status'):
+        if values['os_status'] == 'init':
+            values['isolcpus'] = None
+    else:
+        if host_ref.os_status == 'init':
+            values['isolcpus'] = None
+
+
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
 @utils.no_4byte_params
@@ -517,8 +569,7 @@ def _host_update(context, values, host_id):
     role_values = dict()
     host_interfaces_values = dict()
     host_cluster_values = dict()
-    # assigned_networks_ip = []
-    # management_ip = ""
+    delete_config_set_id = None
 
     session = get_session()
     with session.begin():
@@ -536,12 +587,8 @@ def _host_update(context, values, host_id):
             host_cluster_values['updated_at'] = timeutils.utcnow()
 
         if host_id:
-            if values.has_key("os_version") and \
-               utils.is_uuid_like(values['os_version']):
-                host_ref.os_version_id = values['os_version']
-            elif(values.has_key("os_version") and not
-                 utils.is_uuid_like(values['os_version'])):
-                host_ref.os_version_file = values['os_version']
+            if values.has_key("os_version"):
+                host_ref = _modify_os_version(values["os_version"], host_ref)
             if values.has_key('cluster'):
                 delete_host_cluster(context, host_id, session)
                 host_cluster_values['host_id'] = host_id
@@ -551,6 +598,7 @@ def _host_update(context, values, host_id):
                 cluster_host_ref.update(host_cluster_values)
                 _update_values(cluster_host_ref, host_cluster_values)
                 cluster_host_ref.save(session=session)
+
             if values.has_key('role'):
                 if values['role']:
                     delete_host_role(context, host_id, session)
@@ -581,7 +629,10 @@ def _host_update(context, values, host_id):
                         delete_assigned_networks(
                             context, host_interface_info.id, session)
                     delete_host_interface(context, host_id, session)
-                orig_keys = list(eval(values['interfaces']))
+                if isinstance(values['interfaces'], list):
+                    orig_keys = values['interfaces']
+                else:
+                    orig_keys = list(eval(values['interfaces']))
                 for host_interface_info in orig_keys:
                     if (host_interface_info.has_key('assigned_networks') and
                        host_interface_info['assigned_networks']):
@@ -626,7 +677,6 @@ def _host_update(context, values, host_id):
 
                     if values.has_key('cluster'):
                         if network.has_key('assigned_networks'):
-                            occupied_network_ips = []
                             merged_assigned_networks = \
                                 merge_networks_for_unifiers(
                                     values['cluster'],
@@ -636,14 +686,11 @@ def _host_update(context, values, host_id):
                                     networks_plane['name'].split(',')
                                 network_plane_ip = networks_plane.get('ip')
                                 if network_plane_ip:
-                                    check_ip_exist_and_in_cidr_range(
+                                    check_ip_exist(
                                         values['cluster'],
                                         network_plane_names[0],
                                         network_plane_ip,
-                                        occupied_network_ips,
                                         session)
-                                    occupied_network_ips.append(
-                                        network_plane_ip)
                                 else:
                                     network_plane_ip = \
                                         according_to_cidr_distribution_ip(
@@ -652,13 +699,20 @@ def _host_update(context, values, host_id):
                                             session)
 
                                 if 'MANAGEMENT' in network_plane_names:
-                                    change_host_name(values, network_plane_ip,
+                                    change_host_name(context, values,
+                                                     network_plane_ip,
                                                      host_ref)
                                     # management_ip = network_plane_ip
                                 add_assigned_networks_data(
                                     context, network, values['cluster'],
                                     host_interface_ref, network_plane_names,
                                     network_plane_ip, session)
+
+            if (host_ref.status == 'with-role' and
+                    (values.get('status', None) == 'init' or
+                     values.get('status', None) == 'in-cluster')):
+                delete_config_set_id = host_ref.config_set_id
+                _delete_host_fields(host_ref, values)
 
             query = session.query(models.Host).filter_by(id=host_id)
             keys = values.keys()
@@ -671,7 +725,6 @@ def _host_update(context, values, host_id):
                 msg = (_('update host_id %(host_id)s failed') %
                        {'host_id': host_id})
                 raise exception.Conflict(msg)
-
             host_ref = _host_get(context, host_id, session=session)
         else:
             if values.has_key('cluster'):
@@ -705,12 +758,8 @@ def _host_update(context, values, host_id):
                         assign_float_ip(
                             context, values['cluster'], role_info,
                             'MANAGEMENT', session)
-            if values.has_key("os_version") and \
-               utils.is_uuid_like(values['os_version']):
-                host_ref.os_version_id = values['os_version']
-            elif(values.has_key("os_version") and not 
-                 utils.is_uuid_like(values['os_version'])):
-                host_ref.os_version_file = values['os_version']
+            if values.has_key("os_version"):
+                host_ref = _modify_os_version(values["os_version"], host_ref)
 
             if values.has_key('interfaces'):
                 orig_keys = list(eval(values['interfaces']))
@@ -742,7 +791,6 @@ def _host_update(context, values, host_id):
 
                     if values.has_key('cluster'):
                         if network.has_key('assigned_networks'):
-                            occupied_network_ips = []
                             merged_assigned_networks = \
                                 merge_networks_for_unifiers(
                                     values['cluster'],
@@ -752,14 +800,11 @@ def _host_update(context, values, host_id):
                                     networks_plane['name'].split(',')
                                 network_plane_ip = networks_plane.get('ip')
                                 if network_plane_ip:
-                                    check_ip_exist_and_in_cidr_range(
+                                    check_ip_exist(
                                         values['cluster'],
                                         network_plane_names[0],
                                         network_plane_ip,
-                                        occupied_network_ips,
                                         session)
-                                    occupied_network_ips.append(
-                                        network_plane_ip)
                                 else:
                                     network_plane_ip = \
                                         according_to_cidr_distribution_ip(
@@ -767,7 +812,8 @@ def _host_update(context, values, host_id):
                                             network_plane_names[0],
                                             session)
                                 if 'MANAGEMENT' in network_plane_names:
-                                    change_host_name(values, network_plane_ip,
+                                    change_host_name(context, values,
+                                                     network_plane_ip,
                                                      host_ref)
                                     # management_ip = network_plane_ip
                                 add_assigned_networks_data(
@@ -785,6 +831,10 @@ def _host_update(context, values, host_id):
             if values.has_key('os_version'):
                 del values['os_version']
             updated = query.update(values, synchronize_session='fetch')
+
+    if delete_config_set_id:
+        # delete config set data after the host data is saved to db
+        config_set_destroy(context, delete_config_set_id)
     return host_get(context, host_ref.id)
 
 
@@ -844,7 +894,8 @@ def get_host_interface(context, host_id, mac=None, session=None,
                         deleted=False).first()
                 if query_network:
                     assigned_networks_info = {'name': query_network.name,
-                                              'ip': assignnetwork.ip}
+                                              'ip': assignnetwork.ip,
+                                              'type': query_network.network_type}
 
                     assigned_networks_list.append(assigned_networks_info)
                     if query_network.network_type in ['DATAPLANE']:
@@ -1000,7 +1051,7 @@ def get_os_version(context, version_id, session=None,
                    force_show_deleted=False):
     session = session or get_session()
     try:
-        query = session.query(models.version).filter_by(id=version_id)
+        query = session.query(models.Version).filter_by(id=version_id)
 
         # filter out deleted items if context disallows it
         if not force_show_deleted and not context.can_see_deleted:
@@ -1488,11 +1539,14 @@ def _cluster_update(context, values, cluster_id):
                         status="add"
                     )
             # add ------------------------------------------------------------
-
-            role_query = \
-                session.query(models.Role).filter_by(
-                    type="template", cluster_id=None).filter_by(
-                    deleted=False).all()
+            target_systems = values['target_systems'].split("+")
+            role_query = []
+            for target_system in target_systems:
+                role_query = role_query + \
+                             session.query(models.Role).filter_by(
+                                 type="template", cluster_id=None,
+                                 deployment_backend=target_system).filter_by(
+                                 deleted=False).all()
             for sub_role_query in role_query:
                 role_ref = models.Role()
                 role_ref.cluster_id = project_ref.id
@@ -2759,7 +2813,7 @@ def role_get_all(context, filters=None, marker=None, limit=None,
             sort_dir.append(default_sort_dir)
 
     session = get_session()
-    
+
     if 'cluster_id' in filters:
         query=session.query(models.Role).filter_by(cluster_id=filters.pop('cluster_id')).filter_by(deleted=False)
     else:
@@ -2846,6 +2900,7 @@ def delete_service_disks_by_role(role_id, session=None):
     delete_time = timeutils.utcnow()
     service_disks_query.update({"deleted": True, "deleted_at": delete_time})
 
+
 def delete_cinder_volumes_by_role(role_id, session=None):
     if session is None:
         session = get_session()
@@ -2853,6 +2908,17 @@ def delete_cinder_volumes_by_role(role_id, session=None):
         role_id=role_id).filter_by(deleted=False)
     delete_time = timeutils.utcnow()
     cinder_volumes_query.update({"deleted": True, "deleted_at": delete_time})
+
+
+def delete_optical_switchs_by_role(role_id, session=None):
+    if session is None:
+        session = get_session()
+    optical_switchs_query = session.query(models.OpticalSwitch).filter_by(
+        role_id=role_id).filter_by(deleted=False)
+    delete_time = timeutils.utcnow()
+    optical_switchs_query.update({"deleted": True,
+                                  "deleted_at": delete_time})
+
 
 def role_host_update(context, role_host_id, values):
     """Update the host_roles or raise if it does not exist."""
@@ -2879,14 +2945,14 @@ def _check_role_host_id(role_host_id):
     if (role_host_id and
        len(role_host_id) > models.HostRole.id.property.columns[0].type.length):
         raise exception.NotFound()
-        
+
 def cluster_update(context, cluster_id, values):
     """
     Set the given properties on an cluster and update it.
 
     :raises NotFound if cluster does not exist.
     """
-    return _cluster_update(context, values, cluster_id)    
+    return _cluster_update(context, values, cluster_id)
 
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
@@ -2896,7 +2962,7 @@ def cluster_destroy(context, cluster_id):
     with session.begin():
         project_ref = _cluster_get(context, cluster_id, session=session)
         project_ref.delete(session=session)
-        
+
         logicnetwork_query = session.query(models.LogicNetwork).filter_by(
         cluster_id=cluster_id).filter_by(deleted=False)
         delete_time = timeutils.utcnow()
@@ -2912,11 +2978,11 @@ def cluster_destroy(context, cluster_id):
                 query_dns_nameservers.update({"deleted": True, "deleted_at": delete_time})
             query_subnet.update({"deleted": True, "deleted_at": delete_time})
         logicnetwork_query.update({"deleted": True, "deleted_at": delete_time})
-        
+
         router_query = session.query(models.Router).filter_by(
         cluster_id=cluster_id).filter_by(deleted=False)
         router_query.update({"deleted": True, "deleted_at": delete_time})
-        
+
         role_query = session.query(models.Role).filter_by(
         cluster_id=cluster_id).filter_by(deleted=False)
         for role_info in role_query.all():
@@ -2934,8 +3000,9 @@ def cluster_destroy(context, cluster_id):
             query_service_role.update({"deleted": True, "deleted_at": delete_time})
             delete_service_disks_by_role(role_info.id, session)
             delete_cinder_volumes_by_role(role_info.id, session)
+            delete_optical_switchs_by_role(role_info.id, session)
         role_query.update({"deleted": True, "deleted_at": delete_time})
-        
+
         network_query = session.query(models.Network).filter_by(
         cluster_id=cluster_id).filter_by(deleted=False)
         for network_info in network_query.all():
@@ -2947,7 +3014,7 @@ def cluster_destroy(context, cluster_id):
             network_id=network_info.id).filter_by(deleted=False)
             query_ip_range.update({"deleted": True, "deleted_at": delete_time})
         network_query.update({"deleted": True, "deleted_at": delete_time})
-        
+
         cluster_host_query = session.query(models.ClusterHost).filter_by(cluster_id=cluster_id).filter_by(deleted=False)
         cluster_hosts = cluster_host_query.all()
         for cluster_host in cluster_hosts:  #delete host role which all the roles belong to this cluster
@@ -2955,13 +3022,8 @@ def cluster_destroy(context, cluster_id):
             host_ref = _host_get(context, cluster_host.host_id, session=session)
             host_ref.update({'status': 'init'})
         delete_cluster_host(context, cluster_id, session=session)
-        
+
     return project_ref
-
-
-
-
-
 
 
 def _paginate_query(query, model, limit, sort_keys, marker=None,
@@ -3168,7 +3230,7 @@ def host_get_all(context, filters=None, marker=None, limit=None,
             return hosts
     elif 'name' in filters:
         name = filters.pop('name')
-        query = session.query(models.Host).filter_by(deleted=showing_deleted).filter_by(name=name)             
+        query = session.query(models.Host).filter_by(deleted=showing_deleted).filter_by(name=name)
     else:
         query = session.query(models.Host).filter_by(deleted=showing_deleted)
 
@@ -3183,7 +3245,7 @@ def host_get_all(context, filters=None, marker=None, limit=None,
         host_dict = host.to_dict()
         hosts.append(host_dict)
     return hosts
-    
+
 def _drop_protected_attrs(model_class, values):
     """
     Removed protected attributes from values dictionary using the models
@@ -3215,7 +3277,7 @@ def _cluster_host_member_get(context, session, member_id):
     query = session.query(models.ClusterHost)
     query = query.filter(models.ClusterHost.id == member_id).filter_by(deleted=False)
     return query.one()
-    
+
 def _cluster_host_member_update(context, memb_ref, values, session=None):
     """Apply supplied dictionary of values to a Member object."""
     _drop_protected_attrs(models.ClusterHost, values)
@@ -3227,7 +3289,7 @@ def _cluster_host_member_update(context, memb_ref, values, session=None):
     memb_ref.update(values)
     memb_ref.save(session=session)
     return memb_ref
-    
+
 def cluster_host_member_update(context, values, member_id):
     """Update an ClusterHost object."""
     session = get_session()
@@ -3379,7 +3441,7 @@ def component_get_all(context, filters=None, marker=None, limit=None,
             sort_dir.append(default_sort_dir)
 
     session = get_session()
-    
+
     query = session.query(models.Component).filter_by(deleted=showing_deleted)
 
     query = _paginate_query(query, models.Component, limit,
@@ -3406,7 +3468,7 @@ def _check_config_file_id(config_file_id):
     if (config_file_id and
        len(config_file_id) > models.ConfigFile.id.property.columns[0].type.length):
         raise exception.NotFound()
-        
+
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
 @utils.no_4byte_params
@@ -3420,7 +3482,7 @@ def _config_file_update(context, values, config_file_id):
     """
     # NOTE(jbresnah) values is altered in this so a copy is needed
     values = values.copy()
-    
+
     session = get_session()
     with session.begin():
         if config_file_id:
@@ -3523,8 +3585,8 @@ def config_file_update(context, config_file_id, values):
 
     :raises NotFound if config_file does not exist.
     """
-    return _config_file_update(context, values, config_file_id) 
-	
+    return _config_file_update(context, values, config_file_id)
+
 def config_file_get_all(context, filters=None, marker=None, limit=None,
                   sort_key=None, sort_dir=None):
     """
@@ -3565,7 +3627,7 @@ def config_file_get_all(context, filters=None, marker=None, limit=None,
             sort_dir.append(default_sort_dir)
 
     session = get_session()
-    
+
     query = session.query(models.ConfigFile).filter_by(deleted=showing_deleted)
 
     query = _paginate_query(query, models.ConfigFile, limit,
@@ -3578,7 +3640,7 @@ def config_file_get_all(context, filters=None, marker=None, limit=None,
     for config_file in query.all():
         config_file_dict = config_file.to_dict()
         config_files.append(config_file_dict)
-    return config_files	
+    return config_files
 
 def _check_config_set_id(config_set_id):
     """
@@ -3592,7 +3654,7 @@ def _check_config_set_id(config_set_id):
     if (config_set_id and
         len(config_set_id) > models.ConfigSet.id.property.columns[0].type.length):
         raise exception.NotFound()
-        
+
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
 @utils.no_4byte_params
@@ -3606,7 +3668,7 @@ def _config_set_update(context, values, config_set_id=None):
     """
     # NOTE(jbresnah) values is altered in this so a copy is needed
     values = values.copy()
-    
+
     session = get_session()
     with session.begin():
         if config_set_id:
@@ -3652,8 +3714,8 @@ def _config_set_update(context, values, config_set_id=None):
                                           % values['id'])
 
     return config_set_get(context, config_set_ref.id)
-    
-    
+
+
 def _config_set_get(context, config_set_id, session=None, force_show_deleted=False):
     """Get an config_set or raise if it does not exist."""
     _check_config_set_id(config_set_id)
@@ -3773,7 +3835,7 @@ def config_set_update(context, config_set_id, values):
 
     :raises NotFound if config_set does not exist.
     """
-    return _config_set_update(context, values, config_set_id) 
+    return _config_set_update(context, values, config_set_id)
 
 def config_set_get_all(context, filters=None, marker=None, limit=None,
                   sort_key=None, sort_dir=None):
@@ -3815,7 +3877,7 @@ def config_set_get_all(context, filters=None, marker=None, limit=None,
             sort_dir.append(default_sort_dir)
 
     session = get_session()
-    
+
     query = session.query(models.ConfigSet).filter_by(deleted=showing_deleted)
 
     query = _paginate_query(query, models.ConfigSet, limit,
@@ -3842,7 +3904,7 @@ def _check_config_id(config_id):
     if (config_id and
         len(config_id) > models.Config.id.property.columns[0].type.length):
         raise exception.NotFound()
-        
+
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
 @utils.no_4byte_params
@@ -3900,17 +3962,17 @@ def _config_update(context, values, config_id):
                 _drop_protected_attrs(models.ConfigSetItem, config_item_values)
                 query = session.query(models.ConfigSetItem).filter_by(config_id=config_id).filter_by(deleted=False)
                 query.update(config_item_values, synchronize_session='fetch')
-            
+
             if not updated:
                 msg = (_('update config_id %(config_id)s failed') %
                        {'config_id': config_id})
                 raise exception.Conflict(msg)
-                
+
             config_ref = _config_get(context, config_id, session=session)
-                      
+
         else:
             config_ref.update(values)
-           
+
             _update_values(config_ref, values)
             try:
 
@@ -3948,7 +4010,7 @@ def _config_get(context, config_id, session=None, force_show_deleted=False):
         raise exception.NotFound(msg)
 
     return config
-    
+
 def _config_get_by_config_file_id(context, config_file_id, session=None, force_show_deleted=False):
     """Get an config or raise if it does not exist."""
     _check_config_file_id(config_file_id)
@@ -4034,7 +4096,7 @@ def config_destroy(context, config_id):
         for config_item_ref in config_item_refs:
             config_item_ref.delete(session=session)
         config_ref.delete(session=session)
-        
+
         return config_ref
 
 def config_update(context, config_id, values):
@@ -4043,7 +4105,7 @@ def config_update(context, config_id, values):
 
     :raises NotFound if config does not exist.
     """
-    return _config_update(context, values, config_id) 
+    return _config_update(context, values, config_id)
 
 def config_get_all(context, filters=None, marker=None, limit=None,
                   sort_key=None, sort_dir=None):
@@ -4085,7 +4147,7 @@ def config_get_all(context, filters=None, marker=None, limit=None,
             sort_dir.append(default_sort_dir)
 
     session = get_session()
-    
+
     query = session.query(models.Config).filter_by(deleted=showing_deleted)
 
     query = _paginate_query(query, models.Config, limit,
@@ -4115,7 +4177,7 @@ def network_update(context, network_id, values):
 
     :raises NotFound if cluster does not exist.
     """
-    return _network_update(context, values, network_id)    
+    return _network_update(context, values, network_id)
 
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
@@ -4128,10 +4190,10 @@ def network_destroy(context,  network_id):
         if assign_networks:
             msg = "network %s is in used, it couldn't be deleted" % network_id
             raise exception.DeleteConstrainted(msg)
-        else:    
+        else:
             network_ref.delete(session=session)
 
-    return network_ref    
+    return network_ref
 
 def delete_network_ip_range(context,  network_id):
     session = get_session()
@@ -4175,6 +4237,9 @@ def network_get_all(context, cluster_id=None, filters=None, marker=None, limit=N
 
     filters = filters or {}
 
+    if 'cluster_id' in filters:
+        cluster_id = filters['cluster_id']
+
     showing_deleted = 'changes-since' in filters or filters.get('deleted',
                                                                 False)
 
@@ -4193,6 +4258,11 @@ def network_get_all(context, cluster_id=None, filters=None, marker=None, limit=N
     if 0 == cmp(cluster_id, "template"):
         query = session.query(models.Network).filter_by(type="template").filter_by(deleted=False).all()
         return [phynet_name.name for phynet_name in query]
+    elif cluster_id is not None and filters.get('type'):
+        query = session.query(models.Network).\
+            filter_by(cluster_id=cluster_id).\
+            filter_by(type=filters['type']).\
+            filter_by(deleted=showing_deleted)
     elif cluster_id is not None:
         query = session.query(models.Network).\
             filter_by(cluster_id=cluster_id).\
@@ -4225,7 +4295,7 @@ def network_get_all(context, cluster_id=None, filters=None, marker=None, limit=N
         network_dict = network.to_dict()
         networks.append(network_dict)
     return networks
-    
+
 def _check_network_id(network_id):
     """
     check if the given project id is valid before executing operations. For
@@ -4265,7 +4335,8 @@ def update_phyname_of_network(context, network_phyname_set):
                 )
 
 
-def check_assigned_ip_in_ip_range(assigned_ip_list, ip_range_list):
+def check_assigned_ip_in_ip_range(assigned_ip_list, ip_range_list,
+                                  ssh_host_ip):
     if not ip_range_list:
         return
     assigned_ips = copy.deepcopy(assigned_ip_list)
@@ -4273,16 +4344,33 @@ def check_assigned_ip_in_ip_range(assigned_ip_list, ip_range_list):
     ip_list = [ip for ip in assigned_ips if ip]
     for ip in ip_list:
         flag = False
+        if ip in ssh_host_ip:
+            continue
         for ip_range in ip_ranges:
             if is_in_ip_range(ip, ip_range):
                 flag = True
                 break
         if not flag:
-            msg = "ip assigned by this ip range is being used by " \
-                  "networkplane.Delete the network on host interfaces " \
-                  "before changing ip range."
+            msg = "'%s' not in new range '%s'" % (ip, ip_ranges)
             LOG.error(msg)
             raise exception.Forbidden(msg)
+
+
+def get_ip_of_ssh_discover_host(session):
+    host_filter = [models.HostInterface.deleted == 0,
+                   models.DiscoverHost.deleted == 0,
+                   models.HostInterface.ip == models.DiscoverHost.ip]
+    query = session.query(models.HostInterface, models.DiscoverHost).\
+        filter(sa_sql.and_(*host_filter))
+
+    ssh_host_ip_list = []
+    for item in query.all():
+        ip_query_sql = "select ip from host_interfaces where host_interfaces." \
+                       "host_id='%s'" % item.HostInterface.host_id
+        ip_query_result = session.execute(ip_query_sql).fetchall()
+        ip_query_list = [item[0] for item in ip_query_result if item[0]]
+        ssh_host_ip_list.extend(ip_query_list)
+    return set(ssh_host_ip_list)
 
 
 def _get_role_float_ip(session, cluster_id):
@@ -4317,7 +4405,7 @@ def _network_update(context, values, network_id):
             network_ref = _network_get(context, network_id, session=session)
         else:
             network_ref = models.Network()
-       
+
         if network_id:
             # Don't drop created_at if we're passing it in...
             _drop_protected_attrs(models.Network, values)
@@ -4347,23 +4435,35 @@ def _network_update(context, values, network_id):
                     #sql_ip="select host_interfaces.ip from host_interfaces, assigned_networks where host_interfaces.deleted=0 and host_interfaces.id=assigned_networks.interface_id and assigned_networks.deleted=0 and assigned_networks.network_id='"+network_id+"'"
                     for tmp_ip in assign_ip_list:
                         if tmp_ip and not is_in_cidr_range(tmp_ip, values['cidr']):
-                            msg = "ip %s being used is not in range of new cidr" \
+                            msg = "ip %s being used is not in range of new cidr " \
                                   "%s" % (tmp_ip, values['cidr'])
                             LOG.error(msg)
                             raise exception.Forbidden(msg)
 
             network_ref = _network_get(context, network_id, session=session)
-            if values.has_key("ip_ranges"):
-                check_assigned_ip_in_ip_range(network_ip_list,
-                                              eval(values['ip_ranges']))
-                delete_network_ip_range(context,  network_id)
-                for ip_range in list(eval(values['ip_ranges'])):
-                    ip_range_ref = models.IpRange()
-                    ip_range_ref['start'] = ip_range["start"]
-                    ip_range_ref['end'] = ip_range["end"]
-                    ip_range_ref.network_id = network_ref.id
-                    ip_range_ref.save(session=session)
-                del values['ip_ranges']
+            if values.get("ip_ranges"):
+                if not isinstance(values['ip_ranges'], list):
+                    ip_ranges = eval(values['ip_ranges'])
+                else:
+                    ip_ranges = values['ip_ranges']
+                old_ip_ranges = get_network_ip_range(context,  network_id)
+                new_ip_ranges = [tuple(ran.values()) for ran in
+                                 ip_ranges]
+                if new_ip_ranges != old_ip_ranges:
+                    ssh_host_ip = get_ip_of_ssh_discover_host(session)
+                    check_assigned_ip_in_ip_range(network_ip_list,
+                                                  ip_ranges,
+                                                  ssh_host_ip)
+                    delete_network_ip_range(context,  network_id)
+                    for ip_range in new_ip_ranges:
+                        ip_range_ref = models.IpRange()
+                        ip_range_ref['start'] = ip_range[0]
+                        ip_range_ref['end'] = ip_range[1]
+                        ip_range_ref.network_id = network_ref.id
+                        ip_range_ref.save(session=session)
+                    del values['ip_ranges']
+                else:
+                    values.pop('ip_ranges')
             keys = values.keys()
             for k in keys:
                 if k not in network_ref.to_dict():
@@ -4373,11 +4473,11 @@ def _network_update(context, values, network_id):
             if not updated:
                 msg = (_('update network_id %(network_id)s failed') %
                        {'network_id': network_id})
-                raise exception.Conflict(msg)                        
+                raise exception.Conflict(msg)
         else:
-            
-            network_ref.update(values)            
-            _update_values(network_ref, values)            
+
+            network_ref.update(values)
+            _update_values(network_ref, values)
             try:
                 network_ref.save(session=session)
             except db_exception.DBDuplicateEntry:
@@ -4396,9 +4496,9 @@ def _network_update(context, values, network_id):
                     except db_exception.DBDuplicateEntry:
                         raise exception.Duplicate("ip rangge %s already exists!"
                                           % values['ip_ranges'])
-            
+
     return _network_get(context, network_ref.id)
-    
+
 def _network_get(context, network_id=None, cluster_id=None, session=None, force_show_deleted=False):
     """Get an network or raise if it does not exist."""
     if network_id is not None:
@@ -4413,9 +4513,9 @@ def _network_get(context, network_id=None, cluster_id=None, session=None, force_
         # filter out deleted items if context disallows it
         if not force_show_deleted and not context.can_see_deleted:
             query = query.filter_by(deleted=False)
-            
+
         networks = query.one()
-            
+
         ip_range_list=[]
         ip_ranges=get_network_ip_range(context,  networks['id'])
         if ip_ranges:
@@ -4425,15 +4525,15 @@ def _network_get(context, network_id=None, cluster_id=None, session=None, force_
                 ip_range_dict['end']=str(ip_range['end'])
                 ip_range_list.append(ip_range_dict)
         networks['ip_ranges']=ip_range_list
-           
+
 
     except sa_orm.exc.NoResultFound:
         msg = "No network found with ID %s" % network_id
         LOG.debug(msg)
         raise exception.NotFound(msg)
 
-    return networks 
-    
+    return networks
+
 def update_config(session,config_flag,config_set_id,query_set_item_list,config_interface_info):
     for config_set_item in query_set_item_list.all():
         query_config_info= session.query(models.Config).filter_by(id=config_set_item.config_id).filter_by(deleted=False)
@@ -4458,17 +4558,17 @@ def add_config(session,config_interface_info,config_set_id,config_file_id):
     config_info['config_file_id']=config_file_id
     config_info['config_version']=1
     config_info['running_version']=0
-    add_config.update(config_info) 
+    add_config.update(config_info)
     _update_values(add_config,config_info)
     add_config.save(session=session)
-    
+
     add_config_setitem=models.ConfigSetItem()
     config_set_value['config_set_id']=config_set_id
     config_set_value['config_id']=add_config.id
     config_set_value.update(config_set_value)
     _update_values(add_config_setitem,config_set_value)
     add_config_setitem.save(session=session)
-    
+
 def add_config_and_file(session,config_interface_info,config_set_id):
     query_config_file=session.query(models.ConfigFile).filter_by(name=config_interface_info['file-name']).filter_by(deleted=False)
     if query_config_file.all():
@@ -4481,9 +4581,9 @@ def add_config_and_file(session,config_interface_info,config_set_id):
         _update_values(add_config_file,config_file_value)
         add_config_file.save(session=session)
         config_file_id=add_config_file.id
-    
+
     add_config(session,config_interface_info,config_set_id,config_file_id)
-                    
+
 def config_interface(context, config_interface):
     config_flag=0
     config_info_list=[]
@@ -4569,7 +4669,7 @@ def config_interface(context, config_interface):
                         config_info['config_version']=query_config_info.one().config_version
                         config_info['running_version']=query_config_info.one().running_version
                         config_info_list.append(config_info)
-                        
+
     return_config_info={'cluster':config_interface.get('cluster',None),
                         'role':config_interface.get('role',None),
                         'config':config_info_list}
@@ -4587,7 +4687,7 @@ def _check_service_disk_id(service_disk_id):
     if (service_disk_id and
        len(service_disk_id) > models.ServiceDisk.id.property.columns[0].type.length):
         raise exception.NotFound()
-    
+
 def _service_disk_get(context, service_disk_id=None, role_id=None, marker=None, session=None, force_show_deleted=False):
     """Get an service_disk or raise if it does not exist."""
     if service_disk_id is not None:
@@ -4615,7 +4715,7 @@ def _service_disk_get(context, service_disk_id=None, role_id=None, marker=None, 
         raise exception.NotFound(msg)
 
     return service_disk
-    
+
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
 @utils.no_4byte_params
@@ -4649,24 +4749,24 @@ def _service_disk_update(context, values, service_disk_id):
             if not updated:
                 msg = (_('update service_disk_id %(service_disk_id)s failed') %
                        {'service_disk_id': service_disk_id})
-                raise exception.Conflict(msg)                        
+                raise exception.Conflict(msg)
         else:
             service_disk_ref = models.ServiceDisk()
-            service_disk_ref.update(values)            
-            _update_values(service_disk_ref, values)            
+            service_disk_ref.update(values)
+            _update_values(service_disk_ref, values)
             try:
                 service_disk_ref.save(session=session)
             except db_exception.DBDuplicateEntry:
                 raise exception.Duplicate("service_disk ID %s already exists!"
                                           % values['id'])
-                                          
+
             service_disk_id = service_disk_ref.id
     return _service_disk_get(context, service_disk_id)
-    
+
 def service_disk_add(context, values):
     """Add an cluster from the values dictionary."""
     return _service_disk_update(context, values, None)
-    
+
 
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
@@ -4677,24 +4777,24 @@ def service_disk_destroy(context, service_disk_id):
         service_disk_ref = _service_disk_get(context, service_disk_id, session=session)
         service_disk_ref.delete(session=session)
     return service_disk_ref
-    
+
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)       
+       stop_max_attempt_number=50)
 def service_disk_update(context, service_disk_id, values):
     """
     Set the given properties on an cluster and update it.
 
     :raises NotFound if cluster does not exist.
     """
-    return _service_disk_update(context, values, service_disk_id)  
-    
+    return _service_disk_update(context, values, service_disk_id)
+
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
-       
+
 def service_disk_detail (context, service_disk_id):
     service_disk_ref = _service_disk_get(context, service_disk_id)
     return service_disk_ref
-    
+
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
 def service_disk_list(context, filters=None, **param):
@@ -4726,10 +4826,10 @@ def service_disk_list(context, filters=None, **param):
     role_id = None
     if 'role_id' in filters:
         role_id=filters.pop('role_id')
-    
+
     service_disk_ref = _service_disk_get(context, role_id=role_id)
     return service_disk_ref
-    
+
 def _check_cinder_volume_id(cinder_volume_id):
     """
     check if the given project id is valid before executing operations. For
@@ -4742,7 +4842,14 @@ def _check_cinder_volume_id(cinder_volume_id):
     if (cinder_volume_id and
        len(cinder_volume_id) > models.CinderVolume.id.property.columns[0].type.length):
         raise exception.NotFound()
-    
+
+
+def _check_optical_switch_id(optical_switch_id):
+    if (optical_switch_id and
+       len(optical_switch_id) > models.OpticalSwitch.id.property.columns[0].type.length):
+        raise exception.NotFound()
+
+
 def _cinder_volume_get(context, cinder_volume_id=None, role_id=None, marker=None, session=None, force_show_deleted=False):
     """Get an cinder_volume or raise if it does not exist."""
     if cinder_volume_id is not None:
@@ -4770,7 +4877,41 @@ def _cinder_volume_get(context, cinder_volume_id=None, role_id=None, marker=None
         raise exception.NotFound(msg)
 
     return cinder_volume
-    
+
+
+def _optical_switch_get(context, optical_switch_id=None,
+                        role_id=None, marker=None, session=None,
+                        force_show_deleted=False):
+    """Get an optical switch or raise if it does not exist."""
+    if optical_switch_id is not None:
+        _check_optical_switch_id(optical_switch_id)
+    session = session or get_session()
+
+    try:
+        if optical_switch_id is not None:
+            query = session.query(models.OpticalSwitch).\
+                filter_by(id=optical_switch_id).filter_by(deleted=False)
+        elif role_id is not None:
+            query = session.query(models.OpticalSwitch).\
+                filter_by(role_id=role_id).filter_by(deleted=False)
+        else:
+            query = session.query(models.OpticalSwitch).\
+                filter_by(deleted=False)
+        # filter out deleted images if context disallows it
+        if not force_show_deleted and not context.can_see_deleted:
+            query = query.filter_by(deleted=False)
+
+        if optical_switch_id is not None:
+            optical_switch = query.one()
+        else:
+            optical_switch = query.all()
+    except sa_orm.exc.NoResultFound:
+        msg = "No optical switch found with ID %s" % optical_switch_id
+        LOG.debug(msg)
+        raise exception.NotFound(msg)
+
+    return optical_switch
+
 
 def _cinder_volume_update(context, values, cinder_volume_id):
     """
@@ -4802,26 +4943,67 @@ def _cinder_volume_update(context, values, cinder_volume_id):
             if not updated:
                 msg = (_('update cinder_volume_id %(cinder_volume_id)s failed') %
                        {'cinder_volume_id': cinder_volume_id})
-                raise exception.Conflict(msg)                        
+                raise exception.Conflict(msg)
         else:
             cinder_volume_ref = models.CinderVolume()
-            cinder_volume_ref.update(values)            
-            _update_values(cinder_volume_ref, values)            
+            cinder_volume_ref.update(values)
+            _update_values(cinder_volume_ref, values)
             try:
                 cinder_volume_ref.save(session=session)
             except db_exception.DBDuplicateEntry:
                 raise exception.Duplicate("cinder_volume ID %s already exists!"
                                           % values['id'])
-                                          
+
             cinder_volume_id = cinder_volume_ref.id
     return _cinder_volume_get(context, cinder_volume_id)
 
+
+def _optical_switch_update(context, values, optical_switch_id):
+    """
+    Used internally by optical_switch_add and project_update
+
+    :param context: Request context
+    :param values: A dict of attributes to set
+    :param optical_switch_id: If None, create the optical switch, otherwise, find and update it
+    """
+
+    # NOTE(jbresnah) values is altered in this so a copy is needed
+    values = values.copy()
+    session = get_session()
+    with session.begin():
+        if optical_switch_id:
+            _drop_protected_attrs(models.OpticalSwitch, values)
+            values['updated_at'] = timeutils.utcnow()
+            # TODO(dosaboy): replace this with a dict comprehension once py26
+            query = session.query(models.OpticalSwitch).\
+                filter_by(id=optical_switch_id).filter_by(deleted=False)
+            updated = query.update(values, synchronize_session='fetch')
+
+            if not updated:
+                msg = (_('update optical_switch_id '
+                         '%(optical_switch_id)s failed') %
+                       {'optical_switch_id': optical_switch_id})
+                raise exception.Conflict(msg)
+        else:
+            optical_switch_ref = models.OpticalSwitch()
+            optical_switch_ref.update(values)
+            _update_values(optical_switch_ref, values)
+            try:
+                optical_switch_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("optical_switch ID %s "
+                                          "already exists!" % values['id'])
+
+            optical_switch_id = optical_switch_ref.id
+    return _optical_switch_get(context, optical_switch_id)
+
+
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50)    
+       stop_max_attempt_number=50)
 def cinder_volume_add(context, values):
     """Add an cluster from the values dictionary."""
     return _cinder_volume_update(context, values, None)
-    
+
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
 def cinder_volume_destroy(context, cinder_volume_id):
@@ -4840,8 +5022,8 @@ def cinder_volume_update(context, cinder_volume_id, values):
 
     :raises NotFound if cluster does not exist.
     """
-    return _cinder_volume_update(context, values, cinder_volume_id)  
-    
+    return _cinder_volume_update(context, values, cinder_volume_id)
+
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
 def cinder_volume_detail(context, cinder_volume_id):
@@ -4868,18 +5050,184 @@ def cinder_volume_list(context, filters=None, **param):
     role_id = None
     if 'role_id' in filters:
         role_id=filters.pop('role_id')
-    
+
     cinder_volume_ref = _cinder_volume_get(context, role_id=role_id)
     return cinder_volume_ref
 
+
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50) 
+       stop_max_attempt_number=50)
+def optical_switch_add(context, values):
+    """Add an cluster from the values dictionary."""
+    return _optical_switch_update(context, values, None)
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def optical_switch_list(context, filters=None, **param):
+    filters = filters or {}
+    role_id = None
+    if 'role_id' in filters:
+        role_id = filters.pop('role_id')
+    optical_switch_ref = _optical_switch_get(context, role_id=role_id)
+    return optical_switch_ref
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def optical_switch_detail(context, optical_switch_id):
+    optical_switch_ref = _optical_switch_get(context, optical_switch_id)
+    return optical_switch_ref
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def optical_switch_update(context, optical_switch_id, values):
+    return _optical_switch_update(context, values, optical_switch_id)
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def optical_switch_destroy(context, optical_switch_id):
+    """Destroy the optical_switch or raise if it does not exist."""
+    session = get_session()
+    with session.begin():
+        optical_switch_ref = _optical_switch_get(context,
+                                                 optical_switch_id,
+                                                 session=session)
+        optical_switch_ref.delete(session=session)
+    return optical_switch_ref
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def hwm_add(context, values):
+    """add hwm to daisy."""
+    return _hwm_update(context, values, None)
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def hwm_update(context, hwm_id, values):
+    """update cluster template to daisy."""
+    return _hwm_update(context, values, hwm_id)
+
+
+def _hwm_update(context, values, hwm_id):
+    """update or add hwm to daisy."""
+    values = values.copy()
+    session = get_session()
+    with session.begin():
+        if hwm_id:
+            hwm_ref = _hwm_get(context, hwm_id, session=session)
+        else:
+            hwm_ref = models.Hwm()
+
+        if hwm_id:
+            # Don't drop created_at if we're passing it in...
+            _drop_protected_attrs(models.Hwm, values)
+            # NOTE(iccha-sethi): updated_at must be explicitly set in case
+            #                   only ImageProperty table was modifited
+            values['updated_at'] = timeutils.utcnow()
+
+        if hwm_id:
+            if values.get('id', None): del values['id']
+            hwm_ref.update(values)
+            _update_values(hwm_ref, values)
+            try:
+                hwm_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("Node ID %s already exists!"
+                                          % values['id'])
+        else:
+            hwm_ref.update(values)
+            _update_values(hwm_ref, values)
+            try:
+                hwm_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("Node ID %s already exists!"
+                                          % values['id'])
+
+    return hwm_get(context, hwm_ref.id)
+
+
+def hwm_destroy(context, hwm_id, session=None, force_show_deleted=False):
+    session = session or get_session()
+    with session.begin():
+        hwm_ref = _hwm_get(context, hwm_id, session=session)
+        hwm_ref.delete(session=session)
+        return hwm_ref
+
+
+def _hwm_get(context, hwm_id, session=None, force_show_deleted=False):
+    """Get an hwm or raise if it does not exist."""
+    session = session or get_session()
+    try:
+        query = session.query(models.Hwm).filter_by(id=hwm_id)
+
+        # filter out deleted images if context disallows it
+        if not force_show_deleted and not context.can_see_deleted:
+            query = query.filter_by(deleted=False)
+        hwm = query.one()
+        return hwm
+    except sa_orm.exc.NoResultFound:
+        msg = "No hwm found with ID %s" % hwm_id
+        LOG.debug(msg)
+        raise exception.NotFound(msg)
+
+
+def hwm_get(context, hwm_id, session=None, force_show_deleted=False):
+    hwm = _hwm_get(context, hwm_id, session=session,
+                       force_show_deleted=force_show_deleted)
+    return hwm
+
+
+def hwm_get_all(context, filters=None, marker=None, limit=None, sort_key=None,
+                sort_dir=None):
+    sort_key = ['created_at'] if not sort_key else sort_key
+
+    default_sort_dir = 'desc'
+
+    if not sort_dir:
+        sort_dir = [default_sort_dir] * len(sort_key)
+    elif len(sort_dir) == 1:
+        default_sort_dir = sort_dir[0]
+        sort_dir *= len(sort_key)
+
+    filters = filters or {}
+    showing_deleted = 'changes-since' in filters or filters.get('deleted',
+                                                                False)
+    marker_hwm = None
+    if marker is not None:
+        marker_hwm = _hwm_get(context, marker,
+                              force_show_deleted=showing_deleted)
+
+    for key in ['created_at', 'id']:
+        if key not in sort_key:
+            sort_key.append(key)
+            sort_dir.append(default_sort_dir)
+
+    session = get_session()
+    query = session.query(models.Hwm).filter_by(deleted=showing_deleted)
+
+    query = _paginate_query(query, models.Hwm, limit, sort_key,
+                            marker=marker_hwm,
+                            sort_dir=None,
+                            sort_dirs=sort_dir)
+    hwms = []
+    for hwm in query.all():
+        hwm = hwm.to_dict()
+        hwms.append(hwm)
+    return hwms
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
 def template_add(context, values):
     """add cluster template to daisy."""
     return _template_update(context, values, None)
-    
+
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50) 
+       stop_max_attempt_number=50)
 def template_update(context, template_id, values):
     """update cluster template to daisy."""
     return _template_update(context, values, template_id)
@@ -4900,7 +5248,7 @@ def _template_update(context, values, template_id):
             # NOTE(iccha-sethi): updated_at must be explicitly set in case
             #                   only ImageProperty table was modifited
             values['updated_at'] = timeutils.utcnow()
-        
+
         if template_id:
             if values.get('id', None): del values['id']
             template_ref.update(values)
@@ -4918,12 +5266,12 @@ def _template_update(context, values, template_id):
             except db_exception.DBDuplicateEntry:
                 raise exception.Duplicate("Node ID %s already exists!"
                                           % values['id'])
-        
+
     return template_get(context, template_ref.id)
-    
+
 def _template_get(context, template_id, session=None, force_show_deleted=False):
     """Get an host or raise if it does not exist."""
-    
+
     session = session or get_session()
     try:
         query = session.query(models.Template).filter_by(id=template_id)
@@ -4937,13 +5285,13 @@ def _template_get(context, template_id, session=None, force_show_deleted=False):
         msg = "No template found with ID %s" % template_id
         LOG.debug(msg)
         raise exception.NotFound(msg)
-    
-    
+
+
 def template_get(context, template_id, session=None, force_show_deleted=False):
     template = _template_get(context, template_id, session=session,
                        force_show_deleted=force_show_deleted)
     return template
-    
+
 def template_destroy(context, template_id, session=None, force_show_deleted=False):
     session = session or get_session()
     with session.begin():
@@ -4979,7 +5327,7 @@ def template_get_all(context, filters=None, marker=None, limit=None,
             sort_dir.append(default_sort_dir)
 
     session = get_session()
-    
+
     query = session.query(models.Template).filter_by(deleted=showing_deleted)
 
     query = _paginate_query(query, models.Template, limit,
@@ -5000,13 +5348,13 @@ def template_get_all(context, filters=None, marker=None, limit=None,
     return templates
 
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50) 
+       stop_max_attempt_number=50)
 def host_template_add(context, values):
     """add host template to daisy."""
     return _host_template_update(context, values, None)
-    
+
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
-       stop_max_attempt_number=50) 
+       stop_max_attempt_number=50)
 def host_template_update(context, template_id, values):
     """update host template to daisy."""
     return _host_template_update(context, values, template_id)
@@ -5027,7 +5375,7 @@ def _host_template_update(context, values, template_id):
             # NOTE(iccha-sethi): updated_at must be explicitly set in case
             #                   only ImageProperty table was modifited
             values['updated_at'] = timeutils.utcnow()
-        
+
         if template_id:
             if values.get('id', None): del values['id']
             template_ref.update(values)
@@ -5045,12 +5393,12 @@ def _host_template_update(context, values, template_id):
             except db_exception.DBDuplicateEntry:
                 raise exception.Duplicate("Node ID %s already exists!"
                                           % values['id'])
-        
+
     return host_template_get(context, template_ref.id)
-    
+
 def _host_template_get(context, template_id, session=None, force_show_deleted=False):
     """Get an host or raise if it does not exist."""
-    
+
     session = session or get_session()
     try:
         query = session.query(models.HostTemplate).filter_by(id=template_id)
@@ -5064,13 +5412,13 @@ def _host_template_get(context, template_id, session=None, force_show_deleted=Fa
         msg = "No host_template found with ID %s" % template_id
         LOG.debug(msg)
         raise exception.NotFound(msg)
-    
-    
+
+
 def host_template_get(context, template_id, session=None, force_show_deleted=False):
     template = _host_template_get(context, template_id, session=session,
                        force_show_deleted=force_show_deleted)
     return template
-    
+
 def host_template_destroy(context, template_id, session=None, force_show_deleted=False):
     session = session or get_session()
     with session.begin():
@@ -5106,7 +5454,7 @@ def host_template_get_all(context, filters=None, marker=None, limit=None,
             sort_dir.append(default_sort_dir)
 
     session = get_session()
-    
+
     query = session.query(models.HostTemplate).filter_by(deleted=showing_deleted)
 
     query = _paginate_query(query, models.HostTemplate, limit,
@@ -5125,7 +5473,7 @@ def host_template_get_all(context, filters=None, marker=None, limit=None,
         template = template.to_dict()
         templates.append(template)
     return templates
-    
+
 def host_interfaces_get_all(context, filters=None):
     filters = filters or {}
     session = get_session()
@@ -5148,4 +5496,837 @@ def host_interfaces_get_all(context, filters=None):
         host_interface = host_interface.to_dict()
         host_interfaces.append(host_interface)
     return host_interfaces
-    
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def version_add(context, values):
+    """add version to daisy."""
+    return _version_update(context, values, None)
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def version_update(context, version_id, values):
+    """update version  to daisy."""
+    return _version_update(context, values, version_id)
+
+def _version_update(context, values, version_id):
+    """update or add version to daisy."""
+    values = values.copy()
+    session = get_session()
+    with session.begin():
+        if version_id:
+            version_ref = _version_get(context, version_id, session=session)
+        else:
+            version_ref = models.Version()
+
+        if version_id:
+            # Don't drop created_at if we're passing it in...
+            _drop_protected_attrs(models.Version, values)
+            # NOTE(iccha-sethi): updated_at must be explicitly set in case
+            #                   only ImageProperty table was modifited
+            values['updated_at'] = timeutils.utcnow()
+
+        if version_id:
+            if values.get('id', None): del values['id']
+            version_ref.update(values)
+            _update_values(version_ref, values)
+            try:
+                version_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("Node ID %s already exists!"
+                                          % values['id'])
+        else:
+            version_ref.update(values)
+            _update_values(version_ref, values)
+            try:
+                version_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("Node ID %s already exists!"
+                                          % values['id'])
+
+    return version_get(context, version_ref.id)
+
+def _version_get(context, version_id, session=None, force_show_deleted=False):
+    """Get an host or raise if it does not exist."""
+
+    session = session or get_session()
+    try:
+        query = session.query(models.Version).filter_by(id=version_id)
+
+        # filter out deleted images if context disallows it
+        if not force_show_deleted and not context.can_see_deleted:
+            query = query.filter_by(deleted=False)
+        version = query.one()
+        return version
+    except sa_orm.exc.NoResultFound:
+        msg = "No version found with ID %s" % version_id
+        LOG.debug(msg)
+        raise exception.NotFound(msg)
+
+
+def version_get(context, version_id, session=None, force_show_deleted=False):
+    version = _version_get(context, version_id, session=session,
+                       force_show_deleted=force_show_deleted)
+    return version
+
+
+def version_destroy(context, version_id, session=None,
+                    force_show_deleted=False):
+    session = session or get_session()
+    with session.begin():
+        version_ref = _version_get(context, version_id, session=session)
+        version_ref.delete(session=session)
+        return version_ref
+
+
+def version_get_all(context, filters=None, marker=None, limit=None,
+                  sort_key=None, sort_dir=None):
+    """
+    Get all versions that match zero or more filters.
+    """
+    sort_key = ['created_at'] if not sort_key else sort_key
+
+    default_sort_dir = 'desc'
+
+    if not sort_dir:
+        sort_dir = [default_sort_dir] * len(sort_key)
+    elif len(sort_dir) == 1:
+        default_sort_dir = sort_dir[0]
+        sort_dir *= len(sort_key)
+
+    filters = filters or {}
+
+    showing_deleted = 'changes-since' in filters or filters.get('deleted',
+                                                                False)
+    marker_version = None
+    if marker is not None:
+        marker_version = _version_get(context,
+                                  marker,
+                                  force_show_deleted=showing_deleted)
+
+    for key in ['created_at', 'id']:
+        if key not in sort_key:
+            sort_key.append(key)
+            sort_dir.append(default_sort_dir)
+
+    session = get_session()
+    if 'name' in filters:
+        name = filters.pop('name')
+        query = session.query(models.Version).filter_by(deleted=False).\
+            filter_by(name=name)
+    elif 'type' in filters:
+        type = filters.pop('type')
+        query = session.query(models.Version).filter_by(deleted=False).\
+            filter_by(type=type)
+    elif 'version' in filters:
+        version = filters.pop('version')
+        query = session.query(models.Version).filter_by(deleted=False).\
+            filter_by(version=version)
+    elif 'status' in filters:
+        status = filters.pop('status')
+        query = session.query(models.Version).filter_by(deleted=False).\
+            filter_by(status=status)
+    else:
+        query = session.query(models.Version).filter_by(deleted=False)
+
+    query = _paginate_query(query, models.Version, limit,
+                        sort_key,
+                        marker=marker_version,
+                        sort_dir=None,
+                        sort_dirs=sort_dir)
+
+    versions = []
+    for version in query.all():
+        version_dict = version.to_dict()
+        version_sql = "select * from hosts,clusters where (hosts.os_version_id ='"\
+            + version_dict['id'] +"' and hosts.deleted=0) or (clusters.tecs_version_id='"\
+            + version_dict['id'] +"' and clusters.deleted=0)"
+        hosts_number = session.execute(version_sql).fetchone()
+        if hosts_number:
+            version_dict['status'] = "used"
+        else:
+            version_dict['status'] = "unused"
+        versions.append(version_dict)
+    return versions
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def version_patch_add(context, values):
+    """add version to daisy."""
+    return _version_patch_update(context, values, None)
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def version_patch_update(context, version_patch_id, values):
+    """update version  to daisy."""
+    return _version_patch_update(context, values, version_patch_id)
+
+def _version_patch_update(context, values, version_patch_id):
+    """update or add version patch to daisy."""
+    values = values.copy()
+    session = get_session()
+    with session.begin():
+        if version_patch_id:
+            version_patch_ref = _version_patch_get(context, version_patch_id,
+                                                   session=session)
+        else:
+            version_patch_ref = models.VersionPatch()
+
+        if version_patch_id:
+            # Don't drop created_at if we're passing it in...
+            _drop_protected_attrs(models.VersionPatch, values)
+            # NOTE(iccha-sethi): updated_at must be explicitly set in case
+            #                   only ImageProperty table was modifited
+            values['updated_at'] = timeutils.utcnow()
+
+        if version_patch_id:
+            if values.get('id', None): del values['id']
+            version_patch_ref.update(values)
+            _update_values(version_patch_ref, values)
+            try:
+                version_patch_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("version patch ID %s already exists!"
+                                          % values['id'])
+        else:
+            version_patch_ref.update(values)
+            _update_values(version_patch_ref, values)
+            try:
+                version_patch_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("version patch ID %s already exists!"
+                                          % values['id'])
+
+    return version_patch_get(context, version_patch_ref.id)
+
+def _version_patch_get(context, version_patch_id, session=None,
+                       force_show_deleted=False):
+    """Get an version patch or raise if it does not exist."""
+
+    session = session or get_session()
+    try:
+        query = session.query(models.VersionPatch).filter_by(
+            id=version_patch_id)
+
+        # filter out deleted images if context disallows it
+        if not force_show_deleted and not context.can_see_deleted:
+            query = query.filter_by(deleted=False)
+        version = query.one()
+        return version
+    except sa_orm.exc.NoResultFound:
+        msg = "No version patch found with ID %s" % version_patch_id
+        LOG.debug(msg)
+        raise exception.NotFound(msg)
+
+
+def version_patch_get(context, version_patch_id, session=None,
+                      force_show_deleted=False):
+    version_patch = _version_patch_get(context, version_patch_id,
+                                       session=session,
+                                       force_show_deleted=force_show_deleted)
+    return version_patch
+
+
+def version_patch_destroy(context, version_patch_id, session=None,
+                          force_show_deleted=False):
+    session = session or get_session()
+    with session.begin():
+        version_patch_ref = _version_patch_get(context, version_patch_id,
+                                               session=session)
+        version_patch_ref.delete(session=session)
+        return version_patch_ref
+
+
+def version_patch_get_all(context, filters=None, marker=None, limit=None,
+                  sort_key=None, sort_dir=None):
+    """
+    Get all version patchs that match zero or more filters.
+    """
+    sort_key = ['created_at'] if not sort_key else sort_key
+
+    default_sort_dir = 'desc'
+
+    if not sort_dir:
+        sort_dir = [default_sort_dir] * len(sort_key)
+    elif len(sort_dir) == 1:
+        default_sort_dir = sort_dir[0]
+        sort_dir *= len(sort_key)
+
+    filters = filters or {}
+
+    showing_deleted = 'changes-since' in filters or filters.get('deleted',
+                                                                False)
+    marker_version = None
+    if marker is not None:
+        marker_version = _version_patch_get(context,
+                                  marker,
+                                  force_show_deleted=showing_deleted)
+
+    for key in ['created_at', 'id', 'version_id']:
+        if key not in sort_key:
+            sort_key.append(key)
+            sort_dir.append(default_sort_dir)
+    session = get_session()
+    if 'name' in filters:
+        name = filters.pop('name')
+        query = session.query(models.VersionPatch).filter_by(deleted=False).\
+            filter_by(name=name)
+    elif 'type' in filters:
+        type = filters.pop('type')
+        query = session.query(models.VersionPatch).filter_by(deleted=False).\
+            filter_by(type=type)
+    elif 'version_id' in filters:
+        version_id = filters.pop('version_id')
+        query = session.query(models.VersionPatch).filter_by(deleted=False).\
+            filter_by(version_id=version_id)
+    else:
+        query = session.query(models.VersionPatch).filter_by(deleted=False)
+
+    query = _paginate_query(query, models.VersionPatch, limit,
+                        sort_key,
+                        marker=marker_version,
+                        sort_dir=None,
+                        sort_dirs=sort_dir)
+
+    version_patchs = []
+    for version_patch in query.all():
+        version_dict = version_patch.to_dict()
+        version_sql = "select * from hosts where (hosts.version_patch_id ='"\
+            + version_dict['id'] + "' and hosts.deleted=0)"
+        hosts_number = session.execute(version_sql).fetchone()
+        if hosts_number:
+            version_dict['status'] = "used"
+        else:
+            version_dict['status'] = "unused"
+        version_patchs.append(version_dict)
+    return version_patchs
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def template_config_import(context, values):
+    def clear_template_config(session):
+        table_classes = [models.ConfigService,
+                         models.TemplateService,
+                         models.TemplateConfig]
+        for table_class in table_classes:
+            session.query(table_class).delete()
+
+    def import_template_config_service(session, config_id, service_id):
+        config_service = {
+            "config_id": config_id,
+            "service_id": service_id}
+        template_config_service_ref = models.ConfigService()
+        template_config_service_ref.update(config_service)
+        _update_values(template_config_service_ref, config_service)
+        try:
+            template_config_service_ref.save(session=session)
+        except db_exception.DBDuplicateEntry:
+            raise exception.Duplicate("Node %s already exists!"
+                                      % config_service)
+
+    def import_template_service(session, config_id, services):
+        for service_name in services:
+            template_service = {
+                "service_name": service_name,
+                "force_type": services[service_name].get("force_type")
+            }
+            template_service_ref = models.TemplateService()
+            template_service_ref.update(template_service)
+            _update_values(template_service_ref, template_service)
+            try:
+                template_service_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("Node ID %s already exists!"
+                                          % template_service)
+            import_template_config_service(session, config_id,
+                                           template_service_ref.id)
+
+    """import template function to daisy."""
+    template = values.copy()
+    template_configs = json.loads(template.get('template', None))
+    session = get_session()
+    with session.begin():
+        clear_template_config(session)
+        for config_id in template_configs:
+            template_config_ref = models.TemplateConfig()
+            template_config = template_configs[config_id]
+            template_config.update({"id": config_id})
+            if template_config.get("suggested_range"):
+                template_config["suggested_range"] = json.dumps(
+                    template_config["suggested_range"])
+            else:
+                template_config["suggested_range"] = None
+            template_config_ref.update(template_config)
+            _update_values(template_config_ref, template_config)
+            try:
+                template_config_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("Node ID %s already exists!"
+                                          % config_id)
+            service = template_configs[config_id].get("service", [])
+            import_template_service(session, config_id, service)
+    return values
+
+
+def _template_config_update(context, values, template_config_id):
+    """update or add template config to daisy."""
+    values = values.copy()
+    session = get_session()
+    with session.begin():
+        if template_config_id:
+            template_config_ref = _template_config_get(
+                context, template_config_id, session=session)
+        else:
+            template_config_ref = models.TemplateConfig()
+
+        if template_config_id:
+            # Don't drop created_at if we're passing it in...
+            _drop_protected_attrs(models.TemplateConfig, values)
+            # NOTE(iccha-sethi): updated_at must be explicitly set in case
+            #                   only ImageProperty table was modifited
+            values['updated_at'] = timeutils.utcnow()
+
+        if template_config_id:
+            if values.get('id', None):
+                del values['id']
+            template_config_ref.update(values)
+            _update_values(template_config_ref, values)
+            try:
+                template_config_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("Node ID %s already exists!"
+                                          % values['id'])
+        else:
+            template_config_ref.update(values)
+            _update_values(template_config_ref, values)
+            try:
+                template_config_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("Node ID %s already exists!"
+                                          % values['id'])
+
+    return template_config_get(context, template_config_ref.id)
+
+
+def _template_config_get(context, template_config_id, session=None,
+                         force_show_deleted=False):
+    """Get an host or raise if it does not exist."""
+
+    session = session or get_session()
+    try:
+        query = session.query(models.TemplateConfig).\
+            filter_by(id=template_config_id)
+
+        # filter out deleted images if context disallows it
+        if not force_show_deleted and not context.can_see_deleted:
+            query = query.filter_by(deleted=False)
+        template_config = query.one()
+        return template_config
+    except sa_orm.exc.NoResultFound:
+        msg = "No template config found with ID %s" % template_config_id
+        LOG.debug(msg)
+        raise exception.NotFound(msg)
+
+
+def template_config_get(context, template_config_id, session=None,
+                        force_show_deleted=False):
+    session = get_session()
+    try:
+        config = session.query(models.TemplateConfig).filter_by(
+            id=template_config_id).filter_by(deleted=False).one()
+    except sa_orm.exc.NoResultFound:
+        msg = "No template config found with ID %s" % template_config_id
+        LOG.debug(msg)
+        raise exception.NotFound(msg)
+
+    try:
+        template_func = session.query(models.TemplateFuncConfigs).filter_by(
+            config_id=config.id).filter_by(deleted=False).one()
+    except sa_orm.exc.NoResultFound:
+        msg = "No template func found with config ID %s" % template_config_id
+        LOG.debug(msg)
+        raise exception.NotFound(msg)
+
+    template_config_meta = config.to_dict()
+    filters = [
+        models.TemplateConfig.id == template_config_id,
+        models.TemplateConfig.id == models.ConfigService.config_id,
+        models.ConfigService.service_id == models.TemplateService.id]
+    query = session.query(models.TemplateConfig, models.ConfigService,
+                          models.TemplateService).filter(sa_sql.and_(*filters))
+
+    template_services = []
+    for item in query.all():
+        if item.TemplateService not in template_services:
+            template_services.append(item.TemplateService)
+
+    service_meta = [service.to_dict() for service in template_services]
+    template_config_meta.update({'services': service_meta})
+    template_config_meta.update({'template_func_id': template_func.id})
+    return template_config_meta
+
+
+def template_config_get_all(context, filters=None, marker=None, limit=None,
+                            sort_key=None, sort_dir=None):
+    """
+    Get all template_configs that match zero or more filters.
+    """
+    sort_key = ['created_at'] if not sort_key else sort_key
+    default_sort_dir = 'desc'
+
+    if not sort_dir:
+        sort_dir = [default_sort_dir] * len(sort_key)
+    elif len(sort_dir) == 1:
+        default_sort_dir = sort_dir[0]
+        sort_dir *= len(sort_key)
+
+    filters = filters or {}
+    showing_deleted = 'changes-since' in filters or filters.get('deleted',
+                                                                False)
+    marker_template_config = None
+    if marker is not None:
+        marker_template_config = _template_config_get(
+            context, marker, force_show_deleted=showing_deleted)
+
+    for key in ['created_at', 'id']:
+        if key not in sort_key:
+            sort_key.append(key)
+            sort_dir.append(default_sort_dir)
+
+    session = get_session()
+    query = session.query(models.TemplateConfig).filter_by(deleted=False)
+
+    query = _paginate_query(query, models.TemplateConfig, limit,
+                            sort_key,
+                            marker=marker_template_config,
+                            sort_dir=None,
+                            sort_dirs=sort_dir)
+
+    template_configs = []
+    for template_config in query.all():
+        template_config_dict = template_config.to_dict()
+        template_configs.append(template_config_dict)
+    if 'func_id' in filters:
+        func_id = filters.pop('func_id')
+        query = session.query(models.TemplateFuncConfigs).\
+            filter_by(deleted=False).filter_by(func_id=func_id)
+        config_ids = []
+        for template_func_config in query.all():
+            template_func_config_dict = template_func_config.to_dict()
+            config_ids.append(template_func_config_dict["config_id"])
+
+        template_configs = [template_config
+                            for template_config in template_configs
+                            if template_config["id"] in config_ids]
+    return template_configs
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def template_func_import(context, values):
+    def clear_template_func(session):
+        table_classes = [models.TemplateFuncConfigs, models.TemplateFunc]
+        for table_class in table_classes:
+            session.query(table_class).delete()
+
+    def import_template_func_configs(session, func_id, configs):
+        for config_id in configs:
+            func_config = {
+                "func_id": func_id,
+                "config_id": config_id
+            }
+            template_func_config_ref = models.TemplateFuncConfigs()
+            template_func_config_ref.update(func_config)
+            _update_values(template_func_config_ref, func_config)
+            try:
+                template_func_config_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("Node %s already exists!"
+                                          % func_config)
+
+    """import template function to daisy."""
+    template = values.copy()
+    template_funcs = json.loads(template.get('template', None))
+    session = get_session()
+    with session.begin():
+        clear_template_func(session)
+        for func_id in template_funcs:
+            template_func = template_funcs[func_id]
+            template_func.update({"id": func_id})
+            template_func_ref = models.TemplateFunc()
+            template_func_ref.update(template_func)
+            _update_values(template_func_ref, template_func)
+            try:
+                template_func_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("Node ID %s already exists!"
+                                          % func_id)
+            configs = template_funcs[func_id].get("config", [])
+            import_template_func_configs(session, func_id, configs)
+    return values
+
+
+def _template_func_update(context, values, template_func_id):
+    """update or add template function to daisy."""
+    values = values.copy()
+    session = get_session()
+    with session.begin():
+        if template_func_id:
+            template_func_ref = _template_func_get(context, template_func_id, session=session)
+        else:
+            template_func_ref = models.TemplateFunc()
+
+        if template_func_id:
+            # Don't drop created_at if we're passing it in...
+            _drop_protected_attrs(models.TemplateFunc, values)
+            # NOTE(iccha-sethi): updated_at must be explicitly set in case
+            #                   only ImageProperty table was modifited
+            values['updated_at'] = timeutils.utcnow()
+
+        if template_func_id:
+            if values.get('id', None): del values['id']
+            template_func_ref.update(values)
+            _update_values(template_func_ref, values)
+            try:
+                template_func_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("Node ID %s already exists!"
+                                          % values['id'])
+        else:
+            template_func_ref.update(values)
+            _update_values(template_func_ref, values)
+            try:
+                template_func_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("Node ID %s already exists!"
+                                          % values['id'])
+
+    return template_func_get(context, template_func_ref.id)
+
+
+def _template_func_get(context, template_func_id, session=None, force_show_deleted=False):
+    """Get an host or raise if it does not exist."""
+    session = session or get_session()
+    try:
+        query = session.query(models.TemplateFunc).filter_by(id=template_func_id)
+
+        # filter out deleted images if context disallows it
+        if not force_show_deleted and not context.can_see_deleted:
+            query = query.filter_by(deleted=False)
+        template_func = query.one()
+        return template_func
+    except sa_orm.exc.NoResultFound:
+        msg = "No template function found with ID %s" % template_func_id
+        LOG.debug(msg)
+        raise exception.NotFound(msg)
+
+
+def template_func_get(context, template_func_id, filters=None, marker=None,
+                      limit=None, sort_key=None, sort_dir=None):
+    session = get_session()
+    try:
+        template_func = session.query(models.TemplateFunc).\
+            filter_by(id=template_func_id).filter_by(deleted=False).one()
+    except sa_orm.exc.NoResultFound:
+        msg = "No template function found with ID %s" % template_func_id
+        LOG.debug(msg)
+        raise exception.NotFound(msg)
+
+    template_func_metadata = template_func.to_dict()
+
+    service_filter = [
+        models.TemplateFunc.deleted == 0,
+        models.TemplateFuncConfigs.deleted == 0,
+        models.TemplateConfig.deleted == 0,
+        models.ConfigService.deleted == 0,
+        models.TemplateFuncConfigs.func_id == template_func_id,
+        models.TemplateFuncConfigs.config_id ==
+        models.TemplateConfig.id,
+        models.TemplateConfig.id == models.ConfigService.config_id,
+        models.ConfigService.service_id == models.TemplateService.id]
+    query = session.query(models.TemplateFunc, models.TemplateFuncConfigs,
+                          models.TemplateConfig, models.ConfigService,
+                          models.TemplateService).\
+        filter(sa_sql.and_(*service_filter))
+    config_services = {}
+    service_names = set()
+    for item in query.all():
+        if item.TemplateConfig not in config_services:
+            config_services.update({item.TemplateConfig: set()})
+        config_services[item.TemplateConfig].add(
+            item.TemplateService.service_name)
+        service_names.add(item.TemplateService.service_name)
+
+    if 'cluster_id' in filters:
+        service_hosts = {}
+        host_filter = [
+            models.Service.deleted == 0,
+            models.ServiceRole.deleted == 0,
+            models.Role.deleted == 0,
+            models.HostRole.deleted == 0,
+            models.Service.id == models.ServiceRole.service_id,
+            models.ServiceRole.role_id == models.Role.id,
+            models.Role.cluster_id == filters['cluster_id'],
+            models.Role.id == models.HostRole.role_id,
+            models.HostRole.status == 'active',
+            models.Service.name.in_(service_names)]
+        query = session.query(models.Service, models.ServiceRole,
+                              models.Role, models.HostRole).\
+            filter(sa_sql.and_(*host_filter))
+
+        for item in query.all():
+            if item.Service.name not in service_hosts:
+                service_hosts.update({item.Service.name: set()})
+            service_hosts[item.Service.name].add(item.HostRole.host_id)
+
+        host_configs_dict = {}
+        for config, services in config_services.items():
+            for service in services:
+                for host in service_hosts.get(service, []):
+                    if host not in host_configs_dict:
+                        host_configs_dict.update({host: set()})
+                    host_configs_dict[host].add(config)
+
+        host_configs_list = []
+        for host_id, configs in host_configs_dict.items():
+            host_config = {'host_id': host_id}
+            config_list = [config.to_dict() for config in configs]
+            host_config.update({'configs': config_list})
+            host_configs_list.append(host_config)
+        template_func_metadata.update({'template_configs': host_configs_list})
+    else:
+        configs_list = [config.to_dict() for config in config_services]
+        template_func_metadata.update({'template_configs': configs_list})
+    return template_func_metadata
+
+
+def template_func_get_all(context, filters=None, marker=None, limit=None,
+                          sort_key=None, sort_dir=None):
+    """
+    Get all template_func_configs that match zero or more filters.
+    """
+    sort_key = ['created_at'] if not sort_key else sort_key
+
+    default_sort_dir = 'desc'
+
+    if not sort_dir:
+        sort_dir = [default_sort_dir] * len(sort_key)
+    elif len(sort_dir) == 1:
+        default_sort_dir = sort_dir[0]
+        sort_dir *= len(sort_key)
+
+    filters = filters or {}
+
+    showing_deleted = 'changes-since' in filters or filters.get('deleted',
+                                                                False)
+    marker_template_func = None
+    if marker is not None:
+        marker_template_func = _template_func_get(
+            context, marker, force_show_deleted=showing_deleted)
+
+    for key in ['created_at', 'id']:
+        if key not in sort_key:
+            sort_key.append(key)
+            sort_dir.append(default_sort_dir)
+
+    session = get_session()
+    query = session.query(models.TemplateFunc).filter_by(deleted=False)
+
+    query = _paginate_query(query, models.TemplateFunc, limit,
+                            sort_key,
+                            marker=marker_template_func,
+                            sort_dir=None,
+                            sort_dirs=sort_dir)
+
+    template_funcs = []
+    for template_func in query.all():
+        template_func_dict = template_func.to_dict()
+        template_funcs.append(template_func_dict)
+    return template_funcs
+
+
+def _template_service_get(context, template_service_id, session=None,
+                          force_show_deleted=False):
+    """Get an host or raise if it does not exist."""
+
+    session = session or get_session()
+    try:
+        query = session.query(models.TemplateService).\
+            filter_by(id=template_service_id)
+
+        # filter out deleted images if context disallows it
+        if not force_show_deleted and not context.can_see_deleted:
+            query = query.filter_by(deleted=False)
+        template_service = query.one()
+        return template_service
+    except sa_orm.exc.NoResultFound:
+        msg = "No template function found with ID %s" % template_service_id
+        LOG.debug(msg)
+        raise exception.NotFound(msg)
+
+
+def template_service_get(context, template_service_id, session=None,
+                         force_show_deleted=False):
+    template_service = _template_service_get(
+        context, template_service_id, session=session,
+        force_show_deleted=force_show_deleted)
+    return template_service
+
+
+def template_service_get_all(context, filters=None, marker=None, limit=None,
+                             sort_key=None, sort_dir=None):
+    """
+    Get all template_service_configs that match zero or more filters.
+    """
+    sort_key = ['created_at'] if not sort_key else sort_key
+
+    default_sort_dir = 'desc'
+
+    if not sort_dir:
+        sort_dir = [default_sort_dir] * len(sort_key)
+    elif len(sort_dir) == 1:
+        default_sort_dir = sort_dir[0]
+        sort_dir *= len(sort_key)
+
+    filters = filters or {}
+
+    showing_deleted = 'changes-since' in filters or filters.get('deleted',
+                                                                False)
+    marker_template_service = None
+    if marker is not None:
+        marker_template_service = _template_service_get(
+            context, marker, force_show_deleted=showing_deleted)
+
+    for key in ['created_at', 'id']:
+        if key not in sort_key:
+            sort_key.append(key)
+            sort_dir.append(default_sort_dir)
+
+    session = get_session()
+    query = session.query(models.TemplateService).filter_by(deleted=False)
+
+    query = _paginate_query(query, models.TemplateService, limit,
+                            sort_key,
+                            marker=marker_template_service,
+                            sort_dir=None,
+                            sort_dirs=sort_dir)
+
+    template_services = []
+    for template_service in query.all():
+        template_service_dict = template_service.to_dict()
+        template_services.append(template_service_dict)
+
+    if 'config_id' in filters:
+        config_id = filters.pop('config_id')
+        query = session.query(models.ConfigService).\
+            filter_by(deleted=False).filter_by(config_id=config_id)
+        service_ids = []
+        for config_service in query.all():
+            config_service_dict = config_service.to_dict()
+            service_ids.append(config_service_dict["service_id"])
+        template_services = [template_service
+                             for template_service in template_services
+                             if template_service["id"] in service_ids]
+    return template_services

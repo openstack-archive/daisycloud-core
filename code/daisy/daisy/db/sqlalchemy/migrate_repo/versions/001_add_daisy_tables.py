@@ -599,7 +599,7 @@ def define_versions_table(meta):
                      Column('checksum', String(128)),
                      Column('owner', String(256)),
                      Column('version', String(32)),
-                     Column('type', String(30), default='0'),
+                     Column('type', String(30)),
                      Column('description', Text()),
                      Column('created_at', DateTime(), nullable=False),
                      Column('updated_at', DateTime(), nullable=False),

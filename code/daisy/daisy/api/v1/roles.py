@@ -186,6 +186,12 @@ class Controller(controller.BaseController):
         host_disk_size_m = 0
         if host_disks:
             for key, value in host_disks.items():
+                if value['disk'].find("-fc-") != -1 \
+                        or value['disk'].find("-iscsi-") != -1 \
+                        or value['name'].find("mpath") != -1 \
+                        or value['name'].find("spath") != -1 \
+                        or value['removable'] == 'removable':
+                    continue
                 disk_size_b = str(value.get('size', None))
                 disk_size_b_str = disk_size_b.strip().split()[0]
                 if disk_size_b_str:
