@@ -36,6 +36,7 @@ import re
 import subprocess
 import sys
 import uuid
+import copy
 
 from OpenSSL import crypto
 from oslo_config import cfg
@@ -46,9 +47,11 @@ from oslo_utils import netutils
 from oslo_utils import strutils
 import six
 from webob import exc
+import ConfigParser
 
 from daisy.common import exception
 from daisy import i18n
+from providerclient.v1 import client as provider_client
 
 CONF = cfg.CONF
 
@@ -341,6 +344,13 @@ def get_image_meta_from_headers(response):
 
 
 def get_host_meta(response):
+    result = {}
+    for key, value in response.json.items():
+        result[key] = value
+    return result
+
+
+def get_hwm_meta(response):
     result = {}
     for key, value in response.json.items():
         result[key] = value
@@ -830,6 +840,68 @@ def get_host_min_mac(host_interfaces):
     return min_mac
 
 
+def cidr_netmask_to_ip(int_netmask):
+    inter_ip = lambda x: '.'.join(
+        [str(x / (256**i) % 256) for i in range(3, -1, -1)])
+
+    cidr_to_ip = inter_ip(2**32 - 2**(32 - int(int_netmask)))
+    return cidr_to_ip
+
+
+def validate_ip_format(ip_str):
+    '''
+    valid ip_str format = '10.43.178.9'
+    invalid ip_str format : '123. 233.42.12', spaces existed in field
+                            '3234.23.453.353', out of range
+                            '-2.23.24.234', negative number in field
+                            '1.2.3.4d', letter in field
+                            '10.43.1789', invalid format
+    '''
+    if not ip_str:
+        msg = (_("No ip given when check ip"))
+        LOG.error(msg)
+        raise exc.HTTPBadRequest(msg, content_type="text/plain")
+
+    valid_fromat = False
+    if ip_str.count('.') == 3 and all(num.isdigit() and 0 <= int(
+            num) < 256 for num in ip_str.rstrip().split('.')):
+        valid_fromat = True
+    if not valid_fromat:
+        msg = (_("%s invalid ip format!") % ip_str)
+        LOG.error(msg)
+        raise exc.HTTPBadRequest(msg, content_type="text/plain")
+
+
+def valid_cidr(cidr):
+    if not cidr:
+        msg = (_("No CIDR given."))
+        LOG.error(msg)
+        raise exc.HTTPBadRequest(explanation=msg)
+
+    cidr_division = cidr.split('/')
+    if (len(cidr_division) != 2 or
+            not cidr_division[0] or
+            not cidr_division[1]):
+        msg = (_("CIDR format error."))
+        LOG.error(msg)
+        raise exc.HTTPBadRequest(explanation=msg)
+
+    netmask_err_msg = (_("CIDR netmask error, "
+                         "it should be a integer between 0-32."))
+    try:
+        netmask_cidr = int(cidr_division[1])
+    except ValueError:
+        LOG.warn(netmask_err_msg)
+        raise exc.HTTPBadRequest(explanation=netmask_err_msg)
+
+    if (netmask_cidr < 0 and
+            netmask_cidr > 32):
+        LOG.warn(netmask_err_msg)
+        raise exc.HTTPBadRequest(explanation=netmask_err_msg)
+
+    validate_ip_format(cidr_division[0])
+
+
 def ip_into_int(ip):
     """
     Switch ip string to decimalism integer..
@@ -839,6 +911,12 @@ def ip_into_int(ip):
     return reduce(lambda x, y: (x << 8) + y, map(int, ip.split('.')))
 
 
+def int_into_ip(num):
+    inter_ip = lambda x: '.'.join(
+        [str(x / (256 ** i) % 256) for i in range(3, -1, -1)])
+    return inter_ip(num)
+
+
 def is_ip_in_cidr(ip, cidr):
     """
     Check ip is in cidr
@@ -846,6 +924,12 @@ def is_ip_in_cidr(ip, cidr):
     :param cidr: Ip range,like:192.168.0.0/24.
     :return: If ip in cidr, return True, else return False.
     """
+    if not ip:
+        msg = "Error, ip is empty"
+        raise exc.HTTPBadRequest(explanation=msg)
+    if not cidr:
+        msg = "Error, CIDR is empty"
+        raise exc.HTTPBadRequest(explanation=msg)
     network = cidr.split('/')
     mask = ~(2**(32 - int(network[1])) - 1)
     return (ip_into_int(ip) & mask) == (ip_into_int(network[0]) & mask)
@@ -860,6 +944,13 @@ def is_ip_in_ranges(ip, ip_ranges):
                     {'start':'192.168.0.50', 'end':'192.168.0.60'}]
     :return: If ip in ip_ranges, return True, else return False.
     """
+    if not ip:
+        msg = "Error, ip is empty"
+        raise exc.HTTPBadRequest(explanation=msg)
+
+    if not ip_ranges:
+        return True
+
     for ip_range in ip_ranges:
         start_ip_int = ip_into_int(ip_range['start'])
         end_ip_int = ip_into_int(ip_range['end'])
@@ -868,6 +959,68 @@ def is_ip_in_ranges(ip, ip_ranges):
             return True
 
     return False
+
+
+def merge_ip_ranges(ip_ranges):
+    if not ip_ranges:
+        return ip_ranges
+    sort_ranges_by_start_ip = {}
+    for ip_range in ip_ranges:
+        start_ip_int = ip_into_int(ip_range['start'])
+        sort_ranges_by_start_ip.update({str(start_ip_int): ip_range})
+    sort_ranges = [sort_ranges_by_start_ip[key] for key in
+                   sorted(sort_ranges_by_start_ip.keys())]
+    last_range_end_ip = None
+
+    merged_ip_ranges = []
+    for ip_range in sort_ranges:
+        if last_range_end_ip is None:
+            last_range_end_ip = ip_range['end']
+            merged_ip_ranges.append(ip_range)
+            continue
+        else:
+            last_range_end_ip_int = ip_into_int(last_range_end_ip)
+            ip_range_start_ip_int = ip_into_int(ip_range['start'])
+            if (last_range_end_ip_int + 1) == ip_range_start_ip_int:
+                merged_ip_ranges[-1]['end'] = ip_range['end']
+            else:
+                merged_ip_ranges.append(ip_range)
+    return merged_ip_ranges
+
+
+def _split_ip_ranges(ip_ranges):
+    ip_ranges_start = set()
+    ip_ranges_end = set()
+    if not ip_ranges:
+        return (ip_ranges_start, ip_ranges_end)
+
+    for ip_range in ip_ranges:
+        ip_ranges_start.add(ip_range['start'])
+        ip_ranges_end.add(ip_range['end'])
+
+    return (ip_ranges_start, ip_ranges_end)
+
+
+# [{'start':'192.168.0.10', 'end':'192.168.0.20'},
+#  {'start':'192.168.0.21', 'end':'192.168.0.22'}] and
+# [{'start':'192.168.0.10', 'end':'192.168.0.22'}] is equal here
+def is_ip_ranges_equal(ip_ranges1, ip_ranges2):
+    if not ip_ranges1 and not ip_ranges2:
+        return True
+    if ((ip_ranges1 and not ip_ranges2) or
+            (ip_ranges2 and not ip_ranges1)):
+        return False
+    ip_ranges_1 = copy.deepcopy(ip_ranges1)
+    ip_ranges_2 = copy.deepcopy(ip_ranges2)
+    merged_ip_ranges1 = merge_ip_ranges(ip_ranges_1)
+    merged_ip_ranges2 = merge_ip_ranges(ip_ranges_2)
+    ip_ranges1_start, ip_ranges1_end = _split_ip_ranges(merged_ip_ranges1)
+    ip_ranges2_start, ip_ranges2_end = _split_ip_ranges(merged_ip_ranges2)
+    if (ip_ranges1_start == ip_ranges2_start and
+            ip_ranges1_end == ip_ranges2_end):
+        return True
+    else:
+        return False
 
 
 def get_dvs_interfaces(host_interfaces):
@@ -1021,25 +1174,45 @@ def translate_quotation_marks_for_shell(orig_str):
     return translated_str
 
 
+def translate_marks_4_sed_command(ori_str):
+    translated_str = ori_str
+    translated_marks = {
+        '/': '\/',
+        '.': '\.',
+        '"': '\\"'}
+    for translated_mark in translated_marks:
+        if translated_str.count(translated_mark):
+            translated_str = translated_str.\
+                replace(translated_mark, translated_marks[translated_mark])
+    return translated_str
+
+
 def get_numa_node_cpus(host_cpu):
     numa = {}
-    if 'numa_node0' in host_cpu:
-        numa['numa_node0'] = cpu_str_to_list(host_cpu['numa_node0'])
-    if 'numa_node1' in host_cpu:
-        numa['numa_node1'] = cpu_str_to_list(host_cpu['numa_node1'])
+    for key in host_cpu.keys():
+        if key.find("numa_node") == 0:
+            numa[key] = cpu_str_to_list(host_cpu[key])
     return numa
 
 
 def get_numa_node_from_cpus(numa, str_cpus):
     numa_nodes = []
-
     cpu_list = cpu_str_to_list(str_cpus)
     for cpu in cpu_list:
-        if cpu in numa['numa_node0']:
-            numa_nodes.append(0)
-        if cpu in numa['numa_node1']:
-            numa_nodes.append(1)
+        for key in numa.keys():
+            if cpu in numa[key]:
+                try:
+                    numa_node = int(key.split('numa_node')[1])
+                except:
+                    raise exception.Invalid("Get numa node failed")
+                numa_nodes.append(numa_node)
 
     numa_nodes = list(set(numa_nodes))
     numa_nodes.sort()
     return numa_nodes
+
+
+def get_provider_client(hwm_ip):
+    endpoint = "http://" + hwm_ip + ":8089"
+    args = {'version': 1.0, 'endpoint': endpoint}
+    return provider_client.Client(**args)
