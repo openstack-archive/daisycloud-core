@@ -38,6 +38,7 @@ from daisy import i18n
 from daisy import notifier
 import daisy.registry.client.v1.api as registry
 from functools import reduce
+import daisy.api.backends.tecs.common as tecs_cmn
 
 LOG = logging.getLogger(__name__)
 _ = i18n._
@@ -625,6 +626,15 @@ class Controller(controller.BaseController):
         """
         self._enforce(req, 'get_cluster')
         cluster_meta = self.get_cluster_meta_or_404(req, id)
+
+        backends_name = ['tecs']
+        get_backends_status_dict = \
+            {'tecs': tecs_cmn.get_cluster_tecs_status}
+        backends_status = {}
+        for backend in backends_name:
+            backend_status = get_backends_status_dict[backend](req, id)
+            backends_status.update({backend: backend_status})
+        cluster_meta.update({'backends_status': backends_status})
         return {'cluster_meta': cluster_meta}
 
     def detail(self, req):

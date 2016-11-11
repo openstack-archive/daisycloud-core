@@ -578,6 +578,29 @@ class Controller(object):
             LOG.exception(_LE("Unable to get cinder_volumes"))
             raise
 
+    def _list_optical_switchs(self, context, filters, params):
+        """Get cinder_volumes, wrapping in exception if necessary."""
+        try:
+            return self.db_api.optical_switch_list(context, filters=filters,
+                                                  **params)
+        except exception.NotFound:
+            LOG.warn(_LW("Invalid marker. optical switch %(id)s "
+                         "could not be found.") %
+                     {'id': params.get('marker')})
+            msg = _("Invalid marker. optical switch "
+                    "could not be found.")
+            raise exc.HTTPBadRequest(explanation=msg)
+        except exception.Forbidden:
+            LOG.warn(_LW("Access denied to optical_switch %(id)s "
+                         "but returning 'not found'") %
+                     {'id': params.get('marker')})
+            msg = _("Invalid marker. optical_switch "
+                    "could not be found.")
+            raise exc.HTTPBadRequest(explanation=msg)
+        except Exception:
+            LOG.exception(_LE("Unable to get optical_switchs"))
+            raise
+
     def cinder_volume_list(self, req):
         """Return a filtered list of public, non-deleted
         cinder_volumes in detail
@@ -596,6 +619,142 @@ class Controller(object):
             req.context, filters, params)
 
         return dict(cinder_volumes=cinder_volumes)
+
+    def optical_switch_add(self, req, body):
+        """Registers a new optical_switch with the registry.
+
+        :param req: wsgi Request object
+        :param body: Dictionary of information about the cinder_volume
+
+        :retval Returns the newly-created optical_switch
+        information as a mapping,
+                which will include the newly-created
+                cinder_volume's internal id
+                in the 'id' field
+        """
+
+        optical_switch_data = body["optical_switch"]
+        try:
+            optical_switch_data = self.db_api.optical_switch_add(
+                req.context, optical_switch_data)
+            msg = (_LI("Successfully created optical switch %s") %
+                   optical_switch_data["id"])
+            LOG.info(msg)
+            if 'optical_switch' not in optical_switch_data:
+                optical_switch_data = dict(optical_switch=optical_switch_data)
+            return optical_switch_data
+        except:
+            msg = (_("Failed to add optical_switch metadata."))
+            LOG.error(msg)
+            return exc.HTTPBadRequest(msg)
+
+    def optical_switch_list(self, req):
+        """Return a filtered list of public, non-deleted
+        optical_switchs in detail
+
+        :param req: the Request object coming from the wsgi layer
+        :retval a mapping of the following form::
+
+            dict(optical_switchs=[optical_switch_list])
+
+        Where optical_switch_list is a sequence of mappings containing
+        all service_disk model fields.
+        """
+        params = self._get_query_params(req)
+        filters = params.pop('filters')
+        optical_switchs = self._list_optical_switchs(
+            req.context, filters, params)
+
+        return dict(optical_switchs=optical_switchs)
+
+    @utils.mutating
+    def optical_switch_detail(self, req, id):
+        """Return data about the given optical_switch id."""
+        try:
+            optical_switch_data = self.db_api.optical_switch_detail(
+                req.context, id)
+            msg = "Successfully retrieved " \
+                  "optical_switch %(id)s" % {'id': id}
+            LOG.debug(msg)
+        except exception.NotFound:
+            msg = _LI("optical_switch %(id)s not found") % {'id': id}
+            LOG.info(msg)
+            raise exc.HTTPNotFound()
+        if 'optical_switch' not in optical_switch_data:
+            optical_switch_data = dict(optical_switch=optical_switch_data)
+        return optical_switch_data
+
+    @utils.mutating
+    def optical_switch_update(self, req, id, body):
+        """Updates an existing optical_switch with the registry.
+
+        :param req: wsgi Request object
+        :param body: Dictionary of information about the image
+        :param id:  The opaque internal identifier for the image
+
+        :retval Returns the updated image information as a mapping,
+        """
+        optical_switch_data = body['optical_switch']
+        try:
+            updated_optical_switch = self.db_api.optical_switch_update(
+                req.context, id, optical_switch_data)
+
+            msg = _LI("Updating metadata for optical_switch %("
+                      "optical_switch_id)s") % {
+                'optical_switch_id': id}
+            LOG.info(msg)
+            if 'optical_switch' not in updated_optical_switch:
+                optical_switch_data = \
+                    dict(optical_switch=updated_optical_switch)
+            return optical_switch_data
+        except exception.Invalid as e:
+            msg = (_("Failed to update optical_switch metadata. "
+                     "Got error: %s") % utils.exception_to_str(e))
+            LOG.error(msg)
+            return exc.HTTPBadRequest(msg)
+        except exception.NotFound:
+            msg = _LI("optical_switch %(optical_switch_id)s "
+                      "not found") % {'optical_switch_id': id}
+            LOG.info(msg)
+            raise exc.HTTPNotFound(body='optical_switch not found',
+                                   request=req,
+                                   content_type='text/plain')
+        except exception.Conflict as e:
+            LOG.info(utils.exception_to_str(e))
+            raise exc.HTTPConflict(body='optical_switch '
+                                        'operation conflicts',
+                                   request=req,
+                                   content_type='text/plain')
+
+    @utils.mutating
+    def optical_switch_delete(self, req, id):
+        """Deletes an existing optical_switch with the registry.
+
+        :param req: wsgi Request object
+        :param id:  The opaque internal identifier for the image
+
+        :retval Returns 200 if delete was successful, a fault if not. On
+        success, the body contains the deleted image information as a mapping.
+        """
+        try:
+            deleted_optical_switch = self.db_api.optical_switch_destroy(
+                req.context, id)
+            msg = _LI("Successfully deleted optical_switch %("
+                      "optical_switch_id)s") % {
+                'optical_switch_id': id}
+            LOG.info(msg)
+            return dict(optical_switch=deleted_optical_switch)
+        except exception.Forbidden:
+            msg = _LI("Access denied to optical_switch %(id)s "
+                      "but returning 'not "
+                      "found'") % {'optical_switch_id': id}
+            LOG.info(msg)
+            return exc.HTTPNotFound()
+        except exception.NotFound:
+            msg = _LI("optical_switch %(optical_switch_id)s "
+                      "not found") % {'optical_switch_id': id}
+            LOG.info(msg)
+            return exc.HTTPNotFound()
 
 
 def create_resource():
