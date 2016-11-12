@@ -25,6 +25,7 @@ from daisy.common import utils
 from daisy.common import wsgi
 from daisy import i18n
 import daisy.registry.client.v1.api as registry
+import daisy.api.backends.common as daisy_cmn
 
 LOG = logging.getLogger(__name__)
 _ = i18n._
@@ -141,6 +142,10 @@ class Controller(controller.BaseController):
 
         try:
             registry.delete_cluster_host(req.context, cluster_id, host_id)
+            is_ssh_host = daisy_cmn._judge_ssh_host(req, host_id)
+            if not is_ssh_host:
+                host_data = {'os_status': 'init'}
+                registry.update_host_metadata(req.context, host_id, host_data)
         except exception.NotFound as e:
             LOG.debug(utils.exception_to_str(e))
             raise webob.exc.HTTPNotFound(explanation=e.msg)

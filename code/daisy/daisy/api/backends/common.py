@@ -20,16 +20,20 @@ import os
 import subprocess
 import time
 import re
+import commands
+import socket
+import netaddr
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
-from webob.exc import HTTPForbidden
 from webob.exc import HTTPNotFound
+from webob.exc import HTTPForbidden
 from daisy import i18n
-from daisy.common import utils
 
+from daisy.common import utils
 from daisy.common import exception
 import daisy.registry.client.v1.api as registry
 import copy
+import fcntl
 import json
 
 STR_MASK = '*' * 8
@@ -46,7 +50,7 @@ zenic_backend_name = "zenic"
 proton_backend_name = "proton"
 kolla_backend_name = "kolla"
 os_install_start_time = 0.0
-
+cluster_list_file = "/var/lib/daisy/cluster-list"
 BACKEND_STATE = {
     'INIT': 'init',
     'INSTALLING': 'installing',
@@ -101,20 +105,72 @@ service_map = {
 }
 
 
+def list_2_file(f, cluster_list):
+    f.seek(0)
+    for cluster_id in cluster_list:
+        f.write(cluster_id+"\n")
+
+
+def file_2_list(f, cluster_list):
+    f.seek(0)
+    cluster_ids = f.readlines()
+    for cluster_id in cluster_ids:
+        cluster_list.append(cluster_id.strip("\n"))
+ 
+
+def cluster_list_add(cluster_id):
+    cluster_list = []
+    with open(cluster_list_file, "a+") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        file_2_list(f, cluster_list)
+        cluster_list.append(cluster_id)
+        f.seek(0)
+        f.truncate()
+        list_2_file(f, cluster_list)
+        fcntl.flock(f, fcntl.LOCK_UN)
+
+
+def cluster_list_delete(cluster_id):
+    cluster_list = []
+    with open(cluster_list_file, "a+") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        file_2_list(f, cluster_list)
+        cluster_list.remove(cluster_id)
+        f.seek(0)
+        f.truncate()
+        list_2_file(f, cluster_list)
+        fcntl.flock(f, fcntl.LOCK_UN)
+
+
+def in_cluster_list(cluster_id):
+    cluster_list = []
+    with open(cluster_list_file, "a+") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        file_2_list(f, cluster_list)
+        fcntl.flock(f, fcntl.LOCK_UN)
+    return cluster_id in cluster_list
+
+
+def cluster_list_get():
+    cluster_list = []
+    with open(cluster_list_file, "a+") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        file_2_list(f, cluster_list)
+        fcntl.flock(f, fcntl.LOCK_UN)
+    return cluster_list
+
+
 def subprocess_call(command, file=None):
-    if file:
-        return_code = subprocess.call(command,
-                                      shell=True,
-                                      stdout=file,
-                                      stderr=file)
-    else:
-        return_code = subprocess.call(command,
-                                      shell=True,
-                                      stdout=open('/dev/null', 'w'),
-                                      stderr=subprocess.STDOUT)
-    if return_code != 0:
-        msg = "execute '%s' failed by subprocess call." % command
-        raise exception.SubprocessCmdFailed(msg)
+    try:
+        subprocess.check_output(command,
+                                shell=True,
+                                stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        if file:
+            file.write(e.output.strip())
+        msg = "execute '%s' failed by subprocess call, "\
+              "error message: %s." % (command, e.output.strip())
+        raise exception.SubprocessCmdFailed(message=msg)
 
 
 def get_host_detail(req, host_id):
@@ -146,12 +202,29 @@ def get_cluster_roles_detail(req, cluster_id):
     return roles
 
 
+def get_cluster_hosts_list(req, cluster_id):
+    try:
+        params = {'cluster_id': cluster_id}
+        hosts = registry.get_cluster_hosts(req.context, **params)
+    except exception.Invalid as e:
+        raise HTTPBadRequest(explanation=e.msg, request=req)
+    return hosts
+
+
 def get_hosts_of_role(req, role_id):
     try:
         hosts = registry.get_role_host_metadata(req.context, role_id)
     except exception.Invalid as e:
         raise HTTPBadRequest(explanation=e.msg, request=req)
     return hosts
+
+
+def get_roles_of_host(req, host_id):
+    try:
+        roles = registry.get_host_roles_by_host_id(req.context, host_id)
+    except exception.Invalid as e:
+        raise HTTPBadRequest(explanation=e.msg, request=req)
+    return roles
 
 
 def get_role_detail(req, role_id):
@@ -181,9 +254,26 @@ def update_role(req, role_id, role_meta):
         raise HTTPBadRequest(explanation=e.msg, request=req)
 
 
-def update_role_host(req, role_id, role_host):
+def update_role_host(req, host_role_id, role_host):
     try:
-        registry.update_role_host_metadata(req.context, role_id, role_host)
+        registry.update_role_host_metadata(
+            req.context, host_role_id, role_host)
+    except exception.Invalid as e:
+        raise HTTPBadRequest(explanation=e.msg, request=req)
+
+
+def get_role_hosts(req, role_id):
+    try:
+        role_hosts = registry.get_role_host_metadata(
+            req.context, role_id)
+    except exception.Invalid as e:
+        raise HTTPBadRequest(explanation=e.msg, request=req)
+    return role_hosts
+
+
+def delete_role_hosts(req, role_id):
+    try:
+        registry.delete_role_host_metadata(req.context, role_id)
     except exception.Invalid as e:
         raise HTTPBadRequest(explanation=e.msg, request=req)
 
@@ -204,13 +294,6 @@ def set_role_status_and_progress(req, cluster_id, opera, status,
                         or (opera == 'install' and role_host['status'] not in
                             ['active', 'updating', 'update-failed']):
                     update_role_host(req, role_host['id'], status)
-
-
-def delete_role_hosts(req, role_id):
-    try:
-        registry.delete_role_host_metadata(req.context, role_id)
-    except exception.Invalid as e:
-        raise HTTPBadRequest(explanation=e.msg, request=req)
 
 
 def get_cluster_networks_detail(req, cluster_id):
@@ -433,40 +516,39 @@ def calc_host_iqn(min_mac):
     return iqn
 
 
-def _get_cluster_network(cluster_networks, network_type):
-    network = [cn for cn in cluster_networks if cn['name'] in network_type]
+def _get_cluster_network(cluster_networks, network_name):
+    network = [cn for cn in cluster_networks if cn['name'] == network_name]
     if not network or not network[0]:
-        msg = "network %s is not exist" % (network_type)
+        msg = "network %s is not exist" % (network_name)
         raise exception.InvalidNetworkConfig(msg)
     else:
         return network[0]
 
 
-def get_host_interface_by_network(host_detail, network_type):
+def get_host_interface_by_network(host_detail, network_name):
     host_detail_info = copy.deepcopy(host_detail)
     interface_list = [hi for hi in host_detail_info['interfaces']
                       for assigned_network in hi['assigned_networks']
                       if assigned_network and
-                      network_type == assigned_network['name']]
+                      network_name == assigned_network['name']]
     interface = {}
     if interface_list:
         interface = interface_list[0]
-    if not interface:
+
+    if not interface and 'MANAGEMENT' == network_name:
         msg = "network %s of host %s is not exist" % (
-            network_type, host_detail_info['id'])
+            network_name, host_detail_info['id'])
         raise exception.InvalidNetworkConfig(msg)
+
     return interface
 
 
 def get_host_network_ip(req, host_detail, cluster_networks, network_name):
     interface_network_ip = ''
-    host_interface = get_host_interface_by_network(host_detail, network_name)
-    if host_interface:
-        network = _get_cluster_network(cluster_networks, network_name)
-        assigned_network = get_assigned_network(req,
-                                                host_interface['id'],
-                                                network['id'])
-        interface_network_ip = assigned_network['ip']
+    for host_interface in host_detail.get('interfaces', []):
+        for assigned_network in host_interface.get('assigned_networks', []):
+            if assigned_network.get('name') == network_name:
+                return assigned_network.get('ip')
 
     if not interface_network_ip and 'MANAGEMENT' == network_name:
         msg = "%s network ip of host %s can't be empty" % (
@@ -512,7 +594,7 @@ def sort_interfaces_by_pci(networks, host_detail):
 
     for interface in interfaces:
         if interface.get('name') not in slaves_name_list:
-            vlan_id_len_list = [len(network['vlan_id'])
+            vlan_id_len_list = [len(str(network['vlan_id']))
                                 for assigned_network in interface.get(
                                     'assigned_networks', [])
                                 for network in networks
@@ -597,25 +679,385 @@ def get_ctl_ha_nodes_min_mac(req, cluster_id):
     '''
     ctl_ha_nodes_min_mac = {}
     roles = get_cluster_roles_detail(req, cluster_id)
-    cluster_networks =\
-        get_cluster_networks_detail(req, cluster_id)
     for role in roles:
         if role['deployment_backend'] != tecs_backend_name:
             continue
+        if role['name'] == "CONTROLLER_HA":
         role_hosts = get_hosts_of_role(req, role['id'])
         for role_host in role_hosts:
-            # host has installed tecs are exclusive
-            if (role_host['status'] == BACKEND_STATE['ACTIVE'] or
-                    role_host['status'] == BACKEND_STATE['UPDATING'] or
-                    role_host['status'] == BACKEND_STATE['UPDATE_FAILED']):
-                continue
             host_detail = get_host_detail(req,
                                           role_host['host_id'])
             host_name = host_detail['name']
-            if role['name'] == "CONTROLLER_HA":
                 min_mac = utils.get_host_min_mac(host_detail['interfaces'])
                 ctl_ha_nodes_min_mac[host_name] = min_mac
     return ctl_ha_nodes_min_mac
+
+
+def update_db_host_status(req, host_id, host_status, version_id=None,
+                          version_patch_id=None):
+    """
+    Update host status and intallation progress to db.
+    :return:
+    """
+    try:
+        host_meta = {}
+        if host_status.get('os_progress', None):
+            host_meta['os_progress'] = host_status['os_progress']
+        if host_status.get('os_status', None):
+            host_meta['os_status'] = host_status['os_status']
+        if host_status.get('messages', None):
+            host_meta['messages'] = host_status['messages']
+        if host_status.has_key('tecs_version_id'):
+            host_meta['tecs_version_id'] = host_status['tecs_version_id']
+        if version_id:
+            host_meta['os_version_id'] = version_id
+        if version_patch_id:
+            host_meta['version_patch_id'] = version_patch_id
+        hostinfo = registry.update_host_metadata(req.context,
+                                                 host_id,
+                                                 host_meta)
+        return hostinfo
+    except exception.Invalid as e:
+        raise HTTPBadRequest(explanation=e.msg, request=req)
+
+
+def get_local_deployment_ip(tecs_deployment_ips):
+    (status, output) = commands.getstatusoutput('ifconfig')
+    netcard_pattern = re.compile('\S*: ')
+    ip_str = '([0-9]{1,3}\.){3}[0-9]{1,3}'
+    pattern = re.compile(ip_str)
+    nic_ip = {}
+    for netcard in re.finditer(netcard_pattern, str(output)):
+        nic_name = netcard.group().split(': ')[0]
+        if nic_name == "lo":
+            continue
+        ifconfig_nic_cmd = "ifconfig %s" % nic_name
+        (status, output) = commands.getstatusoutput(ifconfig_nic_cmd)
+        if status:
+            continue
+        ip = pattern.search(str(output))
+        if ip and ip.group() != "127.0.0.1":
+            nic_ip[nic_name] = ip.group()
+
+    deployment_ip = ''
+    for nic in nic_ip.keys():
+        if nic_ip[nic] in tecs_deployment_ips:
+            deployment_ip = nic_ip[nic]
+            break
+    return deployment_ip
+
+
+def whether_insl_backends(req, host_ids_failed):
+    # after os installed, host_ids_failed are ids of host installed failed
+    # if host installed failed is CONTROLLER_LB host or CONTROLLER_HA host
+    # continue_installing_backends is false ,stop installing backends
+    continue_installing_backends = True
+    if not host_ids_failed:
+        return continue_installing_backends
+    for host_id_failed in host_ids_failed:
+        host_failed_info = get_host_detail(req, host_id_failed)
+        roles_of_host = host_failed_info['role']
+        if "CONTROLLER_HA" in roles_of_host or "CONTROLLER_LB" \
+                in roles_of_host:
+            continue_installing_backends = False
+            return continue_installing_backends
+    return continue_installing_backends
+
+
+def whether_insl_tecs_aft_ping(unreached_hosts, ha_ip_set,
+                               lb_ip_set):
+    continue_installing_tecs = True
+    ha_ip_set = set(ha_ip_set)
+    lb_ip_set = set(lb_ip_set)
+    controller_ips = (ha_ip_set | lb_ip_set)
+    if not unreached_hosts:
+        return continue_installing_tecs
+    for unreached_host in unreached_hosts:
+        if unreached_host in controller_ips:
+            continue_installing_tecs = False
+            return continue_installing_tecs
+    return continue_installing_tecs
+
+
+def get_management_ip(host_detail, is_throw_exception=True):
+    host_management_ip = ''
+    for interface in host_detail['interfaces']:
+        if ('assigned_networks' in interface and
+                interface['assigned_networks']):
+            for as_network in interface['assigned_networks']:
+                if ((as_network.get('name', '') == 'MANAGEMENT'
+                     or as_network.get('network_type', '') == 'MANAGEMENT')
+                        and 'ip' in as_network):
+                    host_management_ip = as_network['ip']
+
+    if not host_management_ip and is_throw_exception:
+        msg = "Can't find management ip for host %s"\
+            % host_detail['id']
+        LOG.error(msg)
+        raise HTTPBadRequest(explanation=msg)
+    return host_management_ip
+
+
+def _judge_ssh_host(req, host_id):
+    ssh_host_flag = False
+    kwargs = {}
+    nodes = registry.get_hosts_detail(req.context, **kwargs)
+    for node in nodes:
+        if node.get("hwm_id"):
+            check_discover_state_with_hwm(req, node)
+        else:
+            check_discover_state_with_no_hwm(req, node)
+
+        if node['discover_state'] and \
+                'SSH:DISCOVERY_SUCCESSFUL' in node['discover_state']:
+            if host_id == node['id']:
+                ssh_host_flag = True
+                break
+    return ssh_host_flag
+
+
+def check_discover_state_with_hwm(req, node, is_detail=False):
+    node['discover_state'] = None
+    if node.get("discover_mode"):
+        node['discover_state'] = node['discover_mode'] + \
+            ":DISCOVERY_SUCCESSFUL"
+        return node
+    if is_detail:
+        host_interfaces = node.get('interfaces')
+    else:
+        host_interfaces = registry.get_host_interface_by_host_id(
+            req.context, node.get('id'))
+    if host_interfaces:
+        mac_list = [interface['mac'] for interface in host_interfaces if
+                    interface.get('mac')]
+        if mac_list:
+            min_mac = min(mac_list)
+            pxe_discover_host = _get_discover_host_by_mac(req, min_mac)
+            if pxe_discover_host:
+                if pxe_discover_host.get('ip'):
+                    node['discover_state'] = \
+                        "SSH:" + pxe_discover_host.get('status')
+                else:
+                    node['discover_state'] = \
+                        "PXE:" + pxe_discover_host.get('status')
+
+    return node
+
+
+def check_discover_state_with_no_hwm(req, node, is_detail=False):
+    node['discover_state'] = None
+    if node.get("discover_mode"):
+        node['discover_state'] = node['discover_mode'] + \
+            ":DISCOVERY_SUCCESSFUL"
+        return node
+    if is_detail:
+        host_interfaces = node.get('interfaces')
+    else:
+        host_interfaces = registry.get_host_interface_by_host_id(
+            req.context, node.get('id'))
+    if host_interfaces:
+        ip_list = [interface['ip'] for interface in host_interfaces if
+                   interface['ip']]
+        for ip in ip_list:
+            ssh_discover_host = _get_discover_host_filter_by_ip(
+                req, ip)
+            if ssh_discover_host:
+                node['discover_state'] = \
+                    "SSH:" + ssh_discover_host.get('status')
+
+    return node
+
+
+def _get_discover_host_by_mac(req, host_mac):
+    params = dict()
+    discover_hosts = \
+        registry.get_discover_hosts_detail(req.context, **params)
+    LOG.info("%s" % discover_hosts)
+    for host in discover_hosts:
+        if host.get('mac') == host_mac:
+            return host
+    return
+
+
+def _get_discover_host_filter_by_ip(req, host_ip):
+    params = {}
+    discover_hosts = \
+        registry.get_discover_hosts_detail(req.context, **params)
+    LOG.debug("%s" % discover_hosts)
+    for host in discover_hosts:
+        if host.get('ip') == host_ip:
+            return host
+    return
+
+
+def add_ssh_host_to_cluster_and_assigned_network(req, cluster_id, host_id):
+    if cluster_id:
+        host_list = []
+        father_vlan_list = []
+        discover_successful = 0
+        host_info = get_host_detail(req, host_id)
+        host_status = host_info.get('status',None)
+        if host_status != 'init':
+            interfac_meta_list=host_info.get('interfaces',None)
+            for interface_info in interfac_meta_list:
+                assigned_networks = interface_info.get\
+                    ('assigned_networks', None)
+                if assigned_networks:
+                    discover_successful = 1
+        if not discover_successful:
+            host_list.append(host_id)
+
+        if host_list:
+            params = {'filters': {'cluster_id': cluster_id}}
+            networks = registry.get_networks_detail(req.context,
+                                                    cluster_id, **params)
+            father_vlan_list=check_vlan_nic_and_join_vlan_network\
+                (req, cluster_id, host_list, networks)
+            check_bond_or_ether_nic_and_join_network\
+                (req, cluster_id, host_list, networks, father_vlan_list)
+
+
+def check_vlan_nic_and_join_vlan_network(req, cluster_id,
+                                         host_list, networks):
+    father_vlan_list = []
+    for host_id in host_list:
+        host_meta_detail = get_host_detail(req, host_id)
+        if host_meta_detail.has_key('interfaces'):
+            interfac_list = host_meta_detail.get('interfaces',None)
+            for interface_info in interfac_list:
+                host_ip = interface_info.get('ip',None)
+                if interface_info['type'] == 'vlan' and host_ip:
+                    check_ip_if_valid = \
+                        _checker_the_ip_or_hostname_valid(host_ip)
+                    if not check_ip_if_valid:
+                        msg = "Error:The %s is not the right ip!" % host_ip
+                        LOG.error(msg)
+                        raise exception.Forbidden(msg)
+                    nic_name = interface_info['name'].split('.')[0]
+                    vlan_id = interface_info['name'].split('.')[1]
+                    for network in networks:
+                        if network['network_type'] in ['DATAPLANE',
+                                                       'EXTERNAL']:
+                            continue
+                        network_cidr = network.get('cidr', None)
+                        if network_cidr:
+                            ip_in_cidr = \
+                                utils.is_ip_in_cidr(host_ip,
+                                                    network['cidr'])
+                            if vlan_id == network['vlan_id']\
+                                    and ip_in_cidr:
+                                father_vlan_list.append(
+                                    {nic_name: {'name': network['name'],
+                                                'ip': host_ip}})
+                                interface_info['assigned_networks'].\
+                                    append({'name': network['name'],
+                                            'ip': host_ip})
+                                LOG.info("add the nic %s of the host "
+                                         "%s to assigned_network %s" %
+                                         (interface_info['name'],
+                                          host_id,
+                                          interface_info
+                                          ['assigned_networks']))
+                            elif vlan_id == network['vlan_id'] \
+                                    and not ip_in_cidr:
+                                msg = "The vlan of nic %s is the same " \
+                                      "as network %s, but the ip of nic " \
+                                      "is not in the cidr range." % \
+                                      (nic_name, network['name'])
+                                LOG.error(msg)
+                                raise HTTPForbidden(explanation=msg)
+                        else:
+                            msg = "There is no cidr in network " \
+                                  "%s" % network['name']
+                            LOG.error(msg)
+                            raise HTTPForbidden(explanation=msg)
+    return father_vlan_list
+
+
+def _checker_the_ip_or_hostname_valid(ip_str):
+    try:
+        ip_lists = socket.gethostbyname_ex(ip_str)
+        return True
+    except Exception:
+        if netaddr.IPAddress(ip_str).version == 6:
+            return True
+        else:
+            return False
+
+
+def check_bond_or_ether_nic_and_join_network(req, cluster_id, host_list, networks, father_vlan_list):
+    for host_id in host_list:
+        host_info = get_host_detail(req, host_id)
+        if host_info.has_key('interfaces'):
+            update_host_interface = 0
+            interfac_meta_list = host_info.get('interfaces',None)
+            for interface_info in interfac_meta_list:
+                update_flag = 0
+                host_info_ip = interface_info.get('ip',None)
+                if interface_info['type'] != 'vlan':
+                    nic_name = interface_info['name']
+                    for nic in father_vlan_list:
+                        if nic.keys()[0] == nic_name:
+                            update_flag = 1
+                            update_host_interface = 1
+                            interface_info['assigned_networks']\
+                                .append(nic.values()[0])
+                    if update_flag:
+                        continue
+                    if host_info_ip:
+                        check_ip_if_valid = \
+                            _checker_the_ip_or_hostname_valid(host_info_ip)
+                        if not check_ip_if_valid:
+                            msg = "Error:The %s is not the right ip!"\
+                                  % host_info_ip
+                            LOG.error(msg)
+                            raise exception.Forbidden(msg)
+                        for network in networks:
+                            if network['network_type'] in ['DATAPLANE',
+                                                           'EXTERNAL']:
+                                continue
+                            if network.get('cidr', None):
+                                ip_in_cidr = utils.is_ip_in_cidr\
+                                    (host_info_ip, network['cidr'])
+                                if ip_in_cidr:
+                                    vlan_id = network['vlan_id']
+                                    if not vlan_id:
+                                        update_host_interface = 1
+                                        interface_info['assigned_networks'].\
+                                            append({'name': network['name'],
+                                                    'ip': host_info_ip})
+                                        LOG.info("add the nic %s of the "
+                                                 "host %s to "
+                                                 "assigned_network %s" %
+                                                 (nic_name,
+                                                  host_id,
+                                                  interface_info
+                                                  ['assigned_networks']))
+                                    else:
+                                        msg = ("the nic %s of ip %s is in "
+                                               "the %s cidr range,but the "
+                                               "network vlan id is %s " %
+                                               (nic_name,
+                                                host_info_ip,
+                                                network['name'], vlan_id))
+                                        LOG.error(msg)
+                                        raise HTTPForbidden(explation=msg)
+                            else:
+                                msg = "There is no cidr in network " \
+                                      "%s" % network['name']
+                                LOG.error(msg)
+                                raise HTTPForbidden(explanation=msg)
+
+            if update_host_interface:
+                host_meta={}
+                host_meta['cluster'] = cluster_id
+                host_meta['interfaces'] = str(interfac_meta_list)
+                host_meta = registry.update_host_metadata(req.context,
+                          host_id,
+                          host_meta)
+                LOG.info("add the host %s join the cluster %s and"
+                     " assigned_network successful" %
+                     (host_id, cluster_id))
 
 
 def build_pxe_server(eth_name, ip_address, build_pxe, net_mask,
@@ -637,7 +1079,7 @@ def build_pxe_server(eth_name, ip_address, build_pxe, net_mask,
            chmod 755 /tftpboot -R"
     try:
         obj = subprocess.Popen(cmd, stdin=_PIPE, stdout=_PIPE,
-                               stderr=_PIPE, shell=False)
+                               stderr=_PIPE, shell=True)
         obj.communicate()
     except Exception as e:
         msg = "build_pxe_server error: %s" % e
@@ -666,7 +1108,7 @@ def set_boot_or_power_state(user, passwd, addr, action):
     _PIPE = subprocess.PIPE
     try:
         obj = subprocess.Popen(cmd, stdin=_PIPE, stdout=_PIPE,
-                               stderr=_PIPE, shell=True)
+                               stderr=_PIPE, shell=False)
         obj.communicate()
     except Exception as e:
         msg = "%s set_boot_or_power_state error: %s" % (addr, e)

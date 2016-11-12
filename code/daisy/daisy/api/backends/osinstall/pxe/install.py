@@ -17,13 +17,15 @@
 /install endpoint for daisy API
 """
 import copy
+import subprocess
 import time
-
+import re
+import commands
 from oslo_config import cfg
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
 from daisy.api import common
-
+import threading
 from daisy import i18n
 
 from daisy.common import exception
@@ -31,6 +33,7 @@ from daisy.common import utils
 import daisy.registry.client.v1.api as registry
 import daisy.api.backends.common as daisy_cmn
 
+import ConfigParser
 
 LOG = logging.getLogger(__name__)
 _ = i18n._
@@ -168,7 +171,7 @@ def _get_network_plat(req, host_config, cluster_networks, dhcp_mac):
                     network_name = assigned_network['name']
                     cluster_network = [
                         network for network in cluster_networks
-                        if network['name'] in network_name][0]
+                        if network['name'] == network_name][0]
                     alias.append(cluster_network['alias'])
                     # convert cidr to netmask
                     cidr_to_ip = ""
@@ -239,10 +242,14 @@ def get_cluster_hosts_config(req, cluster_id):
                 service_disks = daisy_cmn.get_service_disk_list(
                     req, {'role_id': role['id']})
                 for service_disk in service_disks:
-                    if service_disk['disk_location'] == 'local' and\
-                       service_disk['service'] == 'mongodb':
-                        host_detail['mongodb_lv_size'] = service_disk['size']
-                        break
+                    if service_disk['disk_location'] == 'local' \
+                            and role['name'] in host_detail['role']:
+                        if service_disk['service'] == 'mongodb':
+                            host_detail['mongodb_lv_size'] = \
+                                service_disk['size']
+                        if service_disk['service'] == 'provider':
+                            host_detail['provider_lv_size'] = \
+                                service_disk['size']
             if role_host_db_lv_size_lists:
                 host_detail['db_lv_size'] = max(role_host_db_lv_size_lists)
             else:
@@ -276,21 +283,121 @@ def get_cluster_hosts_config(req, cluster_id):
     return hosts_config
 
 
-def update_db_host_status(req, host_id, host_status):
-    """
-    Update host status and intallation progress to db.
-    :return:
-    """
+def check_tfg_exist():
+    get_tfg_patch = "ls %s|grep CGSL_VPLAT-.*\.iso$" % daisy_tecs_path
+    obj = subprocess.Popen(get_tfg_patch,
+                           shell=True,
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE)
+    (stdoutput, erroutput) = obj.communicate()
+    tfg_patch_pkg_file = ""
+    tfg_patch_pkg_name = ""
+    if stdoutput:
+        tfg_patch_pkg_name = stdoutput.split('\n')[0]
+        tfg_patch_pkg_file = daisy_tecs_path + tfg_patch_pkg_name
+        chmod_for_tfg_bin = 'chmod +x %s' % tfg_patch_pkg_file
+        daisy_cmn.subprocess_call(chmod_for_tfg_bin)
+
+    if not stdoutput or not tfg_patch_pkg_name:
+        LOG.info(_("no CGSL_VPLAT iso file got in %s" % daisy_tecs_path))
+        return ""
+    return tfg_patch_pkg_file
+
+
+def _rm_ipmi_failed_host(req, install_hosts):
+    for install_host in install_hosts:
+        host_info = daisy_cmn.get_host_detail(req, install_host['id'])
+        if host_info["os_status"] == host_os_status["INSTALL_FAILED"]:
+            install_host["os_status"] = host_os_status["INSTALL_FAILED"]
+    install_hosts = [install_host for install_host in install_hosts if
+                     install_host["os_status"] != host_os_status[
+                         "INSTALL_FAILED"]]
+    return install_hosts
+
+
+
+def get_host_location_of_cisco(host_detail):
+    LOG.info(_("Get location for host %s" % host_detail['id']))
     try:
-        host_meta = {}
-        host_meta['os_progress'] = host_status['os_progress']
-        host_meta['os_status'] = host_status['os_status']
-        host_meta['messages'] = host_status['messages']
-        registry.update_host_metadata(req.context,
-                                      host_id,
-                                      host_meta)
-    except exception.Invalid as e:
-        raise HTTPBadRequest(explanation=e.msg, request=req)
+        location_result = subprocess.check_output(
+            'sshpass -p%s ssh -o StrictHostKeyChecking=no '
+            '%s@10.10.100.254 "show identity ip-addr %s"' %
+            (host_detail.get('ipmi_passwd'),
+             host_detail.get('ipmi_user'),
+             host_detail.get('ipmi_addr')), shell=True,
+            stderr=subprocess.STDOUT)
+        pattern = re.compile("chassis-(\d*)\/blade-(\d*)")
+        res = pattern.search(location_result).groups()
+        location = res[0] + '/' + res[1]
+    except subprocess.CalledProcessError as e:
+        LOG.info(_("Get location for %s failed!" % host_detail['id']))
+        return None
+    else:
+        LOG.info(_("Get location for %s successfully!" % host_detail['id']))
+        return location
+
+
+def set_pxe_start_of_cisco(host_detail):
+    LOG.info(_("Set pxe start for host %s" % (host_detail['id'])))
+    try:
+        exc_result = subprocess.check_output(
+            'sshpass -p%s ssh -o StrictHostKeyChecking=no '
+            '%s@10.10.100.254 "scope service-profile server %s;'
+            'set boot-policy pxe;commit-buffer"' %
+            (host_detail.get('ipmi_passwd'),
+             host_detail.get('ipmi_user'),
+             host_detail.get('location')), shell=True,
+            stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        LOG.info(_("set pxe start for %s failed!" % host_detail['id']))
+        return
+    else:
+        LOG.info(_("set pxe start for %s successfully!" %
+                   host_detail['id']))
+
+
+def set_reboot_of_cisco(host_detail):
+    LOG.info(_("Set boot from disk for host %s" % (host_detail['id'])))
+    try:
+        exc_result = subprocess.check_output(
+            'sshpass -p%s ssh -o StrictHostKeyChecking=no '
+            '%s@10.10.100.254 "scope service-profile server %s;'
+            'reboot;commit-buffer"' % (host_detail.get('ipmi_passwd'),
+            host_detail.get('ipmi_user'), host_detail.get('location')),
+            shell=True, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        LOG.info(_("restart for %s failed!" % host_detail['id']))
+        return
+    else:
+        LOG.info(_("restart for %s successfully!" %
+                   host_detail['id']))
+
+
+def set_disk_start_of_cisco(host_detail):
+    LOG.info(_("Set boot from disk for host %s" % (host_detail['id'])))
+    try:
+        exc_result = subprocess.check_output(
+            'sshpass -p%s ssh -o StrictHostKeyChecking=no '
+            '%s@10.10.100.254 "scope service-profile server %s;'
+            'set boot-policy local-disk;commit-buffer"' %
+            (host_detail.get('ipmi_passwd'), host_detail.get('ipmi_user'),
+             host_detail.get('location')), shell=True,
+            stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        LOG.info(_("set disk start for %s failed!" % host_detail['id']))
+        return
+    else:
+        LOG.info(_("set disk start for %s successfully!" %
+                   host_detail['id']))
+
+
+def _get_host_interfaces(host_info):
+    interfaces = host_info['interfaces']
+    for interface in interfaces:
+        for assigned_network in interface['assigned_networks']:
+            if assigned_network['network_type'] == 'DATAPLANE':
+                assigned_network['ip'] = None
+    return interfaces
 
 
 class OSInstall():
@@ -312,37 +419,104 @@ class OSInstall():
         self.cluster_hosts_install_timeout = (
             self.max_parallel_os_num / 4 + 2) * 60 * (12 * self.time_step)
 
-    def _set_boot_or_power_state(self, user, passwd, addr, action):
+    def _set_boot_or_power_state(self, host_detail, action):
+        user = host_detail['ipmi_user']
+        passwd = host_detail['ipmi_passwd']
+        addr = host_detail['ipmi_addr']
         count = 0
-        repeat_times = 24
+        repeat_times = 5
         ipmi_result_flag = True
+        stop_flag = False
         while count < repeat_times:
             rc = daisy_cmn.set_boot_or_power_state(user, passwd, addr, action)
             if rc == 0:
                 LOG.info(
-                    _("Set %s to '%s' successfully for %s times" % (
+                    _("Set %s to '%s' successfully for %s times by ironic" % (
                         addr, action, count + 1)))
+                host_status = {'messages': "Set %s to '%s' successfully for "
+                                           "%s times by ironic" % (
+                                               addr, action, count + 1)}
+                daisy_cmn.update_db_host_status(self.req, host_detail['id'],
+                                      host_status)
+                # make user know set successfull
+                time.sleep(1)
+                host_status = {
+                    'messages': 'Preparing for OS installation',
+                    'os_progress': 0}
+                daisy_cmn.update_db_host_status(self.req, host_detail['id'],
+                                      host_status)
+
+                # One host set 'disk' return success, but it still 'pxe'
+                # mode in German site. If we have a method to confirm,
+                # this can be deleted.
+                if action == 'pxe' or action == 'disk':
+                    daisy_cmn.set_boot_or_power_state(user, passwd, addr,
+                                                      action)
                 break
             else:
                 count += 1
                 LOG.info(
-                    _("Try setting %s to '%s' failed for %s times"
+                    _("Try setting %s to '%s' failed for %s times by ironic"
                       % (addr, action, count)))
+                host_status = {'messages': "Set %s to '%s' failed for "
+                                           "%s times by ironic" % (
+                                               addr, action, count + 1)}
+                daisy_cmn.update_db_host_status(self.req, host_detail['id'],
+                                      host_status)
+                time.sleep(count * 2)
         if count >= repeat_times:
             ipmi_result_flag = False
-            message = "Set %s to '%s' failed for 10 mins" % (addr, action)
+            if host_detail.get('role', None):
+                role_of_host = host_detail['role']
+            else:
+                role_of_host = []
+            if "CONTROLLER_HA" in role_of_host or "CONTROLLER_LB" in \
+                    role_of_host:
+                stop_flag = True
+            if stop_flag:
+                host_status = {
+                    'os_status': host_os_status['INSTALL_FAILED'],
+                    'os_progress': 0,
+                    'messages': "set %s to '%s' failed for 10 mins,is "
+                                "controller host,can't go on playing" % (
+                                    addr, action)}
+                daisy_cmn.update_db_host_status(self.req, host_detail['id'],
+                                      host_status)
+                message = "set %s to '%s' failed for 10 mins,is controller" \
+                          " host,can't go on playing" % (addr, action)
             raise exception.IMPIOprationFailed(message=message)
+            else:
+                LOG.info(
+                    _("set %s to '%s' failed for 10 mins,not controller"
+                      " host or no role ,go on playing" % (addr, action)))
+                host_status = {
+                    'os_status': host_os_status['INSTALL_FAILED'],
+                    'os_progress': 0,
+                    'messages': "set %s to '%s' failed for 10 mins,not "
+                                "controller host or no role ,go on playing"
+                                % (addr, action)}
+                daisy_cmn.update_db_host_status(self.req, host_detail['id'],
+                                      host_status)
+
         return ipmi_result_flag
 
     def _install_os_for_baremetal(self, host_detail):
-        # os_install_disk = 'sda'
+        # os_version_file and os_version_id only exist one at
+        # same time
+        if host_detail.get('os_version_file', None):
         os_version_file = host_detail['os_version_file']
+        if host_detail.get('os_version_id', None):
+            version_info = registry.get_version_metadata(self.req.context,
+                           host_detail['os_version_id'])
+            if version_info:
+                os_version = version_info['name']
+                os_version_file = "/var/lib/daisy/" + os_version
         if os_version_file:
             test_os_version_exist = 'test -f %s' % os_version_file
             daisy_cmn.subprocess_call(test_os_version_exist)
         else:
-            self.message = "no OS version file configed for host %s"\
-                % host_detail['id']
+            self.message = "No OS version file configed for host %s" %\
+                           host_detail['id']
             raise exception.NotFound(message=self.message)
         if host_detail.get('root_disk', None):
             root_disk = host_detail['root_disk']
@@ -367,7 +541,8 @@ class OSInstall():
                     or host_detail['disks'][key]['name'].\
                     find("mpath") != -1 \
                     or host_detail['disks'][key]['name'].\
-                    find("spath") != -1:
+                    find("spath") != -1 \
+                    or host_detail['disks'][key]['removable'] == 'removable':
                 continue
             disk_list.append(host_detail['disks'][key]['name'])
             stroage_size_str = host_detail['disks'][key]['size']
@@ -382,7 +557,9 @@ class OSInstall():
             root_pwd = 'ossdbg1'
 
         isolcpus = None
-        if 'os_cpus' in host_detail and host_detail['os_cpus']:
+        if host_detail.get('isolcpus', None):
+            isolcpus = host_detail['isolcpus']
+        elif host_detail.get('os_cpus', None):
             os_cpus = utils.cpu_str_to_list(host_detail['os_cpus'])
             host_cpu = host_detail.get('cpu', {})
             if 'total' in host_cpu:
@@ -402,6 +579,18 @@ class OSInstall():
             hugepagesize = '1G'
         # tfg_patch_pkg_file = check_tfg_exist()
 
+        host_manufacturer = host_detail['system'].get('manufacturer')
+        if host_detail.get('hwm_id'):
+            host_hwm_meta = {
+                "hwm_ip": host_detail.get('hwm_ip'),
+                "hwm_id": host_detail.get('hwm_id'),
+                "boot_type": "pxe"
+            }
+            self.providerclient(host_hwm_meta['hwm_ip']).node.set_boot(
+                **host_hwm_meta)
+        elif host_manufacturer == 'Cisco Systems Inc':
+            set_pxe_start_of_cisco(host_detail)
+        else:
         if (not host_detail['ipmi_user'] or
                 not host_detail['ipmi_passwd'] or
                 not host_detail['ipmi_addr']):
@@ -409,19 +598,17 @@ class OSInstall():
                            % host_detail['id']
             raise exception.NotFound(message=self.message)
 
-            ipmi_result_flag = self._set_boot_or_power_state(
-                host_detail['ipmi_user'],
-                host_detail['ipmi_passwd'],
-                host_detail['ipmi_addr'],
-                'pxe')
+            ipmi_result_flag = self._set_boot_or_power_state(host_detail, 'pxe')
 
+        host_interfaces = _get_host_interfaces(host_detail)
         kwargs = {'hostname': host_detail['name'],
                   'iso_path': os_version_file,
+                  'group_list': host_detail['group_list'],
                   # 'tfg_bin':tfg_patch_pkg_file,
                   'dhcp_mac': host_detail['dhcp_mac'],
                   'storage_size': disk_storage_size_m,
                   'memory_size': memory_size_g,
-                  'interfaces': host_detail['interfaces'],
+                  'interfaces': host_interfaces,
                   'root_lv_size': root_lv_size_m,
                   'swap_lv_size': swap_lv_size_m,
                   'cinder_vg_size': cinder_vg_size_m,
@@ -452,6 +639,12 @@ class OSInstall():
         else:
             kwargs['mongodb_lv_size'] = 0
 
+        if host_detail.get('provider_lv_size', None):
+            # provider_lv_size_m = int(host_detail['provider_lv_size']) * 1024
+            kwargs['provider_lv_size'] = host_detail['provider_lv_size']
+        else:
+            kwargs['provider_lv_size'] = 0
+
         # if host_detail.has_key('nova_lv_size') and
         # host_detail['nova_lv_size']:
         if 'nova_lv_size' in host_detail and host_detail['nova_lv_size']:
@@ -467,17 +660,23 @@ class OSInstall():
                 host_status = {'os_status': host_os_status['INSTALL_FAILED'],
                                'os_progress': 0,
                                'messages': error}
-                daisy_cmn.update_db_host_status(self.req,
-                                                host_detail['id'],
-                                                host_status)
+                daisy_cmn.update_db_host_status(self.req, host_detail['id'], host_status)
                 msg = "ironic install os return failed for host %s" % \
                       host_detail['id']
                 raise exception.OSInstallFailed(message=msg)
 
-        self._set_boot_or_power_state(host_detail['ipmi_user'],
-                                      host_detail['ipmi_passwd'],
-                                      host_detail['ipmi_addr'],
-                                      'reset')
+        if host_detail.get('hwm_id'):
+            host_hwm_meta = {
+                "hwm_ip": host_detail.get('hwm_ip'),
+                "hwm_id": host_detail.get('hwm_id')
+            }
+            self.providerclient(host_hwm_meta['hwm_ip']).node.restart(
+                **host_hwm_meta)
+        elif host_manufacturer == 'Cisco Systems Inc':
+            set_reboot_of_cisco(host_detail)
+        else:
+            if ipmi_result_flag:
+                self._set_boot_or_power_state(host_detail, 'reset')
 
     def _begin_install_os(self, hosts_detail):
         # all hosts status is set to 'pre-install' before os installing
@@ -485,22 +684,34 @@ class OSInstall():
             host_status = {'os_status': host_os_status['PRE_INSTALL'],
                            'os_progress': 0,
                            'messages': 'Preparing for OS installation'}
-            update_db_host_status(self.req, host_detail['id'], host_status)
+            daisy_cmn.update_db_host_status(self.req, host_detail['id'],
+                                            host_status)
 
         for host_detail in hosts_detail:
             self._install_os_for_baremetal(host_detail)
 
     def _set_disk_start_mode(self, host_detail):
+        host_manufacturer = host_detail['system'].get('manufacturer')
         LOG.info(_("Set boot from disk for host %s" % (host_detail['id'])))
-        self._set_boot_or_power_state(host_detail['ipmi_user'],
-                                      host_detail['ipmi_passwd'],
-                                      host_detail['ipmi_addr'],
-                                      'disk')
+        if host_detail.get('hwm_id'):
+            host_hwm_meta = {
+                "hwm_ip": host_detail.get('hwm_ip'),
+                "hwm_id": host_detail.get('hwm_id'),
+                "boot_type": "disk"
+            }
+            self.providerclient(host_hwm_meta['hwm_ip']).node.set_boot(
+                **host_hwm_meta)
         LOG.info(_("reboot host %s" % (host_detail['id'])))
-        self._set_boot_or_power_state(host_detail['ipmi_user'],
-                                      host_detail['ipmi_passwd'],
-                                      host_detail['ipmi_addr'],
-                                      'reset')
+            host_hwm_meta.pop('boot_type')
+            self.providerclient(host_hwm_meta['hwm_ip']).node.restart(
+                **host_hwm_meta)
+        elif host_manufacturer == 'Cisco Systems Inc':
+            set_disk_start_of_cisco(host_detail)
+            set_reboot_of_cisco(host_detail)
+        else:
+            self._set_boot_or_power_state(host_detail, 'disk')
+            LOG.info(_("reboot host %s" % (host_detail['id'])))
+            self._set_boot_or_power_state(host_detail, 'reset')
 
     def _init_progress(self, host_detail, hosts_status):
         host_id = host_detail['id']
@@ -514,7 +725,7 @@ class OSInstall():
         else:
             host_status['messages'] = "OS installing"
 
-        update_db_host_status(self.req, host_id, host_status)
+        daisy_cmn.update_db_host_status(self.req, host_id, host_status)
 
     def _query_host_progress(self, host_detail, host_status, host_last_status):
         host_id = host_detail['id']
@@ -536,6 +747,13 @@ class OSInstall():
                 # wait for nicfix script complete
                 time.sleep(10)
                 self._set_disk_start_mode(host_detail)
+                # node state: in use
+                node_state = 'true'
+                tecs_cmn.set_hwm_node_state(host_detail, node_state)
+                host_management_ip = daisy_cmn.get_management_ip(host_detail, False)
+                if host_management_ip:
+                    daisy_cmn.subprocess_call(
+                        'sed -i "/%s/d" /root/.ssh/known_hosts' % host_management_ip)
             else:
                 if host_status['os_progress'] ==\
                         host_last_status['os_progress']:
@@ -575,11 +793,14 @@ class OSInstall():
                         'messages'] = "docker container created timeout"
                 else:
                     host_status['messages'] = "os installed timeout"
+                    if daisy_cmn.in_cluster_list(self.cluster_id):
+                        LOG.info("os install clear install global variables")
+                        daisy_cmn.cluster_list_delete(self.cluster_id)
             if (host_status['os_progress'] !=
                 host_last_status['os_progress'] or
                     host_status['os_status'] != host_last_status['os_status']):
                 host_status['count'] = 0
-                update_db_host_status(self.req, host_id, host_status)
+                daisy_cmn.update_db_host_status(self.req, host_id, host_status)
         return hosts_status
 
     def _get_install_status(self, hosts_detail):
@@ -608,7 +829,11 @@ class OSInstall():
                             'INSTALL_FAILED']
                         host_status[
                             'messages'] = "cluster os installed timeout"
-                        update_db_host_status(self.req, host_id, host_status)
+                        daisy_cmn.update_db_host_status(self.req, host_id,
+                                                        host_status)
+                if daisy_cmn.in_cluster_list(self.cluster_id):
+                    LOG.info("os install clear install global variables")
+                    daisy_cmn.cluster_list_delete(self.cluster_id)
                 break
             else:
                 query_count += 1
@@ -617,6 +842,8 @@ class OSInstall():
         return hosts_install_status
 
     def install_os(self, hosts_detail, role_hosts_ids):
+        # 15 hosts ,install 10 firstly ,then 5 host
+        # output :host_detail=5 ,role_hosts_ids is failed host among 10 hosts
         if len(hosts_detail) > self.max_parallel_os_num:
             install_hosts = hosts_detail[:self.max_parallel_os_num]
             hosts_detail = hosts_detail[self.max_parallel_os_num:]
@@ -628,12 +855,21 @@ class OSInstall():
         LOG.info(
             _("Begin install os for hosts %s." % ','.join(install_hosts_id)))
         daisy_cmn.os_install_start_time = time.time()
+        for host_detail in install_hosts:
+            host_manufacturer = host_detail['system'].get('manufacturer')
+            if host_manufacturer == 'Cisco Systems Inc':
+                host_detail['location'] = \
+                    get_host_location_of_cisco(host_detail)
         self._begin_install_os(install_hosts)
+        install_hosts = _rm_ipmi_failed_host(self.req, install_hosts)
         LOG.info(_("Begin to query install progress..."))
         # wait to install completely
         cluster_install_status = self._get_install_status(install_hosts)
         total_time_cost = str(
             round((time.time() - daisy_cmn.os_install_start_time) / 60, 2))
+        if daisy_cmn.in_cluster_list(self.cluster_id):
+           daisy_cmn.cluster_list_delete(self.cluster_id)
+           LOG.info("Clear install global variables")
         LOG.info(
             _("It totally takes %s min for all host to install os"
               % total_time_cost))
@@ -646,10 +882,7 @@ class OSInstall():
                 _("%s   %s   %s" % (host_id, host_status['os_status'],
                                     host_status['messages'])))
             if host_id in role_hosts_ids:
-                if host_status['os_status'] ==\
-                   host_os_status['INSTALL_FAILED']:
-                    break
-                else:
+                if host_status['os_status'] == host_os_status['ACTIVE']:
                     role_hosts_ids.remove(host_id)
         return (hosts_detail, role_hosts_ids)
 
