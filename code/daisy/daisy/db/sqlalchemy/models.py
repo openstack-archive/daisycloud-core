@@ -19,6 +19,7 @@ SQLAlchemy models for daisy data
 """
 
 import uuid
+
 from oslo_serialization import jsonutils
 from oslo_db.sqlalchemy import models
 from oslo_utils import timeutils
@@ -116,6 +117,16 @@ class DaisyBase(models.ModelBase, models.TimestampMixin):
         return d
 
 
+class Hwm(BASE, DaisyBase):
+
+    """Represents an hwm in the datastore."""
+    __tablename__ = 'hwm'
+    __table_args__ = (Index('ix_hwm_deleted', 'deleted'),)
+
+    description = Column(Text)
+    hwm_ip = Column(String(36), nullable=True)
+
+
 class Host(BASE, DaisyBase):
 
     """Represents an host in the datastore."""
@@ -137,17 +148,31 @@ class Host(BASE, DaisyBase):
     isolcpus = Column(String(255))
     os_version_id = Column(String(36))
     os_version_file = Column(String(255))
+    group_list = Column(Text)
     os_progress = Column(Integer(), default=0)
     os_status = Column(String(36))
     messages = Column(Text)
     hugepagesize = Column(String(36))
     hugepages = Column(Integer(), default=0)
+    hwm_id = Column(String(36))
+    hwm_ip = Column(String(256))
     vcpu_pin_set = Column(String(255))
     dvs_high_cpuset = Column(String(255))
     pci_high_cpuset = Column(String(255))
     os_cpus = Column(String(255))
     dvs_cpus = Column(String(255))
     config_set_id = Column(String(36))
+    version_patch_id = Column(String(36))
+    tecs_version_id = Column(String(36))
+    dvs_config_type = Column(String(255))
+    dvsc_cpus = Column(String(255))
+    dvsp_cpus = Column(String(255))
+    dvsv_cpus = Column(String(255))
+    dvsblank_cpus = Column(String(255))
+    flow_mode = Column(String(255))
+    virtio_queue_size = Column(String(255))
+    dvs_config_desc = Column(String(255))
+    discover_mode = Column(String(64))
     system = Column(JSONEncodedDict(), default={})
     cpu = Column(JSONEncodedDict(), default={})
     memory = Column(JSONEncodedDict(), default={})
@@ -193,6 +218,10 @@ class Cluster(BASE, DaisyBase):
     segmentation_type = Column(String(64))
     auto_scale = Column(Integer(), nullable=False, default=0)
     use_dns = Column(Integer(), nullable=False, default=0)
+    use_provider_ha = Column(Integer(), nullable=False, default=0)
+    hwm_ip = Column(String(256))
+    target_systems = Column(String(256))
+    tecs_version_id = Column(String(36))
 
 
 class ClusterHost(BASE, DaisyBase):
@@ -285,6 +314,7 @@ class Network(BASE, DaisyBase):
     capability = Column(String(36), default='high')
     mtu = Column(Integer(), nullable=False, default=1500)
     alias = Column(String(255))
+    custom_name = Column(String(255))
 
 
 class IpRange(BASE, DaisyBase):
@@ -345,6 +375,8 @@ class Role(BASE, DaisyBase):
     glance_vip = Column(String(255))
     public_vip = Column(String(255))
     mongodb_vip = Column(String(255))
+    outband_vip = Column(String(255))
+    provider_public_vip = Column(String(255))
 
 
 class ServiceRole(BASE, DaisyBase):
@@ -404,6 +436,7 @@ class Config(BASE, DaisyBase):
     config_version = Column(Integer(), default='0')
     running_version = Column(Integer(), default='0')
     description = Column(Text)
+    template_config_id = Column(String(36))
 
 
 class ConfigFile(BASE, DaisyBase):
@@ -497,7 +530,21 @@ class Version(BASE, DaisyBase):
     checksum = Column(String(128))
     owner = Column(String(256))
     version = Column(String(32))
-    type = Column(String(30), default='0')
+    type = Column(String(30), nullable=False)
+    description = Column(Text())
+
+
+class VersionPatch(BASE, DaisyBase):
+
+    """Represents an version_patchs in the datastore."""
+    __tablename__ = 'version_patchs'
+    __table_args__ = (Index('ix_version_patchs_deleted', 'deleted'),)
+
+    name = Column(String(256), nullable=False)
+    size = Column(BigInteger())
+    status = Column(String(30))
+    checksum = Column(String(128))
+    version_id = Column(String(36))
     description = Column(Text())
 
 
@@ -599,36 +646,123 @@ class CinderVolume(BASE, DaisyBase):
 
     user_name = Column(String(255))
     user_pwd = Column(String(255))
+    root_pwd = Column(String(255))
     management_ips = Column(String(255))
     data_ips = Column(String(255))
     pools = Column(String(255))
+    resource_pools = Column(String(255))
     volume_driver = Column(String(255))
     volume_type = Column(String(255))
     backend_index = Column(String(255))
     role_id = Column(String(36), ForeignKey('roles.id'), nullable=False)
 
 
+class OpticalSwitch(BASE, DaisyBase):
+
+    """Represents an optical switch in the datastore."""
+    __tablename__ = 'optical_switchs'
+    __table_args__ = (Index('ix_optical_switchs_deleted', 'deleted'),)
+
+    user_name = Column(String(255))
+    user_pwd = Column(String(255))
+    switch_ip = Column(String(36))
+    switch_port = Column(String(36))
+    role_id = Column(String(36))
+    fc_driver = Column(String(36))
+    fc_zoneing_policy = Column(String(36))
+
+
+class TemplateConfig(BASE, DaisyBase):
+
+    """Represents an cinder volumes in the datastore."""
+    __tablename__ = 'template_config'
+    __table_args__ = (Index('ix_template_config_deleted', 'deleted'),)
+
+    id = Column(String(36), primary_key=True, nullable=False)
+    name = Column(String(50), nullable=False)
+    section_name = Column(String(50))
+    ch_desc = Column(Text)
+    en_desc = Column(Text)
+    data_type = Column(String(50))
+    default_value = Column(String(100))
+    length = Column(Integer())
+    suggested_range = Column(String(256))
+    config_file = Column(Text, nullable=False)
+    data_check_script = Column(Text)
+
+
+class TemplateFunc(BASE, DaisyBase):
+
+    """Represents an cinder volumes in the datastore."""
+    __tablename__ = 'template_func'
+    __table_args__ = (Index('ix_template_func_deleted', 'deleted'),)
+
+    id = Column(String(36), primary_key=True, nullable=False)
+    name = Column(String(50), nullable=False)
+    ch_desc = Column(Text)
+    en_desc = Column(Text)
+    data_check_script = Column(Text)
+
+
+class TemplateFuncConfigs(BASE, DaisyBase):
+
+    """Represents an config_set_items in the datastore."""
+    __tablename__ = 'template_func_configs'
+    __table_args__ = (Index('ix_template_func_configs_deleted', 'deleted'),)
+
+    func_id = Column(String(36), ForeignKey('template_func.id'),
+                     nullable=False)
+    config_id = Column(String(36), ForeignKey('template_config.id'),
+                       nullable=False)
+
+
+class TemplateService(BASE, DaisyBase):
+
+    """Represents an cinder volumes in the datastore."""
+    __tablename__ = 'template_service'
+    __table_args__ = (Index('ix_template_func_deleted', 'deleted'),)
+
+    service_name = Column(String(100), nullable=False)
+    force_type = Column(String(50))
+
+
+class ConfigService(BASE, DaisyBase):
+
+    """Represents an config_set_items in the datastore."""
+    __tablename__ = 'config_service'
+    __table_args__ = (Index('ix_config_service_deleted', 'deleted'),)
+
+    config_id = Column(String(36), ForeignKey('template_config.id'),
+                       nullable=False)
+    service_id = Column(String(36), ForeignKey('template_service.id'),
+                        nullable=False)
+
+
 def register_models(engine):
     """Create database tables for all models with the given engine."""
-    models = (Host, DiscoverHost, Cluster, ClusterHost, Template,
+    models = (Hwm, Host, DiscoverHost, Cluster, ClusterHost, Template,
               HostTemplate, HostInterface, Network, IpRange, HostRole,
               Role, ServiceRole, Service, Component, ConfigSet, Config,
               ConfigFile, ConfigSetItem, ConfigHistory, Task, TaskInfo,
               Repository, User, Version, AssignedNetworks, LogicNetwork,
               Subnet, FloatIpRange, DnsNameservers, Router, ServiceDisk,
-              CinderVolume)
+              CinderVolume, OpticalSwitch, Version, VersionPatch,
+              TemplateConfig, TemplateFunc, TemplateFuncConfigs,
+              TemplateService, ConfigService)
     for model in models:
         model.metadata.create_all(engine)
 
 
 def unregister_models(engine):
     """Drop database tables for all models with the given engine."""
-    models = (Host, DiscoverHost, Cluster, ClusterHost, Template,
+    models = (Hwm, Host, DiscoverHost, Cluster, ClusterHost, Template,
               HostTemplate, HostInterface, Network, IpRange, HostRole,
               Role, ServiceRole, Service, Component, ConfigSet, Config,
               ConfigFile, ConfigSetItem, ConfigHistory, Task, TaskInfo,
               Repository, User, Version, AssignedNetworks, LogicNetwork,
               Subnet, FloatIpRange, DnsNameservers, Router, ServiceDisk,
-              CinderVolume)
+              CinderVolume, OpticalSwitch, Version, VersionPatch,
+              TemplateConfig, TemplateFunc, TemplateFuncConfigs,
+              TemplateService, ConfigService)
     for model in models:
         model.metadata.drop_all(engine)
