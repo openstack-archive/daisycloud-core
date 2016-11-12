@@ -36,6 +36,7 @@ import re
 import subprocess
 import sys
 import uuid
+import copy
 
 from OpenSSL import crypto
 from oslo_config import cfg
@@ -46,9 +47,11 @@ from oslo_utils import netutils
 from oslo_utils import strutils
 import six
 from webob import exc
+import ConfigParser
 
 from daisy.common import exception
 from daisy import i18n
+# from providerclient.v1 import client as provider_client
 
 CONF = cfg.CONF
 
@@ -341,6 +344,13 @@ def get_image_meta_from_headers(response):
 
 
 def get_host_meta(response):
+    result = {}
+    for key, value in response.json.items():
+        result[key] = value
+    return result
+
+
+def get_hwm_meta(response):
     result = {}
     for key, value in response.json.items():
         result[key] = value
@@ -1179,23 +1189,30 @@ def translate_marks_4_sed_command(ori_str):
 
 def get_numa_node_cpus(host_cpu):
     numa = {}
-    if 'numa_node0' in host_cpu:
-        numa['numa_node0'] = cpu_str_to_list(host_cpu['numa_node0'])
-    if 'numa_node1' in host_cpu:
-        numa['numa_node1'] = cpu_str_to_list(host_cpu['numa_node1'])
+    for key in host_cpu.keys():
+        if key.find("numa_node") == 0:
+            numa[key] = cpu_str_to_list(host_cpu[key])
     return numa
 
 
 def get_numa_node_from_cpus(numa, str_cpus):
     numa_nodes = []
-
     cpu_list = cpu_str_to_list(str_cpus)
     for cpu in cpu_list:
-        if cpu in numa['numa_node0']:
-            numa_nodes.append(0)
-        if cpu in numa['numa_node1']:
-            numa_nodes.append(1)
+        for key in numa.keys():
+            if cpu in numa[key]:
+                try:
+                    numa_node = int(key.split('numa_node')[1])
+                except:
+                    raise exception.Invalid("Get numa node failed")
+                numa_nodes.append(numa_node)
 
     numa_nodes = list(set(numa_nodes))
     numa_nodes.sort()
     return numa_nodes
+
+
+def get_provider_client(hwm_ip):
+    endpoint = "http://" + hwm_ip + ":8089"
+    args = {'version': 1.0, 'endpoint': endpoint}
+    return provider_client.Client(**args)
