@@ -31,8 +31,15 @@ from daisy.api.v1 import networks
 from daisy.api.v1 import install
 from daisy.api.v1 import disk_array
 from daisy.api.v1 import host_template
+from daisy.api.v1 import backend_types
 from daisy.common import wsgi
 from daisy.api.v1 import backup_restore
+from daisy.api.v1 import versions
+from daisy.api.v1 import version_patchs
+from daisy.api.v1 import template_configs
+from daisy.api.v1 import template_funcs
+from daisy.api.v1 import template_services
+from daisy.api.v1 import config_update
 
 
 class API(wsgi.Router):
@@ -105,6 +112,11 @@ class API(wsgi.Router):
                        controller=hosts_resource,
                        action='update_pxe_host',
                        conditions={'method': ['PUT']})
+
+        mapper.connect("/check",
+                       controller=hosts_resource,
+                       action='host_check',
+                       conditions={'method': ['POST']})
 
         clusters_resource = clusters.create_resource()
 
@@ -357,6 +369,10 @@ class API(wsgi.Router):
                        action="cluster_config_set_progress",
                        conditions={'method': ['POST']})
 
+        mapper.connect("/cluster_config_set_get",
+                       controller=config_sets_resource,
+                       action="cluster_config_set_get",
+                       conditions={'method': ['GET']})
         configs_resource = configs.create_resource()
 
         mapper.connect("/configs",
@@ -444,11 +460,6 @@ class API(wsgi.Router):
                        action='update_disk_array',
                        conditions={'method': ['POST']})
 
-        # mapper.connect("/update/{cluster_id}/versions/{versions_id}",
-        #               controller=update_resource,
-        #               action='update_cluster_version',
-        #               conditions={'method': ['POST']})
-
         array_resource = disk_array.create_resource()
         mapper.connect("/service_disk",
                        controller=array_resource,
@@ -492,6 +503,23 @@ class API(wsgi.Router):
                        action='cinder_volume_detail',
                        conditions={'method': ['GET']})
 
+        mapper.connect("/optical_switch",
+                       controller=array_resource,
+                       action='optical_switch_add',
+                       conditions={'method': ['POST']})
+        mapper.connect("/optical_switch/list",
+                       controller=array_resource,
+                       action='optical_switch_list',
+                       conditions={'method': ['GET']})
+        mapper.connect("/optical_switch/{id}",
+                       controller=array_resource,
+                       action='optical_switch_update',
+                       conditions={'method': ['PUT']})
+        mapper.connect("/optical_switch/{id}",
+                       controller=array_resource,
+                       action='optical_switch_delete',
+                       conditions={'method': ['DELETE']})
+
         backup_restore_resource = backup_restore.create_resource()
 
         mapper.connect("/backup",
@@ -510,6 +538,109 @@ class API(wsgi.Router):
                        controller=backup_restore_resource,
                        action='version',
                        conditions={'method': ['POST']})
+
+        backend_types_resource = backend_types.create_resource()
+        mapper.connect("/backend_types",
+                       controller=backend_types_resource,
+                       action='get',
+                       conditions={'method': ['POST']})
+
+        versions_resource = versions.create_resource()
+        mapper.connect("/versions",
+                       controller=versions_resource,
+                       action='add_version',
+                       conditions={'method': ['POST']})
+        mapper.connect("/versions/{id}",
+                       controller=versions_resource,
+                       action='delete_version',
+                       conditions={'method': ['DELETE']})
+        mapper.connect("/versions",
+                       controller=versions_resource,
+                       action='list_version',
+                       conditions={'method': ['GET']})
+        mapper.connect("/versions/{id}",
+                       controller=versions_resource,
+                       action='get_version',
+                       conditions={'method': ['GET']})
+        mapper.connect("/versions/{id}",
+                       controller=versions_resource,
+                       action='update_version',
+                       conditions={'method': ['PUT']})
+
+        version_patchs_resource = version_patchs.create_resource()
+        mapper.connect("/version_patchs",
+                       controller=version_patchs_resource,
+                       action='add_version_patch',
+                       conditions={'method': ['POST']})
+        mapper.connect("/version_patchs/{id}",
+                       controller=version_patchs_resource,
+                       action='delete_version_patch',
+                       conditions={'method': ['DELETE']})
+        mapper.connect("/version_patchs/{id}",
+                       controller=version_patchs_resource,
+                       action='get_version_patch',
+                       conditions={'method': ['GET']})
+        mapper.connect("/version_patchs/{id}",
+                       controller=version_patchs_resource,
+                       action='update_version_patch',
+                       conditions={'method': ['PUT']})
+
+        template_configs_resource = template_configs.create_resource()
+        mapper.connect("/template_configs/import_template_config",
+                       controller=template_configs_resource,
+                       action='import_template_config',
+                       conditions={'method': ['POST']})
+
+        mapper.connect("/template_configs/list",
+                       controller=template_configs_resource,
+                       action="list_template_config",
+                       conditions={'method': ['GET']})
+
+        mapper.connect("/template_configs/{id}",
+                       controller=template_configs_resource,
+                       action="get_template_config",
+                       conditions=dict(method=["GET"]))
+
+        template_funcs_resource = template_funcs.create_resource()
+        mapper.connect("/template_funcs/import_template_func",
+                       controller=template_funcs_resource,
+                       action='import_template_func',
+                       conditions={'method': ['POST']})
+
+        mapper.connect("/template_funcs/list",
+                       controller=template_funcs_resource,
+                       action="list_template_func",
+                       conditions={'method': ['GET']})
+
+        mapper.connect("/template_funcs/{id}",
+                       controller=template_funcs_resource,
+                       action="get_template_func",
+                       conditions=dict(method=["GET"]))
+
+        template_services_resource = template_services.create_resource()
+        mapper.connect("/template_services/list",
+                       controller=template_services_resource,
+                       action="list_template_service",
+                       conditions={'method': ['GET']})
+
+        mapper.connect("/template_services/{id}",
+                       controller=template_services_resource,
+                       action="get_template_service",
+                       conditions=dict(method=["GET"]))
+
+        config_update_resource = config_update.create_resource()
+        mapper.connect("/config_update_gen/{cluster_id}",
+                       controller=config_update_resource,
+                       action='config_update_gen',
+                       conditions={'method': ['PUT']})
+        mapper.connect("/config_update_get/{cluster_id}",
+                       controller=config_update_resource,
+                       action='config_update_get',
+                       conditions={'method': ['GET']})
+        mapper.connect("/config_update_dispatch/{cluster_id}",
+                       controller=config_update_resource,
+                       action='config_update_dispatch',
+                       conditions={'method': ['PUT']})
 
         path = os.path.join(os.path.abspath(os.path.dirname(
                                             os.path.realpath(__file__))),
