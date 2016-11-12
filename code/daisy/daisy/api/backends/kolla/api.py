@@ -48,3 +48,6 @@ class API(driver.DeploymentDriver):
                      kolla for cluster %s." % cluster_id))
         kolla_install_task = instl.KOLLAInstallTask(req, cluster_id)
         kolla_install_task.start()
+
+    def _check_uninstall_hosts(self, req, cluster_id, uninstall_hosts):
+        pass
