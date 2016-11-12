@@ -15,6 +15,8 @@
 
 
 # from daisy.api.v1 import images
+import os
+from oslo_utils import importutils
 from daisy.api.v1 import hosts
 from daisy.api.v1 import clusters
 from daisy.api.v1 import template
@@ -35,7 +37,7 @@ from daisy.api.v1 import backup_restore
 
 class API(wsgi.Router):
 
-    """WSGI router for Glance v1 API requests."""
+    """WSGI router for Daisy v1 API requests."""
 
     def __init__(self, mapper):
         wsgi.Resource(wsgi.RejectMethodController())
@@ -508,4 +510,17 @@ class API(wsgi.Router):
                        controller=backup_restore_resource,
                        action='version',
                        conditions={'method': ['POST']})
+
+        path = os.path.join(os.path.abspath(os.path.dirname(
+                                            os.path.realpath(__file__))),
+                            'ext')
+        for root, dirs, names in os.walk(path):
+            filename = 'router.py'
+            if filename in names:
+                ext_name = root.split(path)[1].strip('/')
+                print 'Found %s' % ext_name
+                hwm_driver = "%s.router.APIExtension" % ext_name
+                extension = importutils.import_object_ns('daisy.api.v1.ext',
+                                                         hwm_driver,
+                                                         mapper)
         super(API, self).__init__(mapper)
