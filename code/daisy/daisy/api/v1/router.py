@@ -519,8 +519,8 @@ class API(wsgi.Router):
             if filename in names:
                 ext_name = root.split(path)[1].strip('/')
                 print 'Found %s' % ext_name
-                hwm_driver = "%s.router.APIExtension" % ext_name
+                driver = "%s.router.APIExtension" % ext_name
                 extension = importutils.import_object_ns('daisy.api.v1.ext',
-                                                         hwm_driver,
+                                                         driver,
                                                          mapper)
         super(API, self).__init__(mapper)
