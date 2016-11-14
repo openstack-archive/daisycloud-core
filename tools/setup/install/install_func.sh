@@ -63,30 +63,38 @@ function kolla_install
 {
   write_install_log "Begin install kolla depends..."
   catalog_url="http://127.0.0.1:4000/v2/_catalog"
-  curl -sSL https://get.docker.io | bash
+  check_installed "docker-engine"
+  if [[ "$has_installed" == "yes" ]];then
+      echo "docker-engine has been already installed"
+  else
+      curl -sSL https://get.docker.io | bash
+  fi
   mkdir -p /etc/systemd/system/docker.service.d
   config_path=/etc/systemd/system/docker.service.d/kolla.conf
   echo -e "[Service]\nMountFlags=shared" > $config_path
   systemctl daemon-reload
   systemctl restart docker
-  yum install -y python-docker-py
-  yum -y install ntp
+  check_and_install_rpm python-docker-py
+  check_and_install_rpm ntp
   systemctl enable ntpd.service
   systemctl stop libvirtd.service
   systemctl disable libvirtd.service
   systemctl start ntpd.service
-  yum -y install ansible1.9
-  yum install -y python-setuptools.noarch
-  yum install -y https://kojipkgs.fedoraproject.org//packages/python-jinja2/2.8/2.fc23/noarch/python-jinja2-2.8-2.fc23.noarch.rpm
-  yum install -y python2-crypto
-  yum install -y python-docker-py.noarch
-  yum install -y python-gitdb
-  yum install -y GitPython.noarch
-  yum install -y python-pbr.noarch
-  yum install -y python2-oslo-config.noarch
-  yum install -y python-six.noarch
-  yum install -y python-beautifulsoup4.noarch
-
+  check_and_install_rpm ansible1.9
+  check_and_install_rpm python2-crypto
+  check_and_install_rpm python-gitdb
+  check_and_install_rpm GitPython.noarch
+  check_and_install_rpm python-pbr.noarch
+  check_and_install_rpm python2-oslo-config.noarch
+  check_and_install_rpm python-six.noarch
+  check_and_install_rpm python-beautifulsoup4.noarch
+  check_and_install_rpm python2-setuptools.noarch
+  check_installed "python-jinja2-2.8-2.fc23.noarch"
+  if [[ "$has_installed" == "yes" ]];then
+      echo "jinja2 has been already installed"
+  else
+      yum install -y https://kojipkgs.fedoraproject.org//packages/python-jinja2/2.8/2.fc23/noarch/python-jinja2-2.8-2.fc23.noarch.rpm    
+  fi
   write_install_log "Begin clone kolla..."
   if [ -e "/home/kolla_install/kolla" ];then
       echo "kolla code already exist!"
