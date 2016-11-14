@@ -241,10 +241,8 @@ function check_and_install_rpm
     if [[ "$has_installed" != "yes" ]];then
         echo "$rpm_name not installed, need to install"
         install_rpm_by_yum $rpm_name
-        return 0
     else
         echo "$rpm_name has installed"
-        return 1
     fi
 }
 
