@@ -219,6 +219,21 @@ function install_rpm_by_yum
         exit $result
     fi
 }
+
+# upgrade rpm by yum
+function upgrade_rpm_by_yum
+{
+    local rpm_name=$1
+
+    yum upgrade -y $rpm_name
+
+    local result=$?
+    if [ $result -ne 0 ];then
+        echo -e "\nupgrade $rpm_name failed!"
+        exit $result
+    fi
+}
+
 # install rpm by daisy yum
 function install_rpm_by_daisy_yum
 {
