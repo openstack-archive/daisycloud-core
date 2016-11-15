@@ -59,42 +59,74 @@ function ip_to_cidr()
     cidr="$cidr_ip/$cidr_int"
 }
 
+function install_kolla_deps
+{
+    echo "Pre setup"
+    RPM_REQUIRES="python-docker-py:1.6 python-pbr:1.6 \
+            python-gitdb:0.6.4 GitPython:1.0.1 python-six:1.9.0 \
+            python2-oslo-config:3.7.0 python-beautifulsoup4:4.4.1 \
+            python2-setuptools:16.0.0 python2-crypto:2.6"
+
+    for package_version in $RPM_REQUIRES
+    do
+        package=`echo $package_version | awk -F: '{print $1}'`
+        expversion=`echo $package_version | awk -F: '{print $2}'`
+        #Step:1 Check if $package existed
+        rpm -q $package &> /dev/null
+        if [ "$?" != "0" ] ; then
+            echo "$package not installed"
+            install_rpm_by_yum $package
+        fi
+        #Step:2 Check if $package version meets the requirement
+        realversion=$(rpm -q --queryformat '%{VERSION}' $package)
+        smallestversion=`printf "$realversion\n$expversion\n" | sort -V | head -1`
+        if [ "$smallestversion" != "$expversion" ] ; then
+            echo "$package version $realversion does NOT meet the requirement verion $expversion"
+            upgrade_rpm_by_yum $package
+        fi
+    done
+}
+
+function check_kolla_deps
+{
+    need_installed="no"
+    package=$1
+    expversion=$2
+    realversion=$(rpm -q --queryformat '%{VERSION}' $package)
+    smallestversion=`printf "$realversion\n$expversion\n" | sort -V | head -1`
+    if [ "$?" != "0" ] || [ "$smallestversion" != "$expversion" ]; then
+        need_installed="yes"
+    fi
+}
+
 function kolla_install
 {
   write_install_log "Begin install kolla depends..."
   catalog_url="http://127.0.0.1:4000/v2/_catalog"
-  check_installed "docker-engine"
-  if [[ "$has_installed" == "yes" ]];then
+  check_kolla_deps "docker-engine" "1.12"
+  if [[ "$need_installed" == "no" ]];then
       echo "docker-engine has been already installed"
   else
       curl -sSL https://get.docker.io | bash
   fi
+  check_kolla_deps "python-jinja2" "2.8"
+  if [[ "$need_installed" == "no" ]];then
+      echo "python-jinja2 has been already installed"
+  else
+      yum install -y https://kojipkgs.fedoraproject.org//packages/python-jinja2/2.8/2.fc23/noarch/python-jinja2-2.8-2.fc23.noarch.rpm
+  fi
+  install_kolla_deps
+  check_and_install_rpm ansible1.9
+  check_and_install_rpm ntp
   mkdir -p /etc/systemd/system/docker.service.d
   config_path=/etc/systemd/system/docker.service.d/kolla.conf
   echo -e "[Service]\nMountFlags=shared" > $config_path
   systemctl daemon-reload
   systemctl restart docker
-  check_and_install_rpm python-docker-py
-  check_and_install_rpm ntp
   systemctl enable ntpd.service
   systemctl stop libvirtd.service
   systemctl disable libvirtd.service
   systemctl start ntpd.service
-  check_and_install_rpm ansible1.9
-  check_and_install_rpm python2-crypto
-  check_and_install_rpm python-gitdb
-  check_and_install_rpm GitPython.noarch
-  check_and_install_rpm python-pbr.noarch
-  check_and_install_rpm python2-oslo-config.noarch
-  check_and_install_rpm python-six.noarch
-  check_and_install_rpm python-beautifulsoup4.noarch
-  check_and_install_rpm python2-setuptools.noarch
-  check_installed "python-jinja2-2.8-2.fc23.noarch"
-  if [[ "$has_installed" == "yes" ]];then
-      echo "jinja2 has been already installed"
-  else
-      yum install -y https://kojipkgs.fedoraproject.org//packages/python-jinja2/2.8/2.fc23/noarch/python-jinja2-2.8-2.fc23.noarch.rpm    
-  fi
   write_install_log "Begin clone kolla..."
   if [ -e "/home/kolla_install/kolla" ];then
       echo "kolla code already exist!"
