@@ -18,71 +18,57 @@
 #    under the License.
 
 """
-Glance API Server
+Reference implementation server for Daisy auto backup
 """
 
 import os
 import sys
-
 import eventlet
-
-from daisy.common import utils
 from oslo_config import cfg
 from oslo_log import log as logging
-import osprofiler.notifier
-import osprofiler.web
-
+from daisy.common import exception
 from daisy.common import config
-from daisy.common import wsgi
-from daisy import notifier
-from oslo_service import systemd
+from daisy.openstack.common import loopingcall
+from daisy.auto_backup.manager import AutoBackupManager
+import six
 
-# Monkey patch socket, time, select, threads
-eventlet.patcher.monkey_patch(all=False, socket=True, time=True,
-                              select=True, thread=True, os=True)
+# Monkey patch socket and time
+eventlet.patcher.monkey_patch(all=False, socket=True, time=True, thread=True)
 
 # If ../glance/__init__.py exists, add ../ to Python search path, so that
 # it will override what happens to be installed in /usr/(local/)lib/python...
 possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
                                    os.pardir,
                                    os.pardir))
-if os.path.exists(os.path.join(possible_topdir, 'glance', '__init__.py')):
+if os.path.exists(os.path.join(possible_topdir, 'daisy', '__init__.py')):
     sys.path.insert(0, possible_topdir)
 
 
 CONF = cfg.CONF
-CONF.import_group("profiler", "daisy.common.wsgi")
+backup_opts = [
+    cfg.StrOpt('auto_backup_interval', default=60,
+               help='Number of seconds between two '
+                    'checkings to auto backup daisy'),
+]
+CONF.register_opts(backup_opts, group='auto_backup')
 logging.register_options(CONF)
 
 
-def fail(e):
-    return_code = 100  # TODO: (huzhj) make this a meaningful value
-    sys.stderr.write("ERROR: %s\n" % utils.exception_to_str(e))
-    sys.exit(return_code)
+def fail(returncode, e):
+    sys.stderr.write("ERROR: %s\n" % six.text_type(e))
 
 
 def main():
     try:
         config.parse_args()
-        wsgi.set_eventlet_hub()
         logging.setup(CONF, 'daisy')
-
-        if cfg.CONF.profiler.enabled:
-            _notifier = osprofiler.notifier.create("Messaging",
-                                                   notifier.messaging, {},
-                                                   notifier.get_transport(),
-                                                   "daisy", "api",
-                                                   cfg.CONF.bind_host)
-            osprofiler.notifier.set(_notifier)
-        else:
-            osprofiler.web.disable()
-
-        server = wsgi.Server()
-        server.start(config.load_paste_app('daisy-api'), default_port=9292)
-        systemd.notify_once()
-        server.wait()
-    except Exception as e:
-        fail(e)
+        timer = loopingcall.FixedIntervalLoopingCall(
+            AutoBackupManager.auto_backup)
+        timer.start(float(CONF.auto_backup.auto_backup_interval)).wait()
+    except exception.WorkerCreationFailure as e:
+        fail(2, e)
+    except RuntimeError as e:
+        fail(1, e)
 
 if __name__ == '__main__':
     main()
