@@ -261,6 +261,8 @@ def main():
                                                prog='daisy-manage'))
         cfg_files.extend(cfg.find_config_files(project='daisy',
                                                prog='daisy-orchestration'))
+        cfg_files.extend(cfg.find_config_files(project='daisy',
+                                               prog='daisy-auto-backup'))
         config.parse_args(default_config_files=cfg_files,
                           usage="%(prog)s [options] <cmd>")
         logging.setup(CONF, 'daisy')
