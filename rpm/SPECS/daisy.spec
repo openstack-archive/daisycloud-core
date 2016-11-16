@@ -21,6 +21,8 @@ Source5:          daisy-api-dist.conf
 Source6:          daisy-registry-dist.conf
 Source9:          daisy-orchestration.service
 Source10:         daisy-orchestration.conf
+Source11:         daisy-auto-backup.service
+Source12:         daisy-auto-backup.conf
 
 BuildArch:        noarch
 BuildRequires:    python2-devel
@@ -152,6 +154,7 @@ install -d -m 755 %{buildroot}%{_sharedstatedir}/daisy/images
 # Config file
 install -p -D -m 640 etc/daisy-api.conf %{buildroot}%{_sysconfdir}/daisy/daisy-api.conf
 install -p -D -m 640 etc/daisy-orchestration.conf %{buildroot}%{_sysconfdir}/daisy/daisy-orchestration.conf
+install -p -D -m 640 etc/daisy-auto-backup.conf %{buildroot}%{_sysconfdir}/daisy/daisy-auto-backup.conf
 install -p -D -m 644 %{SOURCE5} %{buildroot}%{_datadir}/daisy/daisy-api-dist.conf
 install -p -D -m 644 etc/daisy-api-paste.ini %{buildroot}%{_datadir}/daisy/daisy-api-dist-paste.ini
 install -p -D -m 644 etc/daisy-api-paste.ini %{buildroot}%{_sysconfdir}/daisy/daisy-api-paste.ini
@@ -166,6 +169,7 @@ install -p -D -m 640 etc/policy.json %{buildroot}%{_sysconfdir}/daisy/policy.jso
 install -p -D -m 644 %{SOURCE1} %{buildroot}%{_unitdir}/daisy-api.service
 install -p -D -m 644 %{SOURCE2} %{buildroot}%{_unitdir}/daisy-registry.service
 install -p -D -m 644 %{SOURCE9} %{buildroot}%{_unitdir}/daisy-orchestration.service
+install -p -D -m 644 %{SOURCE11} %{buildroot}%{_unitdir}/daisy-auto-backup.service
 
 # Logrotate config
 install -p -D -m 644 %{SOURCE4} %{buildroot}%{_sysconfdir}/logrotate.d/daisy
@@ -197,17 +201,20 @@ exit 0
 %systemd_post daisy-api.service
 %systemd_post daisy-registry.service
 %systemd_post daisy-orchestration.service
+%systemd_post daisy-auto-backup.service
 
 
 %preun
 %systemd_preun daisy-api.service
 %systemd_preun daisy-registry.service
 %systemd_preun daisy-orchestration.service
+%systemd_preun daisy-auto-backup.service
 
 %postun
 %systemd_postun_with_restart daisy-api.service
 %systemd_postun_with_restart daisy-registry.service
 %systemd_postun_with_restart daisy-orchestration.service
+%systemd_postun_with_restart daisy-auto-backup.service
 
 if [ $1 -eq 0 ] ; then
     rm -rf /var/lib/daisy
@@ -224,6 +231,7 @@ fi
 %{_bindir}/daisy-manage
 %{_bindir}/daisy-registry
 %{_bindir}/daisy-orchestration
+%{_bindir}/daisy-auto-backup
 
 %{_datadir}/daisy/daisy-api-dist.conf
 %{_datadir}/daisy/daisy-registry-dist.conf
@@ -233,6 +241,7 @@ fi
 %{_unitdir}/daisy-api.service
 %{_unitdir}/daisy-registry.service
 %{_unitdir}/daisy-orchestration.service
+%{_unitdir}/daisy-auto-backup.service
 
 
 #%{_mandir}/man1/daisy*.1.gz
@@ -242,6 +251,7 @@ fi
 %config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/daisy/daisy-api.conf
 %config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/daisy/daisy-registry.conf
 %config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/daisy/daisy-orchestration.conf
+%config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/daisy/daisy-auto-backup.conf
 %config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/daisy/policy.json
 %config(noreplace) %attr(-, root, daisy) %{_sysconfdir}/logrotate.d/daisy
 %dir %attr(0755, daisy, daisy) %{_sharedstatedir}/daisy
