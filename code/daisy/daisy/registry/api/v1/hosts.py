@@ -45,7 +45,7 @@ DISPLAY_FIELDS_IN_INDEX = ['id', 'name', 'size',
                            'disk_format', 'container_format',
                            'checksum']
 
-SUPPORTED_FILTERS = ['name', 'status', 'id', 'cluster_id',
+SUPPORTED_FILTERS = ['name', 'status', 'id', 'cluster_id', 'func_id',
                      'auto_scale', 'container_format', 'disk_format',
 
                      'changes-since', 'protected']
