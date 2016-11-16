@@ -38,6 +38,7 @@ from daisy.common import exception
 from daisy.common import wsgi
 from daisy import notifier
 from oslo_service import systemd
+from daisy.api.v1 import backup_restore
 
 # Monkey patch socket, time, select, threads
 eventlet.patcher.monkey_patch(all=False, socket=True, time=True,
@@ -87,6 +88,7 @@ def main():
         server = wsgi.Server(initialize_glance_store=True)
         server.start(config.load_paste_app('daisy-api'), default_port=9292)
         systemd.notify_once()
+        backup_restore.auto_backup_daisy()
         server.wait()
     except KNOWN_EXCEPTIONS as e:
         fail(e)
