@@ -16,12 +16,17 @@
 """
 /hosts endpoint for Daisy v1 API
 """
+import time
 import datetime
 import os
 import subprocess
+import ConfigParser
+import webob
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
 from webob.exc import HTTPForbidden
+from threading import Thread
+from threading import _Timer
 
 from daisy import i18n
 from daisy import notifier
@@ -34,6 +39,7 @@ from daisy.common import wsgi
 import daisy.registry.client.v1.api as registry
 from daisy.api.v1 import controller
 from daisy.api.v1 import filters
+from daisy.context import RequestContext
 import daisy.api.backends.common as daisy_cmn
 from daisy.version import version_info
 
@@ -71,6 +77,8 @@ class Controller(controller.BaseController):
         self.notifier = notifier.Notifier()
         registry.configure_registry_client()
         self.policy = policy.Enforcer()
+        self.config_path = '/home/daisy_install/daisy.conf'
+        self.auto_back_path = '/home/daisy_backup/auto/'
 
     def _enforce(self, req, action, target=None):
         """Authorize an action against our policies"""
@@ -170,6 +178,86 @@ class Controller(controller.BaseController):
         return {"backup_file": BACK_PATH + backup_file_name}
 
     @utils.mutating
+    def auto_backup_config_detail(self, req):
+        """
+        Auto backup daisy data..
+
+        :param req: The WSGI/Webob Request object
+
+        :raises HTTPBadRequest if backup failed
+        """
+        auto_backup_switch = "ON"
+        save_days = "10"
+        config = ConfigParser.ConfigParser()
+        config.read(self.config_path)
+        if "auto_backup_switch" in dict(config.items('DEFAULT')):
+            auto_backup_switch = config.get('DEFAULT', 'auto_backup_switch')
+        if "save_days" in dict(config.items('DEFAULT')):
+            save_days = config.get("DEFAULT", "save_days")
+        auto_backup_meta = {
+            'auto_backup_switch': auto_backup_switch,
+            'save_days': save_days
+        }
+        return {"auto_backup_meta": auto_backup_meta}
+
+    @utils.mutating
+    def auto_backup_config_update(self, req, auto_backup_meta):
+        """
+        Auto backup daisy data..
+
+        :param req: The WSGI/Webob Request object
+
+        :raises HTTPBadRequest if backup failed
+        """
+        auto_backup_switch= auto_backup_meta.get("auto_backup_switch", "ON")
+        save_days = auto_backup_meta.get("save_days", "10")
+        config = ConfigParser.ConfigParser()
+        config.read(self.config_path)
+        config.set("DEFAULT", "auto_backup_switch", auto_backup_switch)
+        if auto_backup_switch == "ON":
+            config.set("DEFAULT", "save_days", save_days)
+        config.write(open(self.config_path, "w"))
+        return {"auto_backup_meta": auto_backup_meta}
+
+    @utils.mutating
+    def list_backup_file(self, req):
+        """
+        Returns detailed information for all available backup files
+
+        :param req: The WSGI/Webob Request object
+        :retval The response body is a mapping of the following form::
+
+            {'backup_files': [
+                {'id': <ID>,
+                 'name': <NAME>,
+                 'create_time': <TIMESTAMP>}, ...
+            ]}
+        """
+        self._enforce(req, 'list_backup_file')
+        params = self._get_query_params(req)
+        try:
+            backup_files = []
+            if not os.path.exists(self.auto_back_path):
+                return dict(backup_files=backup_files)
+            for item in os.listdir(self.auto_back_path):
+                path = os.path.join(self.auto_back_path, item)
+                if not os.path.isfile(path):
+                    continue
+                backup_file = {
+                    "id": item,
+                    "file_name": item,
+                    "create_time": os.path.getctime(path)
+                }
+                backup_files.append(backup_file)
+            backup_files.sort(key=lambda x: x['create_time'], reverse=True)
+            for backup_file in backup_files:
+                backup_file['create_time'] = time.strftime(
+                    "%Y-%m-%d %H:%M:%S", time.localtime(backup_file['create_time']))
+        except exception.Invalid as e:
+            raise HTTPBadRequest(explanation=e.msg, request=req)
+        return dict(backup_files=backup_files)
+
+    @utils.mutating
     def restore(self, req, file_meta):
         """
         Restore daisy data.
@@ -258,8 +346,19 @@ class BackupRestoreDeserializer(wsgi.JSONRequestDeserializer):
         result['file_meta'] = utils.get_dict_meta(request)
         return result
 
+    def _auto_backup_deserialize(self, request):
+        result = {}
+        result['auto_backup_meta'] = utils.get_dict_meta(request)
+        return result
+
     def backup(self, request):
         return {}
+
+    def auto_backup_config_detail(self, request):
+        return {}
+
+    def auto_backup_config_update(self, request):
+        return self._auto_backup_deserialize(request)
 
     def restore(self, request):
         return self._deserialize(request)
@@ -280,6 +379,18 @@ class BackupRestoreSerializer(wsgi.JSONResponseSerializer):
         self.notifier = notifier.Notifier()
 
     def backup(self, response, result):
+        response.status = 201
+        response.headers['Content-Type'] = 'application/json'
+        response.body = self.to_json(result)
+        return response
+
+    def auto_backup_config_detail(self, response, result):
+        response.status = 201
+        response.headers['Content-Type'] = 'application/json'
+        response.body = self.to_json(result)
+        return response
+
+    def auto_backup_config_update(self, response, result):
         response.status = 201
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(result)
@@ -309,3 +420,131 @@ def create_resource():
     deserializer = BackupRestoreDeserializer()
     serializer = BackupRestoreSerializer()
     return wsgi.Resource(Controller(), deserializer, serializer)
+
+
+class LoopTimer(_Timer):
+    """Call a function after a specified number of seconds:
+        t = LoopTimer(30.0, f, args=[], kwargs={})
+        t.start()
+        t.cancel() stop the timer's action if it's still waiting
+    """
+
+    def __init__(self, interval, function, args=[], kwargs={}):
+        _Timer.__init__(self, interval, function, args, kwargs)
+
+    def run(self):
+        while True:
+            self.finished.wait(self.interval)
+            if self.finished.is_set():
+                self.finished.set()
+                break
+            self.function(*self.args, **self.kwargs)
+
+
+class AutoBackupTask(object):
+
+    """
+    Class for auto backup daisy system.
+    """
+
+    def __init__(self):
+        self.timer_interval = 60
+        self.backup_hour = 23
+        self.backup_minute = 59
+        self.config_path = '/home/daisy_install/daisy.conf'
+        self.auto_back_path = '/home/daisy_backup/auto/'
+        self.controller = Controller()
+
+    def clean_history_backup_file(self, auto_backup_meta):
+        if not os.path.exists(self.auto_back_path):
+            return
+        try:
+            clean_scripts = []
+            for item in os.listdir(self.auto_back_path):
+                path = os.path.join(self.auto_back_path, item)
+                if not os.path.isfile(path):
+                    continue
+                save_seconds = auto_backup_meta['save_days'] * 24 * 3600
+                if int(time.time()) - int(os.path.getctime(path)) > \
+                        save_seconds:
+                    clean_scripts.append('rm -rf {0}'.format(path))
+            if clean_scripts:
+                daisy_cmn.run_scrip(clean_scripts,
+                                    msg='Delete Backup files failed!')
+        except Exception as e:
+            LOG.error("excute clean history backup file failed!%s",
+                      e.message)
+
+    def backup_daisy_system(self, auto_backup_meta):
+        try:
+            # check is auto backup
+            if auto_backup_meta['auto_backup_switch'] != 'ON':
+                return
+            # backup daisy
+            req = webob.Request.blank('/')
+            req.context = RequestContext(is_admin=True,
+                                         user='fake user',
+                                         tenant='fake tenamet')
+            backup = self.controller.backup(req)
+            backup_file = backup.get("backup_file", '')
+            if not backup_file:
+                LOG.error("Auto backup daisy failed,file name is empty.")
+                return
+            backup_file_name = os.path.split(backup_file)[1]
+            # copy backup file to dest directory
+            scripts = [
+                'test -d {0}||mkdir -p {0}'.format(self.auto_back_path),
+                'cp -rf {0} {1}'.format(backup_file, self.auto_back_path),
+                'chmod 777 {0} {0}{1}'.format(self.auto_back_path,
+                                              backup_file_name),
+                'rm -rf {0}'.format(backup_file)
+            ]
+            daisy_cmn.run_scrip(scripts, msg='Auto Backup file failed!')
+        except Exception as e:
+            LOG.error("excute backup daisy system failed!%s",
+                      e.message)
+
+    def callback_auto_backup_timer(self):
+        try:
+            if (time.localtime().tm_hour != self.backup_hour) or \
+                    (time.localtime().tm_min != self.backup_minute):
+                return
+            config = ConfigParser.ConfigParser()
+            config.read(self.config_path)
+            auto_backup_meta = {
+                'auto_backup_switch': 'ON',
+                'save_days': 10
+            }
+            if 'auto_backup_switch' in dict(config.items('DEFAULT')):
+                auto_backup_meta['auto_backup_switch'] = config.get(
+                    "DEFAULT", "auto_backup_switch")
+            if "save_days" in dict(config.items('DEFAULT')):
+                auto_backup_meta['save_days'] = config.getint(
+                    "DEFAULT", "save_days")
+            # clean history backup file
+            self.clean_history_backup_file(auto_backup_meta)
+            # backup daisy system
+            self.backup_daisy_system(auto_backup_meta)
+        except Exception as e:
+            LOG.error("excute callback auto backup timer failed!%s",
+                      e.message)
+
+    def run(self):
+        try:
+            self._run()
+        except Exception as e:
+            LOG.error("excute auto backup daisy system failed!%s", e.message)
+
+    def _run(self):
+        """
+        Exectue auto backup daisy system.
+        :return:
+        """
+        t = LoopTimer(self.timer_interval, self.callback_auto_backup_timer)
+        t.start()
+
+
+def auto_backup_daisy():
+    auto_backup_obj = AutoBackupTask()
+    auto_backup_thread = Thread(target=auto_backup_obj.run)
+    auto_backup_thread.start()

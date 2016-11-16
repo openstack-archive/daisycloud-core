@@ -525,6 +525,18 @@ class API(wsgi.Router):
                        controller=backup_restore_resource,
                        action='backup',
                        conditions={'method': ['POST']})
+        mapper.connect("/backup/backup_file_list",
+                       controller=backup_restore_resource,
+                       action="list_backup_file",
+                       conditions={'method': ['GET']})
+        mapper.connect("/auto_backup_config_detail",
+                       controller=backup_restore_resource,
+                       action='auto_backup_config_detail',
+                       conditions={'method': ['POST']})
+        mapper.connect("/auto_backup_config_update",
+                       controller=backup_restore_resource,
+                       action='auto_backup_config_update',
+                       conditions={'method': ['POST']})
         mapper.connect("/restore",
                        controller=backup_restore_resource,
                        action='restore',
