@@ -50,7 +50,6 @@ from webob import exc
 
 from daisy.common import exception
 from daisy import i18n
-# from providerclient.v1 import client as provider_client
 
 CONF = cfg.CONF
 
