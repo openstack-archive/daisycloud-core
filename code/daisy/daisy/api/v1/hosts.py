@@ -18,7 +18,6 @@
 """
 import subprocess
 import re
-
 from oslo_config import cfg
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
