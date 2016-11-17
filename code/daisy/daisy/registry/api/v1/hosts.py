@@ -1560,6 +1560,10 @@ class Controller(object):
             raise exc.HTTPConflict(body='Host operation conflicts',
                                    request=req,
                                    content_type='text/plain')
+        except exception.Duplicate as e:
+            msg = (_("%s") % utils.exception_to_str(e))
+            LOG.error(msg)
+            raise exc.HTTPForbidden(msg)
         except Exception:
             LOG.exception(_LE("Unable to update host %s") % id)
             raise
