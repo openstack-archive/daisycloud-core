@@ -85,10 +85,10 @@ def pci_get_cpu_sets(numa_cpus, device_numa_node, clc_pci_list):
                   "need to upgrade BIOS version" % numa_node
             LOG.error(msg)
             return_code = 1
-        status['rc'] = return_code
-        status['msg'] = msg
-        high_pci_cpu_set = {'high': [-1], 'low': [-1]}
-        return (status, high_pci_cpu_set)
+            status['rc'] = return_code
+            status['msg'] = msg
+            high_pci_cpu_set = {'high': [-1], 'low': [-1]}
+            return (status, high_pci_cpu_set)
 
         numa_key = 'numa_node' + str(numa_node)
         if numa_key not in numa_cpus:
