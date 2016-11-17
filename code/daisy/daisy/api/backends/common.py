@@ -135,7 +135,7 @@ def file_2_list(f, cluster_list):
     cluster_ids = f.readlines()
     for cluster_id in cluster_ids:
         cluster_list.append(cluster_id.strip("\n"))
- 
+
 
 def cluster_list_add(cluster_id):
     cluster_list = []
@@ -726,7 +726,7 @@ def update_db_host_status(req, host_id, host_status, version_id=None,
             host_meta['os_status'] = host_status['os_status']
         if host_status.get('messages', None):
             host_meta['messages'] = host_status['messages']
-        if host_status.has_key('tecs_version_id'):
+        if host_status.get('tecs_version_id', None):
             host_meta['tecs_version_id'] = host_status['tecs_version_id']
         if version_id:
             host_meta['os_version_id'] = version_id
@@ -804,9 +804,9 @@ def get_management_ip(host_detail, is_throw_exception=True):
         if ('assigned_networks' in interface and
                 interface['assigned_networks']):
             for as_network in interface['assigned_networks']:
-                if ((as_network.get('name', '') == 'MANAGEMENT'
-                     or as_network.get('network_type', '') == 'MANAGEMENT')
-                        and 'ip' in as_network):
+                if ((as_network.get('name', '') == 'MANAGEMENT' or
+                    as_network.get('network_type', '') == 'MANAGEMENT') and
+                        'ip' in as_network):
                     host_management_ip = as_network['ip']
 
     if not host_management_ip and is_throw_exception:
@@ -913,12 +913,12 @@ def add_ssh_host_to_cluster_and_assigned_network(req, cluster_id, host_id):
         father_vlan_list = []
         discover_successful = 0
         host_info = get_host_detail(req, host_id)
-        host_status = host_info.get('status',None)
+        host_status = host_info.get('status', None)
         if host_status != 'init':
-            interfac_meta_list=host_info.get('interfaces',None)
+            interfac_meta_list = host_info.get('interfaces', None)
             for interface_info in interfac_meta_list:
-                assigned_networks = interface_info.get\
-                    ('assigned_networks', None)
+                assigned_networks = \
+                    interface_info.get('assigned_networks', None)
                 if assigned_networks:
                     discover_successful = 1
         if not discover_successful:
@@ -928,10 +928,15 @@ def add_ssh_host_to_cluster_and_assigned_network(req, cluster_id, host_id):
             params = {'filters': {'cluster_id': cluster_id}}
             networks = registry.get_networks_detail(req.context,
                                                     cluster_id, **params)
-            father_vlan_list=check_vlan_nic_and_join_vlan_network\
-                (req, cluster_id, host_list, networks)
-            check_bond_or_ether_nic_and_join_network\
-                (req, cluster_id, host_list, networks, father_vlan_list)
+            father_vlan_list = check_vlan_nic_and_join_vlan_network(req,
+                                                                    cluster_id,
+                                                                    host_list,
+                                                                    networks)
+            check_bond_or_ether_nic_and_join_network(req,
+                                                     cluster_id,
+                                                     host_list,
+                                                     networks,
+                                                     father_vlan_list)
 
 
 def check_vlan_nic_and_join_vlan_network(req, cluster_id,
@@ -939,10 +944,10 @@ def check_vlan_nic_and_join_vlan_network(req, cluster_id,
     father_vlan_list = []
     for host_id in host_list:
         host_meta_detail = get_host_detail(req, host_id)
-        if host_meta_detail.has_key('interfaces'):
-            interfac_list = host_meta_detail.get('interfaces',None)
+        if host_meta_detail.get('interfaces', None):
+            interfac_list = host_meta_detail.get('interfaces', None)
             for interface_info in interfac_list:
-                host_ip = interface_info.get('ip',None)
+                host_ip = interface_info.get('ip', None)
                 if interface_info['type'] == 'vlan' and host_ip:
                     check_ip_if_valid = \
                         _checker_the_ip_or_hostname_valid(host_ip)
@@ -1002,15 +1007,19 @@ def _checker_the_ip_or_hostname_valid(ip_str):
             return False
 
 
-def check_bond_or_ether_nic_and_join_network(req, cluster_id, host_list, networks, father_vlan_list):
+def check_bond_or_ether_nic_and_join_network(req,
+                                             cluster_id,
+                                             host_list,
+                                             networks,
+                                             father_vlan_list):
     for host_id in host_list:
         host_info = get_host_detail(req, host_id)
-        if host_info.has_key('interfaces'):
+        if host_info.get('interfaces', None):
             update_host_interface = 0
-            interfac_meta_list = host_info.get('interfaces',None)
+            interfac_meta_list = host_info.get('interfaces', None)
             for interface_info in interfac_meta_list:
                 update_flag = 0
-                host_info_ip = interface_info.get('ip',None)
+                host_info_ip = interface_info.get('ip', None)
                 if interface_info['type'] != 'vlan':
                     nic_name = interface_info['name']
                     for nic in father_vlan_list:
@@ -1034,8 +1043,9 @@ def check_bond_or_ether_nic_and_join_network(req, cluster_id, host_list, network
                                                            'EXTERNAL']:
                                 continue
                             if network.get('cidr', None):
-                                ip_in_cidr = utils.is_ip_in_cidr\
-                                    (host_info_ip, network['cidr'])
+                                ip_in_cidr = utils.is_ip_in_cidr(
+                                    host_info_ip,
+                                    network['cidr'])
                                 if ip_in_cidr:
                                     vlan_id = network['vlan_id']
                                     if not vlan_id:
@@ -1066,15 +1076,15 @@ def check_bond_or_ether_nic_and_join_network(req, cluster_id, host_list, network
                                 raise HTTPForbidden(explanation=msg)
 
             if update_host_interface:
-                host_meta={}
+                host_meta = {}
                 host_meta['cluster'] = cluster_id
                 host_meta['interfaces'] = str(interfac_meta_list)
                 host_meta = registry.update_host_metadata(req.context,
-                          host_id,
-                          host_meta)
+                                                          host_id,
+                                                          host_meta)
                 LOG.info("add the host %s join the cluster %s and"
-                     " assigned_network successful" %
-                     (host_id, cluster_id))
+                         " assigned_network successful" %
+                         (host_id, cluster_id))
 
 
 def build_pxe_server(eth_name, ip_address, build_pxe, net_mask,

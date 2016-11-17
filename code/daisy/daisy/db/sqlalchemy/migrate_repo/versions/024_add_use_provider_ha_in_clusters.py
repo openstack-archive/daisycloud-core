@@ -8,4 +8,3 @@ def upgrade(migrate_engine):
     meta.bind = migrate_engine
     clusters = Table('clusters', meta, autoload=True)
     clusters.create_column(use_provider_ha)
-

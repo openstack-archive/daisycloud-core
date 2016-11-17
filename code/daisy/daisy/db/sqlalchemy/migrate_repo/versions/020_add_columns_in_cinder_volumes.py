@@ -27,4 +27,3 @@ def upgrade(migrate_engine):
     cinder_volumes = Table('cinder_volumes', meta, autoload=True)
     cinder_volumes.create_column(root_pwd)
     cinder_volumes.create_column(resource_pools)
-

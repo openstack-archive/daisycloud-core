@@ -292,7 +292,6 @@ def _rm_ipmi_failed_host(req, install_hosts):
     return install_hosts
 
 
-
 def get_host_location_of_cisco(host_detail):
     LOG.info(_("Get location for host %s" % host_detail['id']))
     try:
@@ -340,7 +339,8 @@ def set_reboot_of_cisco(host_detail):
             'sshpass -p%s ssh -o StrictHostKeyChecking=no '
             '%s@10.10.100.254 "scope service-profile server %s;'
             'reboot;commit-buffer"' % (host_detail.get('ipmi_passwd'),
-            host_detail.get('ipmi_user'), host_detail.get('location')),
+                                       host_detail.get('ipmi_user'),
+                                       host_detail.get('location')),
             shell=True, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
         LOG.info(_("restart for %s failed!" % host_detail['id']))
@@ -414,14 +414,14 @@ class OSInstall():
                                            "%s times by ironic" % (
                                                addr, action, count + 1)}
                 daisy_cmn.update_db_host_status(self.req, host_detail['id'],
-                                      host_status)
+                                                host_status)
                 # make user know set successfull
                 time.sleep(1)
                 host_status = {
                     'messages': 'Preparing for OS installation',
                     'os_progress': 0}
                 daisy_cmn.update_db_host_status(self.req, host_detail['id'],
-                                      host_status)
+                                                host_status)
 
                 # One host set 'disk' return success, but it still 'pxe'
                 # mode in German site. If we have a method to confirm,
@@ -439,7 +439,7 @@ class OSInstall():
                                            "%s times by ironic" % (
                                                addr, action, count + 1)}
                 daisy_cmn.update_db_host_status(self.req, host_detail['id'],
-                                      host_status)
+                                                host_status)
                 time.sleep(count * 2)
         if count >= repeat_times:
             ipmi_result_flag = False
@@ -458,7 +458,7 @@ class OSInstall():
                                 "controller host,can't go on playing" % (
                                     addr, action)}
                 daisy_cmn.update_db_host_status(self.req, host_detail['id'],
-                                      host_status)
+                                                host_status)
                 message = "set %s to '%s' failed for 10 mins,is controller" \
                           " host,can't go on playing" % (addr, action)
                 raise exception.IMPIOprationFailed(message=message)
@@ -473,7 +473,7 @@ class OSInstall():
                                 "controller host or no role ,go on playing"
                                 % (addr, action)}
                 daisy_cmn.update_db_host_status(self.req, host_detail['id'],
-                                      host_status)
+                                                host_status)
 
         return ipmi_result_flag
 
@@ -483,8 +483,9 @@ class OSInstall():
         if host_detail.get('os_version_file', None):
             os_version_file = host_detail['os_version_file']
         if host_detail.get('os_version_id', None):
-            version_info = registry.get_version_metadata(self.req.context,
-                           host_detail['os_version_id'])
+            version_info = registry.get_version_metadata(
+                self.req.context,
+                host_detail['os_version_id'])
             if version_info:
                 os_version = version_info['name']
                 os_version_file = "/var/lib/daisy/" + os_version
@@ -571,8 +572,9 @@ class OSInstall():
             if (not host_detail['ipmi_user'] or
                     not host_detail['ipmi_passwd'] or
                     not host_detail['ipmi_addr']):
-                self.message = "Invalid ipmi information configed for host %s" \
-                               % host_detail['id']
+                self.message = \
+                    "Invalid ipmi information configed for host %s" \
+                    % host_detail['id']
                 raise exception.NotFound(message=self.message)
 
                 ipmi_result_flag = self._set_boot_or_power_state(host_detail,
@@ -638,7 +640,8 @@ class OSInstall():
                 host_status = {'os_status': host_os_status['INSTALL_FAILED'],
                                'os_progress': 0,
                                'messages': error}
-                daisy_cmn.update_db_host_status(self.req, host_detail['id'], host_status)
+                daisy_cmn.update_db_host_status(self.req, host_detail['id'],
+                                                host_status)
                 msg = "ironic install os return failed for host %s" % \
                       host_detail['id']
                 raise exception.OSInstallFailed(message=msg)
@@ -839,8 +842,8 @@ class OSInstall():
         total_time_cost = str(
             round((time.time() - daisy_cmn.os_install_start_time) / 60, 2))
         if daisy_cmn.in_cluster_list(self.cluster_id):
-           daisy_cmn.cluster_list_delete(self.cluster_id)
-           LOG.info("Clear install global variables")
+            daisy_cmn.cluster_list_delete(self.cluster_id)
+            LOG.info("Clear install global variables")
         LOG.info(
             _("It totally takes %s min for all host to install os"
               % total_time_cost))

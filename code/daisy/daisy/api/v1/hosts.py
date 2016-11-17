@@ -999,11 +999,11 @@ class Controller(controller.BaseController):
         if host_meta.get('os_version', None) and utils.is_uuid_like(
                 host_meta['os_version']):
             os_version = host_meta['os_version']
-        if not host_meta.get('os_version', None) and orig_host_meta[
-            'os_version_file']:
+        if not host_meta.get('os_version', None) and \
+                orig_host_meta['os_version_file']:
             os_version = orig_host_meta['os_version_file']
-        if not host_meta.get('os_version', None) and orig_host_meta[
-            'os_version_id']:
+        if not host_meta.get('os_version', None) and \
+                orig_host_meta['os_version_id']:
             os_version = orig_host_meta['os_version_id']
         return os_version
 
@@ -1034,7 +1034,8 @@ class Controller(controller.BaseController):
         return os_version_type
         # else:
         #     params = {}
-        #     version_list = registry.list_version_metadata(req.context, **params)
+        #     version_list = registry.list_version_metadata(req.context,
+        #                                                   **params)
         #     for version in version_list:
         #         if version['name'] == os_version.split("/")[-1]:
         #             return version['type']
@@ -1060,7 +1061,7 @@ class Controller(controller.BaseController):
         version_list = registry.list_version_metadata(req.context, **params)
         if utils.is_uuid_like(os_version):
             version_id_list = [version['id'] for version in version_list]
-            if not os_version in version_id_list:
+            if os_version not in version_id_list:
                 msg = _("os version %s does not exist") % os_version
                 raise HTTPForbidden(explanation=msg)
         # else:
@@ -1369,8 +1370,8 @@ class Controller(controller.BaseController):
                             find("mpath") != -1 \
                             or orig_host_meta['disks'][key]['name'].\
                             find("spath") != -1 \
-                            or orig_host_meta['disks'][key]['removable'] \
-                                    == 'removable':
+                            or orig_host_meta['disks'][key]['removable'] == \
+                            'removable':
                         continue
                     stroage_size_str = orig_host_meta['disks'][key]['size']
                     stroage_size_b_int = int(
@@ -1746,8 +1747,9 @@ class Controller(controller.BaseController):
                         "when os status is active if "
                         "you don't want to install os") % host_meta['name']
                 raise HTTPForbidden(explanation=msg)
-            if host_meta.get('group_list', None) and host_meta[
-                'group_list'] != orig_host_meta['group_list']:
+            if host_meta.get('group_list', None) and \
+                    host_meta['group_list'] != \
+                    orig_host_meta['group_list']:
                 msg = _("Forbidden to update group list of %s "
                         "when os status is active if "
                         "you don't want to install os") % host_meta['name']
@@ -1865,8 +1867,9 @@ class Controller(controller.BaseController):
                 params = {'filters': {'cluster_id': cluster_id}}
                 networks = registry.get_networks_detail(req.context,
                                                         cluster_id, **params)
-                father_vlan_list = daisy_cmn.check_vlan_nic_and_join_vlan_network(
-                    req, cluster_id, host_list, networks)
+                father_vlan_list = \
+                    daisy_cmn.check_vlan_nic_and_join_vlan_network(
+                        req, cluster_id, host_list, networks)
                 daisy_cmn.check_bond_or_ether_nic_and_join_network(
                     req, cluster_id, host_list, networks, father_vlan_list)
 
@@ -1900,7 +1903,8 @@ class Controller(controller.BaseController):
         with open(var_log_path, "w+") as fp:
             for backend in backends:
                 backend_driver = driver.load_deployment_dirver(backend)
-                backend_driver.prepare_ssh_discovered_node(req, fp, discover_host_meta)
+                backend_driver.prepare_ssh_discovered_node(req, fp,
+                                                           discover_host_meta)
             try:
                 exc_result = subprocess.check_output(
                     'clush -S -w %s /home/daisy/discover_host/getnodeinfo.sh'
@@ -2444,7 +2448,7 @@ class Controller(controller.BaseController):
                     if not i.values()[0]:
                         ipmi_check_result['ipmi_check_result'] = \
                             "No %s configed for host %s, please " \
-                            "check" % (i.keys()[0],orig_host_meta['name'])
+                            "check" % (i.keys()[0], orig_host_meta['name'])
                         return {'check_result': ipmi_check_result}
                 cmd = 'ipmitool -I lanplus -H %s  -U %s -P %s chassis ' \
                       'power status' % (ipmi_ip, ipmi_user, ipmi_password)
