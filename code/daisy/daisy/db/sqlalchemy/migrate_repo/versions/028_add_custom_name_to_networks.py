@@ -8,4 +8,3 @@ def upgrade(migrate_engine):
     meta.bind = migrate_engine
     networks = Table('networks', meta, autoload=True)
     networks.create_column(custom_name)
-
