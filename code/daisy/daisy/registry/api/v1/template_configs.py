@@ -232,19 +232,23 @@ class Controller(object):
         :param req: wsgi Request object
         :param body: Dictionary of information about the template config
 
-        :retval Returns the newly-created template function information as a mapping,
-                which will include the newly-created template function's internal id
+        :retval Returns the newly-created template function
+                information as a mapping,
+                which will include the newly-created template
+                function's internal id
                 in the 'id' field
         """
 
         template_config_data = body["template_config_metadata"]
 
         try:
-            template_config_data = self.db_api.template_config_import(req.context, template_config_data)
+            template_config_data = self.db_api.template_config_import(
+                req.context, template_config_data)
             msg = (_LI("Successfully import template function %s") %
                    template_config_data)
             LOG.info(msg)
-            template_config_data = dict(template_config_metadata=template_config_data)
+            template_config_data = dict(
+                template_config_metadata=template_config_data)
             return template_config_data
         except exception.Duplicate:
             msg = (_("template function with identifier %s already exists!") %
@@ -296,18 +300,22 @@ class Controller(object):
             LOG.info(msg)
             return exc.HTTPNotFound()
         except Exception:
-            LOG.exception(_LE("Unable to delete template_config_id %s") % template_config_id)
+            LOG.exception(_LE("Unable to delete template_config_id %s")
+                          % template_config_id)
             raise
 
     @utils.mutating
     def get_template_config(self, req, template_config_id):
         """Return data about the given template config id."""
         try:
-            template_config_data = self.db_api.template_config_get(req.context, template_config_id)
-            msg = "Successfully retrieved template config %(id)s" % {'id': template_config_id}
+            template_config_data = self.db_api.template_config_get(
+                req.context, template_config_id)
+            msg = "Successfully retrieved template config %(id)s" \
+                  % {'id': template_config_id}
             LOG.debug(msg)
         except exception.NotFound:
-            msg = _LI("template_config %(id)s not found") % {'id': template_config_id}
+            msg = _LI("template_config %(id)s not found") \
+                % {'id': template_config_id}
             LOG.info(msg)
             raise exc.HTTPNotFound()
         except exception.Forbidden:
@@ -318,7 +326,8 @@ class Controller(object):
             LOG.info(msg)
             raise exc.HTTPNotFound()
         except Exception:
-            LOG.exception(_LE("Unable to show template_config %s") % template_config_id)
+            LOG.exception(_LE("Unable to show template_config %s")
+                          % template_config_id)
             raise
         template_config = dict(template_config=template_config_data)
         return template_config

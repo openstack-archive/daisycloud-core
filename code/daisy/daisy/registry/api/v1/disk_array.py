@@ -582,7 +582,7 @@ class Controller(object):
         """Get cinder_volumes, wrapping in exception if necessary."""
         try:
             return self.db_api.optical_switch_list(context, filters=filters,
-                                                  **params)
+                                                   **params)
         except exception.NotFound:
             LOG.warn(_LW("Invalid marker. optical switch %(id)s "
                          "could not be found.") %

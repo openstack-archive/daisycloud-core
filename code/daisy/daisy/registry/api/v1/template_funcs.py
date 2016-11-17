@@ -39,7 +39,7 @@ _LW = i18n._LW
 CONF = cfg.CONF
 
 DISPLAY_FIELDS_IN_INDEX = ['id', 'func_name', 'ch_desc', 'en_desc',
-                           'data_type','data_check_script']
+                           'data_type', 'data_check_script']
 
 SUPPORTED_FILTERS = ['id', 'func_name', 'cluster_id']
 
@@ -58,8 +58,8 @@ class Controller(object):
         """Get template functions, wrapping in exception if necessary."""
         try:
             return self.db_api.template_func_get_all(context,
-                                                       filters=filters,
-                                                       **params)
+                                                     filters=filters,
+                                                     **params)
         except exception.NotFound:
             LOG.warn(_LW("Invalid marker. template function %(id)s could not "
                          "be found.") % {'id': params.get('marker')})
@@ -254,7 +254,7 @@ class Controller(object):
 
         try:
             template_func_data = self.db_api.template_func_import(
-                req.context,template_func_data)
+                req.context, template_func_data)
             msg = (_LI("Successfully import template function %s") %
                    template_func_data)
             LOG.info(msg)
