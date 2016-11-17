@@ -292,11 +292,9 @@ def get_role_hosts(req, role_id):
 
 def delete_role_hosts(req, role_id):
     try:
-        role_hosts = registry.get_role_host_metadata(
-            req.context, role_id)
+        registry.delete_role_host_metadata(req.context, role_id)
     except exception.Invalid as e:
         raise HTTPBadRequest(explanation=e.msg, request=req)
-    return role_hosts
 
 
 def set_role_status_and_progress(req, cluster_id, opera, status,
