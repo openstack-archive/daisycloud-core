@@ -15,7 +15,7 @@
 
 from sqlalchemy import MetaData, Table, Column
 from daisy.db.sqlalchemy.migrate_repo.schema import Text
-                                                     
+
 group_list = Column('group_list', Text())
 
 
@@ -25,4 +25,3 @@ def upgrade(migrate_engine):
 
     hosts = Table('hosts', meta, autoload=True)
     hosts.create_column(group_list)
-

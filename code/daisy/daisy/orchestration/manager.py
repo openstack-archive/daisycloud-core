@@ -19,12 +19,9 @@
 
 from oslo_config import cfg
 from oslo_log import log as logging
-from webob.exc import HTTPNotFound
 
 from daisy.common import exception
 from daisy.common import utils
-from daisyclient.v1.client import Client
-import ConfigParser
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF

@@ -49,4 +49,3 @@ def upgrade(migrate_engine):
     meta.bind = migrate_engine
     tables = [define_optical_switchs_table(meta), ]
     create_tables(tables)
-
