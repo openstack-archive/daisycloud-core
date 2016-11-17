@@ -20,11 +20,8 @@
 from oslo_config import cfg
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
-from webob.exc import HTTPConflict
 from webob.exc import HTTPForbidden
 from webob.exc import HTTPNotFound
-from webob import Response
-import copy
 import json
 
 from daisy.api import policy
@@ -170,7 +167,6 @@ class Controller(controller.BaseController):
                 cluster_id
             raise HTTPNotFound(msg)
 
-
     @utils.mutating
     def get_template_config(self, req, id):
         """
@@ -180,7 +176,8 @@ class Controller(controller.BaseController):
         :param req: The WSGI/Webob Request object
         :param id: The opaque template_config identifier
 
-        :raises HTTPNotFound if template_config metadata is not available to user
+        :raises HTTPNotFound if template_config metadata is not
+                available to user
         """
         self._enforce(req, 'get_template_config')
         template_config_meta = self.get_template_config_meta_or_404(req, id)

@@ -20,11 +20,7 @@
 from oslo_config import cfg
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
-from webob.exc import HTTPConflict
 from webob.exc import HTTPForbidden
-from webob.exc import HTTPNotFound
-from webob import Response
-import copy
 import json
 
 from daisy.api import policy
@@ -153,7 +149,7 @@ class Controller(controller.BaseController):
 
         if template_func_meta.get('cluster_id'):
             params['filters'].update({'cluster_id':
-                                          template_func_meta['cluster_id']})
+                                     template_func_meta['cluster_id']})
         template_func_meta = self.get_template_func_meta_or_404(req, id,
                                                                 **params)
         return {'template_func_meta': template_func_meta}

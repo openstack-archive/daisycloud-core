@@ -47,8 +47,8 @@ CREATE_PARAMS = ('id', 'name', 'description', 'resource_type', 'dmi_uuid',
                  'vcpu_pin_set', 'dvs_high_cpuset', 'pci_high_cpuset',
                  'os_cpus', 'dvs_cpus', 'config_set_id', 'root_disk',
                  'version_patch_id', 'tecs_version_id', 'dvs_config_type',
-                 'discover_mode', 'system', 'cpu', 'memory', 'disks', 'devices',
-                 'pci')
+                 'discover_mode', 'system', 'cpu',
+                 'memory', 'disks', 'devices', 'pci')
 
 DEFAULT_PAGE_SIZE = 200
 
