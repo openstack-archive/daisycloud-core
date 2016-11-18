@@ -703,12 +703,12 @@ def get_ctl_ha_nodes_min_mac(req, cluster_id):
             continue
         if role['name'] == "CONTROLLER_HA":
             role_hosts = get_hosts_of_role(req, role['id'])
-        for role_host in role_hosts:
-            host_detail = get_host_detail(req,
-                                          role_host['host_id'])
-            host_name = host_detail['name']
-            min_mac = utils.get_host_min_mac(host_detail['interfaces'])
-            ctl_ha_nodes_min_mac[host_name] = min_mac
+            for role_host in role_hosts:
+                host_detail = get_host_detail(req,
+                                              role_host['host_id'])
+                host_name = host_detail['name']
+                min_mac = utils.get_host_min_mac(host_detail['interfaces'])
+                ctl_ha_nodes_min_mac[host_name] = min_mac
     return ctl_ha_nodes_min_mac
 
 
