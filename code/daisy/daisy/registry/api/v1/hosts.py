@@ -436,6 +436,26 @@ class Controller(object):
         return host_interface
 
     @utils.mutating
+    def get_host_interface_by_host_id(self, req, id):
+        host_interface = self.db_api.get_host_interface(req.context, id)
+        return host_interface
+
+    @utils.mutating
+    def get_host_roles_by_host_id(self, req, host_id):
+        try:
+            roles = self.db_api.role_host_member_get(req.context, None,
+                                                     host_id)
+        except exception.NotFound:
+            msg = _LI("Roles of host %(id)s not found") % {'id': host_id}
+            LOG.error(msg)
+            raise exc.HTTPNotFound(msg)
+        except Exception:
+            msg = _LE("Unable to get role of host %s") % host_id
+            LOG.error(msg)
+            raise exc.HTTPBadRequest(msg)
+        return roles
+
+    @utils.mutating
     def get_all_host_interfaces(self, req, body, **params):
         """Return all_host_interfaces about the given filter."""
         filters = body['filters']
