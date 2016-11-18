@@ -23,7 +23,6 @@ from oslo_log import log as logging
 from oslo_utils import excutils
 
 from daisy.common.client import BaseClient
-from daisy.common import crypt
 from daisy import i18n
 from daisy.registry.api.v1 import hosts
 from daisy.registry.api.v1 import config_files
@@ -1486,7 +1485,8 @@ class RegistryClient(BaseClient):
         }
 
         if 'template_func_metadata' not in template_func_metadata:
-            template_func_metadata = dict(template_func_metadata=template_func_metadata)
+            template_func_metadata = dict(
+                template_func_metadata=template_func_metadata)
 
         body = jsonutils.dumps(template_func_metadata)
 
@@ -1501,7 +1501,8 @@ class RegistryClient(BaseClient):
 
     def get_template_service(self, template_service_id):
         """Return a list of template function associations from Registry."""
-        res = self.do_request("GET", "/template_services/%s" % template_service_id)
+        res = self.do_request("GET", "/template_services/%s"
+                              % template_service_id)
         data = jsonutils.loads(res.read())['template_service']
         return data
 
@@ -1509,7 +1510,9 @@ class RegistryClient(BaseClient):
         """
         Returns a list of template function data mappings from Registry
         """
-        params = self._extract_params(kwargs, template_services.SUPPORTED_PARAMS)
+        params = self._extract_params(kwargs,
+                                      template_services.SUPPORTED_PARAMS)
         res = self.do_request("GET", "/template_services/list", params=params)
-        template_service_list = jsonutils.loads(res.read())['template_services']
+        template_service_list = jsonutils.loads(res.read())[
+            'template_services']
         return template_service_list

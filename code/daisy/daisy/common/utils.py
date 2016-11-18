@@ -47,7 +47,6 @@ from oslo_utils import netutils
 from oslo_utils import strutils
 import six
 from webob import exc
-import ConfigParser
 
 from daisy.common import exception
 from daisy import i18n
@@ -1203,4 +1202,3 @@ def get_numa_node_from_cpus(numa, str_cpus):
     numa_nodes = list(set(numa_nodes))
     numa_nodes.sort()
     return numa_nodes
-

@@ -75,7 +75,7 @@ class Controller(controller.BaseController):
             msg = "/home/daisy_intall/daisy.conf is not exist"
             LOG.error(msg)
             raise HTTPForbidden(explanation=msg, request=req,
-                                    content_type="text/plain")
+                                content_type="text/plain")
 
 
 class BackendTypesDeserializer(wsgi.JSONRequestDeserializer):

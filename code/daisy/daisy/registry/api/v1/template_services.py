@@ -215,11 +215,14 @@ class Controller(object):
     def get_template_service(self, req, template_service_id):
         """Return data about the given template function id."""
         try:
-            template_service_data = self.db_api.template_service_get(req.context, template_service_id)
-            msg = "Successfully retrieved template function %(id)s" % {'id': template_service_id}
+            template_service_data = self.db_api.template_service_get(
+                req.context, template_service_id)
+            msg = "Successfully retrieved template function %(id)s" \
+                  % {'id': template_service_id}
             LOG.debug(msg)
         except exception.NotFound:
-            msg = _LI("template_service %(id)s not found") % {'id': template_service_id}
+            msg = _LI("template_service %(id)s not found") % \
+                {'id': template_service_id}
             LOG.info(msg)
             raise exc.HTTPNotFound()
         except exception.Forbidden:
@@ -230,7 +233,8 @@ class Controller(object):
             LOG.info(msg)
             raise exc.HTTPNotFound()
         except Exception:
-            LOG.exception(_LE("Unable to show template_service %s") % template_service_id)
+            LOG.exception(_LE("Unable to show template_service %s")
+                          % template_service_id)
             raise
         template_service = dict(template_service=template_service_data)
         return template_service

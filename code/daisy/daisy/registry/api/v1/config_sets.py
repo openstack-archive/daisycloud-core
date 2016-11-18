@@ -323,8 +323,11 @@ class Controller(object):
             req.context, id)
         config = []
         for config_item in config_items:
-            config_inf = self.db_api.config_get(req.context, config_item['config_id'])
-            config_file = self.db_api.config_file_get(req.context, config_inf['config_file_id'])
+            config_inf = self.db_api.config_get(req.context,
+                                                config_item['config_id'])
+            config_file = self.db_api.config_file_get(
+                req.context,
+                config_inf['config_file_id'])
             if config_file:
                 config_inf['config_file_name'] = config_file['name']
             config.append(config_inf)

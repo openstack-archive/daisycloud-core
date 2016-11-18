@@ -494,7 +494,7 @@ class BaseController(object):
 
     def get_template_service_meta_or_404(self, request, template_service_id):
         """
-        Grabs the template_service metadata for 
+        Grabs the template_service metadata for
         an template_service with a supplied
         identifier or raises an HTTPNotFound (404) response
 

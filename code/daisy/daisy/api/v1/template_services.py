@@ -20,12 +20,7 @@
 from oslo_config import cfg
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
-from webob.exc import HTTPConflict
 from webob.exc import HTTPForbidden
-from webob.exc import HTTPNotFound
-from webob import Response
-import copy
-import json
 
 from daisy.api import policy
 import daisy.api.v1
@@ -125,7 +120,6 @@ class Controller(controller.BaseController):
                 params[PARAM] = req.params.get(PARAM)
         return params
 
-
     @utils.mutating
     def get_template_service(self, req, id):
         """
@@ -135,7 +129,8 @@ class Controller(controller.BaseController):
         :param req: The WSGI/Webob Request object
         :param id: The opaque template_service identifier
 
-        :raises HTTPNotFound if template_service metadata is not available to user
+        :raises HTTPNotFound if template_service metadata is not
+                available to user
         """
         self._enforce(req, 'get_template_service')
         template_service_meta = self.get_template_service_meta_or_404(req, id)
