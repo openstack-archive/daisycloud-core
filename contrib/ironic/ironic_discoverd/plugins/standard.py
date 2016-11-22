@@ -14,6 +14,7 @@
 """Standard set of plugins."""
 
 import logging
+from oslo_utils import netutils
 
 from ironic_discoverd import conf
 from ironic_discoverd.plugins import base
@@ -68,7 +69,7 @@ class ValidateInterfacesHook(base.ProcessingHook):
 
         valid_interfaces = {
             n: iface for n, iface in node_info['interfaces'].items()
-            if (utils.is_valid_mac(iface.get('mac'))
+            if (netutils.is_valid_mac(iface.get('mac'))
                 and (compat or iface.get('ip')))
         }
         valid_macs = [iface['mac'] for iface in valid_interfaces.values()]
