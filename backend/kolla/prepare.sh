@@ -16,4 +16,4 @@ systemctl enable ntpd.service
 systemctl stop libvirtd.service
 systemctl disable libvirtd.service
 systemctl start ntpd.service
-yum -y install ansible1.9
+yum -y install ansible
