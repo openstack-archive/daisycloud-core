@@ -709,12 +709,7 @@ function daisyrc_admin
 
     if [ ! -e $file ];then
        touch $file
-       echo "export OS_AUTH_TOKEN=admin" >> $file
-       echo "export IRONIC_URL=http://$ip:6385/v1" >> $file
        echo "export OS_ENDPOINT=http://$ip:$bind_port" >> $file
-       echo "export PS1='[\u@\h \W(daisy_admin)]\$ '" >> $file
-       echo "export OS_SERVICE_TOKEN=e93e9abf42f84be48e0996e5bd44f096" >> $file
-       echo "export OS_SERVICE_ENDPOINT=http://$ip:35357/v2.0" >> $file
     fi
 }
 
@@ -785,10 +780,9 @@ function build_pxe_server
     fi
 }
 
-function config_keystone_local_setting
+function config_dashboard_local_setting
 {
     local dashboard_conf_file="/etc/openstack-dashboard/local_settings"
-    local keystone_conf_file="/etc/keystone/keystone.conf"
 
     get_public_ip
     if [ -z $public_ip ];then
@@ -796,15 +790,13 @@ function config_keystone_local_setting
         exit 1
     fi
 
-    update_config "$dashboard_conf_file" OPENSTACK_KEYSTONE_URL "\"http://${public_ip}:5000/v2.0\""
+    update_config "$dashboard_conf_file" OPENSTACK_KEYSTONE_URL "\"http://${public_ip}:5000/v3\""
     update_config "$dashboard_conf_file" DAISY_ENDPOINT_URL "\"http://$public_ip:19292\""
     update_config "$dashboard_conf_file" WEBROOT "'/dashboard/'"
     update_config "$dashboard_conf_file" LOGIN_URL "'/dashboard/auth/login/'"
     update_config "$dashboard_conf_file" LOGOUT_URL "'/dashboard/auth/logout/'"
     update_config "$dashboard_conf_file" ALLOWED_HOSTS "['*']"
     update_config "$dashboard_conf_file" AUTHENTICATION_URLS "['openstack_auth.urls',]"
-    openstack-config --set "$keystone_conf_file" DEFAULT admin_token "e93e9abf42f84be48e0996e5bd44f096"
-    openstack-config --set "$keystone_conf_file" token expiration "90000"
 
     touch /var/log/horizon/horizon.log
     chown apache:apache /var/log/horizon/horizon.log
@@ -819,6 +811,14 @@ function config_keystone_local_setting
     else
         update_config "$director_theme_conf_file" DISABLED "True"
     fi
+}
+
+function config_keystone_local_setting
+{   
+    local keystone_conf_file="/etc/keystone/keystone.conf"
+    openstack-config --set "$keystone_conf_file" database connection "mysql+pymysql://keystone:keystone@127.0.0.1/keystone"
+    openstack-config --set "$keystone_conf_file" token provider "fernet"
+    openstack-config --set "$keystone_conf_file" token expiration "90000"
 }
 
 function config_get_node_info

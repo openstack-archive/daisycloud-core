@@ -94,11 +94,11 @@ function all_install
         exit 1
     else
         update_section_config "$daisy_file" database connection "mysql://daisy:daisy@$public_ip/$db_name?charset=utf8"
+        config_dashboard_local_setting
         config_keystone_local_setting
     fi
 
-    systemctl restart openstack-keystone.service
-    [ "$?" -ne 0 ] && { write_install_log "Error:systemctl restart openstack-keystone.service failed"; exit 1; }
+    ln -s /usr/share/keystone/wsgi-keystone.conf /etc/httpd/conf.d/
     systemctl restart httpd.service
     [ "$?" -ne 0 ] && { write_install_log "Error:systemctl restart httpd.service failed"; exit 1; }
     systemctl start daisy-api.service
@@ -108,7 +108,6 @@ function all_install
     systemctl start mariadb.service
     [ "$?" -ne 0 ] && { write_install_log "Error:systemctl start mariadb.service failed"; exit 1; }
 
-    systemctl enable openstack-keystone.service  >> $install_logfile 2>&1
     systemctl enable httpd.service  >> $install_logfile 2>&1
     systemctl enable daisy-api.service >> $install_logfile 2>&1
     systemctl enable daisy-registry.service >> $install_logfile 2>&1
@@ -180,28 +179,21 @@ function all_install
         write_install_log "start keystone-manage db_sync..."
         keystone-manage db_sync
         [ "$?" -ne 0 ] && { write_install_log "Error:keystone-manage db_sync command failed"; exit 1; }
+        write_install_log "start keystone-manage fernet_setup..."
+        keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone
+        [ "$?" -ne 0 ] && { write_install_log "Error:keystone-manage fernet_setup command failed"; exit 1; }
+        write_install_log "start keystone-manage credential_setup..."
+        keystone-manage credential_setup --keystone-user keystone --keystone-group keystone
+        [ "$?" -ne 0 ] && { write_install_log "Error:keystone-manage credential_setup command failed"; exit 1; }
+        write_install_log "start keystone-manage bootstrap..."
+        keystone-manage bootstrap --bootstrap-password $keystone_admin_token \
+        --bootstrap-admin-url http://127.0.0.1:35357/v3/ \
+        --bootstrap-internal-url http://127.0.0.1:35357/v3/ \
+        --bootstrap-public-url http://127.0.0.1:5000/v3/ \
+        --bootstrap-region-id RegionOne
+        [ "$?" -ne 0 ] && { write_install_log "Error:keystone-manage bootstrap command failed"; exit 1; }
     fi
-    #creat horizon admin account
-    export OS_SERVICE_TOKEN=$keystone_admin_token
-    export OS_SERVICE_ENDPOINT=http://$public_ip:35357/v2.0
-    keystone user-create --name=admin --pass=keystone  >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:keystone user-create command failed"; exit 1; }
-    keystone role-create --name=admin  >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:keystone role-create command failed"; exit 1; }
-    keystone tenant-create --name=admin --description="Admin Tenant"  >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:keystone tenant-create command failed"; exit 1; }
-    keystone user-role-add --user=admin --tenant=admin --role=admin  >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:keystone user-role-add command failed"; exit 1; }
-    #keystone user-role-add --user=admin --role=_member_ --tenant=admin  >> $install_logfile 2>&1
-    keystone service-create --name keystone --type identity --description "OpenStack Identity Service" >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:keystone service-create command failed"; exit 1; }
-    service_id=`keystone service-list 2>/dev/null|grep "keystone" |awk -F '| ' '{print $2}'`
-    if [ -z $service_id ];then
-        write_install_log "Error:there is no service in keystone database"
-        exit 1
-    fi
-    keystone endpoint-create --service-id=$service_id --region=RegionOne --publicurl=http://$public_ip:5000/v2.0 --internalurl=http://$public_ip:5000/v2.0 --adminurl=http://$public_ip:35357/v2.0 >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:keystone endpoint-create command failed"; exit 1; }
+    
     #creat daisy datebase tables
     which daisy-manage >> $install_logfile 2>&1
     if [ "$?" == 0 ];then
@@ -223,9 +215,6 @@ function all_install
     sed  -i "s/command_timeout:[[:space:]]*.*/command_timeout: 3600/g" $clustershell_conf
 
     systemctl restart rabbitmq-server.service
-    [ "$?" -ne 0 ] && { write_install_log "Error:systemctl restart rabbitmq-server.service failed"; exit 1; }
-
-    systemctl restart openstack-keystone.service
     [ "$?" -ne 0 ] && { write_install_log "Error:systemctl restart rabbitmq-server.service failed"; exit 1; }
 
     systemctl restart openstack-ironic-discoverd.service
