@@ -470,7 +470,8 @@ class Controller(controller.BaseController):
         return roles
 
     # backend_index should be unique in cluster
-    def _get_cinder_volume_backend_index(self, req, disk_array, cluster_id):
+    def _get_cinder_volume_backend_index(self, req, disk_array, cluster_id,
+                                         cinder_volume_id=None):
         cluster_roles = self._get_cluster_roles(req, cluster_id)
         cinder_volumes = []
         for role in cluster_roles:
@@ -485,6 +486,8 @@ class Controller(controller.BaseController):
             flag = True
             for cinder_volume in cinder_volumes:
                 if backend_index == cinder_volume['backend_index']:
+                    if cinder_volume['id'] == cinder_volume_id:
+                        continue
                     index = index + 1
                     flag = False
                     break
@@ -626,8 +629,13 @@ class Controller(controller.BaseController):
                 raise HTTPBadRequest(explanation=msg,
                                      request=req,
                                      content_type="text/plain")
+        orgin_cinder_volume = self.get_cinder_volume_meta_or_404(req, id)
         if 'role_id' in disk_meta:
-            self._raise_404_if_role_deleted(req, disk_meta['role_id'])
+            role_detail = self.get_role_meta_or_404(
+                req, disk_meta['role_id'])
+        else:
+            role_detail = self.get_role_meta_or_404(
+                req, orgin_cinder_volume['role_id'])
         if ('volume_driver' in disk_meta and disk_meta[
                 'volume_driver'] not in CINDER_VOLUME_BACKEND_DRIVER):
             msg = "volume_driver %s is not supported" % disk_meta[
@@ -635,11 +643,17 @@ class Controller(controller.BaseController):
             raise HTTPBadRequest(explanation=msg,
                                  request=req,
                                  content_type="text/plain")
-        orgin_cinder_volume = self.get_cinder_volume_meta_or_404(req, id)
-        volume_driver = disk_meta.get('volume_driver',
-                                      orgin_cinder_volume['volume_driver'])
+        if disk_meta.get('volume_driver', None):
+            volume_driver = disk_meta['volume_driver']
+            disk_meta['backend_index'] = \
+                self._get_cinder_volume_backend_index(
+                    req, disk_meta, role_detail['cluster_id'], id)
+        else:
+            volume_driver = orgin_cinder_volume['volume_driver']
         if volume_driver == 'FUJITSU_ETERNUS':
-            if not disk_meta.get('root_pwd', orgin_cinder_volume['root_pwd']):
+            if not disk_meta.get('root_pwd', None):
+                disk_meta['root_pwd'] = orgin_cinder_volume['root_pwd']
+            if not disk_meta['root_pwd']:
                 msg = "root_pwd must be given " + \
                       "when using FUJITSU Disk Array"
                 LOG.error(msg)
