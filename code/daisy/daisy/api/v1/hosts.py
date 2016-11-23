@@ -269,7 +269,8 @@ class Controller(controller.BaseController):
 
         return all_networks
 
-    def _check_assigned_networks(self, req, cluster_id, assigned_networks):
+    def _check_assigned_networks(self, req, cluster_id, assigned_networks,
+                                 bond_type=None):
         LOG.info("assigned_networks %s " % assigned_networks)
         cluster_networks = self.get_cluster_networks_info(req, cluster_id)
         list_of_assigned_networks = []
@@ -307,6 +308,15 @@ class Controller(controller.BaseController):
                         raise HTTPBadRequest(explanation=msg,
                                              request=req,
                                              content_type="text/plain")
+                else:
+                    if bond_type and bond_type == "linux":
+                        msg = "bond type can not be linux bond when network " \
+                              "type is DAPAPLANE"
+                        LOG.error(msg)
+                        raise HTTPBadRequest(explanation=msg,
+                                             request=req,
+                                             content_type="text/plain")
+
             else:
                 msg = "can't find network named '%s' in cluster '%s'" % (
                     assigned_network['name'], cluster_id)
@@ -432,11 +442,28 @@ class Controller(controller.BaseController):
                     interface['assigned_networks']):
                 have_assigned_network = True
                 if cluster_id:
-                    assigned_networks_of_one_interface = self.\
-                        _check_assigned_networks(req,
-                                                 cluster_id,
-                                                 interface[
-                                                     'assigned_networks'])
+                    if interface.get('type', None) == "bond":
+                        bond_type = interface.get("bond_type", None)
+                        if bond_type:
+                            assigned_networks_of_one_interface = \
+                                self._check_assigned_networks(req,
+                                                              cluster_id,
+                                                              interface[
+                                                        'assigned_networks'],
+                                                              bond_type)
+                        else:
+                            msg = "bond type must be given when interface " \
+                                  "type is bond"
+                            LOG.error(msg)
+                            raise HTTPBadRequest(explanation=msg,
+                                                 request=req,
+                                                 content_type="text/plain")
+                    else:
+                        assigned_networks_of_one_interface = self. \
+                            _check_assigned_networks(req,
+                                                     cluster_id,
+                                                     interface[
+                                                    'assigned_networks'])
                 else:
                     msg = "cluster must be given first when network " \
                           "plane is allocated"
@@ -1591,11 +1618,22 @@ class Controller(controller.BaseController):
                         LOG.info(
                             "interface['assigned_networks']: %s" %
                             interface['assigned_networks'])
-                        assigned_networks_of_one_interface = self.\
-                            _check_assigned_networks(req,
-                                                     cluster_id,
-                                                     interface['assigned_'
-                                                               'networks'])
+                        if interface.get('type', None) == "bond":
+                            bond_type = interface.get("bond_type", None)
+                            if bond_type:
+                                assigned_networks_of_one_interface = \
+                                    self._check_assigned_networks(req,
+                                                                  cluster_id,
+                                                                  interface[
+                                                        'assigned_networks'],
+                                                                  bond_type)
+                        else:
+                            assigned_networks_of_one_interface = self. \
+                                _check_assigned_networks(req,
+                                                         cluster_id,
+                                                         interface[
+                                                        'assigned_networks'])
+
                         self._update_networks_phyname(
                             req, interface, cluster_id)
                         host_meta['cluster'] = cluster_id
