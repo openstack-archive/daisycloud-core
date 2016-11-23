@@ -3,7 +3,7 @@
 Daisy(Openstack project name: daisycloud-core)
 
 
-Daisy provides automated deployment and management of OpenStack and other distributed systems.
+Daisy provies automated deployment and management of OpenStack and other distributed systems.
 
 ## Website
 http://www.daisycloud.org
