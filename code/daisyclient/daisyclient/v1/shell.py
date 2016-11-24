@@ -1589,6 +1589,10 @@ def do_network_detail(gc, args):
            help='Version of TECS.')
 @utils.arg('--deployment-interface', metavar='<DEPLOYMNET>',
            help='Network interface construction of PXE server(eg:eth0).')
+@utils.arg('--virtual', metavar='<VIRTUAL>',
+           help='Deploy virtual machine(eg:true).')
+@utils.arg('--pxe-only', metavar='<PXE>',
+           help='Deploy virtual machine(eg:true).')
 def do_install(dc, args):
     """Install TECS."""
     fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
