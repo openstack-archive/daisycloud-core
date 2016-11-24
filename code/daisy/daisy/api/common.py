@@ -218,6 +218,17 @@ def valid_cluster_networks(cluster_networks):
                     raise exc.HTTPBadRequest(explanation=msg)
 
 
+def check_gateway_uniqueness(new_cluster_networks):
+    used_gateways = set()
+    for network in new_cluster_networks:
+        if network.get('gateway'):
+            used_gateways.add(network['gateway'])
+    if len(used_gateways) > 1:
+        msg = (_("Only one gateway is allowed."))
+        LOG.error(msg)
+        raise exc.HTTPBadRequest(explanation=msg)
+
+
 def remote_execute_script(ssh_host_info,
                           files=[], commands=[]):
     try:
