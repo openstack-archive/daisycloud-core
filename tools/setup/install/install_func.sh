@@ -77,8 +77,6 @@ function kolla_install
   check_and_install_rpm python-docker-py
   check_and_install_rpm ntp
   systemctl enable ntpd.service
-  systemctl stop libvirtd.service
-  systemctl disable libvirtd.service
   systemctl start ntpd.service
   check_and_install_rpm ansible
   check_and_install_rpm python2-crypto
