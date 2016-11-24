@@ -53,10 +53,8 @@ function uninstall_daisy
     rm -rf /etc/ironic-discoverd
     rm -rf /etc/sudoers.d/daisy
     rm -rf /var/lib/daisy
-    rm -rf /var/log/mariadb/*
     rm -rf /var/log/daisy
     rm -rf /var/log/ironic/*
-    rm -rf /var/log/rabbitmq/*
     rm -rf /root/daisyrc_admin
     echo "Finish clean daisy!"
 }
