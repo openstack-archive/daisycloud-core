@@ -31,7 +31,7 @@ from daisy import notifier
 
 from daisy.api import policy
 import daisy.api.v1
-
+from daisy.api import common
 from daisy.common import exception
 from daisy.common import utils
 from daisy.common import wsgi
@@ -265,6 +265,7 @@ class Controller(controller.BaseController):
             msg = _("Cluster with identifier %s has been deleted.") % \
                 cluster_id
             raise webob.exc.HTTPNotFound(msg)
+        return cluster
 
     def _get_filters(self, req):
         """
@@ -298,6 +299,37 @@ class Controller(controller.BaseController):
                 params[PARAM] = req.params.get(PARAM)
         return params
 
+    def _get_used_networks(self, req, cluster_meta):
+        cluster_id = cluster_meta['id']
+        networks = registry.get_networks_detail(req.context, cluster_id)
+        cluster_roles = daisy_cmn.get_cluster_roles_detail(req, cluster_id)
+        use_provider_ha = cluster_meta.get('use_provider_ha')
+        use_share_disk = False
+        for role in cluster_roles:
+            if role['name'] == 'CONTROLLER_HA':
+                if role.get('disk_location') in ['share', 'share_cluster']:
+                    use_share_disk = True
+                    break
+                service_disks = registry.list_service_disk_metadata(
+                    req.context, **{'filters': {'role_id': role['id']}})
+                for disk in service_disks:
+                    if disk.get('disk_location') in ['share', 'share_cluster']:
+                        use_share_disk = True
+                        break
+            if use_share_disk:
+                break
+
+        used_networks = []
+        for network in networks:
+            net_type = network.get('network_type')
+            if (not use_share_disk and net_type in ['STORAGE']) or \
+                    (not use_provider_ha and net_type in ['TECSClient', 'OUTBAND']) \
+                    or (net_type in ['DATAPLANE', 'EXTERNAL', 'DEPLOYMENT']):
+                continue
+            else:
+                used_networks.append(network)
+        return used_networks
+
     @utils.mutating
     def install_cluster(self, req, install_meta):
         """
@@ -314,7 +346,11 @@ class Controller(controller.BaseController):
 
         cluster_id = install_meta['cluster_id']
         self._enforce(req, 'install_cluster')
-        self._raise_404_if_cluster_deleted(req, cluster_id)
+        cluster_meta = self._raise_404_if_cluster_deleted(req, cluster_id)
+
+        networks = self._get_used_networks(req, cluster_meta)
+        common.valid_cluster_networks(networks)
+        common.check_gateway_uniqueness(networks)
 
         daisy_cmn.set_role_status_and_progress(
             req, cluster_id, 'install',
