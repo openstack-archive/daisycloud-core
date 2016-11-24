@@ -105,9 +105,10 @@ class InstallTask(object):
     """
     """ Definition for install states."""
 
-    def __init__(self, req, cluster_id):
+    def __init__(self, req, cluster_id, skip_pxe_ipmi):
         self.req = req
         self.cluster_id = cluster_id
+        self.skip_pxe_ipmi = skip_pxe_ipmi
 
     def _backends_install(self):
         backends = get_deployment_backends(
@@ -178,7 +179,8 @@ class InstallTask(object):
             max_parallel_os_num - 1) / max_parallel_os_num
         recycle_number = 0
         while order_hosts_need_os:
-            os_install = os_handle.OSInstall(self.req, self.cluster_id)
+            os_install = os_handle.OSInstall(
+                self.req, self.cluster_id, self.skip_pxe_ipmi)
             # all os will be installed batch by batch with
             # max_parallel_os_number which was set in daisy-api.conf
             (order_hosts_need_os, role_hosts_need_os) = os_install.install_os(
@@ -311,8 +313,13 @@ class Controller(controller.BaseController):
             os_handle = get_os_handle()
             os_handle.pxe_server_build(req, install_meta)
             return {"status": "pxe is installed"}
-
+        if 'pxe_only' in install_meta:
+            os_handle = get_os_handle()
+            os_handle._pxe_os_server_build(req, install_meta)
         cluster_id = install_meta['cluster_id']
+        skip_pxe_ipmi = None
+        if install_meta.get('skip_pxe_ipmi'):
+            skip_pxe_ipmi = install_meta['skip_pxe_ipmi']
         self._enforce(req, 'install_cluster')
         self._raise_404_if_cluster_deleted(req, cluster_id)
 
@@ -328,7 +335,7 @@ class Controller(controller.BaseController):
             daisy_cmn.cluster_list_add(cluster_id)
             # if have hosts need to install os,
             # TECS installataion executed in InstallTask
-            os_install_obj = InstallTask(req, cluster_id)
+            os_install_obj = InstallTask(req, cluster_id, skip_pxe_ipmi)
             os_install_thread = Thread(target=os_install_obj.run)
             os_install_thread.start()
             return {"status": "begin install"}
