@@ -56,6 +56,6 @@ daisyclient/daisyclient/v1/
     |  | database   +-----------------------------+
     |  | impl.      |   |                               daisy/daisy/db/sqlalchemy/
     |  |            |   |                                   api.py impl. api.role_get_all() methods which uses query=session.query(models.Role)...
-    |  +------------+   |                                   to query all roles in database.
+    |  +------------+   |                                   to query all roles in database...
     +-------------------+
 
