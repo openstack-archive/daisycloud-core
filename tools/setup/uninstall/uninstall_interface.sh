@@ -23,7 +23,6 @@ function uninstall_daisy
     rpm -e  pxe_server_install
     for i in `ps -elf | grep daisy-api |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $i;done
     for j in `ps -elf | grep daisy-registry |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
-    for j in `ps -elf | grep rabbitmq |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
     for j in `ps -elf | grep ironic-discoverd |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
     # delect keystone database
     delete_keystone_sql="drop database IF EXISTS keystone"
@@ -53,10 +52,8 @@ function uninstall_daisy
     rm -rf /etc/ironic-discoverd
     rm -rf /etc/sudoers.d/daisy
     rm -rf /var/lib/daisy
-    rm -rf /var/log/mariadb/*
     rm -rf /var/log/daisy
     rm -rf /var/log/ironic/*
-    rm -rf /var/log/rabbitmq/*
     rm -rf /root/daisyrc_admin
     echo "Finish clean daisy!"
 }
