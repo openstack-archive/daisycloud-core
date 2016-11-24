@@ -1,5 +1,5 @@
 #! /bin/bash
-
+echo "nameserver 8.8.8.8" > /etc/resolv.conf
 daisy_management_ip=$1
 yum -y install epel-release
 curl -sSL https://get.docker.io | bash
