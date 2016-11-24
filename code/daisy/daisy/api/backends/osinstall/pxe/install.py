@@ -384,9 +384,10 @@ class OSInstall():
     """
     """ Definition for install states."""
 
-    def __init__(self, req, cluster_id):
+    def __init__(self, req, cluster_id, virtual):
         self.req = req
         self.cluster_id = cluster_id
+        self.virtual = virtual
         # 5s
         self.time_step = 5
         # 30 min
@@ -667,9 +668,11 @@ class OSInstall():
                            'messages': 'Preparing for OS installation'}
             daisy_cmn.update_db_host_status(self.req, host_detail['id'],
                                             host_status)
-
-        for host_detail in hosts_detail:
-            self._install_os_for_baremetal(host_detail)
+        if self.virtual and self.virtual == 'true':
+            return
+        else:
+            for host_detail in hosts_detail:
+                self._install_os_for_baremetal(host_detail)        
 
     def _set_disk_start_mode(self, host_detail):
         host_manufacturer = host_detail['system'].get('manufacturer')
@@ -727,7 +730,10 @@ class OSInstall():
                 host_status['messages'] = "OS installed successfully"
                 # wait for nicfix script complete
                 time.sleep(10)
-                self._set_disk_start_mode(host_detail)
+                if self.virtual and self.virtual == 'true':
+                    return
+                else:
+                    self._set_disk_start_mode(host_detail)
             else:
                 if host_status['os_progress'] ==\
                         host_last_status['os_progress']:
