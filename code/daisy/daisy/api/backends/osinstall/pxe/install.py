@@ -371,9 +371,18 @@ def set_disk_start_of_cisco(host_detail):
 def _get_host_interfaces(host_info):
     interfaces = host_info['interfaces']
     for interface in interfaces:
+        no_dup_networks = {}
         for assigned_network in interface['assigned_networks']:
             if assigned_network['network_type'] == 'DATAPLANE':
                 assigned_network['ip'] = None
+                break
+
+            # remove duplicates assigned networks
+            if assigned_network.get('ip') not in no_dup_networks.keys() \
+                    or assigned_network.get('network_type') == 'MANAGEMENT':
+                no_dup_networks[assigned_network['ip']] = assigned_network
+        if no_dup_networks:
+            interface['assigned_networks'] = no_dup_networks.values()
     return interfaces
 
 
