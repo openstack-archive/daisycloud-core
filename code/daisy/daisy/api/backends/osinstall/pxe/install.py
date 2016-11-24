@@ -384,9 +384,10 @@ class OSInstall():
     """
     """ Definition for install states."""
 
-    def __init__(self, req, cluster_id):
+    def __init__(self, req, cluster_id, skip_pxe_ipmi):
         self.req = req
         self.cluster_id = cluster_id
+        self.skip_pxe_ipmi = skip_pxe_ipmi
         # 5s
         self.time_step = 5
         # 30 min
@@ -477,6 +478,15 @@ class OSInstall():
 
         return ipmi_result_flag
 
+    def _pxe_os_server_build(self):
+        all_hosts_need_os = get_cluster_hosts_config(self.cluster_id)
+        #hosts_detail = [host_detail for host_detail in all_hosts_need_os]
+        for host_detail in all_hosts_need_os:
+            ipmi_result_flag = self._set_boot_pxe(host_detail)
+            if host_detail.get('hwm_id') or ipmi_result_flag:
+                self._install_os_for_baremetal(host_detail)
+            self._set_power_reset(host_detail)
+
     def _install_os_for_baremetal(self, host_detail):
         # os_version_file and os_version_id only exist one at
         # same time
@@ -557,29 +567,6 @@ class OSInstall():
             hugepagesize = '1G'
         # tfg_patch_pkg_file = check_tfg_exist()
 
-        host_manufacturer = host_detail['system'].get('manufacturer')
-        if host_detail.get('hwm_id'):
-            host_hwm_meta = {
-                "hwm_ip": host_detail.get('hwm_ip'),
-                "hwm_id": host_detail.get('hwm_id'),
-                "boot_type": "pxe"
-            }
-            self.providerclient(host_hwm_meta['hwm_ip']).node.set_boot(
-                **host_hwm_meta)
-        elif host_manufacturer == 'Cisco Systems Inc':
-            set_pxe_start_of_cisco(host_detail)
-        else:
-            if (not host_detail['ipmi_user'] or
-                    not host_detail['ipmi_passwd'] or
-                    not host_detail['ipmi_addr']):
-                self.message = \
-                    "Invalid ipmi information configed for host %s" \
-                    % host_detail['id']
-                raise exception.NotFound(message=self.message)
-
-                ipmi_result_flag = self._set_boot_or_power_state(host_detail,
-                                                                 'pxe')
-
         host_interfaces = _get_host_interfaces(host_detail)
         kwargs = {'hostname': host_detail['name'],
                   'iso_path': os_version_file,
@@ -631,21 +618,48 @@ class OSInstall():
             kwargs['nova_lv_size'] = host_detail['nova_lv_size']
         else:
             kwargs['nova_lv_size'] = 0
-        if host_detail.get('hwm_id') or ipmi_result_flag:
-            rc, error = daisy_cmn.install_os(**kwargs)
-            if rc != 0:
-                install_os_description = error
-                LOG.info(
-                    _("install os config failed because of '%s'" % error))
-                host_status = {'os_status': host_os_status['INSTALL_FAILED'],
-                               'os_progress': 0,
-                               'messages': error}
-                daisy_cmn.update_db_host_status(self.req, host_detail['id'],
-                                                host_status)
-                msg = "ironic install os return failed for host %s" % \
-                      host_detail['id']
-                raise exception.OSInstallFailed(message=msg)
-
+        #if host_detail.get('hwm_id') or ipmi_result_flag:
+        rc, error = daisy_cmn.install_os(**kwargs)
+        if rc != 0:
+            install_os_description = error
+            LOG.info(
+                _("install os config failed because of '%s'" % error))
+            host_status = {'os_status': host_os_status['INSTALL_FAILED'],
+                           'os_progress': 0,
+                           'messages': error}
+            daisy_cmn.update_db_host_status(self.req, host_detail['id'],
+                                            host_status)
+            msg = "ironic install os return failed for host %s" % \
+                  host_detail['id']
+            raise exception.OSInstallFailed(message=msg)
+ 
+    def _set_boot_pxe(self, hosts_detail):
+        ipmi_result_flag = True
+        host_manufacturer = host_detail['system'].get('manufacturer')
+        if host_detail.get('hwm_id'):
+            host_hwm_meta = {
+                "hwm_ip": host_detail.get('hwm_ip'),
+                "hwm_id": host_detail.get('hwm_id'),
+                "boot_type": "pxe"
+            }
+            self.providerclient(host_hwm_meta['hwm_ip']).node.set_boot(
+                **host_hwm_meta)
+        elif host_manufacturer == 'Cisco Systems Inc':
+            set_pxe_start_of_cisco(host_detail)
+        else:
+            if (not host_detail['ipmi_user'] or
+                    not host_detail['ipmi_passwd'] or
+                    not host_detail['ipmi_addr']):
+                self.message = \
+                    "Invalid ipmi information configed for host %s" \
+                    % host_detail['id']
+                raise exception.NotFound(message=self.message)
+        
+                ipmi_result_flag = self._set_boot_or_power_state(host_detail,
+                                                                 'pxe')
+        return ipmi_result_flag
+    
+    def _set_power_reset(self, hosts_detail):
         if host_detail.get('hwm_id'):
             host_hwm_meta = {
                 "hwm_ip": host_detail.get('hwm_ip'),
@@ -667,9 +681,12 @@ class OSInstall():
                            'messages': 'Preparing for OS installation'}
             daisy_cmn.update_db_host_status(self.req, host_detail['id'],
                                             host_status)
-
-        for host_detail in hosts_detail:
-            self._install_os_for_baremetal(host_detail)
+        if self.skip_pxe_ipmi and self.skip_pxe_ipmi == 'true':
+            return
+        else:
+            for host_detail in hosts_detail:
+                self._install_os_for_baremetal(host_detail)
+                self._set_pxe_and_reset(host_detail)    
 
     def _set_disk_start_mode(self, host_detail):
         host_manufacturer = host_detail['system'].get('manufacturer')
@@ -727,7 +744,10 @@ class OSInstall():
                 host_status['messages'] = "OS installed successfully"
                 # wait for nicfix script complete
                 time.sleep(10)
-                self._set_disk_start_mode(host_detail)
+                if self.skip_pxe_ipmi and self.skip_pxe_ipmi == 'true':
+                    return
+                else:
+                    self._set_disk_start_mode(host_detail)
             else:
                 if host_status['os_progress'] ==\
                         host_last_status['os_progress']:
