@@ -68,14 +68,20 @@ function all_install
     install_rpm_by_yum "daisy"
 
     write_install_log "install daisy dashboard rpm"
+    install_rpm_by_yum "python-django"
     install_rpm_by_daisy_yum "python-django-horizon"
     install_rpm_by_yum "daisy-dashboard"
 
     write_install_log "install clustershell rpm"
     install_rpm_by_yum "clustershell"
 
-    write_install_log "install ipmitool rpm"
+    write_install_log "install discover relate rpm"
     install_rpm_by_yum "ipmitool"
+    install_rpm_by_yum "syslinux"
+
+    write_install_log "install wget rpm"
+    install_rpm_by_yum "wget"
+
 
     if [ -f "/etc/zte-docker" ];then
         write_install_log "install pxe_docker_install rpm"
