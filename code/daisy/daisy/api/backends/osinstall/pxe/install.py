@@ -1003,6 +1003,17 @@ def upgrade(self, req, cluster_id, version_id, version_patch_id,
         if daisy_cmn.get_local_deployment_ip(host_ip):
             LOG.exception("%s host os upgrade by hand" % host_ip)
             continue
+        if update_object == "vplat":
+            target_host_os = _get_host_os_version(
+                host_ip, host_meta['root_pwd'])
+            if _cmp_os_version(update_file, target_host_os, host_ip) == -1:
+                LOG.warn(
+                    _("new os version is lower than or equal to "
+                        "host %s, don't need to upgrade!" % host_ip))
+                host_meta['messages'] = "New os version is lower than" \
+                                        " or equal to host %s." % host_ip
+                daisy_cmn.update_db_host_status(req, host_id, host_meta)
+                continue
         host_set = set()
         host_set.add(host_ip)
         unreached_hosts = daisy_cmn.check_ping_hosts(host_set, 5)
@@ -1039,17 +1050,6 @@ def upgrade_os(req, version_id, version_patch_id, update_script,
         for host_info in upgrade_hosts:
             host_id = host_info.keys()[0]
             host_ip = host_info.values()[0]
-            host_detail = daisy_cmn.get_host_detail(req, host_id)
-            if update_object == "vplat":
-                target_host_os = _get_host_os_version(
-                    host_ip, host_detail['root_pwd'])
-                # TODO(zhouya):we now just upgrade the TFG os,
-                # need to change os upgrade function _cmp_os_version to centos
-                if _cmp_os_version(update_file, target_host_os, host_ip) == -1:
-                    LOG.warn(
-                        _("new os version is lower than or equal to "
-                          "host %s, don't need to upgrade!" % host_ip))
-                    continue
             host_meta['os_progress'] = 10
             host_meta['os_status'] = host_os_status['UPDATING']
             host_meta['messages'] = "os updating,begin copy iso"
