@@ -27,6 +27,7 @@ from webob.exc import HTTPBadRequest
 from daisy.api import common
 import threading
 from daisy import i18n
+import json
 
 from daisy.common import exception
 from daisy.common import utils
@@ -65,6 +66,109 @@ LINUX_BOND_MODE = {'balance-rr': '0', 'active-backup': '1',
                    'balance-xor': '2', 'broadcast': '3',
                    '802.3ad': '4', 'balance-tlb': '5',
                    'balance-alb': '6'}
+
+
+def build_pxe_server(eth_name, ip_address, build_pxe, net_mask,
+                     client_ip_begin, client_ip_end):
+    """build pxe server."""
+    pxe_dict = dict()
+    pxe_dict['ethname_l'] = eth_name
+    pxe_dict['ip_addr_l'] = ip_address
+    pxe_dict['build_pxe'] = build_pxe
+    pxe_dict['net_mask_l'] = net_mask
+    pxe_dict['client_ip_begin'] = client_ip_begin
+    pxe_dict['client_ip_end'] = client_ip_end
+    LOG.info('pxe_dict=%s' % pxe_dict)
+    with open('/var/log/ironic/pxe.json', 'w') as f:
+        json.dump(pxe_dict, f, indent=2)
+    f.close()
+    _PIPE = subprocess.PIPE
+    cmd = "/usr/bin/pxe_server_install /var/log/ironic/pxe.json && \
+           chmod 755 /tftpboot -R"
+    try:
+        obj = subprocess.Popen(cmd, stdin=_PIPE, stdout=_PIPE,
+                               stderr=_PIPE, shell=True)
+        obj.communicate()
+    except Exception as e:
+        msg = "build_pxe_server error: %s" % e
+        LOG.error(msg)
+        raise exception.Invalid(msg)
+
+    if obj.returncode:
+        msg = "execute set pxe command failed."
+        LOG.error(msg)
+        raise exception.Invalid(msg)
+
+
+def set_boot_or_power_state(user, passwd, addr, action):
+    if action in ['on', 'off', 'reset']:
+        device = 'power'
+    elif action in ['pxe', 'disk']:
+        device = 'bootdev'
+    else:
+        return
+
+    cmd = ['ipmitool', '-I', 'lanplus', '-H', addr, '-U', user,
+           '-P', passwd, 'chassis', device, action]
+
+    if device == 'bootdev':
+        cmd.append('options=persistent')
+    _PIPE = subprocess.PIPE
+    try:
+        obj = subprocess.Popen(cmd, stdin=_PIPE, stdout=_PIPE,
+                               stderr=_PIPE, shell=False)
+        obj.communicate()
+    except Exception as e:
+        msg = "%s set_boot_or_power_state error: %s" % (addr, e)
+        LOG.error(msg)
+        return -1
+
+    return obj.returncode
+
+
+def install_os(**kwargs):
+    json_file = "/var/log/ironic/%s.json" % kwargs['dhcp_mac']
+    with open(json_file, 'w') as f:
+        json.dump(kwargs, f, indent=2)
+    f.close()
+    _PIPE = subprocess.PIPE
+    cmd = "/usr/bin/pxe_os_install /var/log/ironic/%s.json && \
+           chmod 755 /tftpboot -R && \
+           chmod 755 /home/install_share -R && \
+           chmod 755 /linuxinstall -R" % kwargs['dhcp_mac']
+    try:
+        obj = subprocess.Popen(cmd, stdin=_PIPE, stdout=_PIPE,
+                               stderr=_PIPE, shell=True, cwd=None, env=None)
+        out, error = obj.communicate()
+    except Exception as e:
+        msg = "%s install_os error: %s" % (kwargs['dhcp_mac'], e)
+        LOG.error(msg)
+        return -1, msg
+
+    return obj.returncode, error
+
+
+def get_install_progress(dhcp_mac):
+    _PIPE = subprocess.PIPE
+    cmd = "/usr/bin/pxe_os_install_progress %s" % dhcp_mac
+
+    try:
+        obj = subprocess.Popen(cmd, stdin=_PIPE, stdout=_PIPE,
+                               stderr=_PIPE, shell=True)
+        out, error = obj.communicate()
+        progress_list = out.split()
+        progress = progress_list.pop(0)
+        info = ' '.join(progress_list)
+        rc = obj.returncode
+    except Exception as e:
+        info = '%s get install progress failed: %s' % (dhcp_mac, e)
+        progress, rc = 0, -1
+        LOG.error(info)
+
+    ret = {'return_code': rc,
+           'progress': progress,
+           'info': info}
+    return ret
 
 
 def check_discover_state(req, host_meta, is_detail=False):
@@ -144,7 +248,7 @@ def pxe_server_build(req, install_meta):
                 'net_mask': net_mask,
                 'client_ip_begin': client_ip_begin,
                 'client_ip_end': client_ip_end}
-        daisy_cmn.build_pxe_server(**args)
+        build_pxe_server(**args)
     except exception.Invalid as e:
         msg = "build pxe server failed"
         LOG.error(msg)
@@ -405,7 +509,7 @@ class OSInstall():
         ipmi_result_flag = True
         stop_flag = False
         while count < repeat_times:
-            rc = daisy_cmn.set_boot_or_power_state(user, passwd, addr, action)
+            rc = set_boot_or_power_state(user, passwd, addr, action)
             if rc == 0:
                 LOG.info(
                     _("Set %s to '%s' successfully for %s times by ironic" % (
@@ -427,8 +531,8 @@ class OSInstall():
                 # mode in German site. If we have a method to confirm,
                 # this can be deleted.
                 if action == 'pxe' or action == 'disk':
-                    daisy_cmn.set_boot_or_power_state(user, passwd, addr,
-                                                      action)
+                    set_boot_or_power_state(user, passwd, addr,
+                                            action)
                 break
             else:
                 count += 1
@@ -632,7 +736,7 @@ class OSInstall():
         else:
             kwargs['nova_lv_size'] = 0
         if host_detail.get('hwm_id') or ipmi_result_flag:
-            rc, error = daisy_cmn.install_os(**kwargs)
+            rc, error = install_os(**kwargs)
             if rc != 0:
                 install_os_description = error
                 LOG.info(
@@ -710,7 +814,7 @@ class OSInstall():
 
     def _query_host_progress(self, host_detail, host_status, host_last_status):
         host_id = host_detail['id']
-        install_result = daisy_cmn.get_install_progress(
+        install_result = get_install_progress(
             host_detail['dhcp_mac'])
         rc = int(install_result['return_code'])
         host_status['os_progress'] = int(install_result['progress'])
