@@ -28,13 +28,21 @@ import shutil
 
 import fixtures
 import mock
+<<<<<<< HEAD
 from mox3 import mox
+=======
+import mox
+>>>>>>> unittest of disk_array
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log
 from oslo_messaging import conffixture as messaging_conffixture
 from oslo_utils import strutils
 from oslo_utils import timeutils
+<<<<<<< HEAD
+=======
+import stubout
+>>>>>>> unittest of disk_array
 import testtools
 
 from daisy.db import migration
@@ -71,7 +79,10 @@ class Database(fixtures.Fixture):
         self.engine = db_api.get_engine()
         self.engine.dispose()
         conn = self.engine.connect()
+<<<<<<< HEAD
         db_migrate.db_sync()
+=======
+>>>>>>> unittest of disk_array
         if sql_connection == "sqlite://":
             conn = self.engine.connect()
             self._DB = "".join(line for line in conn.connection.iterdump())
@@ -186,8 +197,16 @@ class TestCase(testtools.TestCase):
         # emulate some of the mox stuff, we can't use the metaclass
         # because it screws with our generators
         self.mox = mox.Mox()
+<<<<<<< HEAD
         self.addCleanup(CONF.reset)
         self.addCleanup(self.mox.UnsetStubs)
+=======
+        self.stubs = stubout.StubOutForTesting()
+        self.addCleanup(CONF.reset)
+        self.addCleanup(self.mox.UnsetStubs)
+        self.addCleanup(self.stubs.UnsetAll)
+        self.addCleanup(self.stubs.SmartUnsetAll)
+>>>>>>> unittest of disk_array
         self.addCleanup(self.mox.VerifyAll)
         self.addCleanup(self._common_cleanup)
         self.injected = []
