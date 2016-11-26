@@ -27,7 +27,6 @@ import sys
 import eventlet
 
 from daisy.common import utils
-import glance_store
 from oslo_config import cfg
 from oslo_log import log as logging
 import osprofiler.notifier
@@ -56,14 +55,9 @@ CONF = cfg.CONF
 CONF.import_group("profiler", "daisy.common.wsgi")
 logging.register_options(CONF)
 
-KNOWN_EXCEPTIONS = (RuntimeError,
-                    exception.WorkerCreationFailure,
-                    glance_store.exceptions.BadStoreConfiguration)
-
 
 def fail(e):
-    global KNOWN_EXCEPTIONS
-    return_code = KNOWN_EXCEPTIONS.index(type(e)) + 1
+    return_code = 100 # TODO: (huzhj) make this a meaningful value
     sys.stderr.write("ERROR: %s\n" % utils.exception_to_str(e))
     sys.exit(return_code)
 
@@ -84,13 +78,12 @@ def main():
         else:
             osprofiler.web.disable()
 
-        server = wsgi.Server(initialize_glance_store=True)
+        server = wsgi.Server()
         server.start(config.load_paste_app('daisy-api'), default_port=9292)
         systemd.notify_once()
         server.wait()
-    except KNOWN_EXCEPTIONS as e:
+    except Exception as e:
         fail(e)
-
 
 if __name__ == '__main__':
     main()

@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import glance_store as store
 from oslo_log import log as logging
 import webob.exc
 

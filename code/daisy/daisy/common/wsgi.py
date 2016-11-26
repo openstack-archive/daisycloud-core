@@ -33,7 +33,6 @@ from eventlet.green import socket
 from eventlet.green import ssl
 import eventlet.greenio
 import eventlet.wsgi
-import glance_store
 from oslo_serialization import jsonutils
 from oslo_concurrency import processutils
 from oslo_config import cfg
@@ -213,13 +212,6 @@ def set_eventlet_hub():
                 reason=msg)
 
 
-def initialize_glance_store():
-    """Initialize glance store."""
-    glance_store.register_opts(CONF)
-    glance_store.create_stores(CONF)
-    glance_store.verify_default_store()
-
-
 def get_asynchronous_eventlet_pool(size=1000):
     """Return eventlet pool to caller.
 
@@ -240,12 +232,9 @@ def get_asynchronous_eventlet_pool(size=1000):
 
 class Server(object):
     """Server class to manage multiple WSGI sockets and applications.
-
-    This class requires initialize_glance_store set to True if
-    glance store needs to be initialized.
     """
 
-    def __init__(self, threads=1000, initialize_glance_store=False):
+    def __init__(self, threads=1000):
         os.umask(0o27)  # ensure files are created with the correct privileges
         self._logger = logging.getLogger("eventlet.wsgi.server")
         self._wsgi_logger = loggers.WritableLogger(self._logger)
@@ -253,9 +242,6 @@ class Server(object):
         self.children = set()
         self.stale_children = set()
         self.running = True
-        # NOTE(abhishek): Allows us to only re-initialize glance_store when
-        # the API's configuration reloads.
-        self.initialize_glance_store = initialize_glance_store
         self.pgid = os.getpid()
         try:
             # NOTE(flaper87): Make sure this process
@@ -374,8 +360,6 @@ class Server(object):
         """
         eventlet.wsgi.MAX_HEADER_LINE = CONF.max_header_line
         self.configure_socket(old_conf, has_changed)
-        if self.initialize_glance_store:
-            initialize_glance_store()
 
     def reload(self):
         """
