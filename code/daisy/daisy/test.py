@@ -24,8 +24,6 @@ inline callbacks.
 import logging
 import os
 import shutil
-# import uuid
-
 import fixtures
 import mock
 from mox3 import mox
