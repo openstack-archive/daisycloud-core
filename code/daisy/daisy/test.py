@@ -24,8 +24,6 @@ inline callbacks.
 import logging
 import os
 import shutil
-# import uuid
-
 import fixtures
 import mock
 from mox3 import mox
@@ -35,6 +33,7 @@ from oslo_log import log
 from oslo_messaging import conffixture as messaging_conffixture
 from oslo_utils import strutils
 from oslo_utils import timeutils
+import stubout
 import testtools
 
 from daisy.db import migration
