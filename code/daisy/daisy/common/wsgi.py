@@ -33,7 +33,6 @@ from eventlet.green import socket
 from eventlet.green import ssl
 import eventlet.greenio
 import eventlet.wsgi
-import glance_store
 from oslo_serialization import jsonutils
 from oslo_concurrency import processutils
 from oslo_config import cfg
