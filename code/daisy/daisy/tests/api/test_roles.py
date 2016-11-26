@@ -1,6 +1,6 @@
 import mock
 import webob
-from oslo.serialization import jsonutils
+from oslo_serialization import jsonutils
 from daisy.api.v1 import roles
 from daisy import context
 from daisy import test
