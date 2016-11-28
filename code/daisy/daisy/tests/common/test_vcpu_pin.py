@@ -67,10 +67,9 @@ class TestVcpuPin(test.TestCase):
         self.assertEqual(dvs_cpusets['dvs']['dvsv'], [2, 3])
         self.assertEqual(dvs_cpusets['dvs']['dvsc'], [1, 13])
         self.assertEqual(set(dvs_cpusets['high']),
-                         (set(numa_node0) - set(
-                             dvs_cpusets['dvs']['dvsp']) - set(
-                             dvs_cpusets['dvs']['dvsv']) - set(
-                             dvs_cpusets['dvs']['dvsc'])))
+                         (set(numa_node0) - set(dvs_cpusets['dvs']['dvsp']) -
+                          set(dvs_cpusets['dvs']['dvsv']) -
+                          set(dvs_cpusets['dvs']['dvsc'])))
 
         numa_cpus = {}
         (status, dvs_cpusets) = vcpu_pin.dvs_get_cpu_sets(numa_cpus,
@@ -154,104 +153,96 @@ class TestVcpuPin(test.TestCase):
         self.assertEqual(set(dvs_cpusets['dvs']['dvsp']), set([-6]))
         self.assertEqual(set(dvs_cpusets['dvs']['dvsv']), set([-6]))
 
-    def test_get_dvs_cpusets(self):
+    def test_allocate_os_cpus(self):
         numa_node0 = range(0, 6) + range(12, 18)
         numa_node1 = range(6, 12) + range(18, 24)
-        numa_cpus = {'numa_node0': numa_node0,
-                     'numa_node1': numa_node1}
-        host_detail = {'id': 'host_id_123',
-                       'interfaces': [{'name': 'eth0', 'type': 'ether',
-                                       'vswitch_type': 'dvs'}]}
-        host_hw_info = {'devices': {'7f-0f-1': {'0000:7f:0f.1': 0}},
-                        'interfaces': {'eth0': {'name': 'eth0',
-                                                'pci': '0000:7f:0f.1'}}}
 
-        dvs_cpusets = vcpu_pin.get_dvs_cpusets(
-            numa_cpus, host_detail, host_hw_info)
-        self.assertEqual(set(dvs_cpusets['high']), set([0, 4, 5, 12, 16, 17]))
-        self.assertEqual(set(dvs_cpusets['dvs']['dvsc']), set([1, 13]))
-        self.assertEqual(set(dvs_cpusets['dvs']['dvsp']), set([14, 15]))
-        self.assertEqual(set(dvs_cpusets['dvs']['dvsv']), set([2, 3]))
+        # pci_cpusets = {'high': numa_node0 + numa_node1, 'low': []}
+        # dvs_cpusets = {'high': numa_node0 + numa_node1, 'low': [],
+        # 'dvs': [20, 21, 22, 23]}
+        # roles_name = ['COMPUTER']
+        # os_cpus = vcpu_pin.allocate_os_cpus(roles_name,
+        # pci_cpusets, dvs_cpusets)
+        # self.assertEqual(set(os_cpus), set([0, 1]))
+        dvs_high = list(set(numa_node0) - set([13, 14, 15, 16, 17, 12]))
+        pci_cpusets = {'high': numa_node0, 'low': numa_node1}
+        dvs_cpusets = {'high': dvs_high, 'low': numa_node1,
+                       'dvs': {'dvsc': [12, 13], 'dvsp': [14, 15],
+                               'dvsv': [16, 17]}}
 
-        host_detail = {'id': 'host_id_123',
-                       'interfaces': [{'name': 'eth0', 'type': 'ether',
-                                       'vswitch_type': ''}]}
-        host_hw_info = {'devices': {'7f-0f-1': {'0000:7f:0f.1': 0}},
-                        'interfaces': {'eth0': {'name': 'eth0',
-                                                'pci': '0000:7f:0f.1'}}}
+        roles_name = ['CONTROLLER_LB', 'CONTROLLER_HA']
+        os_cpus = vcpu_pin.allocate_os_cpus(roles_name,
+                                            pci_cpusets, dvs_cpusets)
+        self.assertEqual(set(os_cpus), set([]))
 
-        dvs_cpusets = vcpu_pin.get_dvs_cpusets(
-            numa_cpus, host_detail, host_hw_info)
-        self.assertEqual(set(dvs_cpusets['high']), set([-7]))
-        self.assertEqual(set(dvs_cpusets['low']), set([-7]))
-        self.assertEqual(set(dvs_cpusets['dvs']['dvsp']), set([-7]))
-        self.assertEqual(set(dvs_cpusets['dvs']['dvsv']), set([-7]))
-        self.assertEqual(set(dvs_cpusets['dvs']['dvsc']), set([-7]))
+        roles_name = []
+        os_cpus = vcpu_pin.allocate_os_cpus(roles_name,
+                                            pci_cpusets, dvs_cpusets)
+        self.assertEqual(set(os_cpus), set([]))
 
-        host_detail = {'id': 'host_id_123',
-                       'interfaces': [{'slave1': 'eth0',
-                                       'slave2': 'eth1', 'type': 'bond',
-                                       'vswitch_type': 'dvs'}]}
-        host_hw_info = {'devices': {'7f-0f-1': {'0000:7f:0f.1': 0},
-                                    '7f-0f-2': {'0000:7f:0f.2': 0}},
-                        'interfaces': {'eth0': {'name': 'eth0',
-                                                'pci': '0000:7f:0f.1'},
-                                       'eth1': {'name': 'eth1',
-                                                'pci': '0000:7f:0f.2'}}}
-        dvs_cpusets = vcpu_pin.get_dvs_cpusets(
-            numa_cpus, host_detail, host_hw_info)
-        self.assertEqual(set(dvs_cpusets['high']), set([0, 4, 5, 12, 16, 17]))
-        self.assertEqual(set(dvs_cpusets['low']), set(numa_node1))
-        self.assertEqual(set(dvs_cpusets['dvs']['dvsc']), set([1, 13]))
-        self.assertEqual(set(dvs_cpusets['dvs']['dvsp']), set([14, 15]))
-        self.assertEqual(set(dvs_cpusets['dvs']['dvsv']), set([2, 3]))
+        roles_name = []
+        os_cpus = vcpu_pin.allocate_os_cpus(roles_name,
+                                            pci_cpusets, dvs_cpusets)
+        self.assertEqual(set(os_cpus), set([]))
 
-        host_detail = {'id': 'host_id_123',
-                       'interfaces': [{'slave1': 'eth0',
-                                       'slave2': 'eth1', 'type': 'bond',
-                                       'vswitch_type': 'dvs'}]}
-        host_hw_info = {'devices': {'7f-0f-1': {'0000:7f:0f.1': 0},
-                                    '7f-0f-2': {'0000:7f:0f.2': 1}},
-                        'interfaces': {'eth0': {'name': 'eth0',
-                                                'pci': '0000:7f:0f.1'},
-                                       'eth1': {'name': 'eth1',
-                                                'pci': '0000:7f:0f.2'}}}
-        dvs_cpusets = vcpu_pin.get_dvs_cpusets(
-            numa_cpus, host_detail, host_hw_info)
-        self.assertEqual(set(dvs_cpusets['high']), set([-2]))
-        self.assertEqual(set(dvs_cpusets['low']), set([-2]))
-        self.assertEqual(set(dvs_cpusets['dvs']['dvsc']), set([-2]))
-        self.assertEqual(set(dvs_cpusets['dvs']['dvsp']), set([-2]))
-        self.assertEqual(set(dvs_cpusets['dvs']['dvsv']), set([-2]))
+        roles_name = ['COMPUTER']
+        os_cpus = vcpu_pin.allocate_os_cpus(roles_name,
+                                            pci_cpusets, dvs_cpusets)
+        self.assertEqual(set(os_cpus), set([0, 12]))
 
-    def test_allocate_dvs_cpus(self):
-        host_detail = {'id': 'host_id_123',
-                       'interfaces': []}
-        dvs_cpu_sets = vcpu_pin.allocate_dvs_cpus(host_detail)
-        self.assertEqual(dvs_cpu_sets, {})
+        roles_name = ['COMPUTER', 'CONTROLLER_HA']
+        os_cpus = vcpu_pin.allocate_os_cpus(roles_name,
+                                            pci_cpusets, dvs_cpusets)
+        self.assertEqual(set(os_cpus), set([0, 12, 18, 6]))
 
-        host_detail = {'id': 'host_id_123',
-                       'interfaces': [{'name': 'eth0', 'type': 'ether',
-                                       'vswitch_type': 'ovs'}]}
+        roles_name = ['COMPUTER', 'CONTROLLER_LB']
+        os_cpus = vcpu_pin.allocate_os_cpus(roles_name,
+                                            pci_cpusets, dvs_cpusets)
+        self.assertEqual(set(os_cpus), set([0, 12, 18, 6]))
 
-        dvs_cpu_sets = vcpu_pin.allocate_dvs_cpus(host_detail)
-        self.assertEqual(dvs_cpu_sets, {})
+        roles_name = ['COMPUTER', 'CONTROLLER_LB', 'CONTROLLER_HA']
+        os_cpus = vcpu_pin.allocate_os_cpus(roles_name,
+                                            pci_cpusets, dvs_cpusets)
+        self.assertEqual(set(os_cpus), set([0, 12, 18, 6]))
 
-        host_detail = {'id': 'host_id_123',
-                       'interfaces': [{'name': 'eth0', 'type': 'ether',
-                                       'vswitch_type': 'dvs'}]}
-        numa_nodes = {'numa_node0': "0-5,12-17",
-                      'numa_node1': "6-11,18-23"}
-        host_hw_info = {'cpu': numa_nodes,
-                        'devices': {'7f-0f-1': {'0000:7f:0f.1': 0}},
-                        'interfaces': {'eth0': {'name': 'eth0',
-                                                'pci': '0000:7f:0f.1'}}}
-        utils.get_host_hw_info = mock.Mock(return_value=host_hw_info)
-        dvs_cpu_sets = vcpu_pin.allocate_dvs_cpus(host_detail)
-        numa_node0 = range(0, 6) + range(12, 18)
-        numa_node1 = range(6, 12) + range(18, 24)
-        self.assertEqual(set(dvs_cpu_sets['dvs']['dvsc']), set([1, 13]))
-        self.assertEqual(set(dvs_cpu_sets['dvs']['dvsp']), set([14, 15]))
-        self.assertEqual(set(dvs_cpu_sets['dvs']['dvsv']), set([2, 3]))
-        self.assertEqual(set(dvs_cpu_sets['high']), set([0, 4, 5, 12, 16, 17]))
-        self.assertEqual(set(dvs_cpu_sets['low']), set(numa_node1))
+        pci_cpusets = {}
+        dvs_high = list(set(numa_node1) - set([18, 19, 20, 21, 22, 23]))
+        dvs_cpusets = {'high': numa_node1, 'low': numa_node0,
+                       'dvs': {'dvsc': [20, 21], 'dvsp': [22, 23],
+                               'dvsc': [18, 19]}}
+
+        roles_name = ['COMPUTER']
+        os_cpus = vcpu_pin.allocate_os_cpus(roles_name,
+                                            pci_cpusets, dvs_cpusets)
+        self.assertEqual(set(os_cpus), set([0, 18]))
+
+        pci_cpusets = {'high': numa_node0, 'low': numa_node1}
+        dvs_cpusets = {}
+        roles_name = ['COMPUTER', 'CONTROLLER_LB', 'CONTROLLER_HA']
+        os_cpus = vcpu_pin.allocate_os_cpus(roles_name,
+                                            pci_cpusets, dvs_cpusets)
+        self.assertEqual(set(os_cpus), set([0, 6, 12, 18]))
+
+        pci_cpusets = {'high': [-4], 'low': [-4]}
+        dvs_cpusets = {'high': numa_node0, 'low': numa_node1,
+                       'dvs': [14, 15, 16, 17]}
+        roles_name = ['COMPUTER']
+        os_cpus = vcpu_pin.allocate_os_cpus(roles_name,
+                                            pci_cpusets, dvs_cpusets)
+        self.assertEqual(set(os_cpus), set([]))
+
+        pci_cpusets = {'high': numa_node0, 'low': numa_node1}
+        dvs_cpusets = {'high': [-2], 'low': [-2],
+                       'dvs': [-2]}
+        roles_name = ['COMPUTER']
+        os_cpus = vcpu_pin.allocate_os_cpus(roles_name,
+                                            pci_cpusets, dvs_cpusets)
+        self.assertEqual(set(os_cpus), set([]))
+
+        pci_cpusets = {'high': [-4], 'low': [-4]}
+        dvs_cpusets = {'high': [-2], 'low': [-2],
+                       'dvs': [-2]}
+        roles_name = ['COMPUTER']
+        os_cpus = vcpu_pin.allocate_os_cpus(roles_name,
+                                            pci_cpusets, dvs_cpusets)
+        self.assertEqual(set(os_cpus), set([]))
