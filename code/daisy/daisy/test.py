@@ -28,14 +28,13 @@ import shutil
 
 import fixtures
 import mock
-import mox
+from mox3 import mox
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log
 from oslo_messaging import conffixture as messaging_conffixture
 from oslo_utils import strutils
 from oslo_utils import timeutils
-import stubout
 import testtools
 
 from daisy.db import migration
@@ -187,11 +186,8 @@ class TestCase(testtools.TestCase):
         # emulate some of the mox stuff, we can't use the metaclass
         # because it screws with our generators
         self.mox = mox.Mox()
-        self.stubs = stubout.StubOutForTesting()
         self.addCleanup(CONF.reset)
         self.addCleanup(self.mox.UnsetStubs)
-        self.addCleanup(self.stubs.UnsetAll)
-        self.addCleanup(self.stubs.SmartUnsetAll)
         self.addCleanup(self.mox.VerifyAll)
         self.addCleanup(self._common_cleanup)
         self.injected = []
