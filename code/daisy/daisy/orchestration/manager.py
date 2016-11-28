@@ -133,6 +133,8 @@ class OrchestrationManager():
     def check_isomorphic_host(self, compute_list, host_info):
         new_interfaces = host_info.interfaces
         host_numa_cpus = utils.get_numa_node_cpus((host_info.cpu or {}))
+        memory_size_b_str = str(host_info.memery['total'])
+        memory_size_b_int = int(memory_size_b_str.strip().split()[0])
         for compute_host in compute_list:
             new_interface_count = len(
                 [interface for interface in
@@ -147,6 +149,11 @@ class OrchestrationManager():
             compute_numa_cpus = utils.get_numa_node_cpus(
                 (compute_host.cpu or {}))
             if compute_numa_cpus != host_numa_cpus:
+                continue
+            active_compu_memory_str = str(compute_host.memory['total'])
+            active_compu_memory_size =\
+                int(active_compu_memory_str.strip().split()[0])
+            if memory_size_b_int < active_compu_memory_size:
                 continue
             is_isomorphic = False
             for interface in new_interfaces:
