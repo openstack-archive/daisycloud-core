@@ -1793,6 +1793,12 @@ class Controller(controller.BaseController):
                     self.add_ssh_host_to_cluster_and_assigned_network(
                         req, host_meta['cluster'], id)
 
+            for ironic_keyword in ['cpu', 'system', 'memory',
+                                   'pci', 'disks', 'devices']:
+                if host_meta.get(ironic_keyword):
+                    host_meta[ironic_keyword] = eval(
+                        host_meta.get(ironic_keyword))
+
             host_meta = registry.update_host_metadata(req.context, id,
                                                       host_meta)
 
