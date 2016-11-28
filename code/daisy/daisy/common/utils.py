@@ -1033,9 +1033,10 @@ def get_clc_pci_info(pci_info):
     clc_pci = []
     flag1 = 'Intel Corporation Coleto Creek PCIe Endpoint'
     flag2 = '8086:0435'
-    for pci in pci_info:
-        if flag1 in pci or flag2 in pci:
-            clc_pci.append(pci.split()[0])
+    if pci_info is not None:
+        for pci in pci_info:
+            if flag1 in pci or flag2 in pci:
+                clc_pci.append(pci.split()[0])
     return clc_pci
 
 
