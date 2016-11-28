@@ -28,7 +28,7 @@ import shutil
 
 import fixtures
 import mock
-import mox
+from mox3 import mox
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log
