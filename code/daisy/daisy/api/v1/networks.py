@@ -420,17 +420,6 @@ class Controller(controller.BaseController):
                         (gateway, cidr)))
                 raise HTTPBadRequest(explanation=msg)
 
-        if network_meta.get('network_type', None) != "DATAPLANE" and \
-                network_meta.get('cluster_id') and network_meta.get('gateway'):
-            networks = registry.get_networks_detail(req.context, cluster_id)
-            gateways = [network['gateway'] for network in networks
-                        if network['name'] != network_meta['name'] and
-                        network['gateway'] and
-                        network['network_type'] != "DATAPLANE"]
-            if gateways:
-                msg = (_('More than one gateway found in cluster.'))
-                LOG.error(msg)
-                raise HTTPConflict(explanation=msg)
         network_meta = registry.add_network_metadata(req.context, network_meta)
         return {'network_meta': network_meta}
 
@@ -721,19 +710,6 @@ class Controller(controller.BaseController):
                         'segment with the cidr %s of management network.' %
                         (gateway, cidr)))
                 raise HTTPBadRequest(explanation=msg)
-
-        # allow one gateway in one cluster
-        if network_meta.get('network_type', None) != "DATAPLANE" and \
-                network_meta.get('cluster_id') and network_meta.get('gateway'):
-            networks = registry.get_networks_detail(req.context, cluster_id)
-            gateways = [network['gateway'] for network in networks
-                        if network['name'] != orig_network_meta['name'] and
-                        network['gateway'] and
-                        network['network_type'] != "DATAPLANE"]
-            if gateways:
-                msg = (_('More than one gateway found in cluster.'))
-                LOG.error(msg)
-                raise HTTPConflict(explanation=msg)
 
         try:
             network_meta = registry.update_network_metadata(req.context,

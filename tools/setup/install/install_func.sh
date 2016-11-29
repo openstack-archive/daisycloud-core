@@ -475,13 +475,13 @@ function create_daisy_network
 {
     write_install_log "Daisy init and create the network"
 
-    daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "PUBLICAPI" "For public api"  "PUBLICAPI" --cidr "192.168.1.1/24" --type template --capability high >> $install_logfile 2>&1
+    daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "PUBLICAPI" "For public api"  "PUBLICAPI" --cidr "1.0.0.0/8" --type template --capability high >> $install_logfile 2>&1
     [ "$?" -ne 0 ] && { write_install_log "create the network of publicAPI failed"; exit 1; }
 
-    daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "MANAGEMENT" "For internal API and AMQP" "MANAGEMENT" --cidr "192.168.1.1/24" --type template --capability high >> $install_logfile 2>&1
+    daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "MANAGEMENT" "For internal API and AMQP" "MANAGEMENT" --cidr "1.0.0.0/8" --type template --capability high >> $install_logfile 2>&1
     [ "$?" -ne 0 ] && { write_install_log "create the network of MANAGEMENT failed"; exit 1; }
 
-    daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "STORAGE" "Storage network plane" "STORAGE"  --cidr "192.169.1.1/24" --type template --capability high >> $install_logfile 2>&1
+    daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "STORAGE" "Storage network plane" "STORAGE"  --cidr "1.0.0.0/8" --type template --capability high >> $install_logfile 2>&1
     [ "$?" -ne 0 ] && { write_install_log "create the network of STORAGE failed"; exit 1; }
 
     daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "physnet1" "Dataplane network for vms" "DATAPLANE" --type template --ml2-type ovs --capability high >> $install_logfile 2>&1
@@ -490,7 +490,7 @@ function create_daisy_network
     daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "DEPLOYMENT" "For deploy the infrastructure" "DEPLOYMENT" --cidr "99.99.1.1/24" --type template --capability high >> $install_logfile 2>&1
     [ "$?" -ne 0 ] && { write_install_log "create the network of DEPLOYMENT failed"; exit 1; }
 
-   daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "EXTERNAL" "For external interactive" "EXTERNAL" --cidr "192.170.1.1/24" --type template --capability high >> $install_logfile 2>&1
+   daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "EXTERNAL" "For external interactive" "EXTERNAL" --cidr "1.0.0.0/8" --type template --capability high >> $install_logfile 2>&1
    [ "$?" -ne 0 ] && { write_install_log "create the network of EXTERNAL failed"; exit 1; }
 
     daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "DEPLOYMENT" "For build pxe server" "DEPLOYMENT" --cidr "99.99.1.1/24" --ip "99.99.1.5" --ip-ranges "start":"99.99.1.50","end":"99.99.1.150" --type system >> $install_logfile 2>&1
