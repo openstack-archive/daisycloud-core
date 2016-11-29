@@ -31,7 +31,7 @@ from daisy import notifier
 
 from daisy.api import policy
 import daisy.api.v1
-
+from daisy.api import common
 from daisy.common import exception
 from daisy.common import utils
 from daisy.common import wsgi
@@ -42,7 +42,7 @@ import daisy.api.backends.common as daisy_cmn
 from daisy.api.backends import driver
 from daisy.api.backends.osinstall import osdriver
 import ConfigParser
-
+from oslo_utils import importutils
 
 LOG = logging.getLogger(__name__)
 _ = i18n._
@@ -296,6 +296,25 @@ class Controller(controller.BaseController):
                 params[PARAM] = req.params.get(PARAM)
         return params
 
+    def valid_used_networks(self, req, cluster_id):
+        cluster_roles = daisy_cmn.get_cluster_roles_detail(req, cluster_id)
+        cluster_backends = set([role['deployment_backend']
+                                for role in cluster_roles if
+                                daisy_cmn.get_hosts_of_role(req, role['id'])])
+        for backend in cluster_backends:
+            try:
+                backend_common = importutils.import_module(
+                    'daisy.api.backends.%s.common' % backend)
+            except Exception:
+                pass
+            else:
+                if hasattr(backend_common, 'get_used_networks'):
+                    networks = backend_common.get_used_networks(req,
+                                                                cluster_id)
+                    if networks:
+                        common.valid_cluster_networks(networks)
+                        common.check_gateway_uniqueness(networks)
+
     @utils.mutating
     def install_cluster(self, req, install_meta):
         """
@@ -313,6 +332,7 @@ class Controller(controller.BaseController):
         cluster_id = install_meta['cluster_id']
         self._enforce(req, 'install_cluster')
         self._raise_404_if_cluster_deleted(req, cluster_id)
+        self.valid_used_networks(req, cluster_id)
 
         daisy_cmn.set_role_status_and_progress(
             req, cluster_id, 'install',
