@@ -27,7 +27,7 @@ def clean_inventory_file(file_path, filename):
     fp = open('%s/kolla/ansible/inventory/%s' % (file_path, filename))
     txt = fp.read()
     fp.close()
-    node_names = ['control', 'network', 'compute',
+    node_names = ['control', 'network', 'compute', 'monitoring',
                   'storage', 'kibana:children']
     for section_name in node_names[0:4]:
         next_name_index = node_names.index('%s' % section_name)
@@ -75,6 +75,12 @@ def add_role_to_inventory(file_path, config_data):
     host_sequence = 1
     for compute_ip in config_data['Computer_ips']:
         update_inventory_file(file_path, 'multinode', 'compute',
+                              compute_ip.encode(), host_sequence, 'ssh')
+        host_sequence = host_sequence + 1
+
+    host_sequence = 1
+    for compute_ip in config_data['Computer_ips']:
+        update_inventory_file(file_path, 'multinode', 'monitoring',
                               compute_ip.encode(), host_sequence, 'ssh')
         host_sequence = host_sequence + 1
 
