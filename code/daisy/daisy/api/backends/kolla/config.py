@@ -28,7 +28,7 @@ def clean_inventory_file(file_path, filename):
     txt = fp.read()
     fp.close()
     node_names = ['control', 'network', 'compute', 'monitoring',
-                  'storage', 'kibana:children']
+                  'storage', 'baremetal:children']
     for section_name in node_names[0:4]:
         next_name_index = node_names.index('%s' % section_name)
         match = re.search(r"\[%s\](.*)\[%s\]" % (
@@ -103,7 +103,7 @@ def update_globals_yml(config_data):
     StoIfMac = config_data['StoIfMac']
     local_ip = config_data['LocalIP']
     # kolla_yml = yaml.load(file('/etc/kolla/globals.yml'))
-    kolla_yml = {'openstack_release': '2.0.3',
+    kolla_yml = {'openstack_release': '3.0.0',
                  'docker_registry': '127.0.0.1:4000',
                  'docker_namespace': 'kollaglue',
                  'kolla_internal_vip_address': '10.10.10.254',
