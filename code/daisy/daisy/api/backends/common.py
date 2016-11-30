@@ -953,9 +953,21 @@ def check_vlan_nic_and_join_vlan_network(req, cluster_id,
                     if not check_ip_if_valid:
                         msg = "Error:The %s is not the right ip!" % host_ip
                         LOG.error(msg)
-                        raise exception.Forbidden(msg)
-                    nic_name = interface_info['name'].split('.')[0]
-                    vlan_id = interface_info['name'].split('.')[1]
+                        raise HTTPForbidden(explanation=msg)
+                    nic_name_list = interface_info['name'].split('.')
+                    if len(nic_name_list) < 2:
+                        msg = "No vlan id can be got from the nic '%s' of "\
+                              "host '%s', but the nic type is 'vlan'."\
+                              % (interface_info['name'],
+                                 host_meta_detail['name'])
+                        LOG.error(msg)
+                        raise HTTPForbidden(explanation=msg)
+                    # the last section of nic name splited by '.'
+                    # is vlan number, and remaining part is 
+                    # physical nic name.
+                    vlan_id = nic_name_list[len(nic_name_list) - 1]
+                    nic_name = interface_info['name'][: -len(vlan_id) - 1]
+
                     for network in networks:
                         if network['network_type'] in ['DATAPLANE',
                                                        'EXTERNAL']:
@@ -1067,7 +1079,7 @@ def check_bond_or_ether_nic_and_join_network(req,
                                                 host_info_ip,
                                                 network['name'], vlan_id))
                                         LOG.error(msg)
-                                        raise HTTPForbidden(explation=msg)
+                                        raise HTTPForbidden(explanation=msg)
                             else:
                                 msg = "There is no cidr in network " \
                                       "%s" % network['name']
