@@ -432,6 +432,7 @@ function stop_service_all
     service_stop  "openstack-ironic-discoverd"
     service_stop  "openstack-keystone"
     service_stop  "daisy-orchestration"
+    service_stop  "daisy-auto-backup"
 }
 
 # start all the service automatically
@@ -445,6 +446,7 @@ function start_service_all
     service_start  "openstack-ironic-conductor"
     service_start  "openstack-ironic-discoverd"
     service_start  "daisy-orchestration"
+    service_start  "daisy-auto-backup"
 }
 
 _DAISY_COMMON_FUNC_FILE="common_func.sh"

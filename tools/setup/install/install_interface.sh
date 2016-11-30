@@ -223,7 +223,11 @@ function all_install
     systemctl start daisy-orchestration.service
     [ "$?" -ne 0 ] && { write_install_log "Error:systemctl start daisy-orchestration.service failed"; exit 1; }
 
+    systemctl start daisy-auto-backup.service
+    [ "$?" -ne 0 ] && { write_install_log "Error:systemctl start daisy-auto-backup.service failed"; exit 1; }
+    
     systemctl enable daisy-orchestration.service >> $install_logfile 2>&1
+    systemctl enable daisy-auto-backup.service >> $install_logfile 2>&1
     systemctl enable openstack-ironic-discoverd.service >> $install_logfile 2>&1
 
     #init daisy

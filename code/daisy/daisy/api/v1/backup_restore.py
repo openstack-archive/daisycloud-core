@@ -16,9 +16,11 @@
 """
 /hosts endpoint for Daisy v1 API
 """
+import time
 import datetime
 import os
 import subprocess
+import ConfigParser
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
 from webob.exc import HTTPForbidden
@@ -71,6 +73,8 @@ class Controller(controller.BaseController):
         self.notifier = notifier.Notifier()
         registry.configure_registry_client()
         self.policy = policy.Enforcer()
+        self.config_path = '/home/daisy_install/daisy.conf'
+        self.auto_back_path = '/home/daisy_backup/auto/'
 
     def _enforce(self, req, action, target=None):
         """Authorize an action against our policies"""
@@ -170,6 +174,87 @@ class Controller(controller.BaseController):
         return {"backup_file": BACK_PATH + backup_file_name}
 
     @utils.mutating
+    def auto_backup_config_detail(self, req):
+        """
+        Auto backup daisy data..
+
+        :param req: The WSGI/Webob Request object
+
+        :raises HTTPBadRequest if backup failed
+        """
+        auto_backup_switch = "ON"
+        save_days = "10"
+        config = ConfigParser.ConfigParser()
+        config.read(self.config_path)
+        if "auto_backup_switch" in dict(config.items('DEFAULT')):
+            auto_backup_switch = config.get('DEFAULT', 'auto_backup_switch')
+        if "save_days" in dict(config.items('DEFAULT')):
+            save_days = config.get("DEFAULT", "save_days")
+        auto_backup_meta = {
+            'auto_backup_switch': auto_backup_switch,
+            'save_days': save_days
+        }
+        return {"auto_backup_meta": auto_backup_meta}
+
+    @utils.mutating
+    def auto_backup_config_update(self, req, auto_backup_meta):
+        """
+        Auto backup daisy data..
+
+        :param req: The WSGI/Webob Request object
+
+        :raises HTTPBadRequest if backup failed
+        """
+        auto_backup_switch = auto_backup_meta.get("auto_backup_switch", "ON")
+        save_days = auto_backup_meta.get("save_days", "10")
+        config = ConfigParser.ConfigParser()
+        config.read(self.config_path)
+        config.set("DEFAULT", "auto_backup_switch", auto_backup_switch)
+        if auto_backup_switch == "ON":
+            config.set("DEFAULT", "save_days", save_days)
+        config.write(open(self.config_path, "w"))
+        return {"auto_backup_meta": auto_backup_meta}
+
+    @utils.mutating
+    def list_backup_file(self, req):
+        """
+        Returns detailed information for all available backup files
+
+        :param req: The WSGI/Webob Request object
+        :retval The response body is a mapping of the following form::
+
+            {'backup_files': [
+                {'id': <ID>,
+                 'name': <NAME>,
+                 'create_time': <TIMESTAMP>}, ...
+            ]}
+        """
+        self._enforce(req, 'list_backup_file')
+        params = self._get_query_params(req)
+        try:
+            backup_files = []
+            if not os.path.exists(self.auto_back_path):
+                return dict(backup_files=backup_files)
+            for item in os.listdir(self.auto_back_path):
+                path = os.path.join(self.auto_back_path, item)
+                if not os.path.isfile(path):
+                    continue
+                backup_file = {
+                    "id": item,
+                    "file_name": item,
+                    "create_time": os.path.getctime(path)
+                }
+                backup_files.append(backup_file)
+            backup_files.sort(key=lambda x: x['create_time'], reverse=True)
+            for backup_file in backup_files:
+                backup_file['create_time'] = time.strftime(
+                    "%Y-%m-%d %H:%M:%S",
+                    time.localtime(backup_file['create_time']))
+        except exception.Invalid as e:
+            raise HTTPBadRequest(explanation=e.msg, request=req)
+        return dict(backup_files=backup_files)
+
+    @utils.mutating
     def restore(self, req, file_meta):
         """
         Restore daisy data.
@@ -258,8 +343,19 @@ class BackupRestoreDeserializer(wsgi.JSONRequestDeserializer):
         result['file_meta'] = utils.get_dict_meta(request)
         return result
 
+    def _auto_backup_deserialize(self, request):
+        result = {}
+        result['auto_backup_meta'] = utils.get_dict_meta(request)
+        return result
+
     def backup(self, request):
         return {}
+
+    def auto_backup_config_detail(self, request):
+        return {}
+
+    def auto_backup_config_update(self, request):
+        return self._auto_backup_deserialize(request)
 
     def restore(self, request):
         return self._deserialize(request)
@@ -280,6 +376,18 @@ class BackupRestoreSerializer(wsgi.JSONResponseSerializer):
         self.notifier = notifier.Notifier()
 
     def backup(self, response, result):
+        response.status = 201
+        response.headers['Content-Type'] = 'application/json'
+        response.body = self.to_json(result)
+        return response
+
+    def auto_backup_config_detail(self, response, result):
+        response.status = 201
+        response.headers['Content-Type'] = 'application/json'
+        response.body = self.to_json(result)
+        return response
+
+    def auto_backup_config_update(self, response, result):
         response.status = 201
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(result)
