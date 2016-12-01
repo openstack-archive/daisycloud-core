@@ -23,6 +23,7 @@ System-level utilities and helper functions.
 import errno
 from functools import reduce
 
+SUPPORT_BACKENDS = ['proton', 'zenic', 'tecs', 'kolla']
 try:
     from eventlet import sleep
 except ImportError:
