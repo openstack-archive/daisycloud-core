@@ -78,6 +78,7 @@ DISCOVER_DEFAULTS = {
     'listen_port': '5050',
     'ironic_url': 'http://127.0.0.1:6385/v1',
 }
+SUPPORT_BACKENDS = ['proton', 'zenic', 'tecs', 'kolla']
 
 
 def chunkreadable(iter, chunk_size=65536):
