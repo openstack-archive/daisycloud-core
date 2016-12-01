@@ -431,8 +431,9 @@ class Controller(controller.BaseController):
             raise HTTPBadRequest(explanation=msg)
         host_id = host_template['host_id']
         orig_host_meta = registry.get_host_metadata(req.context, host_id)
-        if orig_host_meta.get("hwm_ip", None):
-            msg = "hwm host forbidden to use template"
+        if orig_host_meta.get("hwm_ip", None) and\
+                        not orig_host_meta['discover_mode']:
+            msg = "hwm host need to be discovered"
             LOG.error(msg)
             raise HTTPForbidden(explanation=msg,
                                 request=req,
