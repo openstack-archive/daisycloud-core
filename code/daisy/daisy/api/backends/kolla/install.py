@@ -40,18 +40,6 @@ SUPPORTED_PARAMS = daisy.api.v1.SUPPORTED_PARAMS
 SUPPORTED_FILTERS = daisy.api.v1.SUPPORTED_FILTERS
 ACTIVE_IMMUTABLE = daisy.api.v1.ACTIVE_IMMUTABLE
 
-CONF = cfg.CONF
-install_opts = [
-    cfg.StrOpt('max_parallel_os_number', default=10,
-               help='Maximum number of hosts install os at the same time.'),
-]
-CONF.register_opts(install_opts)
-
-CONF.import_opt('disk_formats', 'daisy.common.config', group='image_format')
-CONF.import_opt('container_formats', 'daisy.common.config',
-                group='image_format')
-CONF.import_opt('image_property_quota', 'daisy.common.config')
-
 
 host_os_status = {
     'INIT': 'init',

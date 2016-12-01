@@ -44,69 +44,11 @@ paste_deploy_opts = [
     cfg.StrOpt('config_file',
                help=_('Name of the paste configuration file.')),
 ]
-image_format_opts = [
-    cfg.ListOpt('container_formats',
-                default=['ami', 'ari', 'aki', 'bare', 'ovf', 'ova'],
-                help=_("Supported values for the 'container_format' "
-                       "image attribute"),
-                deprecated_opts=[cfg.DeprecatedOpt('container_formats',
-                                                   group='DEFAULT')]),
-    cfg.ListOpt('disk_formats',
-                default=['ami', 'ari', 'aki', 'vhd', 'vmdk', 'raw', 'qcow2',
-                         'vdi', 'iso'],
-                help=_("Supported values for the 'disk_format' "
-                       "image attribute"),
-                deprecated_opts=[cfg.DeprecatedOpt('disk_formats',
-                                                   group='DEFAULT')]),
-]
-task_opts = [
-    cfg.IntOpt('task_time_to_live',
-               default=48,
-               help=_("Time in hours for which a task lives after, either "
-                      "succeeding or failing"),
-               deprecated_opts=[cfg.DeprecatedOpt('task_time_to_live',
-                                                  group='DEFAULT')]),
-    cfg.StrOpt('task_executor',
-               default='taskflow',
-               help=_("Specifies which task executor to be used to run the "
-                      "task scripts.")),
-    cfg.StrOpt('work_dir',
-               default=None,
-               help=_('Work dir for asynchronous task operations. '
-                      'The directory set here will be used to operate over '
-                      'images - normally before they are imported in the '
-                      'destination store. When providing work dir, make sure '
-                      'enough space is provided for concurrent tasks to run '
-                      'efficiently without running out of space. A rough '
-                      'estimation can be done by multiplying the number of '
-                      '`max_workers` - or the N of workers running - by an '
-                      'average image size (e.g 500MB). The image size '
-                      'estimation should be done based on the average size in '
-                      'your deployment. Note that depending on the tasks '
-                      'running you may need to multiply this number by some '
-                      'factor depending on what the task does. For example, '
-                      'you may want to double the available size if image '
-                      'conversion is enabled. All this being said, remember '
-                      'these are just estimations and you should do them '
-                      'based on the worst case scenario and be prepared to '
-                      'act in case they were wrong.')),
-]
 common_opts = [
-    cfg.BoolOpt('allow_additional_image_properties', default=True,
-                help=_('Whether to allow users to specify image properties '
-                       'beyond what the image schema provides')),
-    cfg.IntOpt('image_member_quota', default=128,
-               help=_('Maximum number of image members per image. '
-                      'Negative values evaluate to unlimited.')),
-    cfg.IntOpt('image_property_quota', default=128,
-               help=_('Maximum number of properties allowed on an image. '
-                      'Negative values evaluate to unlimited.')),
-    cfg.IntOpt('image_tag_quota', default=128,
-               help=_('Maximum number of tags allowed on an image. '
-                      'Negative values evaluate to unlimited.')),
-    cfg.IntOpt('image_location_quota', default=10,
-               help=_('Maximum number of locations allowed on an image. '
-                      'Negative values evaluate to unlimited.')),
+    cfg.StrOpt('max_parallel_os_number', default=10,
+               help='Maximum number of hosts install os at the same time.'),
+    cfg.StrOpt('max_parallel_os_upgrade_number', default=10,
+               help='Maximum number of hosts upgrade os at the same time.'),
     cfg.StrOpt('data_api', default='daisy.db.sqlalchemy.api',
                help=_('Python module path of data access API')),
     cfg.IntOpt('limit_param_default', default=25,
@@ -172,8 +114,6 @@ common_opts = [
 
 CONF = cfg.CONF
 CONF.register_opts(paste_deploy_opts, group='paste_deploy')
-CONF.register_opts(image_format_opts, group='image_format')
-CONF.register_opts(task_opts, group='task')
 CONF.register_opts(common_opts)
 policy.Enforcer(CONF)
 
