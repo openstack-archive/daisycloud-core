@@ -734,7 +734,7 @@ def update_db_host_status(req, host_id, host_status, version_id=None,
     """
     try:
         host_meta = {}
-        if host_status.get('os_progress', None):
+        if host_status.get('os_progress', None) is not None:
             host_meta['os_progress'] = host_status['os_progress']
         if host_status.get('os_status', None):
             host_meta['os_status'] = host_status['os_status']
