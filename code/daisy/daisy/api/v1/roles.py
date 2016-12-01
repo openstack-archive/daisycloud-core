@@ -57,12 +57,6 @@ SUPPORTED_ROLE = (
     'CONTROLLER_CHILD_CELL_1')
 SUPPORT_DISK_LOCATION = ('local', 'share')
 
-CONF = cfg.CONF
-CONF.import_opt('disk_formats', 'daisy.common.config', group='image_format')
-CONF.import_opt('container_formats', 'daisy.common.config',
-                group='image_format')
-CONF.import_opt('image_property_quota', 'daisy.common.config')
-
 
 class Controller(controller.BaseController):
     """

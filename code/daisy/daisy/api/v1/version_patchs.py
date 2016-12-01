@@ -47,12 +47,6 @@ ACTIVE_IMMUTABLE = daisy.api.v1.ACTIVE_IMMUTABLE
 SUPPORTED_DEPLOYMENT_BACKENDS = ('tecs', 'zenic', 'proton')
 SUPPORT_DISK_LOCATION = ('local', 'share')
 
-CONF = cfg.CONF
-CONF.import_opt('disk_formats', 'daisy.common.config', group='image_format')
-CONF.import_opt('container_formats', 'daisy.common.config',
-                group='image_format')
-CONF.import_opt('image_property_quota', 'daisy.common.config')
-
 
 class Controller(controller.BaseController):
     """
