@@ -40,6 +40,7 @@ import daisy.registry.client.v1.api as registry
 from daisy.registry.api.v1 import template
 
 import daisy.api.backends.common as daisy_cmn
+from oslo_utils import importutils
 
 #TODO (huzhj) move it into common sub module
 daisy_path = '/var/lib/daisy/'
@@ -588,6 +589,24 @@ class Controller(controller.BaseController):
                         if cluster.get('auto_scale', None) == 1:
                             template_content_cluster['auto_scale'] = 0
                             break
+
+                if template_cluster.get('type'):
+                    try:
+                        backend_common = importutils.import_module(
+                            'daisy.api.backends.%s.common' %
+                            template_cluster['type'])
+                    except Exception:
+                        pass
+                    else:
+                        if hasattr(backend_common,
+                                   'set_template_field_default'):
+                            backend_common.set_template_field_default(
+                                template_content)
+                else:
+                    msg = 'Template %s has no field "type" ' % template_cluster
+                    LOG.error(msg)
+                    raise HTTPBadRequest(explanation=msg, request=req)
+
                 cluster_meta = registry.add_cluster_metadata(
                     req.context, template_content['cluster'])
                 cluster_id = cluster_meta['id']
