@@ -67,8 +67,10 @@ BACKENDS_UNINSTALL_ORDER = []
 
 config = ConfigParser.ConfigParser()
 config.read(daisy_cmn.daisy_conf_file)
-OS_INSTALL_TYPE = 'pxe'
-OS_INSTALL_TYPE = config.get("OS", "os_install_type")
+try:
+    OS_INSTALL_TYPE = config.get("OS", "os_install_type")
+except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
+    OS_INSTALL_TYPE = 'pxe'
 
 _OS_HANDLE = None
 
