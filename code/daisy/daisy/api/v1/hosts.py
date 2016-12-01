@@ -19,7 +19,6 @@
 import subprocess
 import re
 import os
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 from webob.exc import HTTPBadRequest
@@ -53,11 +52,6 @@ SUPPORTED_PARAMS = daisy.api.v1.SUPPORTED_PARAMS
 SUPPORTED_FILTERS = daisy.api.v1.SUPPORTED_FILTERS
 ACTIVE_IMMUTABLE = daisy.api.v1.ACTIVE_IMMUTABLE
 
-CONF = cfg.CONF
-CONF.import_opt('disk_formats', 'daisy.common.config', group='image_format')
-CONF.import_opt('container_formats', 'daisy.common.config',
-                group='image_format')
-CONF.import_opt('image_property_quota', 'daisy.common.config')
 
 DISCOVER_DEFAULTS = {
     'listen_port': '5050',

@@ -41,16 +41,8 @@ _LI = i18n._LI
 _LW = i18n._LW
 
 CONF = cfg.CONF
-install_opts = [
-    cfg.StrOpt('max_parallel_os_number', default=10,
-               help='Maximum number of hosts install os at the same time.'),
-]
-CONF.register_opts(install_opts)
-upgrade_opts = [
-    cfg.StrOpt('max_parallel_os_upgrade_number', default=10,
-               help='Maximum number of hosts upgrade os at the same time.'),
-]
-CONF.register_opts(upgrade_opts)
+CONF.import_opt('max_parallel_os_number', 'daisy.common.config')
+CONF.import_opt('max_parallel_os_upgrade_number', 'daisy.common.config')
 
 host_os_status = {
     'INIT': 'init',
