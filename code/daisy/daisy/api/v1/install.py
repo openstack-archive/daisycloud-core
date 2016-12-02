@@ -384,9 +384,9 @@ class Controller(controller.BaseController):
             req, cluster_id, BACKENDS_UNINSTALL_ORDER)
         for backend in backends:
             backend_driver = driver.load_deployment_dirver(backend)
-            backend_driver._check_uninstall_hosts(req,
-                                                  cluster_id,
-                                                  uninstall_hosts)
+            backend_driver.check_uninstall_hosts(req,
+                                                 cluster_id,
+                                                 uninstall_hosts)
             uninstall_thread = Thread(
                 target=backend_driver.uninstall, args=(
                     req, cluster_id, uninstall_hosts))
