@@ -544,6 +544,17 @@ class Controller(controller.BaseController):
             if not cluster_name_info.isalnum():
                 raise ValueError(
                     'cluster name must be numbers or letters or underscores !')
+        try:
+            params = {"filters": dict(name=cluster_name)}
+            cluster_name_repeat = \
+                registry.get_clusters_detail(req.context, **params)
+        except Exception:
+            pass
+        else:
+            if cluster_name_repeat:
+                msg = _('cluster name [%s] is in use!') % cluster_name
+                raise HTTPBadRequest(explanation=msg)
+
         if cluster_meta.get('nodes', None):
             orig_keys = list(eval(cluster_meta['nodes']))
             for host_id in orig_keys:
