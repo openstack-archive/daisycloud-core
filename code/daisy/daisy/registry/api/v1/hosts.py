@@ -18,10 +18,12 @@ Reference implementation registry server WSGI controller
 """
 
 import sys
+import os
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import strutils
 from oslo_utils import timeutils
+from oslo_utils import importutils
 from webob import exc
 
 from daisy.common import exception
@@ -389,6 +391,16 @@ class Controller(object):
 
         # Currently not used
         location = ""
+        path = os.path.join(os.path.abspath(os.path.dirname(
+            os.path.realpath(__file__))), 'ext')
+        for root, dirs, names in os.walk(path):
+            filename = 'router.py'
+            if filename in names:
+                ext_name = root.split(path)[1].strip('/')
+                ext_func = "%s.api.hosts" % ext_name
+                extension = importutils.import_module('daisy.api.v1.ext',
+                                                      ext_func)
+                location = extension.find_host_location(req, host_data)
 
         host_interface = self.db_api.get_host_interface(req.context, id)
 
