@@ -588,6 +588,16 @@ class Controller(controller.BaseController):
                         if cluster.get('auto_scale', None) == 1:
                             template_content_cluster['auto_scale'] = 0
                             break
+
+                if template_cluster.get('type') in utils.SUPPORT_BACKENDS:
+                    template_content['cluster'].setdefault(
+                        'target_systems', 'os+%s' % template_cluster['type'])
+                else:
+                    msg = 'type in template: "%s" not support' % \
+                          template_cluster
+                    LOG.error(msg)
+                    raise HTTPBadRequest(explanation=msg, request=req)
+
                 cluster_meta = registry.add_cluster_metadata(
                     req.context, template_content['cluster'])
                 cluster_id = cluster_meta['id']
