@@ -1908,7 +1908,7 @@ class Controller(controller.BaseController):
         backends = get_backend()
         with open(var_log_path, "w+") as fp:
             for backend in backends:
-                backend_driver = driver.load_deployment_dirver(backend)
+                backend_driver = driver.load_deployment_driver(backend)
                 backend_driver.prepare_ssh_discovered_node(req, fp,
                                                            discover_host_meta)
             try:
@@ -2054,7 +2054,7 @@ class Controller(controller.BaseController):
         if daisy_management_ip:
             backends = get_backend()
             for backend in backends:
-                backend_driver = driver.load_deployment_dirver(backend)
+                backend_driver = driver.load_deployment_driver(backend)
                 backend_driver.getnodeinfo_ip(daisy_management_ip)
         config_discoverd = ConfigParser.ConfigParser(
             defaults=DISCOVER_DEFAULTS)
@@ -2063,7 +2063,7 @@ class Controller(controller.BaseController):
         if listen_port:
             backends = get_backend()
             for backend in backends:
-                backend_driver = driver.load_deployment_dirver(backend)
+                backend_driver = driver.load_deployment_driver(backend)
                 backend_driver.getnodeinfo_listen_port(listen_port)
 
         discovery_host_thread = threading.Thread(
