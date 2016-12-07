@@ -25,8 +25,6 @@ bin: binclean binforce
 	
 	$(CP) $(_TECS_RPM_PATH)/RPMS/$(PURE_OS_TYPE)/$(ARCH)/* $(_TECS_TOOLS_PATH)/setup/bin_temp
 	$(RM) $(_TECS_TOOLS_PATH)/setup/bin_temp/*devel*.rpm
-	
-	$(CP) $(_TECS_CONTRIB_PATH)/rpm/* $(_TECS_TOOLS_PATH)/setup/bin_temp
 
 	$(CP) $(_TECS_TOOLS_PATH)/setup/setup.sh $(_TECS_TOOLS_PATH)/setup/bin_temp
 	$(CP) $(_TECS_TOOLS_PATH)/setup/common/daisy_common_func.sh $(_TECS_TOOLS_PATH)/setup/bin_temp/common

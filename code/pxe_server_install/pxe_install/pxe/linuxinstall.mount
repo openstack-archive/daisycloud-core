@@ -1,0 +1,10 @@
+[Unit]
+Description=pxe iso
+DefaultDependencies=no
+
+[Mount]
+What=/home/autoinstall/incomes/OPENCOS_CGSL.iso
+Where=/linuxinstall
+Type=iso9660
+[Install]
+WantedBy=local-fs.target
