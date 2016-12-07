@@ -376,6 +376,7 @@
         var bond_params = {
             "net_ports": net_ports,
             "name": name,
+            "bond_type": $('#select_bond_type').val(),
             "mode": bond_mode
         };
         var url = "/dashboard/environment/deploy/" + $("#cluster_id").val() + '/bond_net_port';

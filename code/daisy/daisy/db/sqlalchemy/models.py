@@ -280,6 +280,7 @@ class HostInterface(BASE, DaisyBase):
     type = Column(String(32), nullable=False, default='ether')
     slave1 = Column(String(32))
     slave2 = Column(String(32))
+    bond_type = Column(String(36))
     mode = Column(String(36))
     is_deployment = Column(Boolean(), default=False)
     state = Column(String(64))

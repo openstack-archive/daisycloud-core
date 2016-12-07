@@ -129,7 +129,7 @@ def do_host_add(gc, args):
                               "type": "", "name": "", "mac": "", "ip": "",
                               "netmask": "", "assigned_networks": "",
                               "slaves": "", "is_deployment": "",
-                              "vswitch_type": ""}
+                              "vswitch_type": "", "bond_type":""}
             for kv_str in interface.split(","):
                 try:
                     k, v = kv_str.split("=", 1)
@@ -273,7 +273,8 @@ def do_host_update(gc, args):
                               "type": "", "name": "", "mac": "", "ip": "",
                               "netmask": "", "mode": "",
                               "assigned_networks": "", "slaves": "",
-                              "is_deployment": "", "vswitch_type": ""}
+                              "is_deployment": "", "vswitch_type": "",
+                              "bond_type":""}
             for kv_str in interfaces.split(","):
                 try:
                     k, v = kv_str.split("=", 1)
