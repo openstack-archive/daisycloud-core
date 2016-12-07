@@ -17,7 +17,7 @@ rpmforce:
 
 all:clean rpms
 
-rpms:daisy daisyclient ironic-discoverd horizon
+rpms:daisy daisyclient ironic-discoverd horizon pxe_server_install
 
 clean:rpmforce
 	$(RM) $(_TECS_RPM_PATH)/SOURCES/*
@@ -65,3 +65,11 @@ horizon:rpmforce
 	$(RM) $(_TECS_RPM_PATH)/SOURCES/$@-$(_VER_OPENSTACK_REL)
 	$(RM) $(_TECS_RPM_PATH)/BUILD/$@-$(_VER_OPENSTACK_REL)
 
+pxe_server_install:rpmforce
+	$(RM) $(_TECS_RPM_PATH)/SOURCES/$@-$(_VER_REL)
+	$(LN) $(_TECS_CODE_PATH)/$@ $(_TECS_RPM_PATH)/SOURCES/$@-$(_VER_REL)
+	@cd $(_TECS_RPM_PATH)/SOURCES; $(TARC) $(_TECS_RPM_PATH)/SOURCES/$@-$(_VER_REL).tar.gz --exclude=*.svn \
+	$@-$(_VER_REL)/*; cd -
+	$(RPMBUILD) --rmsource $(_TECS_RPM_PATH)/SPECS/$@.spec
+	$(RM) $(_TECS_RPM_PATH)/SOURCES/$@-$(_VER_REL)
+	$(RM) $(_TECS_RPM_PATH)/BUILD/$@-$(_VER_REL)
