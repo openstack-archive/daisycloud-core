@@ -1554,7 +1554,9 @@ class Controller(object):
         except exception.Forbidden as e:
             msg = (_("%s") % utils.exception_to_str(e))
             LOG.error(msg)
-            raise exc.HTTPForbidden(msg)
+            raise exc.HTTPForbidden(body=msg,
+                                    request=req,
+                                    content_type='text/plain')
         except exception.Conflict as e:
             LOG.info(utils.exception_to_str(e))
             raise exc.HTTPConflict(body='Host operation conflicts',
