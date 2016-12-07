@@ -75,7 +75,6 @@ class OrchestrationManager():
             host_info.os_version_id = active_compute_host.os_version_id
             host_info.root_lv_size = active_compute_host.root_lv_size
             host_info.swap_lv_size = active_compute_host.swap_lv_size
-            host_info.name = "host-" + host_info.name[-12:]
             host_info.hwm_ip = active_compute_host.hwm_ip
             host_info.hugepagesize = active_compute_host.hugepagesize
             host_info.hugepages = active_compute_host.hugepages
@@ -133,7 +132,7 @@ class OrchestrationManager():
     def check_isomorphic_host(self, compute_list, host_info):
         new_interfaces = host_info.interfaces
         host_numa_cpus = utils.get_numa_node_cpus((host_info.cpu or {}))
-        memory_size_b_str = str(host_info.memery['total'])
+        memory_size_b_str = str(host_info.memory['total'])
         memory_size_b_int = int(memory_size_b_str.strip().split()[0])
         for compute_host in compute_list:
             new_interface_count = len(
@@ -143,17 +142,27 @@ class OrchestrationManager():
                 [interface for interface in
                  compute_host.interfaces if interface['type'] == "ether"])
             if new_interface_count != compute_interface_count:
+                msg = "%s and new host interface number are different" %\
+                      (compute_host.name)
+                LOG.warn(msg)
                 continue
             if host_info.cpu['total'] != compute_host.cpu['total']:
+                msg = "%s and new host cpu total numbers are different" %\
+                      (compute_host.name)
+                LOG.warn(msg)
                 continue
             compute_numa_cpus = utils.get_numa_node_cpus(
                 (compute_host.cpu or {}))
             if compute_numa_cpus != host_numa_cpus:
+                msg = "%s and new host numa cpus are different" % compute_host.name
+                LOG.warn(msg)
                 continue
             active_compu_memory_str = str(compute_host.memory['total'])
             active_compu_memory_size =\
                 int(active_compu_memory_str.strip().split()[0])
             if memory_size_b_int < active_compu_memory_size:
+                msg = "new host memory is lower than %s" % compute_host.name
+                LOG.warn(msg)
                 continue
             is_isomorphic = False
             for interface in new_interfaces:
@@ -167,6 +176,9 @@ class OrchestrationManager():
                     elif interface['pci'] == compute_interface['pci'] and \
                             interface['max_speed'] != \
                             compute_interface['max_speed']:
+                        msg = "%s and new host interface max speed are different"\
+                              % (compute_host.name)
+                        LOG.warn(msg)
                         is_isomorphic = False
                         break
                 if not is_isomorphic:
