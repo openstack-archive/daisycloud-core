@@ -553,6 +553,74 @@ def _delete_host_fields(host_ref, values):
             values['isolcpus'] = None
 
 
+def _query_table(session, table, condition, is_throw_exception=False):
+    session = session or get_session()
+    query = session.query(table).filter(condition)
+    content = query.all()
+    if not content and is_throw_exception:
+        msg = "No result get in Table: %s With: %s" % (table.__tablename__,
+                                                       condition)
+        LOG.error(msg)
+        raise exception.NotFound(msg)
+    return content
+
+
+def _check_ssh_host_assign_network(session, host_ref, values):
+    new_add_network = []
+    # host all interfaces assigned_network empty flag
+    is_origin_assigned_empty = True
+    if isinstance(values['interfaces'], list):
+        new_interfaces = values['interfaces']
+    else:
+        new_interfaces = list(eval(values['interfaces']))
+    for new_interface in new_interfaces:
+        new_assigned = {}
+        for new_assign in new_interface.get('assigned_networks', []):
+            network_filter = 'name="%s" and cluster_id="%s" and deleted=0' % \
+                             (new_assign['name'], values.get('cluster', ''))
+            network = _query_table(session, models.Network, network_filter,
+                                   True)
+            if network[0].network_type not in ['DATAPLANE']:
+                new_assigned.update({new_assign['name']: new_assign.get('ip')})
+
+        old_assigned = {}
+        interface_filter = 'name="%s" and host_id="%s" and deleted=0' % \
+                           (new_interface['name'], host_ref.id)
+        ori_host_interface = _query_table(session, models.HostInterface,
+                                          interface_filter)
+        if not ori_host_interface:
+            continue
+        assigned_filter = 'interface_id="%s" and deleted=0' % \
+                          ori_host_interface[0].id
+        ori_assigned_networks = _query_table(session, models.AssignedNetworks,
+                                             assigned_filter)
+        for ori_assigned in ori_assigned_networks:
+            is_origin_assigned_empty = False
+            network_filter = 'id="%s" and deleted=0' % ori_assigned.network_id
+            network = _query_table(session, models.Network, network_filter,
+                                   True)
+            if network[0].network_type not in ['DATAPLANE']:
+                old_assigned.update({network[0].name: ori_assigned.ip})
+
+        if old_assigned:
+            if new_assigned != old_assigned:
+                msg = '%s is SSH host. Forbidden to change assigned networks, ' \
+                      'except DATAPLANE. In %s: %s change to %s.' % \
+                      (host_ref.name, new_interface['name'],
+                       old_assigned.keys(), new_assigned.keys())
+                LOG.error(msg)
+                raise exception.Forbidden(msg)
+        elif new_assigned:
+                new_add_network.extend(new_assigned.keys())
+
+    if not is_origin_assigned_empty and new_add_network:
+        msg = '%s is SSH host. Forbidden to add assigned networks, ' \
+              'except DATAPLANE. New add: %s.' % (host_ref.name,
+                                                  new_add_network)
+        LOG.error(msg)
+        raise exception.Forbidden(msg)
+
+
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
 @utils.no_4byte_params
@@ -624,6 +692,10 @@ def _host_update(context, values, host_id):
             if values.has_key('interfaces'):
                 host_interfaces = \
                     get_host_interface(context, host_id, None, session)
+
+                if host_ref.discover_mode == 'SSH' and values.get('cluster'):
+                    _check_ssh_host_assign_network(session, host_ref, values)
+
                 if host_interfaces:
                     for host_interface_info in host_interfaces:
                         delete_assigned_networks(

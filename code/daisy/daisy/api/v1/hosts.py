@@ -1822,8 +1822,7 @@ class Controller(controller.BaseController):
                                request=req,
                                content_type="text/plain")
         except exception.Forbidden as e:
-            msg = (_("Forbidden to update host: %s") %
-                   utils.exception_to_str(e))
+            msg = (_("%s") % utils.exception_to_str(e))
             LOG.error(msg)
             raise HTTPForbidden(explanation=msg,
                                 request=req,

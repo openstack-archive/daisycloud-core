@@ -456,3 +456,216 @@ class TestSqlalchemyApi(test.TestCase):
         for field in delete_fields:
             self.assertEqual(values[field], None)
         self.assertEqual(values['isolcpus'], None)
+
+    @mock.patch('daisy.db.sqlalchemy.api._query_table')
+    def test_check_ssh_host_assign_network(self, mock_do_query_table):
+        def mock_query_table(session, table, condition, is_throw_exception=False):
+            if table.__tablename__ == 'networks' and 'name="MANAGEMENT"' in condition:
+                ref = DottableDict({'network_type': 'MANAGEMENT'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'networks' and 'name="STORAGE"' in condition:
+                ref = DottableDict({'network_type': 'STORAGE'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'host_interfaces' and 'name="enp129s0f0"' in condition:
+                ref = DottableDict({'id': '123'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'host_interfaces' and 'name="bond0"' in condition:
+                ref = DottableDict({'id': '456'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'assigned_networks' and 'interface_id="123"' in condition:
+                ref1 = DottableDict({'network_id': 'abc', 'ip': '162.160.1.11'})
+                ref1.allowDotting()
+
+                ref2 = DottableDict({'network_id': 'def', 'ip': '192.162.1.3'})
+                ref2.allowDotting()
+                return [ref1, ref2]
+            elif table.__tablename__ == 'assigned_networks' and 'interface_id="456"' in condition:
+                return []
+            elif table.__tablename__ == 'networks' and 'id="abc"' in condition:
+                ref = DottableDict({'name': 'MANAGEMENT', 'network_type': 'MANAGEMENT'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'networks' and 'id="def"' in condition:
+                ref = DottableDict({'name': 'STORAGE', 'network_type': 'STORAGE'})
+                ref.allowDotting()
+                return [ref]
+
+        values = {u'cluster': u'dadbfddc-50b6-4057-aa14-6e87702a8098',
+                  u'interfaces': u"[{u'assigned_networks': "
+                                 u"[{'ip': u'162.160.1.11', "
+                                 u"'name': u'MANAGEMENT'}, "
+                                 u"{'ip': u'192.162.1.3', "
+                                 u"'name': u'STORAGE'}], "
+                                 u"u'name': u'enp129s0f0',}, "
+                                 u"{u'assigned_networks': [], "
+                                 u"u'name': u'bond0',}]"}
+
+        host_ref = DottableDict({'id': "840b92ab", 'name': 'host-1'})
+        mock_do_query_table.side_effect = mock_query_table
+        api._check_ssh_host_assign_network(None, host_ref, values)
+
+    @mock.patch('daisy.db.sqlalchemy.api._query_table')
+    def test_check_ssh_host_assign_network_with_add(self, mock_do_query_table):
+        def mock_query_table(session, table, condition, is_throw_exception=False):
+            if table.__tablename__ == 'networks' and 'name="MANAGEMENT"' in condition:
+                ref = DottableDict({'network_type': 'MANAGEMENT'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'networks' and 'name="STORAGE"' in condition:
+                ref = DottableDict({'network_type': 'STORAGE'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'networks' and 'name="HEARTBEAT"' in condition:
+                ref = DottableDict({'network_type': 'HEARTBEAT'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'host_interfaces' and 'name="enp129s0f0"' in condition:
+                ref = DottableDict({'id': '123'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'host_interfaces' and 'name="bond0"' in condition:
+                ref = DottableDict({'id': '456'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'assigned_networks' and 'interface_id="123"' in condition:
+                ref1 = DottableDict({'network_id': 'abc', 'ip': '162.160.1.11'})
+                ref1.allowDotting()
+
+                ref2 = DottableDict({'network_id': 'def', 'ip': '192.162.1.3'})
+                ref2.allowDotting()
+                return [ref1, ref2]
+            elif table.__tablename__ == 'assigned_networks' and 'interface_id="456"' in condition:
+                return []
+            elif table.__tablename__ == 'networks' and 'id="abc"' in condition:
+                ref = DottableDict({'name': 'MANAGEMENT', 'network_type': 'MANAGEMENT'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'networks' and 'id="def"' in condition:
+                ref = DottableDict({'name': 'STORAGE', 'network_type': 'STORAGE'})
+                ref.allowDotting()
+                return [ref]
+
+        values = {u'cluster': u'dadbfddc-50b6-4057-aa14-6e87702a8098',
+                  u'interfaces': u"[{u'assigned_networks': "
+                                 u"[{'ip': u'162.160.1.11', "
+                                 u"'name': u'MANAGEMENT'}, "
+                                 u"{'name': u'HEARTBEAT'}, "
+                                 u"{'ip': u'192.162.1.3', "
+                                 u"'name': u'STORAGE'}], "
+                                 u"u'name': u'enp129s0f0',}, "
+                                 u"{u'assigned_networks': [], "
+                                 u"u'name': u'bond0',}]"}
+
+        host_ref = DottableDict({'id': "840b92ab", 'name': 'host-1'})
+        mock_do_query_table.side_effect = mock_query_table
+        self.assertRaises(exception.Forbidden, api._check_ssh_host_assign_network, None, host_ref, values)
+
+    @mock.patch('daisy.db.sqlalchemy.api._query_table')
+    def test_check_ssh_host_assign_network_with_change(self, mock_do_query_table):
+        def mock_query_table(session, table, condition, is_throw_exception=False):
+            if table.__tablename__ == 'networks' and 'name="MANAGEMENT"' in condition:
+                ref = DottableDict({'network_type': 'MANAGEMENT'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'networks' and 'name="HEARTBEAT"' in condition:
+                ref = DottableDict({'network_type': 'HEARTBEAT'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'host_interfaces' and 'name="enp129s0f0"' in condition:
+                ref = DottableDict({'id': '123'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'host_interfaces' and 'name="bond0"' in condition:
+                ref = DottableDict({'id': '456'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'assigned_networks' and 'interface_id="123"' in condition:
+                ref1 = DottableDict({'network_id': 'abc', 'ip': '162.160.1.11'})
+                ref1.allowDotting()
+
+                ref2 = DottableDict({'network_id': 'def', 'ip': '192.162.1.3'})
+                ref2.allowDotting()
+                return [ref1, ref2]
+            elif table.__tablename__ == 'assigned_networks' and 'interface_id="456"' in condition:
+                return []
+            elif table.__tablename__ == 'networks' and 'id="abc"' in condition:
+                ref = DottableDict({'name': 'MANAGEMENT', 'network_type': 'MANAGEMENT'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'networks' and 'id="def"' in condition:
+                ref = DottableDict({'name': 'STORAGE', 'network_type': 'STORAGE'})
+                ref.allowDotting()
+                return [ref]
+
+        values = {u'cluster': u'dadbfddc-50b6-4057-aa14-6e87702a8098',
+                  u'interfaces': u"[{u'assigned_networks': "
+                                 u"[{'ip': u'162.160.1.11', "
+                                 u"'name': u'MANAGEMENT'}, "
+                                 u"{'ip': u'192.162.1.3', "
+                                 u"'name': u'HEARTBEAT'}], "
+                                 u"u'name': u'enp129s0f0',}, "
+                                 u"{u'assigned_networks': [], "
+                                 u"u'name': u'bond0',}]"}
+
+        host_ref = DottableDict({'id': "840b92ab", 'name': 'host-1'})
+        mock_do_query_table.side_effect = mock_query_table
+        self.assertRaises(exception.Forbidden, api._check_ssh_host_assign_network, None, host_ref, values)
+
+    @mock.patch('daisy.db.sqlalchemy.api._query_table')
+    def test_check_ssh_host_assign_network_with_dataplane(self, mock_do_query_table):
+        def mock_query_table(session, table, condition, is_throw_exception=False):
+            if table.__tablename__ == 'networks' and 'name="MANAGEMENT"' in condition:
+                ref = DottableDict({'network_type': 'MANAGEMENT'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'networks' and 'name="STORAGE"' in condition:
+                ref = DottableDict({'network_type': 'STORAGE'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'networks' and 'name="DATAPLANE"' in condition:
+                ref = DottableDict({'network_type': 'DATAPLANE'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'host_interfaces' and 'name="enp129s0f0"' in condition:
+                ref = DottableDict({'id': '123'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'host_interfaces' and 'name="bond0"' in condition:
+                ref = DottableDict({'id': '456'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'assigned_networks' and 'interface_id="123"' in condition:
+                ref1 = DottableDict({'network_id': 'abc', 'ip': '162.160.1.11'})
+                ref1.allowDotting()
+
+                ref2 = DottableDict({'network_id': 'def', 'ip': '192.162.1.3'})
+                ref2.allowDotting()
+                return [ref1, ref2]
+            elif table.__tablename__ == 'assigned_networks' and 'interface_id="456"' in condition:
+                return []
+            elif table.__tablename__ == 'networks' and 'id="abc"' in condition:
+                ref = DottableDict({'name': 'MANAGEMENT', 'network_type': 'MANAGEMENT'})
+                ref.allowDotting()
+                return [ref]
+            elif table.__tablename__ == 'networks' and 'id="def"' in condition:
+                ref = DottableDict({'name': 'STORAGE', 'network_type': 'STORAGE'})
+                ref.allowDotting()
+                return [ref]
+
+        values = {u'cluster': u'dadbfddc-50b6-4057-aa14-6e87702a8098',
+                  u'interfaces': u"[{u'assigned_networks': "
+                                 u"[{'ip': u'162.160.1.11', "
+                                 u"'name': u'MANAGEMENT'}, "
+                                 u"{'ip': u'192.162.1.3', "
+                                 u"'name': u'STORAGE'}], "
+                                 u"u'name': u'enp129s0f0',}, "
+                                 u"{u'assigned_networks': [{'name': u'DATAPLANE'}], "
+                                 u"u'name': u'bond0',}]"}
+
+        host_ref = DottableDict({'id': "840b92ab", 'name': 'host-1'})
+        mock_do_query_table.side_effect = mock_query_table
+        api._check_ssh_host_assign_network(None, host_ref, values)
