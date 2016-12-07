@@ -1079,13 +1079,13 @@ class Controller(controller.BaseController):
         else:
             if not host_meta.get("name"):
                 return
-            _name_regex = '^[a-zA-Z][a-zA-Z0-9-]{3,15}$'
+            _name_regex = '^[a-zA-Z][a-zA-Z0-9-]{3,31}$'
             if not re.match(_name_regex, host_meta["name"]):
                 msg = _(
                     "Forbidden to update name of %s "
                     "Name must begin with letters,and consist of numbers,"
                     "letters or strikethrough. "
-                    "The length of name is 4 to 16.") % host_meta['name']
+                    "The length of name is 4 to 32.") % host_meta['name']
                 LOG.error(msg)
                 raise HTTPForbidden(explanation=msg)
             # host name is already existed?
