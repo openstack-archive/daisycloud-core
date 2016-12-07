@@ -46,7 +46,6 @@ _api_opts = [
         daisy.registry.client.registry_client_ctx_opts,
         daisy.registry.client.registry_client_opts,
         daisy.registry.client.v1.api.registry_client_ctx_opts))),
-    ('task', daisy.common.config.task_opts),
     ('paste_deploy', daisy.common.config.paste_deploy_opts)
 ]
 _registry_opts = [

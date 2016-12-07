@@ -17,7 +17,6 @@
 /roles endpoint for Daisy v1 API
 """
 
-from oslo_config import cfg
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
 from webob.exc import HTTPConflict
@@ -56,12 +55,6 @@ SUPPORTED_ROLE = (
     'CHILD_CELL_1_COMPUTER',
     'CONTROLLER_CHILD_CELL_1')
 SUPPORT_DISK_LOCATION = ('local', 'share')
-
-CONF = cfg.CONF
-CONF.import_opt('disk_formats', 'daisy.common.config', group='image_format')
-CONF.import_opt('container_formats', 'daisy.common.config',
-                group='image_format')
-CONF.import_opt('image_property_quota', 'daisy.common.config')
 
 
 class Controller(controller.BaseController):

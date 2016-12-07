@@ -17,7 +17,6 @@
 /config_sets endpoint for Daisy v1 API
 """
 
-from oslo_config import cfg
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
 from webob.exc import HTTPConflict
@@ -45,12 +44,6 @@ _LW = i18n._LW
 SUPPORTED_PARAMS = daisy.api.v1.SUPPORTED_PARAMS
 SUPPORTED_FILTERS = daisy.api.v1.SUPPORTED_FILTERS
 ACTIVE_IMMUTABLE = daisy.api.v1.ACTIVE_IMMUTABLE
-
-CONF = cfg.CONF
-CONF.import_opt('disk_formats', 'daisy.common.config', group='image_format')
-CONF.import_opt('container_formats', 'daisy.common.config',
-                group='image_format')
-CONF.import_opt('image_property_quota', 'daisy.common.config')
 
 
 class Controller(controller.BaseController):
