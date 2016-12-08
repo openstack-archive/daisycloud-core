@@ -1,0 +1,10 @@
+Code-Review+1: Cao Xuan Hoang <hoangcx@vn.fujitsu.com>
+Code-Review+1: Eric Lei <leiyashuai@inspur.com>
+Code-Review+2: Zhijiang Hu <hu.zhijiang@zte.com.cn>
+Workflow+1: Zhijiang Hu <hu.zhijiang@zte.com.cn>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Thu, 08 Dec 2016 09:43:42 +0000
+Reviewed-on: https://review.openstack.org/408434
+Project: openstack/daisycloud-core
+Branch: refs/heads/stable/mitaka
