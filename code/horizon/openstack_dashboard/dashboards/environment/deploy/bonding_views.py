@@ -226,6 +226,7 @@ def update_interfaces(interfaces_old, bond_params):
         "type": "bond",
         "name": bond_params["name"],
         "mode": bond_params["mode"],
+        "bond_type": bond_params["bond_type"],
         "slaves": bond_params["net_ports"]
     })
     ether_interfaces.extend(bond_interfaces)
