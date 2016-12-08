@@ -62,6 +62,8 @@ help:
 	$(ECHO) ===============================================================================
 	$(ECHO) make ironicdiscoverdrpm  ... generate ironicdiscoverd rpms
 	$(ECHO) ===============================================================================
+	$(ECHO) make pxe_server_install  ... generate pxe_server_install rpms
+	$(ECHO) ===============================================================================
 	$(ECHO) make rpmclean  ... clean rpms generated
 	$(ECHO) ===============================================================================
 	$(ECHO) make binclean  ... clean install.bin generated
@@ -96,6 +98,9 @@ ironicdiscoverdrpm:
 
 horizonrpm:
 	$(MAKE) -C $(_TECS_RPM_PATH)/ horizon
+
+pxe_server_install:
+	$(MAKE) -C $(_TECS_RPM_PATH)/ pxe_server_install
 
 bin:
 	$(MAKE) -C $(_TECS_TOOLS_PATH)/setup bin

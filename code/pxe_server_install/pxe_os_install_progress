@@ -1,0 +1,57 @@
+#!/bin/bash
+
+###############################################################################################
+#    功能：获取os安装进度，并且打印出来
+###############################################################################################
+function showhelp
+{
+    echo -e "Usage1: $0 target_machine_macaddr"    
+    echo -e "Options:"
+    echo -e "   target_machine_macaddr:  the interface mac address of the target machine which link to pxe server "    
+    echo ""
+    echo -e "Usage2: $0 --help     display this help and exit" 
+    echo ""
+}
+
+# ##############################################################################################
+#                                            入口                                              #
+# ##############################################################################################
+#工作目录定义及检查
+WORKDIR=/etc/pxe_install
+[ ! -d ${WORKDIR} ] && { pxelog "[error]WORKDIR ${WORKDIR} not exist!" "console"; exit 1; }
+
+source ${WORKDIR}/scripts/common.sh
+source ${WORKDIR}/scripts/query_progress.sh
+
+pxelog "********************query os install progress********************"
+#显示帮助提示
+if [[ `echo $* |grep -wi 'help'` != "" ]];then
+    showhelp
+    exit 0
+fi
+
+#入参检查
+[ $# != 1 ] && { pxelog "[error]Param num fail, please input again" "console"; showhelp; exit 1; }
+
+#将mac地址的:换成-
+dhcp_mac=$1
+MACADDR=`echo ${dhcp_mac} | sed "s/:/-/g"`
+
+#pxe服务器上os安装的统计表
+[ ! -f ${PXE_OS_TAB} ] && { pxelog "[error]can not find os table in pxe server"; exit 1; }
+
+#先在统计表中查一下目标机记录，如果没有表示没有配置过目标机
+if [[ `cat ${PXE_OS_TAB} |grep -wi "${MACADDR}"` == "" ]]; then
+   pxelog "0   not_plan_install" "console"
+   pxelog "the target machine is not configed in pxe server, please use pxe_os_install for configuration!"
+   exit 0
+fi
+
+#由mac地址映射到ip地址，以及找到存放该目标机安装日志的log文件，若找不到对应的ip，那么表示还未开始安装
+convert_mac_to_ip ${dhcp_mac} || { pxelog "0   plan_install" "console";exit 0; }
+INSTALL_LOG=${install_log}
+
+#分析日志，得到安装进度以及正在做什么事情
+get_progress ${INSTALL_LOG} ${PXE_OS_TAB} ${MACADDR}
+
+exit 0
