@@ -61,7 +61,7 @@ class API(driver.DeploymentDriver):
                                                discover_host_meta['id'],
                                                discover)
 
-    def _check_uninstall_hosts(self, req, cluster_id, uninstall_hosts):
+    def check_uninstall_hosts(self, req, cluster_id, uninstall_hosts):
         pass
 
     def prepare_ssh_discovered_node(self, req, fp, discover_host_meta):
