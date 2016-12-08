@@ -58,6 +58,9 @@ function all_install
     write_install_log "install keystone rpm"
     install_rpm_by_yum "openstack-keystone"
 
+    write_install_log "install python-openstackclient rpm"
+    install_rpm_by_yum "python-openstackclient"
+
     write_install_log "install ironic-discoverd depend rpm"
     install_rpm_by_yum "python-flask"
 
@@ -193,6 +196,11 @@ function all_install
         --bootstrap-region-id RegionOne
         [ "$?" -ne 0 ] && { write_install_log "Error:keystone-manage bootstrap command failed"; exit 1; }
     fi
+
+    openstack project create --domain default --description "Demo Project" demo
+    openstack user create --domain default --password daisy daisy
+    openstack role create user
+    openstack role add --project demo --user daisy user
 
     #creat daisy datebase tables
     which daisy-manage >> $install_logfile 2>&1
