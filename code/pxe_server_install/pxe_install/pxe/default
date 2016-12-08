@@ -1,0 +1,8 @@
+default cgsl
+prompt   10
+timeout  20 
+# Install cgsl
+label cgsl
+  kernel vmlinuz
+  ipappend 2
+  append ksdevice=bootif ks=nfs:192.170.0.1:/home/install_share/pxe_kickstart.cfg initrd=initrd.img  text splash=silent showopts 

@@ -1,0 +1,60 @@
+#!/bin/bash
+
+###############################################################################################
+#    功能：清除服务器上某个目标机的痕迹
+###############################################################################################
+function showhelp
+{
+    echo -e "Usage1: $0 target_machine_macaddr"    
+    echo -e "Options:"
+    echo -e "   target_machine_macaddr:  the interface mac address of the target machine which link to pxe server "    
+    echo ""
+    echo -e "Usage2: $0 all        clean all os files" 
+    echo -e "Usage3: $0 --help     display this help and exit" 
+    echo ""
+}
+
+# ##############################################################################################
+#                                            入口                                              #
+# ##############################################################################################
+#工作目录定义及检查
+WORKDIR=/etc/pxe_install
+[ ! -d ${WORKDIR} ] && { pxelog "[error]WORKDIR ${WORKDIR} not exist!" "console"; exit 1; }
+
+source ${WORKDIR}/scripts/common.sh
+
+pxelog "********************clean os install info($1)********************"
+#显示帮助提示
+if [[ `echo $* |grep -wi 'help'` != "" ]];then
+    showhelp
+    exit 0
+fi
+
+#入参检查
+[ $# != 1 ] && { pxelog "[error]Param num fail, please input again" "console"; showhelp; exit 1; }
+
+#取入参，如果是all，那么清除所有目标机的痕迹，如果是mac地址，那么只清除一台目标机的痕迹
+param=$1
+
+if [ ${param} = "all" ]; then
+    #删除pxe服务器上目标机相关的文件
+    clean_all_os_files
+    
+    #清空目标机所有的历史日志记录
+    clean_all_log
+
+    #清除pxe服务器os安装统计表
+    rm -rf $PXE_OS_TAB
+else
+    #将mac地址的:换成-
+    dhcp_mac=$1
+    MACADDR=`echo ${dhcp_mac} | sed "s/:/-/g"`
+
+    #删除pxe服务器上目标机相关的文件
+    clean_os_files ${MACADDR} ${PXE_OS_TAB}
+
+    #清除pxe服务器os安装统计表中关于目标机安装的信息
+    clean_os_table ${MACADDR} ${PXE_OS_TAB}
+fi
+
+exit 0

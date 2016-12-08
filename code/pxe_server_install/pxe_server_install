@@ -1,0 +1,50 @@
+#!/bin/bash
+
+###############################################################################################
+#    功能：搭建pxe服务器  
+###############################################################################################
+function showhelp
+{
+    echo -e "Usage1: $0 config_file_path"    
+    echo -e "Options:"
+    echo -e "   config_file_path:  json file path that contain customized config about pxe server"    
+    echo -e "                      (json file format is as ${WORKDIR}/json_format/server.json)"    
+    echo ""
+    echo -e "Usage2: $0 --help     display this help and exit" 
+    echo ""
+}
+
+
+# ##############################################################################################
+#                                            入口                                              #
+# ##############################################################################################
+WORKDIR=/etc/pxe_install
+source $WORKDIR/scripts/common.sh
+source $WORKDIR/scripts/interface.sh
+
+#显示帮助提示
+if [[ `echo $* |grep -wi 'help'` != "" ]];then
+    showhelp
+    exit 0
+fi
+
+#  判断入参
+if [ ! -f "$1" ]; then 
+pxelog "[error]json file $1 error...." "console"
+exit 1
+fi
+
+pxelog "********************begin pxe server install********************" "console"
+
+$WORKDIR/scripts/create_pxesvr.sh ${WORKDIR} $1
+
+pxelog "********************end pxe server install********************\n" "console"
+
+pxelog "************************************************************" "console"
+pxelog "good! pxe server been built!" "console"
+pxelog "now you can enjoy installing os by pxe server" "console"
+pxelog "************************************************************" "console"
+
+
+exit 0
+
