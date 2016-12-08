@@ -29,7 +29,7 @@ def clean_inventory_file(file_path, filename):
     fp.close()
     node_names = ['control', 'network', 'compute', 'monitoring',
                   'storage', 'baremetal:children']
-    for section_name in node_names[0:4]:
+    for section_name in node_names[0:5]:
         next_name_index = node_names.index('%s' % section_name)
         match = re.search(r"\[%s\](.*)\[%s\]" % (
             section_name,
