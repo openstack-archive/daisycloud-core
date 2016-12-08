@@ -654,8 +654,6 @@ def run_scrip(script, ip=None, password=None, msg=None):
         message = msg1 + msg if msg else msg1
         LOG.error(message)
         raise HTTPForbidden(explanation=message)
-    else:
-        LOG.info('Running scripts successfully!')
 
 
 def _run_scrip(script, ip=None, password=None):
