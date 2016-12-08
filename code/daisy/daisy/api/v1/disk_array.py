@@ -554,9 +554,9 @@ class Controller(controller.BaseController):
                         if len(disk_array['resource_pools'].split(',')) != 1:
                             msg = "Only one resource pool can be specified."
                             LOG.error(msg)
-                    raise HTTPBadRequest(explanation=msg,
-                                         request=req,
-                                         content_type="text/plain")
+                            raise HTTPBadRequest(explanation=msg,
+                                                 request=req,
+                                                 content_type="text/plain")
 
             disk_array['role_id'] = disk_meta['role_id']
             disk_array['backend_index'] = \
