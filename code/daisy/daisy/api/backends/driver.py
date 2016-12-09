@@ -73,7 +73,7 @@ def check_isinstance(obj, cls):
     raise Exception(_('Expected object of type: %s') % (str(cls)))
 
 
-def load_deployment_dirver(backend_name):
+def load_deployment_driver(backend_name):
     """Load a cluster backend installation driver.
     """
     backend_driver = "%s.api.API" % backend_name

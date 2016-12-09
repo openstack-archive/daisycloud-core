@@ -114,7 +114,7 @@ class InstallTask(object):
             LOG.info(_("No backends need to install."))
             return
         for backend in backends:
-            backend_driver = driver.load_deployment_dirver(backend)
+            backend_driver = driver.load_deployment_driver(backend)
             backend_driver.install(self.req, self.cluster_id)
     # this will be raise raise all the exceptions of the thread to log file
 
@@ -381,7 +381,7 @@ class Controller(controller.BaseController):
         backends = get_deployment_backends(
             req, cluster_id, BACKENDS_UNINSTALL_ORDER)
         for backend in backends:
-            backend_driver = driver.load_deployment_dirver(backend)
+            backend_driver = driver.load_deployment_driver(backend)
             backend_driver.check_uninstall_hosts(req,
                                                  cluster_id,
                                                  uninstall_hosts)
@@ -403,7 +403,7 @@ class Controller(controller.BaseController):
             LOG.info(_("No backends need to uninstall."))
             return all_nodes
         for backend in backends:
-            backend_driver = driver.load_deployment_dirver(backend)
+            backend_driver = driver.load_deployment_driver(backend)
             nodes_process = backend_driver.uninstall_progress(req, cluster_id)
             all_nodes.update(nodes_process)
         return all_nodes
@@ -438,7 +438,7 @@ class Controller(controller.BaseController):
                 {'messages': 'Waiting for TECS upgrading', 'progress': '0'},
                 'tecs')
             for backend in backends:
-                backend_driver = driver.load_deployment_dirver(backend)
+                backend_driver = driver.load_deployment_driver(backend)
                 update_thread = Thread(target=backend_driver.upgrade,
                                        args=(req, cluster_id,
                                              install_meta['version_id'],
@@ -481,7 +481,7 @@ class Controller(controller.BaseController):
             req, cluster_id, BACKENDS_UPGRADE_ORDER)
         all_nodes = {}
         for backend in backends:
-            backend_driver = driver.load_deployment_dirver(backend)
+            backend_driver = driver.load_deployment_driver(backend)
             nodes_process = backend_driver.upgrade_progress(req, cluster_id)
             all_nodes.update(nodes_process)
         return all_nodes
@@ -506,7 +506,7 @@ class Controller(controller.BaseController):
             LOG.info(_("No backends need to export."))
             return all_config_files
         for backend in backends:
-            backend_driver = driver.load_deployment_dirver(backend)
+            backend_driver = driver.load_deployment_driver(backend)
             backend_config_files = backend_driver.export_db(req, cluster_id)
             all_config_files.update(backend_config_files)
         return all_config_files
@@ -530,7 +530,7 @@ class Controller(controller.BaseController):
             message = "No tecs backend"
             LOG.info(_(message))
         else:
-            backend_driver = driver.load_deployment_dirver(tecs_backend_name)
+            backend_driver = driver.load_deployment_driver(tecs_backend_name)
             message = backend_driver.update_disk_array(req, cluster_id)
         return {'status': message}
 
