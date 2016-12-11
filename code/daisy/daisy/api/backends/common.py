@@ -191,6 +191,24 @@ def subprocess_call(command, file=None):
         raise exception.SubprocessCmdFailed(message=msg)
 
 
+def check_file_whether_exist(file_name):
+    # used in os.py mainly
+    try:
+        subprocess.check_output("test -f %s" % file_name, shell=True,
+                                stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        if e.returncode == 1:
+            msg = "%s does not exist" % file_name
+            LOG.info(msg)
+            return False
+        else:
+            msg = "command execute failed"
+            LOG.error(msg)
+            exception.SubprocessCmdFailed(message=msg)
+    else:
+        return True
+
+
 def get_host_detail(req, host_id):
     try:
         host_detail = registry.get_host_metadata(req.context, host_id)
