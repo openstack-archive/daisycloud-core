@@ -850,6 +850,16 @@ class OSInstall():
                     return
                 else:
                     self._set_disk_start_mode(host_detail)
+                host_management_ip = daisy_cmn.get_management_ip(host_detail,
+                                                                 False)
+                if host_management_ip:
+                    known_hosts_file = "/root/.ssh/known_hosts"
+                    exist_flag = daisy_cmn.check_file_whether_exist(
+                        known_hosts_file)
+                    if exist_flag:
+                        daisy_cmn.subprocess_call(
+                            'sed -i "/%s/d" /root/.ssh/known_hosts'
+                            % host_management_ip)
             else:
                 if host_status['os_progress'] ==\
                         host_last_status['os_progress']:
