@@ -126,8 +126,7 @@ def install_os(**kwargs):
     _PIPE = subprocess.PIPE
     cmd = "/usr/bin/pxe_os_install /var/log/ironic/%s.json && \
            chmod 755 /tftpboot -R && \
-           chmod 755 /home/install_share -R && \
-           chmod 755 /linuxinstall -R" % kwargs['dhcp_mac']
+           chmod 755 /home/install_share -R" % kwargs['dhcp_mac']
     try:
         obj = subprocess.Popen(cmd, stdin=_PIPE, stdout=_PIPE,
                                stderr=_PIPE, shell=True, cwd=None, env=None)
