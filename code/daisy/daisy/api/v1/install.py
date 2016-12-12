@@ -112,7 +112,7 @@ class InstallTask(object):
             self.req, self.cluster_id, BACKENDS_INSTALL_ORDER)
         if not backends:
             LOG.info(_("No backends need to install."))
-            return
+            return self.cluster_id
         for backend in backends:
             backend_driver = driver.load_deployment_driver(backend)
             backend_driver.install(self.req, self.cluster_id)
@@ -146,7 +146,12 @@ class InstallTask(object):
         else:
             LOG.info(_("No host need to install os, begin to install "
                        "backends for cluster %s." % self.cluster_id))
-            self._backends_install()
+            return_value = self._backends_install()
+            if self.cluster_id == return_value:
+                if daisy_cmn.in_cluster_list(self.cluster_id):
+                    LOG.info("No host need install, "
+                             "clear install global variables")
+                    daisy_cmn.cluster_list_delete(self.cluster_id)
             return
 
         run_once_flag = True
