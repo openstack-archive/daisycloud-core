@@ -203,10 +203,11 @@ function all_install
         [ "$?" -ne 0 ] && { write_install_log "Error:keystone-manage bootstrap command failed"; exit 1; }
     fi
 
-    openstack project create --domain default --description "Demo Project" demo
-    openstack user create --domain default --password daisy daisy
-    openstack role create user
-    openstack role add --project demo --user daisy user
+    params=--os-auth-url http://127.0.0.1:35357/v3 --os-identity-api-version 3 --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password $keystone_admin_token
+    openstack $params project create --domain default --description "Demo Project" demo 
+    openstack $params user create --domain default --password daisy daisy
+    openstack $params role create user
+    openstack $params role add --project demo --user daisy user
 
     #creat daisy datebase tables
     which daisy-manage >> $install_logfile 2>&1
