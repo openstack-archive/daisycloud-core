@@ -165,7 +165,7 @@ def get_cluster_kolla_config(req, cluster_id):
     dat_macname_list = []
     ext_macname_list = []
     sto_macname_list = []
-    openstack_version = '2.0.3'
+    openstack_version = '3.0.0'
     docker_namespace = 'kolla'
     host_name_ip = {}
     host_name_ip_list = []
