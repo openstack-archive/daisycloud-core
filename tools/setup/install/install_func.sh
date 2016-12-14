@@ -93,28 +93,42 @@ function kolla_install
   else
       yum install -y https://kojipkgs.fedoraproject.org//packages/python-jinja2/2.8/2.fc23/noarch/python-jinja2-2.8-2.fc23.noarch.rpm    
   fi
-  write_install_log "Begin clone kolla..."
-  if [ -e "/home/kolla_install/kolla" ];then
+
+  imagebranch="newton"
+  imageversion="latest"
+  imageserver="http://120.24.17.215"
+  imagedir="/home/kolla_install/docker/"
+  imagename="kolla-image-$imagebranch-$imageversion.tgz"
+
+  write_install_log "Begin copy images..."
+  if [ -f "$imagedir/$imagename" ];then
+      echo "$imagename already exist!"
+      cd $imagedir
+      tar mzxvf $imagename
+  else
+      mkdir -p $imagedir
+      cd $imagedir
+      wget "$imageserver/$imagename"
+      tar mzxvf $imagename
+  fi
+ 
+  sourcedir="/home/kolla_install/"
+  sourceversion=$(cat $imagedir/registry-*.version | head -1)
+
+  write_install_log "Begin clone kolla... $sourceversion"
+  if [ -e "$sourcedir/kolla" ];then
       echo "kolla code already exist!"
   else
-      mkdir -p /home/kolla_install
-      cd /home/kolla_install
+      mkdir -p $sourcedir
+      cd $sourcedir
       git clone https://git.openstack.org/openstack/kolla
-      cd kolla
-      git checkout stable/newton
   fi
+  cd $sourcedir/kolla
+  git remote update
+  git checkout -f $sourceversion
   cp -r /home/kolla_install/kolla/etc/kolla /etc
-  write_install_log "Begin copy images..."
-  if [ -f "/home/kolla_install/docker/registry-3.0.0.tgz" ];then
-      echo "registry-3.0.0.tgz already exist!"
-      cd /home/kolla_install/docker
-      tar mzxvf registry-3.0.0.tgz
-  else
-      mkdir -p /home/kolla_install/docker
-      cd /home/kolla_install/docker
-      wget "http://daisycloud.org/static/files/registry-3.0.0.tgz"
-      tar mzxvf registry-3.0.0.tgz
-  fi
+
+  # TODO: (huzhj)Use latest registry server from upstream
   catalog=`curl $catalog_url |grep repositories`
   if [ -z $catalog ];then
       if [ -f "/home/kolla_install/docker/registry-server.tar" ];then
