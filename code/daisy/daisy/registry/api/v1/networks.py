@@ -310,17 +310,23 @@ class Controller(object):
         except exception.Forbidden:
             # If it's private and doesn't belong to them, don't let on
             # that it exists
-            msg = _LI("Access denied to network %(id)s but returning"
+            msg = _LI("Access denied to network %(network_id)s but returning"
                       " 'not found'") % {'network_id': network_id}
             LOG.info(msg)
             return exc.HTTPNotFound()
+        except exception.DeleteConstrainted as e:
+            msg = _LI("Network %(network_id)s could not be deleted "
+                      "because it is in used") % {'network_id': network_id}
+            LOG.info(msg)
+            return exc.HTTPForbidden(e)
         except exception.NotFound:
             msg = _LI("Network %(network_id)s not found") % {
                 'network_id': network_id}
             LOG.info(msg)
             return exc.HTTPNotFound()
         except Exception:
-            LOG.exception(_LE("Unable to delete network %s") % id)
+            LOG.exception(_LE("Unable to delete network %(network_id)s") % {
+                          'network_id': network_id})
             raise
 
     @utils.mutating
