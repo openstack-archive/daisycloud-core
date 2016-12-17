@@ -21,7 +21,9 @@ from daisyclient.openstack.common.apiclient import base
 # import daisy.queue_process as queue
 # from daisy.queue_process import exec_cmd
 
-CREATE_PARAMS = ('cluster_id')
+CREATE_PARAMS = (
+    'cluster_id', 'version_id', 'version_patch_id', 'hosts',
+    'update_object', 'update_script')
 
 OS_REQ_ID_HDR = 'x-openstack-request-id'
 
@@ -94,15 +96,15 @@ class UpdateManager(base.ManagerWithFind):
         for field in kwargs:
             if field in CREATE_PARAMS:
                 fields[field] = kwargs[field]
-            # elif field == 'return_req_id':
-            #    continue
+            elif field == 'return_req_id':
+                continue
             else:
-                msg = 'update() got an unexpected keyword argument \'%s\''
+                msg = 'update() got an unexpected argument \'%s\''
                 raise TypeError(msg % field)
 
         if "cluster_id" in fields:
             url = '/v1/update/%s' % fields['cluster_id']
 
-        # hdrs = self._install_meta_to_headers(fields)
-        resp, body = self.client.post(url)
-        return Update(self, self._format_update_meta_for_user(body))
+            hdrs = self._Update_meta_to_headers(fields)
+            resp, body = self.client.post(url, headers=None, data=hdrs)
+            return Update(self, self._format_update_meta_for_user(body))
