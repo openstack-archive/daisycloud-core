@@ -473,10 +473,10 @@ class Controller(controller.BaseController):
         ssh_host_flag = self._judge_ssh_host(req,
                                              host_template_used['cluster'],
                                              host_id)
-        ignore_ssh_key_list = ["root_disk", "root_lv_size",
-                               "swap_lv_size", "isolcpus",
-                               "os_version_file", "os_version_id",
-                               "root_pwd", "hugepages", "hugepagesize"]
+        ignore_ssh_key_list = ["root_disk", "root_lv_size", "swap_lv_size",
+                               "isolcpus", "os_version_file", "os_version_id",
+                               "root_pwd", "hugepages", "hugepagesize",
+                               'discover_mode']
         if ssh_host_flag:
             for ignore_key in ignore_ssh_key_list:
                 if host_template_used.get(ignore_key, None):
@@ -501,7 +501,6 @@ class Controller(controller.BaseController):
             template_bond_interface = [interface for interface in
                                        host_template_interfaces if
                                        interface['type'] == "bond"]
-            orig_host_meta = registry.get_host_metadata(req.context, host_id)
             orig_host_interfaces = orig_host_meta.get('interfaces', None)
             temp_orig_host_interfaces = [interface for interface in
                                          orig_host_interfaces if
@@ -577,8 +576,11 @@ class Controller(controller.BaseController):
                         host_id, host_template['host_template_name']))
                     raise HTTPBadRequest(explanation=msg)
             host_template_used['interfaces'] = str(host_template_interfaces)
-            host_template = registry.update_host_metadata(
-                req.context, host_id, host_template_used)
+            try:
+                host_template = registry.update_host_metadata(
+                    req.context, host_id, host_template_used)
+            except Exception as e:
+                raise HTTPBadRequest(e.message)
         return {"host_template": host_template}
 
     @utils.mutating
