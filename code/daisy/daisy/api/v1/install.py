@@ -421,7 +421,17 @@ class Controller(controller.BaseController):
         self._enforce(req, 'update_cluster')
         self._raise_404_if_cluster_deleted(req, cluster_id)
         if not install_meta.get('version_id', None):
-            raise ValueError('version_id is null!')
+            msg = "upgrade version is null"
+            raise HTTPBadRequest(explanation=msg,
+                                 request=req,
+                                 content_type="text/plain")
+        if not install_meta.get('hosts', None):
+            msg = "upgrade hosts is null!"
+            raise HTTPBadRequest(explanation=msg,
+                                 request=req,
+                                 content_type="text/plain")
+        else:
+            hosts = eval(install_meta['hosts'])
         update_file = ""
         if install_meta.get('version_patch_id', None):
             version_patch = self.get_version_patch_meta_or_404(
@@ -436,30 +446,25 @@ class Controller(controller.BaseController):
             backends = get_deployment_backends(
                 req, cluster_id, BACKENDS_UPGRADE_ORDER)
             if not backends:
-                LOG.info(_("No backends need to update."))
+                LOG.info(_("No backends need to upgrade."))
                 return {"status": ""}
-            daisy_cmn.set_role_status_and_progress(
-                req, cluster_id, 'upgrade',
-                {'messages': 'Waiting for TECS upgrading', 'progress': '0'},
-                'tecs')
             for backend in backends:
                 backend_driver = driver.load_deployment_driver(backend)
                 update_thread = Thread(target=backend_driver.upgrade,
                                        args=(req, cluster_id,
                                              install_meta['version_id'],
-                                             update_file))
+                                             update_file, hosts))
                 update_thread.start()
 
         else:
             if install_meta['update_object'] != "vplat":
                 if not install_meta.get('update_script', None):
-                    raise ValueError('update script is null!')
+                    msg = "upgrade script is null"
+                    raise HTTPBadRequest(explanation=msg,
+                                         request=req,
+                                         content_type="text/plain")
             else:
                 install_meta['update_script'] = "tfg_upgrade.sh"
-            if not install_meta.get('hosts', None):
-                raise ValueError('hosts is null!')
-            else:
-                hosts = eval(install_meta['hosts'])
 
             os_handle = get_os_handle()
             update_thread = Thread(target=os_handle.upgrade,

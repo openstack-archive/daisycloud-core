@@ -1633,6 +1633,16 @@ def do_query_uninstall_progress(gc, args):
 
 @utils.arg('cluster_id', metavar='<CLUSTER_ID>',
            help='The cluster ID to update os and TECS.')
+@utils.arg('--hosts', metavar='<HOSTS>', nargs='+',
+           help='The host ID to update')
+@utils.arg('--update-object', metavar='<UPDATE_OBJECT>',
+           help='update object:vplat or tecs or zenic......')
+@utils.arg('--version-id', metavar='<VERSION>',
+           help='if not patch, update version id is used to update.')
+@utils.arg('--version-patch-id', metavar='<VERSION_PATCH>',
+           help='if update version patch, version patch id is needed')
+@utils.arg('--update-script', metavar='<UPDATE_SCRIPT>',
+           help='update script in /var/lib/daisy/os')
 def do_update(gc, args):
     """update TECS."""
     fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
