@@ -965,10 +965,14 @@ def check_vlan_nic_and_join_vlan_network(req, cluster_id,
                     # physical nic name.
                     vlan_id = nic_name_list[len(nic_name_list) - 1]
                     nic_name = interface_info['name'][: -len(vlan_id) - 1]
+                    exclude_networks = ['DATAPLANE', 'EXTERNAL']
+                    use_share_disk, ha_role_meta = if_used_shared_storage(
+                        req, cluster_id)
+                    if not use_share_disk:
+                        exclude_networks.append('STORAGE')
 
                     for network in networks:
-                        if network['network_type'] in ['DATAPLANE',
-                                                       'EXTERNAL']:
+                        if network['network_type'] in exclude_networks:
                             continue
                         network_cidr = network.get('cidr', None)
                         if network_cidr:
@@ -1047,9 +1051,13 @@ def check_bond_or_ether_nic_and_join_network(req,
                                   % host_info_ip
                             LOG.error(msg)
                             raise exception.Forbidden(msg)
+                        exclude_networks = ['DATAPLANE', 'EXTERNAL']
+                        use_share_disk, ha_role_meta = if_used_shared_storage(
+                            req, cluster_id)
+                        if not use_share_disk:
+                            exclude_networks.append('STORAGE')
                         for network in networks:
-                            if network['network_type'] in ['DATAPLANE',
-                                                           'EXTERNAL']:
+                            if network['network_type'] in exclude_networks:
                                 continue
                             if network.get('cidr', None):
                                 ip_in_cidr = utils.is_ip_in_cidr(
@@ -1094,3 +1102,23 @@ def check_bond_or_ether_nic_and_join_network(req,
                 LOG.info("add the host %s join the cluster %s and"
                          " assigned_network successful" %
                          (host_id, cluster_id))
+
+
+def if_used_shared_storage(req, cluster_id):
+    cluster_roles = get_cluster_roles_detail(req, cluster_id)
+    use_share_disk, ha_role_meta = False, None
+    for role in cluster_roles:
+        if role['name'] == 'CONTROLLER_HA':
+            ha_role_meta = role
+            if role.get('disk_location') in ['share', 'share_cluster']:
+                use_share_disk = True
+                break
+            service_disks = registry.list_service_disk_metadata(
+                req.context, **{'filters': {'role_id': role['id']}})
+            for disk in service_disks:
+                if disk.get('disk_location') in ['share', 'share_cluster']:
+                    use_share_disk = True
+                    break
+        if use_share_disk:
+            break
+    return use_share_disk, ha_role_meta
