@@ -1832,7 +1832,7 @@ class Controller(controller.BaseController):
                 pxe_macs = [interface['mac'] for interface in host_detail[
                     'interfaces'] if interface['is_deployment']]
                 if not pxe_macs:
-                    self.add_ssh_host_to_cluster_and_assigned_network(
+                    daisy_cmn.add_ssh_host_to_cluster_and_assigned_network(
                         req, host_meta['cluster'], id)
 
             for ironic_keyword in ['cpu', 'system', 'memory',
@@ -1885,41 +1885,6 @@ class Controller(controller.BaseController):
             self.notifier.info('host.update', host_meta)
 
         return {'host_meta': host_meta}
-
-    def add_ssh_host_to_cluster_and_assigned_network(
-            self, req, cluster_id, host_id):
-        if cluster_id:
-            host_list = []
-            father_vlan_list = []
-            # cluster_meta = {}
-            discover_successful = 0
-            host_info = self.get_host_meta_or_404(req, host_id)
-            host_status = host_info.get('status', None)
-            if host_status != 'init':
-                interfac_meta_list = host_info.get('interfaces', None)
-                for interface_info in interfac_meta_list:
-                    assigned_networks = interface_info.get(
-                        'assigned_networks', None)
-                    if assigned_networks:
-                        discover_successful = 1
-            if not discover_successful:
-                host_list.append(host_id)
-
-            if host_list:
-                # cluster_meta['nodes']=str(host_list)
-                # LOG.info("add ssh host %s to cluster %s" %
-                # (host_list, cluster_id))
-                # cluster_meta = registry.update_cluster_metadata(req.context,
-                                                        # cluster_id,
-                                                        # cluster_meta)
-                params = {'filters': {'cluster_id': cluster_id}}
-                networks = registry.get_networks_detail(req.context,
-                                                        cluster_id, **params)
-                father_vlan_list = \
-                    daisy_cmn.check_vlan_nic_and_join_vlan_network(
-                        req, cluster_id, host_list, networks)
-                daisy_cmn.check_bond_or_ether_nic_and_join_network(
-                    req, cluster_id, host_list, networks, father_vlan_list)
 
     def update_progress_to_db(self, req, update_info, discover_host_meta):
         discover = {}
@@ -2030,7 +1995,7 @@ class Controller(controller.BaseController):
                 LOG.error(msg)
                 return
             else:
-                self.add_ssh_host_to_cluster_and_assigned_network(
+                daisy_cmn.add_ssh_host_to_cluster_and_assigned_network(
                     req, cluster_id, discover_host_info['host_id'])
 
     @utils.mutating
