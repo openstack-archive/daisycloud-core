@@ -224,6 +224,8 @@ fi
 /var/lib/daisy/kolla/trustme.sh
 /var/lib/daisy/kolla/prepare.sh
 /var/lib/daisy/kolla/getnodeinfo.sh
+/var/lib/daisy/kolla/daisy.py
+/var/lib/daisy/kolla/linux_action.sh
 /etc/daisy/daisy-api-paste.ini
 /etc/daisy/daisy-registry-paste.ini
 %doc README.rst
