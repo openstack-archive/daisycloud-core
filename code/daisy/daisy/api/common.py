@@ -241,11 +241,11 @@ def remote_execute_script(ssh_host_info,
         raise exc.HTTPBadRequest(explanation=msg)
 
 
-def config_network(ssh_host_info, json_file=None):
+def config_network(ssh_host_info, backend, json_file=None):
     remote_dir = '/home/'
     daisy_script_name = 'daisy.py'
     linux_action_name = 'linux_action.sh'
-    daisy_path = '/var/lib/daisy/'
+    daisy_path = '/var/lib/daisy/%s/' % backend
     scp_files = [{'file': daisy_path + daisy_script_name,
                   'remote_dir': remote_dir},
                  {'file': daisy_path + linux_action_name,

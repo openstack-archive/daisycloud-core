@@ -29,6 +29,7 @@ from daisy.api.backends.kolla import config
 import daisy.api.backends.common as daisy_cmn
 import daisy.api.backends.kolla.common as kolla_cmn
 import ConfigParser
+import daisy.api.common as api_cmn
 
 LOG = logging.getLogger(__name__)
 _ = i18n._
@@ -294,6 +295,24 @@ def _calc_progress(log_file):
     return progress
 
 
+def _get_hosts_id_by_mgnt_ips(self, ips):
+    params = {'cluster_id': self.cluster_id}
+    hosts = registry.get_hosts_detail(self.req.context, **params)
+    hosts_needed = []
+    for host in hosts:
+        host_info = registry.get_host_metadata(self.req.context,
+                                               host['id'])
+        for interface in host_info['interfaces']:
+            if interface.get('assigned_networks', None):
+                assigned_networks = interface['assigned_networks']
+                for assigned_network in assigned_networks:
+                    if assigned_network['type'] == 'MANAGEMENT' and\
+                            assigned_network['ip'] in ips:
+                        hosts_needed.append(host)
+    hosts_id_needed = [host_needed['id'] for host_needed in hosts_needed]
+    return hosts_id_needed
+
+
 class KOLLAInstallTask(Thread):
     """
     Class for kolla install openstack.
@@ -350,6 +369,17 @@ class KOLLAInstallTask(Thread):
             self.state = kolla_state['INSTALL_FAILED']
             self.message = "hosts %s ping failed" % unreached_hosts
             raise exception.NotFound(message=self.message)
+        root_passwd = 'ossdbg1'
+        for mgnt_ip in self.mgnt_ip_list:
+            check_hosts_id = self._get_hosts_id_by_mgnt_ips(mgnt_ip.split(","))
+            is_ssh_host = daisy_cmn._judge_ssh_host(self.req,
+                                                    check_hosts_id[0])
+            if not is_ssh_host:
+                LOG.info(_("Begin to config network\
+                            on %s" % mgnt_ip))
+                ssh_host_info = {'ip': mgnt_ip, 'root_pwd': root_passwd}
+                api_cmn.config_network(ssh_host_info, 'kolla')
+        time.sleep(20)
         generate_kolla_config_file(self.cluster_id, kolla_config)
         (role_id_list, host_id_list, hosts_list) = \
             kolla_cmn.get_roles_and_hosts_list(self.req, self.cluster_id)
@@ -361,10 +391,11 @@ class KOLLAInstallTask(Thread):
         with open(self.log_file, "w+") as fp:
             for host in hosts_list:
                 host_ip = host['mgtip']
-                cmd = '/var/lib/daisy/kolla/trustme.sh %s ossdbg1' % host_ip
+                cmd = '/var/lib/daisy/kolla/trustme.sh %s %s' % \
+                      (host_ip, root_passwd)
                 daisy_cmn.subprocess_call(cmd, fp)
                 config_nodes_hosts(host_name_ip_list, host_ip)
-                cmd = 'sshpass -p ossdbg1 ssh -o StrictHostKeyChecking=no %s \
+                cmd = 'ssh -o StrictHostKeyChecking=no %s \
                       "if [ ! -d %s ];then mkdir %s;fi" ' % \
                       (host_ip, self.host_prepare_file, self.host_prepare_file)
                 daisy_cmn.subprocess_call(cmd, fp)
@@ -372,13 +403,13 @@ class KOLLAInstallTask(Thread):
                        /var/lib/daisy/kolla/prepare.sh \
                        root@%s:%s" % (host_ip, self.host_prepare_file)
                 daisy_cmn.subprocess_call(cmd, fp)
-                cmd = 'sshpass -p ossdbg1 ssh -o StrictHostKeyChecking=no %s \
+                cmd = 'ssh -o StrictHostKeyChecking=no %s \
                       chmod u+x %s/prepare.sh' % \
                       (host_ip, self.host_prepare_file)
                 daisy_cmn.subprocess_call(cmd, fp)
                 try:
                     exc_result = subprocess.check_output(
-                        'sshpass -p ossdbg1 ssh -o StrictHostKeyChecking='
+                        'ssh -o StrictHostKeyChecking='
                         'no %s %s/prepare.sh %s' %
                         (host_ip, self.host_prepare_file, docker_registry_ip),
                         shell=True, stderr=subprocess.STDOUT)
