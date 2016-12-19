@@ -294,6 +294,24 @@ def _calc_progress(log_file):
     return progress
 
 
+def _get_hosts_id_by_mgnt_ips(self, ips):
+    params = {'cluster_id': self.cluster_id}
+    hosts = registry.get_hosts_detail(self.req.context, **params)
+    hosts_needed = []
+    for host in hosts:
+        host_info = registry.get_host_metadata(self.req.context,
+                                               host['id'])
+        for interface in host_info['interfaces']:
+            if interface.get('assigned_networks', None):
+                assigned_networks = interface['assigned_networks']
+                for assigned_network in assigned_networks:
+                    if assigned_network['type'] == 'MANAGEMENT' and \
+                                    assigned_network['ip'] in ips:
+                        hosts_needed.append(host)
+     hosts_id_needed = [host_needed['id'] for host_needed in hosts_needed]
+     return hosts_id_needed
+
+
 class KOLLAInstallTask(Thread):
     """
     Class for kolla install openstack.
@@ -350,6 +368,16 @@ class KOLLAInstallTask(Thread):
             self.state = kolla_state['INSTALL_FAILED']
             self.message = "hosts %s ping failed" % unreached_hosts
             raise exception.NotFound(message=self.message)
+        for mgnt_ip in self.mgnt_ip_list:
+            check_hosts_id = self._get_hosts_id_by_mgnt_ips(mgnt_ip.split(","))
+            is_ssh_host = daisy_cmn._judge_ssh_host(self.req,
+                                                    check_hosts_id[0])
+            if not is_ssh_host:
+                LOG.info(_("Begin to config network\
+                            on %s" % mgnt_ip))
+                ssh_host_info = {'ip': mgnt_ip, 'root_pwd': root_passwd}
+                daisy_cmn.config_network(ssh_host_info)
+        time.sleep(20)
         generate_kolla_config_file(self.cluster_id, kolla_config)
         (role_id_list, host_id_list, hosts_list) = \
             kolla_cmn.get_roles_and_hosts_list(self.req, self.cluster_id)
