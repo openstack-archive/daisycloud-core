@@ -241,11 +241,39 @@ def remote_execute_script(ssh_host_info,
         raise exc.HTTPBadRequest(explanation=msg)
 
 
+def config_network_for_kolla(ssh_host_info, backend, json_file=None):
+    remote_dir = '/home/'
+    daisy_script_name = 'daisy.py'
+    linux_action_name = 'linux_action.sh'
+    daisy_path = '/var/lib/daisy/%s/' % backend
+    scp_files = [{'file': daisy_path + daisy_script_name,
+                  'remote_dir': remote_dir},
+                 {'file': daisy_path + linux_action_name,
+                  'remote_dir': remote_dir}]
+    cmd1 = 'cd %s; chmod +x %s' % (remote_dir, daisy_script_name)
+    cmd2 = 'cd %s; chmod +x %s' % (remote_dir, linux_action_name)
+    if json_file:
+        cmd3 = 'cd %s; python %s %s' % (remote_dir, daisy_script_name,
+                                        json_file)
+    else:
+        cmd3 = 'cd %s; python %s' % (remote_dir, daisy_script_name)
+    remote_execute_script(ssh_host_info,
+                          scp_files,
+                          [cmd1, cmd2, cmd3])
+    cmds = ['systemctl restart network']
+    try:
+        scp_files = []
+        clush.copy_file_and_run_cmd(ssh_host_info, scp_files, cmds)
+    except Exception:
+        msg = "Wait network restart..."
+        LOG.info(msg)
+
+
 def config_network(ssh_host_info, json_file=None):
     remote_dir = '/home/'
     daisy_script_name = 'daisy.py'
     linux_action_name = 'linux_action.sh'
-    daisy_path = '/var/lib/daisy/'
+    daisy_path = '/var/lib/daisy/tecs/'
     scp_files = [{'file': daisy_path + daisy_script_name,
                   'remote_dir': remote_dir},
                  {'file': daisy_path + linux_action_name,
