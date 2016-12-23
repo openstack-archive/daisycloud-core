@@ -1,6 +1,7 @@
 import mock
 import webob
 from daisy import test
+from daisy.api.backends.kolla import install
 from daisy.context import RequestContext
 
 mgnt_ip_list = ['192.168.1.21', '192.168.1.20', '192.168.1.22']
@@ -13,6 +14,65 @@ dns_name_ip = [{'host-192-168-1-21': '192.168.1.21'},
                {'glance-vip': '192.168.1.50'},
                {'db-vip': '192.168.1.50'}]
 ha_nodes_ip = ['192.168.1.21', '192.168.1.20']
+roles = [{u'db_vip': None,
+          u'status': u'init',
+          u'outband_vip': None,
+          u'mongodb_vip': None,
+          u'vip': None,
+          u'cluster_id': u'8ad27e36-f3e2-48b4-84b8-5b676c6fabde',
+          u'ntp_server': None,
+          u'deleted_at': None,
+          u'id': u'9994269b-376c-49df-a698-24ade6edb7f1',
+          u'glance_lv_size': 0,
+          u'provider_public_vip': None,
+          u'db_lv_size': 0,
+          u'progress': 0,
+          u'type': u'default',
+          u'nova_lv_size': 0,
+          u'glance_vip': None,
+          u'config_set_id': u'055d7ea7-13ab-4b3c-8b8f-f26cd1640ac4',
+          u'description': u'Computer Role for kolla.',
+          u'deleted': False,
+          u'updated_at': u'2016-12-28T07:52:25.000000',
+          u'role_type': u'COMPUTER',
+          u'deployment_backend': u'kolla',
+          u'name': u'COMPUTER',
+          u'created_at': u'2016-12-28T07:51:15.000000',
+          u'messages': None,
+          u'public_vip': None,
+          u'disk_location': u'local',
+          u'config_set_update_progress': 0},
+         {u'db_vip': None,
+          u'status': u'init',
+          u'outband_vip': None, u'mongodb_vip': None,
+          u'vip': u'10.20.11.11',
+          u'cluster_id': u'8ad27e36-f3e2-48b4-84b8-5b676c6fabde',
+          u'ntp_server': None,
+          u'deleted_at': None,
+          u'id': u'008dec06-f9fc-4ce1-be77-681e7c252c2d',
+          u'glance_lv_size': 0, u'provider_public_vip': None,
+          u'db_lv_size': 0, u'progress': 0, u'type': u'default',
+          u'nova_lv_size': 0, u'glance_vip': None,
+          u'config_set_id': u'1749523e-f7f4-4d18-843c-9e32cf8a9997',
+          u'description': u'Controller Role for kolla.',
+          u'deleted': False, u'updated_at': u'2016-12-28T07:52:25.000000',
+          u'role_type': u'CONTROLLER_LB', u'deployment_backend': u'kolla',
+          u'name': u'CONTROLLER_LB',
+          u'created_at': u'2016-12-28T07:51:15.000000',
+          u'messages': None, u'public_vip': None, u'disk_location': u'local',
+          u'config_set_update_progress': 0}]
+role_hosts = [{u'status': u'installing', u'deleted': False,
+               u'created_at': u'2016-12-28T07:52:25.000000',
+               u'messages': u'begin deploy openstack',
+               u'updated_at': u'2016-12-28T07:52:25.000000',
+               u'role_id': u'008dec06-f9fc-4ce1-be77-681e7c252c2d',
+               u'progress': 60,
+               u'host_id': u'9423980b-ec76-475a-b45f-558eb4b7dfed',
+               u'deleted_at': None,
+               u'id': u'4ae8c321-b053-49b1-ac36-e3fd24753ccb'}]
+deploy_host_cfg = {'mgtip': u'10.20.11.3', 'pub_macname': u'ens3',
+                   'sto_macname': u'ens3', 'mgt_macname': u'ens3',
+                   'host_name': u'host-10-20-11-3'}
 cluster_roles = [{'cluster_id': '8ad27e36-f3e2-48b4-84b8-5b676c6fabde',
                   'db_vip': '196.168.1.4', 'deployment_backend': 'kolla',
                   'glance_vip': '196.168.1.3', 'vip': '196.168.1.2',
@@ -198,6 +258,45 @@ host4_meta = {'cluster': 'test', 'dvs_cps': '', 'dvs_high_cpset': '',
               'os_cpus': '', 'os_status': 'active', 'pci_high_cpset': '',
               'position': '', 'role': ['COMPUTER'], 'vcpu_pin_set': ''}
 
+host5_meta = {u'os_version_id': None,
+              u'config_set_id': None,
+              u'root_disk': u'sda',
+              u'os_status': u'active',
+              u'discover_mode': u'PXE',
+              u'updated_at': u'2016-12-28T08:00:03.000000',
+              u'group_list': None, u'cluster': u'clustertest',
+              u'hugepages': 0,
+              u'dvsp_cpus': None,
+              u'deleted_at': None,
+              u'id': u'9423980b-ec76-475a-b45f-558eb4b7dfed',
+              u'vcpu_pin_set': None,
+              u'dvsv_cpus': None,
+              u'hwm_ip': None,
+              u'role': [u'CONTROLLER_LB', u'COMPUTER'],
+              u'virtio_queue_size': None,
+              u'dvs_config_desc': None,
+              u'hwm_id': None,
+              u'pci_high_cpuset': u'',
+              u'status': u'with-role',
+              u'description': u'default',
+              u'dvsc_cpus': None,
+              u'dmi_uuid': u'020BFFB8-7FF2-4147-88C1-2B6305A4E1C8',
+              u'ipmi_passwd': None,
+              u'dvs_config_type': None,
+              u'resource_type': u'baremetal',
+              u'position': u'',
+              u'version_patch_id': None,
+              u'tecs_version_id': None,
+              u'flow_mode': None,
+              u'ipmi_user': None,
+              u'hugepagesize': u'1G',
+              u'name': u'host-10-20-11-3',
+              u'dvsblank_cpus': None,
+              u'ipmi_addr': u'',
+              u'root_pwd': u'ossdbg1',
+              u'dvs_high_cpuset': None,
+              u'dvs_cpus': None,
+              u'root_lv_size': 102400}
 
 class MockLoggingHandler(object):
     """Mock logging handler to check for expected logs.
@@ -226,6 +325,14 @@ class ConfigBackend():
     def push_config_by_hosts(self, par1, par2):
         pass
 
+class Version():
+    def __init__(self, filename):
+        self.filename = filename
+        pass
+
+    def cached_version_string(self):
+        return '3.0.2'
+
 
 class TestInstall(test.TestCase):
 
@@ -238,40 +345,36 @@ class TestInstall(test.TestCase):
                                           tenant='fake tenant')
         self.installer = install.KOLLAInstallTask(self.req, '123')
 
-    @mock.patch('daisy.api.backends.kolla.install.get_interfaces_network')
-    @mock.patch('daisy.api.backends.common.get_computer_node_cfg')
-    @mock.patch('daisy.api.backends.common.get_controller_node_cfg')
-    @mock.patch('daisy.api.backends.common.get_host_detail')
-    @mock.patch('daisy.api.backends.common.get_hosts_of_role')
-    @mock.patch('daisy.api.backends.common.kolla_backend_name')
+    @mock.patch('daisy.api.backends.kolla.common.get_computer_node_cfg')
+    @mock.patch('daisy.api.backends.kolla.common.get_controller_node_cfg')
+    @mock.patch('daisy.api.backends.kolla.common.get_host_detail')
+    @mock.patch('daisy.api.backends.kolla.common.get_hosts_of_role')
     @mock.patch('daisy.api.backends.kolla.common.get_roles_detail')
     @mock.patch('daisy.api.backends.common.get_cluster_networks_detail')
+    @mock.patch('pbr.version.VersionInfo')
     def test_get_cluster_kolla_config(
-            self, mock_do_get_cluster_networks_detail,
-            mock_do_get_roles_detail, mock_do_kolla_backend_name,
+            self, mock_do_cached_version_string,
+            mock_do_get_cluster_networks_detail,
+            mock_do_get_roles_detail, 
             mock_do_get_hosts_of_role, mock_do_get_host_detail,
-            mock_do_get_controller_node_cfg, mock_do_get_computer_node_cfg,
-            mock_do_get_interfaces_network):
+            mock_do_get_controller_node_cfg, mock_do_get_computer_node_cfg):
 
-        def mock_interface_network(req, host, cluster_networks):
-            if host['id'] == 'e4801a04-7aa2-4966-8eed-38650b188a17':
-                return {'management': host4_meta['interfaces'][1]}
-            elif host['id'] == '4e33c650-ab91-4564-ada5-e939bece23a5':
-                return {'management': host2_meta['interfaces'][1],
-                        'publicapi': host2_meta['interfaces'][0]}
-            elif host['id'] == '7739d9d9-93ca-480f-bde4-3b4c1052e63a':
-                return {'management': host1_meta['interfaces'][0],
-                        'publicapi': host1_meta['interfaces'][1]}
-
+        mock_do_cached_version_string.side_effect = Version
         mock_do_get_cluster_networks_detail.return_value = cluster_networks
-        mock_do_get_roles_detail.return_value = {}
-        mock_do_kolla_backend_name.return_value = 'kolla'
-        mock_do_get_hosts_of_role.return_value = {}
-        mock_do_get_host_detail.return_value = {}
-        mock_do_get_controller_node_cfg.return_value = {}
-        mock_do_get_computer_node_cfg.return_value = {}
-        mock_do_get_interfaces_network.side_effect = mock_interface_network
-        open = mock.Mock(return_value="#openstack_version: '3.0.0'")
+        mock_do_get_roles_detail.return_value = roles
+        mock_do_get_hosts_of_role.return_value = role_hosts
+        mock_do_get_host_detail.return_value = host5_meta
+        mock_do_get_controller_node_cfg.return_value = deploy_host_cfg
+        mock_do_get_computer_node_cfg.return_value = {'mgtip': u'',
+                                                      'pub_macname': u'',
+                                                      'sto_macname': u'',
+                                                      'mgt_macname': u'',
+                                                      'host_name': u'',
+                                                      'dat_macname': u'',
+                                                      'ext_macname': u''}
 
-        config = install.get_cluster_kolla_config(self.req, 'cluster-id')
-        self.assertEqual('3.0.0', kolla_config['Version'])
+        (kolla_config, mgt_ip_list, host_name_ip_list) =\
+            install.get_cluster_kolla_config(
+            self.req,
+            '8ad27e36-f3e2-48b4-84b8-5b676c6fabde')
+        self.assertEqual('3.0.2', kolla_config['Version'])
