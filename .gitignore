@@ -1,0 +1,76 @@
+# Normal for all project
+*~
+.*.sw?
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.confc
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+eggs/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+.tox/
+.coverage
+.cache
+cover/
+
+# Log files:
+*.log
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# SublimeText
+*.sublime-project
+*.sublime-workspace
+
+# macos preview
+.DS_Store
+
+# PyCharm
+.idea/
+
+# tempest
+.testrepository
+test/tempest/daisy.xml
+
+# RPM
+rpm/BUILD
+rpm/SOURCES
+rpm/RPMS
+
+# oslo config generator
+code/daisy/etc/daisy-api.conf.sample
+code/daisy/etc/daisy-manage.conf.sample
+code/daisy/etc/daisy-registry.conf.sample
+
