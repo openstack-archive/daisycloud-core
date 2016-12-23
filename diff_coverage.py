@@ -156,9 +156,9 @@ if __name__ == "__main__":
                 errno = 1
 
     # TODO: make them more useful
-    target_files = [os.path.join(solution_path, x) for x in targets]
-    cov.html_report(morfs=target_files, directory=coverage_html_dir)
-    generate_css(targets, target_lines)
+    #target_files = [os.path.join(solution_path, x) for x in targets]
+    #cov.html_report(morfs=target_files, directory=coverage_html_dir)
+    #generate_css(targets, target_lines)
 
     sys.exit(errno)
 
