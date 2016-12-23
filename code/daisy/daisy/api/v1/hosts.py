@@ -2341,6 +2341,16 @@ class Controller(controller.BaseController):
                 return host
         return
 
+    def _get_discover_host_by_mac_huzhj_test(self, req, host_mac):
+        params = dict()
+        discover_hosts = \
+            registry.get_discover_hosts_detail(req.context, **params)
+        LOG.debug("%s" % discover_hosts)
+        for host in discover_hosts:
+            if host.get('mac') == host_mac:
+                return host
+        return
+
     @utils.mutating
     def add_pxe_host(self, req, host_meta):
         """
