@@ -456,3 +456,49 @@ def allocate_cpus(host_detail):
              % (host_detail['id'], host_cpu_sets))
 
     return host_cpu_sets
+
+
+
+def allocate_cpus_huzhj_test(host_detail):
+    host_cpu_sets = {'suggest_dvs_high_cpuset': '',
+                     'pci_high_cpuset': '',
+                     'suggest_dvs_cpus': '',
+                     'suggest_os_cpus': ''}
+    dvs_cpusets = allocate_dvs_cpus(host_detail)
+    pci_cpusets = allocate_clc_cpus(host_detail)
+
+    # no CLC and no DVS
+    if (not pci_cpusets and not dvs_cpusets):
+        return host_cpu_sets
+
+    host_roles_name = host_detail.get('role', [])
+    os_cpus = allocate_os_cpus(host_roles_name,
+                               pci_cpusets,
+                               dvs_cpusets)
+
+    host_cpu_sets['suggest_dvs_high_cpuset'] =\
+        utils.cpu_list_to_str(dvs_cpusets.get('high', []))
+    host_cpu_sets['pci_high_cpuset'] =\
+        utils.cpu_list_to_str(pci_cpusets.get('high', []))
+    host_cpu_sets['numa_node'] = dvs_cpusets.get('numa_node', [])
+    if dvs_cpusets.get('dvs', {}):
+        if dvs_cpusets['dvs'].get('dvsc', []):
+            host_cpu_sets['suggest_dvsc_cpus'] =\
+                utils.cpu_list_to_str(dvs_cpusets['dvs']['dvsc'])
+        if dvs_cpusets['dvs'].get('dvsp', []):
+            host_cpu_sets['suggest_dvsp_cpus'] =\
+                utils.cpu_list_to_str(dvs_cpusets['dvs']['dvsp'])
+        if dvs_cpusets['dvs'].get('dvsv', []):
+            host_cpu_sets['suggest_dvsv_cpus'] =\
+                utils.cpu_list_to_str(dvs_cpusets['dvs']['dvsv'])
+    host_cpu_sets['suggest_dvs_cpus'] =\
+        utils.cpu_list_to_str(dvs_cpusets['dvs'].get(
+            'dvsv', []) + dvs_cpusets['dvs'].get('dvsc', []) +
+        dvs_cpusets['dvs'].get('dvsp', []))
+    host_cpu_sets['suggest_os_cpus'] = utils.cpu_list_to_str(os_cpus)
+
+    LOG.info("NUMA CPU usage for host %s: %s"
+             % (host_detail['id'], host_cpu_sets))
+
+    return host_cpu_sets
+
