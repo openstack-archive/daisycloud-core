@@ -53,6 +53,7 @@ daisy_kolla_path = kolla_cmn.daisy_kolla_path
 install_kolla_progress = 0.0
 install_mutex = threading.Lock()
 kolla_file = "/home/kolla_install"
+kolla_config_file = "/etc/kolla/globals.yml"
 
 
 def update_progress_to_db(req, role_id_list,
@@ -166,10 +167,14 @@ def get_cluster_kolla_config(req, cluster_id):
     dat_macname_list = []
     ext_macname_list = []
     sto_macname_list = []
-    openstack_version = '2.0.3'
+    openstack_version = '3.0.0'
     docker_namespace = 'kolla'
     host_name_ip = {}
     host_name_ip_list = []
+    for line in open(kolla_config_file):
+        if '#openstack_release:' in line:
+            kolla_openstack_version = line.strip()
+            openstack_version = kolla_openstack_version.split(":")[1]
     docker_registry_ip = _get_local_ip()
     docker_registry = docker_registry_ip + ':4000'
     cluster_networks = daisy_cmn.get_cluster_networks_detail(req, cluster_id)
