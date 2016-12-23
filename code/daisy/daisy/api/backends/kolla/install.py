@@ -17,6 +17,7 @@
 /install endpoint for kolla API
 """
 import subprocess
+import os
 import time
 from oslo_log import log as logging
 from webob.exc import HTTPForbidden
@@ -171,10 +172,11 @@ def get_cluster_kolla_config(req, cluster_id):
     docker_namespace = 'kolla'
     host_name_ip = {}
     host_name_ip_list = []
-    for line in open(kolla_config_file):
-        if '#openstack_release:' in line:
-            kolla_openstack_version = line.strip()
-            openstack_version = kolla_openstack_version.split(":")[1]
+    recently_dir = os.getcwd()
+    os.chdir(kolla_file + '/kolla')
+    openstack_version = pbr.version.VersionInfo(
+        'kolla').cached_version_string()
+    os.chdir(recently_dir)
     docker_registry_ip = _get_local_ip()
     docker_registry = docker_registry_ip + ':4000'
     cluster_networks = daisy_cmn.get_cluster_networks_detail(req, cluster_id)
