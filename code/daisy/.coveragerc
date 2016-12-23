@@ -1,0 +1,5 @@
+[run]
+branch = True
+source = daisy
+omit = daisy/tests/*
+
