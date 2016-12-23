@@ -139,7 +139,7 @@ function kolla_install
       fi
       cd /home/kolla_install/docker
       docker load < ./registry-server.tar
-      docker run -d -p 4000:5000 --restart=always -e REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/tmp/registry -v /home/kolla_install/docker/registry:/tmp/registry  --name registry registry:2
+      docker run -d -p 4000:5000 --restart=always -e REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/tmp/registry -v /home/kolla_install/docker/tmp/registry:/tmp/registry  --name registry registry:2
   fi
 }
 #rm daisy yum config file
