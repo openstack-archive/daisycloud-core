@@ -1351,12 +1351,17 @@ def _cluster_update(context, values, cluster_id):
                    len(network_params['vni_range']) > 1:
                     values['vni_start'] = network_params['vni_range'][0]
                     values['vni_end'] = network_params['vni_range'][1]
-                values['net_l23_provider'] = \
-                    network_params.get('net_l23_provider', None)
-                values['base_mac'] = network_params.get('base_mac', None)
-                values['segmentation_type'] = \
-                    network_params.get('segmentation_type', None)
-                values['public_vip'] = network_params.get('public_vip', None)
+                if network_params.has_key('net_l23_provider'):
+                    values['net_l23_provider'] = \
+                        network_params.get('net_l23_provider', None)
+                if network_params.has_key('base_mac'):
+                    values['base_mac'] = network_params.get('base_mac', None)
+                if network_params.has_key('segmentation_type'):
+                    values['segmentation_type'] = \
+                        network_params.get('segmentation_type', None)
+                if network_params.has_key('public_vip'):
+                    values['public_vip'] = \
+                        network_params.get('public_vip', None)
 
         # save host info
         if values.has_key('nodes'):
