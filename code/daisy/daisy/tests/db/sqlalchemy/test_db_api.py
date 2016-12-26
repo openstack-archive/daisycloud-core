@@ -456,3 +456,49 @@ class TestSqlalchemyApi(test.TestCase):
         for field in delete_fields:
             self.assertEqual(values[field], None)
         self.assertEqual(values['isolcpus'], None)
+
+    def test__cluster_update_without_public_vip(self):
+        cluster_add_values = {u'name': u'provider',
+                              u'use_dns': u'1',
+                              u'networking_parameters': u"{u'base_mac': u''}",
+                              u'public_vip': u'10.43.203.199',
+                              u'target_systems': u'os+tecs'}
+        cluster_update_values = {u'name': u'provider_update',
+                                 u'use_dns': u'1',
+                                 u'networking_parameters':
+                                     u"{u'base_mac': u''}"}
+        cluster_add__info = api.cluster_add(self.req.context,
+                                            cluster_add_values)
+        cluster_id = cluster_add__info.__dict__['id']
+        cluster_update_info = api.cluster_update(self.req.context,
+                                                 cluster_id,
+                                                 cluster_update_values)
+        cluster_name = cluster_update_info.__dict__['name']
+        public_vip = cluster_update_info.__dict__['public_vip']
+        self.assertEqual(cluster_name, 'provider_update')
+        self.assertEqual(public_vip, '10.43.203.199')
+        api.cluster_destroy(self.req.context, cluster_id)
+
+    def test__cluster_update_with_public_vip(self):
+        cluster_add_values = {u'name': u'provider',
+                              u'use_dns': u'1',
+                              u'networking_parameters': u"{u'base_mac': u''}",
+                              u'public_vip': u'10.43.203.199',
+                              u'target_systems': u'os+tecs'}
+        cluster_update_values = {u'name': u'provider_update',
+                                 u'use_dns': u'1',
+                                 u'networking_parameters':
+                                     u"{u'base_mac': u''}",
+                                 u'public_vip': u'10.43.203.200'}
+        cluster_add__info = api.cluster_add(self.req.context,
+                                            cluster_add_values)
+        cluster_id = cluster_add__info.__dict__['id']
+        cluster_update_info = api.cluster_update(self.req.context,
+                                                 cluster_id,
+                                                 cluster_update_values)
+        cluster_name = cluster_update_info.__dict__['name']
+        public_vip = cluster_update_info.__dict__['public_vip']
+        self.assertEqual(cluster_name, 'provider_update')
+        self.assertEqual(public_vip, '10.43.203.200')
+        api.cluster_destroy(self.req.context, cluster_id)
+
