@@ -855,6 +855,9 @@ class OSInstall():
                         daisy_cmn.subprocess_call(
                             'sed -i "/%s/d" /root/.ssh/known_hosts'
                             % host_management_ip)
+                    else:
+                        daisy_cmn.subprocess_call(
+                            'touch /root/.ssh/known_hosts')
                 if self.skip_pxe_ipmi and self.skip_pxe_ipmi == 'true':
                     return
                 else:
