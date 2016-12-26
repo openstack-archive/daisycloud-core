@@ -10,6 +10,11 @@ function print_log
    echo -e "`date -d today +"%Y-%m-%d %H:%M:%S"`  $promt" >> $logfile
 }
 ip=$1
+if [ -z $ip ]; then
+  print_log "Usage: `basename $0` ipaddr passwd"
+  exit 1
+fi
+
 passwd=$2
 if [ -z $passwd ]; then
   print_log "Usage: `basename $0` ipaddr passwd" 
@@ -48,10 +53,18 @@ keyend="$user@$host"
 print_log "my keyend = $keyend"
 cmd="sed '/$keyend$/d'  -i ~/.ssh/authorized_keys"
 print_log "clear my old pub key on $local_host ..."
-ssh-keygen -f "/root/.ssh/known_hosts" -R $ip
-if [ $? != 0 ]; then
-    print_log "delete pub key of $ip from known_hosts failed"
-    exit 1
+#echo cmd:$cmd
+local_host="127.0.0.1"
+print_log "clear my old pub key on $local_host ..."
+# ssh local_host to execute command,
+#  because no root authority in docker
+sshpass -p $passwd ssh -o StrictHostKeyChecking=no $local_host "test -f  ~/.ssh/known_hosts"
+if [ $? = 0 ]; then
+    sshpass -p $passwd ssh -o StrictHostKeyChecking=no $local_host "sed -i '/${ip} /d' ~/.ssh/known_hosts"
+    if [ $? != 0 ]; then
+       print_log "delete pub key of $ip from $local_host known_hosts failed"
+       exit 1
+    fi
 fi
 sshpass -p $passwd ssh -o StrictHostKeyChecking=no $ip "mkdir -p ~/.ssh && touch ~/.ssh/authorized_keys"
 if [ $? != 0 ]; then
