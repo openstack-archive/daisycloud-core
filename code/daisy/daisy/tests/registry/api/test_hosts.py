@@ -29,4 +29,3 @@ class TestHost(test.TestCase):
         host_controller = registry_hosts.Controller()
         host = host_controller.get_host(self.req, id)
         self.assertEqual(daisy.db.sqlalchemy.models.Host, type(host['host']))
-        self.assertEqual("", host['host'].position)

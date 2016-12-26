@@ -710,6 +710,16 @@ class Controller(controller.BaseController):
         """
         self._enforce(req, 'get_host')
         host_meta = self.get_host_meta_or_404(req, id)
+        path = os.path.join(os.path.abspath(os.path.dirname(
+            os.path.realpath(__file__))), 'ext')
+        for root, dirs, names in os.walk(path):
+            filename = 'router.py'
+            if filename in names:
+                ext_name = root.split(path)[1].strip('/')
+                ext_func = "%s.api.hosts" % ext_name
+                extension = importutils.import_module('daisy.api.v1.ext',
+                                                      ext_func)
+                extension.complement_host_extra_info(host_meta)
         os_handle = get_os_handle()
         os_handle.check_discover_state(req,
                                        host_meta,
