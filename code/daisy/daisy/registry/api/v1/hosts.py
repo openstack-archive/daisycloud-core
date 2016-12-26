@@ -388,7 +388,6 @@ class Controller(object):
             raise
 
         # Currently not used
-        location = ""
 
         host_interface = self.db_api.get_host_interface(req.context, id)
 
@@ -423,7 +422,6 @@ class Controller(object):
         if cluster_name:
             host_data['host']['cluster'] = cluster_name
 
-        host_data['host']['position'] = location
 
         return host_data
 
