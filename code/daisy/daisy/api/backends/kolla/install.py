@@ -32,6 +32,7 @@ import daisy.api.backends.common as daisy_cmn
 import daisy.api.backends.kolla.common as kolla_cmn
 import ConfigParser
 import daisy.api.common as api_cmn
+import daisy.registry.client.v1.api as registry
 
 LOG = logging.getLogger(__name__)
 _ = i18n._
@@ -303,12 +304,12 @@ def _calc_progress(log_file):
     return progress
 
 
-def _get_hosts_id_by_mgnt_ips(self, ips):
-    params = {'cluster_id': self.cluster_id}
-    hosts = registry.get_hosts_detail(self.req.context, **params)
+def _get_hosts_id_by_mgnt_ips(req, cluster_id, ips):
+    params = {'cluster_id': cluster_id}
+    hosts = registry.get_hosts_detail(req.context, **params)
     hosts_needed = []
     for host in hosts:
-        host_info = registry.get_host_metadata(self.req.context,
+        host_info = registry.get_host_metadata(req.context,
                                                host['id'])
         for interface in host_info['interfaces']:
             if interface.get('assigned_networks', None):
@@ -378,8 +379,10 @@ class KOLLAInstallTask(Thread):
             self.message = "hosts %s ping failed" % unreached_hosts
             raise exception.NotFound(message=self.message)
         root_passwd = 'ossdbg1'
-        for mgnt_ip in self.mgnt_ip_list:
-            check_hosts_id = self._get_hosts_id_by_mgnt_ips(mgnt_ip.split(","))
+        for mgnt_ip in self.mgt_ip_list:
+            check_hosts_id = _get_hosts_id_by_mgnt_ips(self.req,
+                                                       self.cluster_id,
+                                                       mgnt_ip.split(","))
             is_ssh_host = daisy_cmn._judge_ssh_host(self.req,
                                                     check_hosts_id[0])
             if not is_ssh_host:
@@ -399,7 +402,7 @@ class KOLLAInstallTask(Thread):
         with open(self.log_file, "w+") as fp:
             for host in hosts_list:
                 host_ip = host['mgtip']
-                cmd = '/var/lib/daisy/kolla/trustme.sh %s %s' % \
+                cmd = '/var/lib/daisy/trustme.sh %s %s' % \
                       (host_ip, root_passwd)
                 daisy_cmn.subprocess_call(cmd, fp)
                 config_nodes_hosts(host_name_ip_list, host_ip)

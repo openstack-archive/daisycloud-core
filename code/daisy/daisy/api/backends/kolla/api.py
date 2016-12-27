@@ -67,7 +67,7 @@ class API(driver.DeploymentDriver):
     def prepare_ssh_discovered_node(self, req, fp, discover_host_meta):
         try:
             trustme_result = subprocess.check_output(
-                '/var/lib/daisy/kolla/trustme.sh %s %s' %
+                '/var/lib/daisy/trustme.sh %s %s' %
                 (discover_host_meta['ip'], discover_host_meta['passwd']),
                 shell=True, stderr=subprocess.STDOUT)
             if 'Permission denied' in trustme_result:
