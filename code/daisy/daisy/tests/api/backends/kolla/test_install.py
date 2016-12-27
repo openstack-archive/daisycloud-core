@@ -3,6 +3,7 @@ import webob
 from daisy import test
 from daisy.api.backends.kolla import install
 from daisy.context import RequestContext
+import subprocess
 
 mgnt_ip_list = ['192.168.1.21', '192.168.1.20', '192.168.1.22']
 dns_name_ip = [{'host-192-168-1-21': '192.168.1.21'},
@@ -298,6 +299,74 @@ host5_meta = {u'os_version_id': None,
               u'dvs_cpus': None,
               u'root_lv_size': 102400}
 
+host6_meta = {u'os_version_id': None,
+              u'config_set_id': None,
+              u'root_disk': u'sda',
+              u'os_status': u'active',
+              u'discover_mode': u'PXE',
+              u'updated_at': u'2016-12-28T08:00:03.000000',
+              u'group_list': None, u'cluster': u'clustertest',
+              u'hugepages': 0,
+              u'dvsp_cpus': None,
+              u'deleted_at': None,
+              u'id': u'9423980b-ec76-475a-b45f-558eb4b7dfed',
+              u'interfaces': [{u'assigned_networks': [{u'ip': u'196.168.1.9',
+                                                      u'name': u'MANAGEMENT',
+                                                      u'type': u'MANAGEMENT'}],
+                              u'host_id':
+                                  u'9423980b-ec76-475a-b45f-558eb4b7dfed',
+                              u'id': u'299fc41d-dde5-45ca-be3b-c94693d2b9ce',
+                              u'ip': u'192.168.1.11', u'is_deployment': True,
+                              u'mac': u'4c:09:b4:b2:79:8a',
+                              u'mode': None, u'name': u'enp132s0f0',
+                              u'netmask': u'255.255.255.0',
+                              u'pci': u'0000:84:00.0', u'slave1': None,
+                              u'slave2': None, u'type': u'ether',
+                              u'vswitch_type': ''}],
+              u'vcpu_pin_set': None,
+              u'dvsv_cpus': None,
+              u'hwm_ip': None,
+              u'role': [u'CONTROLLER_LB', u'COMPUTER'],
+              u'virtio_queue_size': None,
+              u'dvs_config_desc': None,
+              u'hwm_id': None,
+              u'pci_high_cpuset': u'',
+              u'status': u'with-role',
+              u'description': u'default',
+              u'dvsc_cpus': None,
+              u'dmi_uuid': u'020BFFB8-7FF2-4147-88C1-2B6305A4E1C8',
+              u'ipmi_passwd': None,
+              u'dvs_config_type': None,
+              u'resource_type': u'baremetal',
+              u'position': u'',
+              u'version_patch_id': None,
+              u'tecs_version_id': None,
+              u'flow_mode': None,
+              u'ipmi_user': None,
+              u'hugepagesize': u'1G',
+              u'name': u'host-10-20-11-3',
+              u'dvsblank_cpus': None,
+              u'ipmi_addr': u'',
+              u'root_pwd': u'ossdbg1',
+              u'dvs_high_cpuset': None,
+              u'dvs_cpus': None,
+              u'root_lv_size': 102400}
+
+assigned_network = {u'network_id': u'ee027d1b-f6f8-482b-b1d3-3d6f5aab0d8f',
+                    u'ip': u'196.168.1.9',
+                    u'created_at': u'2017-01-04T12:03:41.000000',
+                    u'deleted': False,
+                    u'updated_at': u'2017-01-04T12:03:41.000000',
+                    u'interface_id': u'299fc41d-dde5-45ca-be3b-c94693d2b9ce',
+                    u'vswitch_type': None,
+                    u'mac': u'52:54:00:ac:ed:70',
+                    u'deleted_at': None,
+                    u'id': u'54079edb-4dff-4b1c-bd2d-695c2ae3ebd1'}
+
+def subprocesscall(cmd):
+    subprocess.call(cmd, shell=True,
+                    stdout=open('/dev/null', 'w'),
+                    stderr=subprocess.STDOUT)
 
 class MockLoggingHandler(object):
     """Mock logging handler to check for expected logs.
@@ -345,7 +414,7 @@ class TestInstall(test.TestCase):
         self.req = webob.Request.blank('/')
         self.req.context = RequestContext(is_admin=True, user='fake user',
                                           tenant='fake tenant')
-        self.installer = install.KOLLAInstallTask(self.req, '123')
+        self.installer = install.KOLLAInstallTask(self.req, '8ad27e36-f3e2-48b4-84b8-5b676c6fabde')
 
     @mock.patch('daisy.api.backends.kolla.common.get_computer_node_cfg')
     @mock.patch('daisy.api.backends.kolla.common.get_controller_node_cfg')
@@ -387,3 +456,50 @@ class TestInstall(test.TestCase):
             self.req,
             '8ad27e36-f3e2-48b4-84b8-5b676c6fabde')
         self.assertEqual('3.0.2', kolla_config['Version'])
+
+    @mock.patch('daisy.api.backends.kolla.install.update_progress_to_db')
+    @mock.patch('daisy.api.backends.kolla.install.update_host_progress_to_db')
+    @mock.patch('daisy.api.backends.kolla.install.config_nodes_hosts')
+    @mock.patch('daisy.api.backends.kolla.install.update_all_host_progress_to_db')
+    @mock.patch('daisy.api.backends.common.get_assigned_network')
+    @mock.patch('daisy.api.backends.common.get_host_detail')
+    @mock.patch('daisy.api.backends.common.get_cluster_roles_detail')
+    @mock.patch('daisy.api.backends.common.get_cluster_networks_detail')
+    @mock.patch('daisy.api.backends.common.get_hosts_of_role')
+    @mock.patch('daisy.api.backends.kolla.install.generate_kolla_config_file')
+    @mock.patch('daisy.api.backends.kolla.install.get_cluster_kolla_config')
+    @mock.patch('subprocess.Popen.poll')
+    @mock.patch('subprocess.check_output')
+    @mock.patch('daisy.api.backends.common.subprocess_call')
+    def test__run(
+            self, mock_subprocess_call, mock_do_check_output,
+            mock_do_Popen, mock_do_get_cluster_kolla_config,
+            mock_do_generate_kolla_config_file, mock_do_get_hosts_of_role,
+            mock_do_get_cluster_networks_detail, mock_do_get_cluster_roles_detail,
+            mock_do_get_host_detail, mock_do_get_assigned_network,
+            mock_do_update_all_host_progress_to_db, mock_do_config_nodes_hosts,
+            mock_do_update_host_progress_to_db, mock_do_update_progress_to_db):
+
+        def mock_get_cluster_kolla_config(*args, **kwargs):
+            return (kolla_config, mgt_ip_list, host_name_ip_list)
+
+        cmd = 'mkdir -p /var/log/daisy'
+        subprocesscall(cmd)
+        mock_do_check_output.return_value = 'ok'
+        mock_do_Popen.return_value = 0
+        mock_do_get_hosts_of_role.return_value = role_hosts
+        mock_do_get_cluster_networks_detail.return_value = cluster_networks
+        mock_do_get_cluster_roles_detail.return_value = cluster_roles
+        mock_do_get_host_detail.return_value = host6_meta
+        mock_do_get_assigned_network.return_value = assigned_network
+        kolla_config = {}
+        mgt_ip_list = ['127.0.0.1']
+        host_name_ip_list = [{'localhost': '127.0.0.1'}]
+        mock_do_get_cluster_kolla_config.side_effect = mock_get_cluster_kolla_config
+        #mock_do_check_output.side_effect = mock_check_output
+        self.installer._run()
+        log_file = '/var/log/daisy/kolla_8ad27e36-f3e2-48b4-84b8-5b676c6fabde_deploy.log'
+        all_the_text = open('%s' % log_file).read()
+        self.assertIn('okokok', all_the_text)
+        cmd = 'rm -rf /var/log/daisy'
+        subprocesscall(cmd)
