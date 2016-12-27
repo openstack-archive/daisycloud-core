@@ -987,7 +987,7 @@ def _os_thread_bin(req, host_ip, host_id, update_file, update_script):
 
     var_log_path = "/var/log/daisy/daisy_update/%s_update_os.log" % host_ip
     with open(var_log_path, "w+") as fp:
-        cmd = '/var/lib/daisy/tecs/trustme.sh %s %s' % (host_ip, password)
+        cmd = '/var/lib/daisy/trustme.sh %s %s' % (host_ip, password)
         daisy_cmn.subprocess_call(cmd, fp)
         cmd = 'clush -S -w %s "mkdir -p /home/daisy_update/"' % (host_ip,)
         daisy_cmn.subprocess_call(cmd, fp)
