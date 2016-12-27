@@ -5,6 +5,12 @@
 
     diff-coverage
 
+    Copyright (c) 2012, Preston Holmes and other contributors.
+    All rights reserved.
+
+    Mainly from https://github.com/ptone/diff-coverage, with modifications to
+    fit the daisycloud-core project directory arrangement.
+
     This module will, in a somewhat inflexible way, compare a diff coverage.py
     data to determine whether lines added or modified in the diff, were executed
     during a coverage session.
