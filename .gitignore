@@ -40,7 +40,7 @@ pip-delete-this-directory.txt
 .coverage
 .cache
 cover/
-
+diff_coverage_html/
 # Log files:
 *.log
 
