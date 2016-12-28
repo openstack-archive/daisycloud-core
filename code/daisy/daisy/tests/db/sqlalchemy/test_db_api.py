@@ -146,7 +146,7 @@ class DottableDict(dict):
         dict.__init__(self, *args, **kwargs)
         self.__dict__ = self
 
-    def allowDotting(self, state=True):
+    def allow_dotting(self, state=True):
         if state:
             self.__dict__ = self
         else:
@@ -427,7 +427,7 @@ class TestSqlalchemyApi(test.TestCase):
         values = {'os_status': 'init'}
         host_ref_dict = {'os_status': 'active'}
         host_ref = DottableDict(host_ref_dict)
-        host_ref.allowDotting()
+        host_ref.allow_dotting()
         api._delete_host_fields(host_ref, values)
         for field in delete_fields:
             self.assertEqual(values[field], None)
@@ -442,7 +442,7 @@ class TestSqlalchemyApi(test.TestCase):
         values = {'isolcpus': '1,2'}
         host_ref_dict = {'os_status': 'active'}
         host_ref = DottableDict(host_ref_dict)
-        host_ref.allowDotting()
+        host_ref.allow_dotting()
         api._delete_host_fields(host_ref, values)
         for field in delete_fields:
             self.assertEqual(values[field], None)
@@ -451,8 +451,62 @@ class TestSqlalchemyApi(test.TestCase):
         values = {'isolcpus': '1,2'}
         host_ref_dict = {'os_status': 'init'}
         host_ref = DottableDict(host_ref_dict)
-        host_ref.allowDotting()
+        host_ref.allow_dotting()
         api._delete_host_fields(host_ref, values)
         for field in delete_fields:
             self.assertEqual(values[field], None)
         self.assertEqual(values['isolcpus'], None)
+
+    def test_discover_host_get_by_host_id(self):
+        host_id = u'a0d0b8fd-be4e-4540-b047-bc9cc07339b9'
+        discover_host_id = u'ad858b51-d976-4b88-bcdd-1ffc8dffe8e4'
+        discover_host1 = {'status': u'DISCOVERY_SUCCESSFUL',
+                          'ip': u'192.168.1.10',
+                          'passwd': u'ossdbg1',
+                          'mac': u'90:e2:ba:c4:3f:b8',
+                          'host_id': host_id,
+                          'message': u'discover host for 192.168.1.10!',
+                          'id': discover_host_id}
+        api.discover_host_add(self.req.context, discover_host1)
+        discover_hosts = api.discover_host_get_by_host_id(
+            self.req.context, host_id)
+        self.assertEqual(len(discover_hosts), 1)
+        self.assertEqual(discover_hosts[0]['host_id'], host_id)
+        api.discover_host_destroy(self.req.context, discover_host_id)
+
+    def test_host_destroy(self):
+        host_id = u'9692370d-7378-4ef8-9e21-1afe5cd1564a'
+        discover_host_id = u'9692370d-7378-4ef8-9e21-1afe5cd15644'
+        host_meta = {
+            u'name': u'host-192-168-1-102',
+            u'description': u'default',
+            u'discover_mode': u'SSH',
+            u'dmi_uuid': u'574775DC-0000-1000-0000-744AA400B807',
+            u'id': host_id,
+            u'interfaces': unicode([{u'bond_type': None,
+                                     u'ip': u'10.43.203.44',
+                                     u'is_deployment': False,
+                                     u'mac': u'a0:36:9f:91:85:a9',
+                                     u'max_speed': u'1000baseT/Full',
+                                     u'name': u'ens8f1.900',
+                                     u'netmask': u'255.255.254.0'}]),
+        }
+        discover_host = {'status': u'DISCOVERY_SUCCESSFUL',
+                         'ip': u'10.43.203.44',
+                         'passwd': u'ossdbg1',
+                         'mac': u'a0:36:9f:91:85:a9',
+                         'host_id': host_id,
+                         'message': u'discover host for 10.43.203.44!',
+                         'id': discover_host_id}
+
+        api.host_add(self.req.context, host_meta)
+        api.discover_host_add(self.req.context, discover_host)
+        api.host_destroy(self.req.context, host_id)
+        self.assertRaises(exception.NotFound,
+                          api.host_get,
+                          self.req.context,
+                          host_id)
+        self.assertRaises(exception.NotFound,
+                          api.discover_host_get,
+                          self.req.context,
+                          discover_host_id)

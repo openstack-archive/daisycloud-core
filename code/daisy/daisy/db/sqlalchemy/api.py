@@ -1083,9 +1083,17 @@ def host_destroy(context, host_id):
         if host_interfaces:
             for host_interface_info in host_interfaces:
                 delete_assigned_networks(context, host_interface_info.id)
-        delete_host_interface(context, host_id)
+        delete_host_interface(context, host_id, session=session)
         host_ref.delete(session=session)
 
+        discover_hosts = discover_host_get_by_host_id(context,
+                                                      host_id,
+                                                      session=session)
+        for discover_host in discover_hosts:
+            discover_host_ref = _discover_host_get(context,
+                                                   discover_host['id'],
+                                                   session=session)
+            discover_host_ref.delete(session=session)
     return host_ref
 
 
@@ -1180,6 +1188,25 @@ def _discover_host_get(context, discover_host_id, session=None,
         msg = "No host found with ID %s" % discover_host_id
         LOG.debug(msg)
         raise exception.NotFound(msg)
+
+
+def discover_host_get_by_host_id(context, host_id, session=None,
+                                 force_show_deleted=False):
+    """Get an host or raise if it does not exist."""
+
+    session = session or get_session()
+    discover_hosts = []
+    try:
+        query = session.query(models.DiscoverHost).filter_by(host_id=host_id)
+        if not force_show_deleted and not context.can_see_deleted:
+            query = query.filter_by(deleted=False)
+        for discover_host in query.all():
+            discover_host_dict = discover_host.to_dict()
+            discover_hosts.append(discover_host_dict)
+    except sa_orm.exc.NoResultFound:
+        msg = "No discover_host found with host_id %s" % host_id
+        LOG.debug(msg)
+    return discover_hosts
 
 
 def discover_host_get(context, discover_host_id, session=None,
