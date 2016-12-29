@@ -1,7 +1,7 @@
 /var/log/daisy/*.log {
-    weekly
-    rotate 4
+    daily
+    rotate 30
     missingok
     compress
-    minsize 100k
+    size 4M
 }
