@@ -281,8 +281,21 @@ class Controller(object):
                     try:
                         self.db_api.config_set_destroy(req.context,
                                                        orig_config_set_id)
-                    except exception.Forbidden as e:
-                        LOG.info(e)
+                    except exception.NotFound as e:
+                        msg = _LI("config_set %s has been deleted") \
+                            % orig_config_set_id
+                        LOG.info(msg)
+                    except exception.Forbidden:
+                        msg = _LE("Forbidden to delete config_set %s") \
+                            % orig_config_set_id
+                        LOG.error(msg)
+                        return exc.HTTPForbidden(msg)
+                    except Exception:
+                        msg = _LE("Unable to delete config_set %s") \
+                            % orig_config_set_id
+                        LOG.error(msg)
+                        return exc.HTTPBadRequest(msg)
+
             # host_data = dict(host=make_image_dict(host_data))
             msg = (_LI("Successfully created node %s") %
                    host_data["id"])
@@ -335,8 +348,21 @@ class Controller(object):
                 try:
                     self.db_api.config_set_destroy(req.context,
                                                    orig_config_set_id)
-                except exception.Forbidden as e:
-                    LOG.info(e)
+                except exception.NotFound as e:
+                    msg = _LI("config_set %s has been deleted") \
+                        % orig_config_set_id
+                    LOG.info(msg)
+                except exception.Forbidden:
+                    msg = _LE("Forbidden to delete config_set %s") \
+                        % orig_config_set_id
+                    LOG.error(msg)
+                    return exc.HTTPForbidden(msg)
+                except Exception:
+                    msg = _LE("Unable to delete config_set %s") \
+                        % orig_config_set_id
+                    LOG.error(msg)
+                    return exc.HTTPBadRequest(msg)
+
             # TODO delete ironic host by mac
             return dict(host=deleted_host)
         except exception.ForbiddenPublicImage:
@@ -349,7 +375,7 @@ class Controller(object):
             msg = _LI("Access denied to host %(id)s but returning"
                       " 'not found'") % {'id': id}
             LOG.info(msg)
-            return exc.HTTPNotFound()
+            return exc.HTTPForbidden()
         except exception.NotFound:
             msg = _LI("Host %(id)s not found") % {'id': id}
             LOG.info(msg)
@@ -1515,9 +1541,20 @@ class Controller(object):
                 try:
                     self.db_api.config_set_destroy(req.context,
                                                    orig_config_set_id)
-                except exception.Forbidden as e:
-                    LOG.info(e)
-
+                except exception.NotFound as e:
+                    msg = _LI("config_set %s has been deleted") \
+                        % orig_config_set_id
+                    LOG.info(msg)
+                except exception.Forbidden:
+                    msg = _LE("Forbidden to delete config_set %s") \
+                        % orig_config_set_id
+                    LOG.error(msg)
+                    return exc.HTTPForbidden(msg)
+                except Exception:
+                    msg = _LE("Unable to delete config_set %s") \
+                        % orig_config_set_id
+                    LOG.error(msg)
+                    return exc.HTTPBadRequest(msg)
             msg = _LI("Updating metadata for host %(id)s") % {'id': id}
             LOG.info(msg)
             if 'host' not in updated_host:

@@ -686,15 +686,6 @@ class Controller(controller.BaseController):
                                request=req,
                                content_type="text/plain")
         else:
-            # self.notifier.info('host.delete', host)
-            params = {}
-            discover_hosts = registry.get_discover_hosts_detail(
-                req.context, **params)
-            for host in discover_hosts:
-                if host.get('host_id') == id:
-                    LOG.info("delete discover host: %s" % id)
-                    registry.delete_discover_host_metadata(
-                        req.context, host['id'])
             return Response(body='', status=200)
 
     @utils.mutating
