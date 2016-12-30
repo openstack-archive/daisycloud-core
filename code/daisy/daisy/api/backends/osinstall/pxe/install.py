@@ -20,12 +20,14 @@ import copy
 import subprocess
 import time
 import re
+import os
 import commands
 from oslo_config import cfg
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
 from daisy.api import common
 import threading
+from oslo_utils import importutils
 from daisy import i18n
 import json
 
@@ -126,7 +128,8 @@ def install_os(**kwargs):
     _PIPE = subprocess.PIPE
     cmd = "/usr/bin/pxe_os_install /var/log/ironic/%s.json && \
            chmod 755 /tftpboot -R && \
-           chmod 755 /home/install_share -R" % kwargs['dhcp_mac']
+           chmod 755 /home/install_share -R && \
+           chmod 755 /linuxinstall -R" % kwargs['dhcp_mac']
     try:
         obj = subprocess.Popen(cmd, stdin=_PIPE, stdout=_PIPE,
                                stderr=_PIPE, shell=True, cwd=None, env=None)
@@ -499,6 +502,7 @@ class OSInstall():
         self.max_parallel_os_num = int(CONF.max_parallel_os_number)
         self.cluster_hosts_install_timeout = (
             self.max_parallel_os_num / 4 + 2) * 60 * (12 * self.time_step)
+        self.providerclient = utils.get_provider_client
 
     def _set_boot_or_power_state(self, host_detail, action):
         user = host_detail['ipmi_user']
@@ -738,7 +742,6 @@ class OSInstall():
         if host_detail.get('hwm_id') or ipmi_result_flag:
             rc, error = install_os(**kwargs)
             if rc != 0:
-                install_os_description = error
                 LOG.info(
                     _("install os config failed because of '%s'" % error))
                 host_status = {'os_status': host_os_status['INSTALL_FAILED'],
@@ -831,6 +834,27 @@ class OSInstall():
                 host_status['messages'] = "OS installed successfully"
                 # wait for nicfix script complete
                 time.sleep(10)
+                self._set_disk_start_mode(host_detail)
+                # node state: in use
+                node_state = 'true'
+                path = os.path.join(os.path.abspath(os.path.dirname(
+                    os.path.realpath(__file__))), 'ext')
+                path_split = path.split("/")
+                new_path = []
+                for name in path_split:
+                    if name != "api":
+                        new_path.append(name)
+                path = "/".join(new_path)
+                path = os.getcwd() + "/api/v1/ext"
+                for root, dirs, names in os.walk(path):
+                    filename = 'router.py'
+                    if filename in names:
+                        ext_name = root.split(path)[1].strip('/')
+                        ext_func = "%s.api.hosts" % ext_name
+                        extension = importutils.import_module(
+                            'daisy.api.v1.ext',
+                            ext_func)
+                        extension.update_host_state(host_detail, node_state)
                 host_management_ip = daisy_cmn.get_management_ip(host_detail,
                                                                  False)
                 if host_management_ip:
@@ -1120,17 +1144,6 @@ def upgrade(self, req, cluster_id, version_id, version_patch_id,
         if daisy_cmn.get_local_deployment_ip(host_ip):
             LOG.exception("%s host os upgrade by hand" % host_ip)
             continue
-        if update_object == "vplat":
-            target_host_os = _get_host_os_version(
-                host_ip, host_meta['root_pwd'])
-            if _cmp_os_version(update_file, target_host_os, host_ip) == -1:
-                LOG.warn(
-                    _("new os version is lower than or equal to "
-                        "host %s, don't need to upgrade!" % host_ip))
-                host_meta['messages'] = "New os version is lower than" \
-                                        " or equal to host %s." % host_ip
-                daisy_cmn.update_db_host_status(req, host_id, host_meta)
-                continue
         host_set = set()
         host_set.add(host_ip)
         unreached_hosts = daisy_cmn.check_ping_hosts(host_set, 5)
@@ -1167,6 +1180,15 @@ def upgrade_os(req, version_id, version_patch_id, update_script,
         for host_info in upgrade_hosts:
             host_id = host_info.keys()[0]
             host_ip = host_info.values()[0]
+            host_detail = daisy_cmn.get_host_detail(req, host_id)
+            if update_object == "vplat":
+                target_host_os = _get_host_os_version(
+                    host_ip, host_detail['root_pwd'])
+                if _cmp_os_version(update_file, target_host_os, host_ip) == -1:
+                    LOG.warn(
+                        _("new os version is lower than or equal to "
+                          "host %s, don't need to upgrade!" % host_ip))
+                    continue
             host_meta['os_progress'] = 10
             host_meta['os_status'] = host_os_status['UPDATING']
             host_meta['messages'] = "os updating,begin copy iso"
