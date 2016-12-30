@@ -50,6 +50,10 @@ from webob import exc
 
 from daisy.common import exception
 from daisy import i18n
+try:
+    from providerclient.v1 import client as provider_client
+except ImportError:
+    pass
 
 CONF = cfg.CONF
 
@@ -1202,3 +1206,9 @@ def get_numa_node_from_cpus(numa, str_cpus):
     numa_nodes = list(set(numa_nodes))
     numa_nodes.sort()
     return numa_nodes
+
+
+def get_provider_client(provider_ip):
+    endpoint = "http://" + provider_ip + ":8089"
+    args = {'version': 1.0, 'endpoint': endpoint}
+    return provider_client.Client(**args)
