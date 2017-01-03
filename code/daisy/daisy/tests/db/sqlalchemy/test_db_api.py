@@ -409,7 +409,7 @@ class TestSqlalchemyApi(test.TestCase):
                             limit=limit_value, sort_key=sort_key_value,
                             sort_dir=sort_dir_value)
 
-    def test__delete_host_fields(self):
+    def test_delete_host_fields(self):
         delete_fields = ['config_set_id',
                          'vcpu_pin_set',
                          'dvs_high_cpuset',
@@ -457,7 +457,7 @@ class TestSqlalchemyApi(test.TestCase):
             self.assertEqual(values[field], None)
         self.assertEqual(values['isolcpus'], None)
 
-    def test__cluster_update_without_public_vip(self):
+    def test_cluster_update_without_public_vip(self):
         cluster_add_values = {u'name': u'provider',
                               u'use_dns': u'1',
                               u'networking_parameters': u"{u'base_mac': u''}",
@@ -482,7 +482,7 @@ class TestSqlalchemyApi(test.TestCase):
         self.assertEqual(public_vip, '10.43.203.199')
         api.cluster_destroy(self.req.context, cluster_id)
 
-    def test__cluster_update_with_public_vip(self):
+    def test_cluster_update_with_public_vip(self):
         cluster_add_values = {u'name': u'provider',
                               u'use_dns': u'1',
                               u'networking_parameters': u"{u'base_mac': u''}",

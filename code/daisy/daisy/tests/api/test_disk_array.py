@@ -90,7 +90,7 @@ class TestDiskArray(test.TestCase):
                                           user='fake user',
                                           tenant='fake tenamet')
 
-    def test__get_cinder_volume_backend_index(self):
+    def test_get_cinder_volume_backend_index(self):
         cluster_id = "cluster_id_123"
         roles = [{'id': 'role_id_1'},
                  {'id': 'role_id_2'}]
