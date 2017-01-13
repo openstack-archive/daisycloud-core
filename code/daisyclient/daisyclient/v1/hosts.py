@@ -36,7 +36,8 @@ UPDATE_PARAMS = ('name', 'resource_type', 'dmi_uuid', 'role', 'cluster',
                  'dvs_config_type', 'dvsc_cpus', 'dvsp_cpus', 'dvsv_cpus',
                  'dvsblank_cpus', 'flow_mode', 'virtio_queue_size',
                  'dvs_config_desc', 'discover_mode', 'system', 'cpu',
-                 'memory', 'disks', 'devices', 'pci')
+                 'memory', 'disks', 'devices', 'pci', 'version_patch_id',
+                 'tecs_version_id')
 
 
 CREATE_PARAMS = ('id', 'name', 'description', 'resource_type', 'dmi_uuid',
@@ -48,7 +49,8 @@ CREATE_PARAMS = ('id', 'name', 'description', 'resource_type', 'dmi_uuid',
                  'os_cpus', 'dvs_cpus', 'config_set_id', 'root_disk',
                  'version_patch_id', 'tecs_version_id', 'dvs_config_type',
                  'discover_mode', 'system', 'cpu',
-                 'memory', 'disks', 'devices', 'pci')
+                 'memory', 'disks', 'devices', 'pci', 'version_patch_id',
+                 'tecs_version_id')
 
 DEFAULT_PAGE_SIZE = 200
 

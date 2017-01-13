@@ -23,36 +23,22 @@ import six.moves.urllib.parse as urlparse
 from daisyclient.common import utils
 from daisyclient.openstack.common.apiclient import base
 
-UPDATE_PARAMS = (
-    'name', 'description', 'networks', 'deleted', 'nodes', 'floating_ranges',
-    'dns_nameservers', 'net_l23_provider', 'base_mac', 'internal_gateway',
-    'internal_cidr', 'external_cidr', 'gre_id_range', 'vlan_range',
-    'vni_range', 'segmentation_type', 'public_vip', 'logic_networks',
-    'networking_parameters', 'routers', 'auto_scale', 'use_dns',
-    'target_systems', 'tecs_version_id'
-)
+CREATE_PARAMS = ('id', 'name', 'description', 'type', 'version', 'size',
+                 'checksum', 'status', 'os_status', 'version_patch')
 
-CREATE_PARAMS = (
-    'id', 'name', 'nodes', 'description', 'networks', 'floating_ranges',
-    'dns_nameservers', 'net_l23_provider', 'base_mac', 'internal_gateway',
-    'internal_cidr', 'external_cidr', 'gre_id_range', 'vlan_range',
-    'vni_range', 'segmentation_type', 'public_vip', 'logic_networks',
-    'networking_parameters', 'routers', 'auto_scale', 'use_dns',
-    'target_systems', 'tecs_version_id'
-)
-
-DEFAULT_PAGE_SIZE = 20
+DEFAULT_PAGE_SIZE = 200
 
 SORT_DIR_VALUES = ('asc', 'desc')
-SORT_KEY_VALUES = ('name', 'auto_scale', 'id', 'created_at', 'updated_at')
+SORT_KEY_VALUES = (
+    'name', 'id', 'cluster_id', 'created_at', 'updated_at', 'status')
 
 OS_REQ_ID_HDR = 'x-openstack-request-id'
 
 
-class Cluster(base.Resource):
+class Version(base.Resource):
 
     def __repr__(self):
-        return "<Cluster %s>" % self._info
+        return "<Version %s>" % self._info
 
     def update(self, **fields):
         self.manager.update(self, **fields)
@@ -64,8 +50,8 @@ class Cluster(base.Resource):
         return self.manager.data(self, **kwargs)
 
 
-class ClusterManager(base.ManagerWithFind):
-    resource_class = Cluster
+class VersionManager(base.ManagerWithFind):
+    resource_class = Version
 
     def _list(self, url, response_key, obj_class=None, body=None):
         resp, body = self.client.get(url)
@@ -77,7 +63,7 @@ class ClusterManager(base.ManagerWithFind):
         return ([obj_class(self, res, loaded=True) for res in data if res],
                 resp)
 
-    def _cluster_meta_from_headers(self, headers):
+    def _version_meta_from_headers(self, headers):
         meta = {'properties': {}}
         safe_decode = encodeutils.safe_decode
         for key, value in six.iteritems(headers):
@@ -93,9 +79,9 @@ class ClusterManager(base.ManagerWithFind):
             if key in meta:
                 meta[key] = strutils.bool_from_string(meta[key])
 
-        return self._format_cluster_meta_for_user(meta)
+        return self._format_version_meta_for_user(meta)
 
-    def _cluster_meta_to_headers(self, fields):
+    def _version_meta_to_headers(self, fields):
         headers = {}
         fields_copy = copy.deepcopy(fields)
 
@@ -109,7 +95,7 @@ class ClusterManager(base.ManagerWithFind):
         return headers
 
     @staticmethod
-    def _format_image_meta_for_user(meta):
+    def _format_version_meta_for_user(meta):
         for key in ['size', 'min_ram', 'min_disk']:
             if key in meta:
                 try:
@@ -118,52 +104,22 @@ class ClusterManager(base.ManagerWithFind):
                     pass
         return meta
 
-    @staticmethod
-    def _format_cluster_meta_for_user(meta):
-        for key in ['size', 'min_ram', 'min_disk']:
-            if key in meta:
-                try:
-                    meta[key] = int(meta[key]) if meta[key] else 0
-                except ValueError:
-                    pass
-        return meta
+    def get(self, version, **kwargs):
+        """Get the metadata for a specific version.
 
-    def get(self, cluster, **kwargs):
-        """Get the metadata for a specific cluster.
-
-        :param cluster: host object or id to look up
-        :rtype: :class:`Cluster`
+        :param version: image object or id to look up
+        :rtype: :class:`version`
         """
-        cluster_id = base.getid(cluster)
-        resp, body = self.client.get('/v1/clusters/%s'
-                                     % urlparse.quote(str(cluster_id)))
-        # meta = self._cluster_meta_from_headers(resp.headers)
+        version_id = base.getid(version)
+        resp, body = self.client.get('/v1/versions/%s'
+                                     % urlparse.quote(str(version_id)))
+        # meta = self._version_meta_from_headers(resp.headers)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
-        # return Host(self, meta)
-        return Cluster(self, self._format_cluster_meta_for_user(
-            body['cluster']))
-
-    def data(self, image, do_checksum=True, **kwargs):
-        """Get the raw data for a specific image.
-
-        :param image: image object or id to look up
-        :param do_checksum: Enable/disable checksum validation
-        :rtype: iterable containing image data
-        """
-        image_id = base.getid(image)
-        resp, body = self.client.get('/v1/images/%s'
-                                     % urlparse.quote(str(image_id)))
-        content_length = int(resp.headers.get('content-length', 0))
-        checksum = resp.headers.get('x-image-meta-checksum', None)
-        if do_checksum and checksum is not None:
-            body = utils.integrity_iter(body, checksum)
-        return_request_id = kwargs.get('return_req_id', None)
-        if return_request_id is not None:
-            return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
-
-        return utils.IterableWithLength(body, content_length)
+        # return version(self, meta)
+        return Version(self, self._format_version_meta_for_user(
+            body['version']))
 
     def _build_params(self, parameters):
         params = {'limit': parameters.get('page_size', DEFAULT_PAGE_SIZE)}
@@ -193,19 +149,18 @@ class ClusterManager(base.ManagerWithFind):
         return params
 
     def list(self, **kwargs):
-        """Get a list of clusters.
+        """Get a list of versions.
 
         :param page_size: number of items to request in each paginated request
-        :param limit: maximum number of clusters to return
-        :param marker: begin returning clusters that
-                       appear later in the cluster
-                       list than that represented by this cluster id
+        :param limit: maximum number of versions to return
+        :param marker:begin returning versions that appear later in version
+                       list than that represented by this version id
         :param filters: dict of direct comparison filters that mimics the
-                        structure of an cluster object
+                        structure of an version object
         :param return_request_id: If an empty list is provided, populate this
                               list with the request ID value from the header
                               x-openstack-request-id
-        :rtype: list of :class:`Cluster`
+        :rtype: list of :class:`version`
         """
         absolute_limit = kwargs.get('limit')
         page_size = kwargs.get('page_size', DEFAULT_PAGE_SIZE)
@@ -221,14 +176,14 @@ class ClusterManager(base.ManagerWithFind):
                     # trying to encode them
                     qp[param] = encodeutils.safe_decode(value)
 
-            url = '/v1/clusters?%s' % urlparse.urlencode(qp)
-            clusters, resp = self._list(url, "clusters")
+            url = '/v1/versions?%s' % urlparse.urlencode(qp)
+            versions, resp = self._list(url, "versions")
 
             if return_request_id is not None:
                 return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
-            for cluster in clusters:
-                yield cluster
+            for version in versions:
+                yield version
 
         return_request_id = kwargs.get('return_req_id', None)
 
@@ -238,8 +193,8 @@ class ClusterManager(base.ManagerWithFind):
         while True:
             seen_last_page = 0
             filtered = 0
-            for cluster in paginate(params, return_request_id):
-                last_cluster = cluster.id
+            for version in paginate(params, return_request_id):
+                last_version = version.id
 
                 if (absolute_limit is not None and
                         seen + seen_last_page >= absolute_limit):
@@ -247,28 +202,28 @@ class ClusterManager(base.ManagerWithFind):
                     return
                 else:
                     seen_last_page += 1
-                    yield cluster
+                    yield version
 
             seen += seen_last_page
 
             if seen_last_page + filtered == 0:
-                # Note(kragniz): we didn't get any clusters in the last page
+                # Note(kragniz): we didn't get any versions in the last page
                 return
 
             if absolute_limit is not None and seen >= absolute_limit:
-                # Note(kragniz): reached the limit of clusters to return
+                # Note(kragniz): reached the limit of versions to return
                 return
 
             if page_size and seen_last_page + filtered < page_size:
-                # Note(kragniz): we've reached the last page of the clusters
+                # Note(kragniz): we've reached the last page of the versions
                 return
 
-            # Note(kragniz): there are more clusters to come
-            params['marker'] = last_cluster
+            # Note(kragniz): there are more versions to come
+            params['marker'] = last_version
             seen_last_page = 0
 
     def add(self, **kwargs):
-        """Add a cluster
+        """Add a version
 
         TODO(bcwaldon): document accepted params
         """
@@ -283,47 +238,45 @@ class ClusterManager(base.ManagerWithFind):
                 msg = 'create() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
 
-        hdrs = self._cluster_meta_to_headers(fields)
-        resp, body = self.client.post('/v1/clusters',
+        hdrs = self._version_meta_to_headers(fields)
+
+        resp, body = self.client.post('/v1/versions',
                                       headers=None,
                                       data=hdrs)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
-        return Cluster(self, self._format_cluster_meta_for_user(
-            body['cluster']))
+        return Version(self, self._format_version_meta_for_user(
+            body['version']))
 
-    def delete(self, cluster, **kwargs):
-        """Delete an cluster."""
-        url = "/v1/clusters/%s" % base.getid(cluster)
+    def delete(self, version, **kwargs):
+        """Delete an version."""
+        url = "/v1/versions/%s" % base.getid(version)
         resp, body = self.client.delete(url)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
-    def update(self, cluster, **kwargs):
-        """Update an cluster
+    def update(self, version, **kwargs):
+        """Update an version
 
         TODO(bcwaldon): document accepted params
         """
         hdrs = {}
         fields = {}
         for field in kwargs:
-            if field in UPDATE_PARAMS:
+            if field in CREATE_PARAMS:
                 fields[field] = kwargs[field]
             elif field == 'return_req_id':
                 continue
-            # else:
-            #    msg = 'update() got an unexpected keyword argument \'%s\''
-            #    raise TypeError(msg % field)
+        hdrs.update(self._version_meta_to_headers(fields))
 
-        hdrs.update(self._cluster_meta_to_headers(fields))
-        url = '/v1/clusters/%s' % base.getid(cluster)
+        url = '/v1/versions/%s' % base.getid(version)
         resp, body = self.client.put(url, headers=None, data=hdrs)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
 
-        return Cluster(self, self._format_cluster_meta_for_user(
-            body['cluster']))
+        return Version(self, self._format_version_meta_for_user(
+            body['version_meta']))
