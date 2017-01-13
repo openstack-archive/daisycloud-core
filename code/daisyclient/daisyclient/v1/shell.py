@@ -43,6 +43,9 @@ import daisyclient.v1.disk_array
 import daisyclient.v1.template
 from daisyclient.v1 import param_helper
 import daisyclient.v1.backup_restore
+import daisyclient.v1.versions
+import daisyclient.v1.version_patchs
+from daisy.common import utils as daisy_utils
 
 _bool_strict = functools.partial(strutils.bool_from_string, strict=True)
 
@@ -2390,3 +2393,201 @@ def do_backend_types_get(dc, args):
                          fields.items()))
     backend_types_get = dc.backend_types.get(**fields)
     _daisy_show(backend_types_get)
+
+
+@utils.arg('id', metavar='<ID>',
+           help='Filter version to those that have this id.')
+def do_version_detail(dc, args):
+    """Get backend_types of daisy."""
+    version = utils.find_resource(dc.versions, args.id)
+    _daisy_show(version)
+
+
+@utils.arg('name', metavar='<NAME>',
+           help='name of version.')
+@utils.arg('type', metavar='<TYPE>',
+           help='version type.eg redhat7.0...')
+@utils.arg('--size', metavar='<SIZE>',
+           help='size of the version file.')
+@utils.arg('--checksum', metavar='<CHECKSUM>',
+           help='md5 of version file')
+@utils.arg('--version', metavar='<VERSION>',
+           help='version number of version file')
+@utils.arg('--description', metavar='<DESCRIPTION>',
+           help='description of version file')
+@utils.arg('--status', metavar='<STATUS>',
+           help='version file status.default:init')
+def do_version_add(dc, args):
+    """Add a version."""
+    fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
+
+    # Filter out values we can't use
+    CREATE_PARAMS = daisyclient.v1.versions.CREATE_PARAMS
+    fields = dict(filter(lambda x: x[0] in CREATE_PARAMS, fields.items()))
+
+    version = dc.versions.add(**fields)
+    _daisy_show(version)
+
+
+@utils.arg('id', metavar='<ID>',
+           help='ID of versions.')
+@utils.arg('--name', metavar='<NAME>',
+           help='name of version.')
+@utils.arg('--type', metavar='<TYPE>',
+           help='version type.eg redhat7.0...')
+@utils.arg('--size', metavar='<SIZE>',
+           help='size of the version file.')
+@utils.arg('--checksum', metavar='<CHECKSUM>',
+           help='md5 of version file')
+@utils.arg('--version', metavar='<VERSION>',
+           help='version number of version file')
+@utils.arg('--description', metavar='<DESCRIPTION>',
+           help='description of version file')
+@utils.arg('--status', metavar='<STATUS>',
+           help='version file status.default:init')
+def do_version_update(dc, args):
+    """Add a version."""
+
+    fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
+
+    # Filter out values we can't use
+    CREATE_PARAMS = daisyclient.v1.versions.CREATE_PARAMS
+    fields = dict(filter(lambda x: x[0] in CREATE_PARAMS, fields.items()))
+    version_id = fields.get('id', None)
+    version = dc.versions.update(version_id, **fields)
+    _daisy_show(version)
+
+
+@utils.arg('id', metavar='<ID>', nargs='+',
+           help='ID of versions.')
+def do_version_delete(dc, args):
+    """Delete specified template(s)."""
+    fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
+    versions = fields.get('id', None)
+    for version in versions:
+        try:
+            if args.verbose:
+                print('Requesting version delete for %s ...' %
+                      encodeutils.safe_decode(version), end=' ')
+            dc.versions.delete(version)
+            if args.verbose:
+                print('[Done]')
+        except exc.HTTPException as e:
+            if args.verbose:
+                print('[Fail]')
+            print('%s: Unable to delete version %s' % (e, version))
+
+
+@utils.arg('--name', metavar='<NAME>',
+           help='Filter version to those that have this name.')
+@utils.arg('--status', metavar='<STATUS>',
+           help='Filter version status.')
+@utils.arg('--type', metavar='<type>',
+           help='Filter by type.')
+@utils.arg('--version', metavar='<version>',
+           help='Filter by version number.')
+@utils.arg('--page-size', metavar='<SIZE>', default=None, type=int,
+           help='Number to request in each paginated request.')
+@utils.arg('--sort-key', default='name',
+           choices=daisyclient.v1.versions.SORT_KEY_VALUES,
+           help='Sort version list by specified field.')
+@utils.arg('--sort-dir', default='asc',
+           choices=daisyclient.v1.versions.SORT_DIR_VALUES,
+           help='Sort version list in specified direction.')
+def do_version_list(dc, args):
+    """List hosts you can access."""
+    filter_keys = ['name', 'type', 'status', 'version']
+    filter_items = [(key, getattr(args, key)) for key in filter_keys]
+    filters = dict([item for item in filter_items if item[1] is not None])
+
+    kwargs = {'filters': filters}
+    if args.page_size is not None:
+        kwargs['page_size'] = args.page_size
+
+    kwargs['sort_key'] = args.sort_key
+    kwargs['sort_dir'] = args.sort_dir
+
+    versions = dc.versions.list(**kwargs)
+
+    columns = ['ID', 'NAME', 'TYPE', 'VERSION', 'size',
+               'checksum', 'description', 'status', 'VERSION_PATCH']
+
+    utils.print_list(versions, columns)
+
+
+@utils.arg('id', metavar='<ID>',
+           help='Filter version patch to those that have this id.')
+def do_version_patch_detail(dc, args):
+    """Get version_patch of daisy."""
+    version = utils.find_resource(dc.version_patchs, args.id)
+    _daisy_show(version)
+
+
+@utils.arg('name', metavar='<NAME>',
+           help='name of version.')
+@utils.arg('version_id', metavar='<VERSION>',
+           help='the version id of the patch belong to.')
+@utils.arg('--size', metavar='<SIZE>',
+           help='size of the version file.')
+@utils.arg('--checksum', metavar='<CHECKSUM>',
+           help='md5 of version file')
+@utils.arg('--description', metavar='<DESCRIPTION>',
+           help='description of version file')
+@utils.arg('--status', metavar='<STATUS>',
+           help='version file status.default:init')
+def do_version_patch_add(dc, args):
+    """Add a version."""
+
+    fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
+
+    # Filter out values we can't use
+    CREATE_PARAMS = daisyclient.v1.version_patchs.CREATE_PARAMS
+    fields = dict(filter(lambda x: x[0] in CREATE_PARAMS, fields.items()))
+    version = dc.version_patchs.add(**fields)
+    _daisy_show(version)
+
+
+@utils.arg('id', metavar='<ID>',
+           help='ID of version patch.')
+@utils.arg('--name', metavar='<NAME>',
+           help='name of version patch.')
+@utils.arg('--size', metavar='<SIZE>',
+           help='size of the version patch file.')
+@utils.arg('--checksum', metavar='<CHECKSUM>',
+           help='md5 of version patch file')
+@utils.arg('--description', metavar='<DESCRIPTION>',
+           help='description of version patch file')
+@utils.arg('--status', metavar='<STATUS>',
+           help='version patch file status.default:init')
+def do_version_patch_update(dc, args):
+    """Add a version."""
+
+    fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
+
+    # Filter out values we can't use
+    CREATE_PARAMS = daisyclient.v1.version_patchs.CREATE_PARAMS
+    fields = dict(filter(lambda x: x[0] in CREATE_PARAMS, fields.items()))
+    version_id = fields.get('id', None)
+    version = dc.version_patchs.update(version_id, **fields)
+    _daisy_show(version)
+
+
+@utils.arg('id', metavar='<ID>', nargs='+',
+           help='ID of version patchs.')
+def do_version_patch_delete(dc, args):
+    """Delete specified template(s)."""
+    fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
+    version_patchs = fields.get('id', None)
+    for version_patch in version_patchs:
+        try:
+            if args.verbose:
+                print('Requesting version_patch delete for %s ...' %
+                      encodeutils.safe_decode(version_patch), end=' ')
+            dc.version_patchs.delete(version_patch)
+            if args.verbose:
+                print('[Done]')
+        except exc.HTTPException as e:
+            if args.verbose:
+                print('[Fail]')
+            print('%s: Unable to delete version_patch %s'
+                  % (e, version_patch))
