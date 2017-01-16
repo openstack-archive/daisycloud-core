@@ -81,7 +81,7 @@ function get_net_info(){
     fi
     for nic in $physical_networks
     do
-        vlan_nic=`cat /proc/net/vlan/config | grep $nic |awk -F ' ' {'print $1'}`
+        vlan_nic=`cat /proc/net/vlan/config | grep $nic |awk -F '|' {'print $1'}`
         if [ ! -z "$vlan_nic" ];then
             all_vlan_nic+=" $vlan_nic "
         fi
@@ -115,7 +115,7 @@ function get_net_info(){
             STATE="down"
         fi
         if [ -z "$BOND" ]; then
-            vlan_nic=`cat /proc/net/vlan/config |awk -F ' ' {'print $1'} |grep -w "${iface}$"`
+            vlan_nic=`cat /proc/net/vlan/config |awk -F '|' {'print $1'} | sed s/[[:space:]]//g |grep -w "${iface}$"`
             if [ -z "$vlan_nic" ];then
                 TYPE="ether"
             else
