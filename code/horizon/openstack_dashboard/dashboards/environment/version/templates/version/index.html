@@ -1,9 +1,143 @@
 {% extends 'base.html' %}
 {% load i18n%}
+{% block title %}{% trans "Version" %}{% endblock %}
 
+{% block css %}
+{% include "_stylesheets.html" %}
+<link rel="stylesheet" href="/dashboard/static/dashboard/scss/host_role.css" type="text/css" media="screen">
+{% endblock%}
+
+{% block js %}
+    {% include "horizon/_scripts.html" %}
+    <script type="text/javascript">
+
+    function update_upload_button_state(){
+        if ($("#local_file").attr('checked') == 'checked'){
+            if ($("#system_version").attr('checked') == 'checked'){
+                $("#upload_file").attr("disabled", false);
+            }
+            else if ($("#patch_version").attr('checked') == 'checked'){
+                if (document.getElementById("correspond_file").options.length == 0)
+                    $("#upload_file").attr("disabled", true);
+                else
+                    $("#upload_file").attr("disabled", false);
+            }
+        }
+        else if ($("#server_file").attr('checked') == 'checked'){
+            if ($("#system_version").attr('checked') == 'checked'){
+                if (document.getElementById("select_server_file").options.length == 0)
+                    $("#upload_file").attr("disabled", true);
+                else
+                    $("#upload_file").attr("disabled", false);
+            }
+            else if ($("#patch_version").attr('checked') == 'checked'){
+                if ((document.getElementById("correspond_file").options.length == 0) ||
+                    (document.getElementById("select_server_file").options.length == 0))
+                    $("#upload_file").attr("disabled", true);
+                else
+                    $("#upload_file").attr("disabled", false);
+            }
+        }
+    }
+
+    function update_correspond_file_option(system_version_list){
+        document.getElementById("correspond_file").options.length = 0;
+
+        var system_option = "";
+        for (var i=0; i<system_version_list.length; i++) {
+            system_option += "<option "+" value='" + system_version_list[i].version_id + "'>" + system_version_list[i].version_name + "</option>";
+        }
+        $("#correspond_file").append(system_option);
+        update_upload_button_state();
+    }
+
+    function update_server_file_option(server_file_list){
+        document.getElementById("select_server_file").options.length = 0;
+
+        var file_option = "";
+        for (var i=0; i<server_file_list.length; i++) {
+            file_option += "<option "+" value='" + server_file_list[i].version_name + "'>" + server_file_list[i].version_name + "</option>";
+        }
+        $("#select_server_file").append(file_option);
+        update_upload_button_state();
+    }
+
+    function check_disk_space_and_file_exist(){
+        if (document.getElementById("version_file").value == "")
+            return;
+
+        var file_paths = document.getElementById("version_file").files;
+        // 获取前台的版本信息
+        var params = {
+            "file_type": $("#file_type").val(),
+            "file_name": file_paths[0].name,
+            "file_size": file_paths[0].size
+        }
+        var url = "/dashboard/environment/version/check_disk_space_and_file_exist/";
+        do_post(url, JSON.stringify(params), update_version_file_status);
+    }
+
+    function update_version_file_status(msg){
+        if (msg.length > 0){
+            document.getElementById("version_file").value = "";
+        }
+    }
+
+    $(function(){
+        $("#file_type").change(function(){
+            if ($("#patch_version").attr('checked') == 'checked'){
+                // 获取所有系统版本信息
+                var url = "/dashboard/environment/version/get_appointed_system_versions/";
+                do_post(url, JSON.stringify({'file_type': $("#file_type").val()}), update_correspond_file_option);
+            }
+            check_disk_space_and_file_exist();
+        });
+
+        $(".file_position").on("click", function(){
+            if ($("#local_file").attr('checked') == 'checked'){
+                $(".form-local-file").removeClass("hide");
+                $(".form-server-file").addClass("hide");
+                $("#upload_file").attr("disabled",false);
+            }
+            else{
+                $(".form-local-file").addClass("hide");
+                $(".form-server-file").removeClass("hide");
+
+                // 获取服务端文件信息
+                var url = "/dashboard/environment/version/get_headstrong_server_files/";
+                do_post(url, JSON.stringify({}), update_server_file_option);
+            }
+        });
+
+        $(".version_type").on("click", function(){
+            if ($("#patch_version").attr('checked') == 'checked') {
+                $(".form-correspond-file").removeClass("hide");
+                // 获取所有系统版本信息
+                var url = "/dashboard/environment/version/get_appointed_system_versions/";
+                do_post(url, JSON.stringify({'file_type': $("#file_type").val()}), update_correspond_file_option);
+            }
+            else{
+                $(".form-correspond-file").addClass("hide");
+            }
+            update_upload_button_state();
+        });
+
+        $("#version_file").change(function(){
+            var file_paths = document.getElementById("version_file").files;
+            var reg = new RegExp("[\\u4E00-\\u9FFF]+", "g");
+            if (reg.test(file_paths[0].name)){
+                horizon.alert('error', "{% trans 'Can not select the Chinese name file' %}");
+                document.getElementById("version_file").value = "";
+                return;
+            }
+            check_disk_space_and_file_exist();
+        });
+    });
+    </script>
+{% endblock %}
 
 {% block page_header %}
-    <div>{% trans "Upload Version" %}</div>
+    <div>{% trans "Version management" %}</div>
 {% endblock %}
 
 {% block main %}
@@ -13,44 +147,78 @@
      action="{% url 'horizon:environment:version:upload' %}"
      method="POST">{% csrf_token %}
       <div class="form-group input-sm">
-        <label class="control-label col-sm-5">{% trans 'Version File' %}:</label>
-        <div class="col-sm-3">
-            <input class="form-control" id="os_version" type="file" name="os_version" />
+                    <label class="control-label col-sm-5">{% trans 'File type' %}:</label>
+                    <div class="col-sm-2">
+                        <select class="form-control" id="file_type" name="file_type"/>
+                            <option value="redhat 6.5">{% trans "redhat 6.5" %}</option>
+                            <option value="redhat 7.0" selected="selected">{% trans "redhat 7.0" %}</option>
+                            <option value="suse">{% trans "suse" %}</option>
+                            <option value="centos 7.0">{% trans "centos 7.0" %}</option>
+                            <option value="windows">{% trans "windows" %}</option>
+                            <option value="vplat">{% trans "vplat" %}</option>
+                            <option value="tecs">{% trans "tecs" %}</option>
+                            <option value="zenic">{% trans "zenic" %}</option>
+                            <option value="kolla">{% trans "kolla" %}</option>
+                            <option value="unknown">{% trans "unknown" %}</option>
+                        </select>
         </div>
       </div>
-      <!--div class="form-group input-sm">
-        <label class="control-label col-sm-5">{% trans 'TECS Version' %}:</label>
-        <div class="col-sm-3">
-            <input class="form-control" id="role_version" type="file" name="role_version" />
+                <div class="form-group input-sm">
+                    <label class="control-label col-sm-5">{% trans 'Original file location' %}:</label>
+                    <div class="col-sm-6">
+                        <label class="radio-inline">
+                            <input type="radio" id="local_file" name="file_position" class="file_position" value="local" checked="checked">{% trans "Local" %}
+                        </label>
+                        <label class="radio-inline">
+                            <input type="radio" id="server_file" name="file_position" class="file_position" value="server" >{% trans "Server" %}
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group input-sm form-local-file">
+                    <label class="control-label col-sm-5">{% trans 'Local file' %}:</label>
+                    <div class="col-sm-2">
+                        <input class="form-control" type="file" id="version_file" name="version_file"/>
+                    </div>
+                </div>
+                <div class="form-group input-sm form-server-file hide">
+                    <label class="control-label col-sm-5">{% trans 'Server files' %}:</label>
+                    <div class="col-sm-2">
+                        <select class="form-control" id="select_server_file" name="select_server_file">
+                        </select>
+                    </div>
         </div>
-      </div-->   
       <div class="form-group input-sm">
-        <label class="control-label col-sm-5"></label>
-        <div class="col-sm-3">
-            <input class="btn btn-primary" type="submit" value="{% trans 'Upload' %}">
+                    <label class="control-label col-sm-5">{% trans 'Version type' %}:</label>
+                    <div class="col-sm-6">
+                        <label class="radio-inline">
+                            <input type="radio" id="system_version" name="version_type" class="version_type" value="system" checked="checked">{% trans "System version" %}
+                        </label>
+                        <label class="radio-inline">
+                            <input type="radio" id="patch_version" name="version_type" class="version_type" value="patch" >{% trans "Patch version" %}
+                        </label>
         </div>
       </div>  
-    </form>  
+                <div class="form-group input-sm form-correspond-file hide">
+                    <label class="control-label col-sm-5">{% trans 'Corresponding system version' %}:</label>
+                    <div class="col-sm-2">
+                        <select class="form-control" id="correspond_file" name="correspond_file">
+                        </select>
     </div>
     </div>
-    <div class="panel panel-default">
-    <div class="panel-body">
-    <table class="table table-striped table-hover">
-    	<thead>
-    		<!--th>#</th-->
-    		<th>{% trans 'File Name' %}</th>
-    		<!--th></th-->
-    	</thead>
-    	<tbody>
-    {% for file in files %}
-        <tr>
-        	<!--td>{{forloop.counter}}</td--> 
-        	<td>{{file}}</td>
-        	<!--td><a class='btn btn-danger btn-sm'>{% trans 'Delete' %}</a></td-->
-        </tr>
-    {% endfor %}
-        </tbody>
-    </table>
+                <div class="form-group input-sm">
+                    <label class="control-label col-sm-5">{% trans 'Description' %}:</label>
+                    <div class="col-sm-2">
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="col-sm-2">
+                        <input class="btn btn-primary" type="submit" id="upload_file" value="{% trans 'Upload' %}">
+                    </div>
+                </div>
+            </form>
     </div>
+    </div>
+
+    <div>
+        {{ table.render }}
     </div>
 {% endblock%}
