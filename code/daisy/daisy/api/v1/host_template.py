@@ -432,6 +432,17 @@ class Controller(controller.BaseController):
             raise HTTPForbidden(explanation=msg,
                                 request=req,
                                 content_type="text/plain")
+        path = os.path.join(os.path.abspath(os.path.dirname(
+            os.path.realpath(__file__))), 'ext')
+        for root, dirs, names in os.walk(path):
+            filename = 'router.py'
+            if filename in names:
+                ext_name = root.split(path)[1].strip('/')
+                ext_func = "%s.api.hosts" % ext_name
+                extension = importutils.import_module('daisy.api.v1.ext',
+                                                      ext_func)
+                if 'template_to_host' in dir(extersion):
+                    extension.template_to_host(orig_host_meta)
         params = {'filters': {'cluster_name': host_template['cluster_name']}}
         templates = registry.host_template_lists_metadata(
             req.context, **params)
