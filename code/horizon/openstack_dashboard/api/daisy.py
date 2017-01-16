@@ -264,3 +264,47 @@ def get_pxeserver(request):
 def set_pxeserver(request, network_id, interface, **kwargs):
     daisyclient(request).networks.update(network_id, **kwargs)
     daisyclient(request).install.install(deployment_interface=interface)
+
+
+def version_get(request, version_id, **kwargs):
+    return daisyclient(request).versions.get(version_id, **kwargs)
+
+
+def version_list(request, **kwargs):
+    return daisyclient(request).versions.list(**kwargs)
+
+
+def version_add(request, **kwargs):
+    return daisyclient(request).versions.add(**kwargs)
+
+
+def version_delete(request, version_id, **kwargs):
+    return daisyclient(request).versions.delete(version_id, **kwargs)
+
+
+def version_update(request, version_id, **kwargs):
+    return daisyclient(request).versions.update(version_id, **kwargs)
+
+
+def version_patch_get(request, patch_id, **kwargs):
+    return daisyclient(request).version_patchs.get(patch_id, **kwargs)
+
+
+def version_patch_list(request, **kwargs):
+    return daisyclient(request).version_patchs.list(**kwargs)
+
+
+def version_patch_add(request, **kwargs):
+    return daisyclient(request).version_patchs.add(**kwargs)
+
+
+def version_patch_delete(request, patch_id, **kwargs):
+    return daisyclient(request).version_patchs.delete(patch_id, **kwargs)
+
+
+def version_patch_update(request, patch_id, **kwargs):
+    return daisyclient(request).version_patchs.update(patch_id, **kwargs)
+
+
+def backend_types_get(request):
+    return daisyclient(request).backend_types.get()

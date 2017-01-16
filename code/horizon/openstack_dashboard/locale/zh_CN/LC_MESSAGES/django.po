@@ -3,13 +3,13 @@ msgstr ""
 "Project-Id-Version: Daisy\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-12-23 18:40+0800\n"
-"PO-Revision-Date: 2016-06-08 16:29+0800\n"
+"PO-Revision-Date: 2017-01-16 17:15+0800\n"
 "Language-Team: Daisy Web <dw@zte.com>\n"
 "Language: zh\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.6.7\n"
+"X-Generator: Poedit 1.8.6\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 "Last-Translator: \n"
@@ -2278,10 +2278,12 @@ msgstr "DB浮动IP必须在MANAGEMENT网络平面内。"
 msgid "LB VIP must be on the same network segment of MANAGEMENT net plane."
 msgstr "LB浮动IP必须在MANAGEMENT网络平面内。"
 
-msgid "ZENIC NFM VIP must be on the same network segment of MANAGEMENT net plane."
+msgid ""
+"ZENIC NFM VIP must be on the same network segment of MANAGEMENT net plane."
 msgstr "ZENIC NFM浮动IP必须在MANAGEMENT网络平面内。"
 
-msgid "ZENIC CTL VIP must be on the same network segment of MANAGEMENT net plane."
+msgid ""
+"ZENIC CTL VIP must be on the same network segment of MANAGEMENT net plane."
 msgstr "ZENIC CTL浮动IP必须在MANAGEMENT网络平面内。"
 
 msgid "Linux bond port can not map DATAPLANE net plane."
@@ -2320,7 +2322,8 @@ msgstr "配置了ZEN_NFM角色，需要配置ZEN_CTL角色。"
 msgid "Configure at least two ZEN_CTL roles."
 msgstr "至少配置两个ZEN_NFM角色。"
 
-msgid "Glance back-end is not share disk, you need to configure glance float IP."
+msgid ""
+"Glance back-end is not share disk, you need to configure glance float IP."
 msgstr "Glance后端不是共享磁盘，需要配置glance浮动IP。"
 
 msgid "Automatically assigned"
@@ -2347,8 +2350,6 @@ msgstr "修改主机%s名称失败。"
 msgid "PXE Discover Host"
 msgid_plural "PXE Discover Hosts"
 msgstr[0] "PXE 发现"
-
-
 
 msgid "Discover Status"
 msgstr "发现状态"
@@ -2439,8 +2440,9 @@ msgstr "共享集群"
 msgid "lun1 and lun2 does not equal."
 msgstr "lun1和lun2 不能相同。"
 
-
-msgid "Different roles for the target system cannot be configured on the same physical host."
+msgid ""
+"Different roles for the target system cannot be configured on the same "
+"physical host."
 msgstr "不同目标系统的角色不能配置在同一台主机."
 
 msgid "Host %s must be config os version."
@@ -2472,6 +2474,194 @@ msgstr "将剩余硬盘空间全部分配给DBBackup"
 
 msgid "The remaining hard disk space allocated to mongodb"
 msgstr "将剩余硬盘空间全部分配给MongoDB"
+
+msgid "File type"
+msgstr "文件类型"
+
+msgid "File Type"
+msgstr "文件类型"
+
+msgid "unknown"
+msgstr "未知"
+
+msgid "Version type"
+msgstr "版本类型"
+
+msgid "Local file"
+msgstr "本地文件"
+
+msgid "System version"
+msgstr "系统版本"
+
+msgid "Patch version"
+msgstr "补丁版本"
+
+msgid "Corresponding system version"
+msgstr "对应的系统版本"
+
+msgid "Version name"
+msgstr "版本名称"
+
+msgid "File size"
+msgstr "文件大小"
+
+msgid "Version No"
+msgstr "版本号"
+
+msgid "Version status"
+msgstr "版本状态"
+
+msgid "Check sum"
+msgstr "校验码"
+
+msgid "Upload time"
+msgstr "上传时间"
+
+msgid "Version management"
+msgstr "版本管理"
+
+msgid "Removed Version"
+msgid_plural "Removed Versions"
+msgstr[0] "删除版本"
+
+msgid "Remove Version"
+msgid_plural "Remove Versions"
+msgstr[0] "删除版本"
+
+msgid "Original file location"
+msgstr "原始文件位置"
+
+msgid "Local"
+msgstr "本地"
+
+msgid "Server"
+msgstr "服务端"
+
+msgid "Server files"
+msgstr "服务端文件"
+
+msgid "system"
+msgstr "系统版本"
+
+msgid "patch"
+msgstr "补丁版本"
+
+msgid "used"
+msgstr "已使用"
+
+msgid "unused"
+msgstr "未使用"
+
+msgid "VersionList"
+msgstr "版本列表"
+
+msgid "Can not select the Chinese name file"
+msgstr "不能选择带有中文名称的文件"
+
+msgid "Invalid version delete parameter: %s"
+msgstr "非法的版本删除参数: %s"
+
+msgid "Invalid version type: %s"
+msgstr "非法的版本类型: %s"
+
+msgid "File already exist"
+msgstr "该文件已经存在"
+
+msgid "Disk free space is less than 100M"
+msgstr "磁盘剩余空间小于100M"
+
+msgid "Insufficient disk space, current free: %dM"
+msgstr "磁盘空间不足，当前剩余: %dM"
+
+msgid "Disk space is less than 1G"
+msgstr "磁盘空间已不足1G"
+
+msgid "Please select corresponding system version file"
+msgstr "请选择对应的系统版本文件"
+
+msgid "Please select version file"
+msgstr "请选择版本文件"
+
+msgid "Unsupported original file location"
+msgstr "不支持的原始文件位置"
+
+msgid "Unsupported version type"
+msgstr "不支持的版本类型"
+
+msgid "Upload system version file success!"
+msgstr "上传系统版本文件成功！"
+
+msgid "Upload patch version file success!"
+msgstr "上传补丁版本文件成功！"
+
+msgid ""
+"This action cannot be undone. If system version is deleted, the "
+"corresponding patch version will be automatically deleted."
+msgstr "这个动作不能撤销。若删除的是系统版本，所属的补丁版本也会自动删除。"
+
+msgid "There is no TECS version, please add it first."
+msgstr "没有TECS版本，请先增加。"
+
+msgid "Update version failed! %s"
+msgstr "修改版本失败！%s"
+
+msgid "Corresponding system version is not selected"
+msgstr "没有选择对应的系统版本"
+
+msgid "Update version"
+msgstr "修改版本"
+
+msgid "Target system"
+msgstr "目标系统"
+
+msgid "Version Upgrade"
+msgstr "版本升级"
+
+msgid "Upgrade type"
+msgstr "升级类型"
+
+msgid "Upgrade options"
+msgstr "升级选项"
+
+msgid "Start upgrade"
+msgstr "开始升级"
+
+msgid ""
+"File name must with numbers, 26 letters, underscore, hyphen, or full stop."
+msgstr "文件名称必须由数字、26个字母、下划线、横杠或者句号组成。"
+
+msgid "TECS file"
+msgstr "TECS版本文件"
+
+msgid "System file"
+msgstr "系统文件"
+
+msgid "Patch file"
+msgstr "补丁文件"
+
+msgid "Script file"
+msgstr "脚本文件"
+
+msgid "No support"
+msgstr "不支持"
+
+msgid "Optionally, each upgrade operation should be uploaded if required."
+msgstr "可选项，若是需要的话每次升级操作都要上传。"
+
+msgid "TECS upgrade start"
+msgstr "TECS开始升级"
+
+msgid "OS upgrade start"
+msgstr "OS开始升级"
+
+msgid "Upgrade failed! %s"
+msgstr "升级失败！%s"
+
+msgid "Version is not found."
+msgstr "没有找到版本。"
+
+msgid "Version file (%s) is inexistent."
+msgstr "版本文件（%s）不存在"
 
 #~ msgid "OperatingSystem:"
 #~ msgstr "操作系统："
