@@ -48,6 +48,9 @@ keyend="$user@$host"
 print_log "my keyend = $keyend"
 cmd="sed '/$keyend$/d'  -i ~/.ssh/authorized_keys"
 print_log "clear my old pub key on $local_host ..."
+if [ ! -f /root/.ssh/known_hosts ];then
+    touch /root/.ssh/known_hosts
+fi
 ssh-keygen -f "/root/.ssh/known_hosts" -R $ip
 if [ $? != 0 ]; then
     print_log "delete pub key of $ip from known_hosts failed"
