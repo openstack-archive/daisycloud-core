@@ -533,7 +533,7 @@ class Controller(controller.BaseController):
                             interface_match_flag += 1
                             host_template_interface['mac'] =\
                                 orig_host_interface['mac']
-                            if host_template_interface.get('ip', None) and\
+                            if 'ip' in host_template_interface and\
                                     ssh_host_flag:
                                 host_template_interface['ip'] =\
                                     orig_host_interface['ip']
@@ -556,8 +556,8 @@ class Controller(controller.BaseController):
                                         interface_key, None) and ssh_host_flag:
                                     host_template_interface[interface_key]\
                                         = orig_host_interface[interface_key]
-                            if host_template_interface.get(
-                                    'ip', None) and not ssh_host_flag:
+                            if 'ip' in host_template_interface and\
+                                    not ssh_host_flag:
                                 host_template_interface.pop('ip')
                             if orig_host_interface.get('assigned_networks',
                                                        None) and ssh_host_flag:
