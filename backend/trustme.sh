@@ -1,5 +1,5 @@
 #!/bin/sh
-#to be trusted by other host£¬and no password needed when use ssh command
+#to be trusted by other hostÂ£Â¬and no password needed when use ssh command
 
 #check parameters legality
 logfile=/var/log/trustme.log
@@ -48,7 +48,10 @@ keyend="$user@$host"
 print_log "my keyend = $keyend"
 cmd="sed '/$keyend$/d'  -i ~/.ssh/authorized_keys"
 print_log "clear my old pub key on $local_host ..."
-ssh-keygen -f "/root/.ssh/known_hosts" -R $ip
+if [ ! -f /root/.ssh/known_hosts ];then
+    touch /root/.ssh/known_hosts
+fi
+ssh-keygen -R $ip
 if [ $? != 0 ]; then
     print_log "delete pub key of $ip from known_hosts failed"
     exit 1
