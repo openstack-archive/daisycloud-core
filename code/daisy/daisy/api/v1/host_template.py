@@ -231,6 +231,9 @@ class Controller(controller.BaseController):
         if "os_version_id" in host_meta:
             del host_meta['os_version_id']
 
+        if "tecs_patch_id" in host_meta:
+            del host_meta['tecs_patch_id']
+
         if "memory" in host_meta:
             del host_meta['memory']
 
@@ -420,14 +423,14 @@ class Controller(controller.BaseController):
             msg = "cluster name is null"
             raise HTTPNotFound(explanation=msg)
         if host_template.get('host_id', None):
-            self.get_host_meta_or_404(req, host_template['host_id'])
+            host_id = host_template['host_id']
+            orig_host_meta = self.get_host_meta_or_404(req, host_id)
         else:
             msg = "host id which need to template instantiate can't be null"
             raise HTTPBadRequest(explanation=msg)
-        host_id = host_template['host_id']
-        orig_host_meta = registry.get_host_metadata(req.context, host_id)
-        if orig_host_meta.get("hwm_ip", None):
-            msg = "hwm host forbidden to use template"
+        if orig_host_meta.get("hwm_ip", None) and \
+                not orig_host_meta['discover_mode']:
+            msg = "hwm host need to be discovered"
             LOG.error(msg)
             raise HTTPForbidden(explanation=msg,
                                 request=req,
@@ -486,7 +489,8 @@ class Controller(controller.BaseController):
                                              host_id)
         ignore_ssh_key_list = ["root_disk", "root_lv_size", "swap_lv_size",
                                "isolcpus", "os_version_file", "os_version_id",
-                               "root_pwd", "hugepages", "hugepagesize"]
+                               "root_pwd", "hugepages", "hugepagesize",
+                               'discover_mode']
         if ssh_host_flag:
             for ignore_key in ignore_ssh_key_list:
                 if host_template_used.get(ignore_key, None):
@@ -495,6 +499,8 @@ class Controller(controller.BaseController):
                 req,
                 host_template_used['cluster'],
                 host_id)
+            #ssh host add cluster and assigned network,need to get new data.
+            orig_host_meta = registry.get_host_metadata(req.context, host_id)
         else:
             if not host_template_used.get("root_disk", None):
                 raise HTTPBadRequest(
