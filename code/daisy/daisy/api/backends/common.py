@@ -520,7 +520,7 @@ def trust_me(host_ips, root_passwd):
         try_times = 10
         while count < try_times:
             try:
-                trust_me_cmd = "/var/lib/daisy/tecs/trustme.sh\
+                trust_me_cmd = "/var/lib/daisy/trustme.sh\
                         %s %s" % (host_ip, root_passwd)
                 subprocess_call(trust_me_cmd)
             except:
