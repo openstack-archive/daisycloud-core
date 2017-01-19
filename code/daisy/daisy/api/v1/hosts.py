@@ -717,9 +717,9 @@ class Controller(controller.BaseController):
             if filename in names:
                 ext_name = root.split(path)[1].strip('/')
                 ext_func = "%s.api.hosts" % ext_name
-                extension = importutils.import_module('daisy.api.v1.ext',
-                                                      ext_func)
-                if 'complement_host_extra_info' in dir(extersion):
+                extension = importutils.import_module(
+                    'daisy.api.v1.ext.%s' % ext_func)
+                if 'complement_host_extra_info' in dir(extension):
                     extension.complement_host_extra_info(host_meta)
 
         os_handle = get_os_handle()
