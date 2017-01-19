@@ -442,7 +442,7 @@ class Controller(controller.BaseController):
                 ext_func = "%s.api.hosts" % ext_name
                 extension = importutils.import_module(
                     'daisy.api.v1.ext.%s' % ext_func)
-                if 'template_to_host' in dir(extersion):
+                if 'template_to_host' in dir(extension):
                     extension.template_to_host(orig_host_meta)
         params = {'filters': {'cluster_name': host_template['cluster_name']}}
         templates = registry.host_template_lists_metadata(
