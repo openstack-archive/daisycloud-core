@@ -673,3 +673,6 @@ class UpdateVersionView(forms.ModalFormView):
     def get_initial(self):
         ret = {'version_id': self.kwargs["version_id"]}
         return ret
+=======
+    return kolla_version_list
+>>>>>>> create cluster can config kolla version
