@@ -99,3 +99,4 @@ def upload_version(request):
     url = reverse('horizon:environment:version:index')
     response = http.HttpResponseRedirect(url)
     return response
+

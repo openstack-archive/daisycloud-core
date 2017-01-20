@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% load i18n %}
 
 {% block title %}
@@ -19,6 +19,8 @@
             "cluster_name": $("#cluster_name").val(),
             "networking_parameters": get_network_values(),
             "use_dns": $("#use_dns").val(),
+	    "target_systems": get_target_system_values(),
+	    "tecs_version_id": $("#default_tecs").val(),
             "description":$("#description").val()
         }
         var role_info = {};

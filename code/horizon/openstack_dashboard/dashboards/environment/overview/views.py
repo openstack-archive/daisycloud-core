@@ -24,8 +24,6 @@ class OverviewView(views.HorizonTemplateView):
             qp = {"cluster_id": cluster.id}
             host_list = api.daisy.host_list(self.request, filters=qp)
             cluster.host_count = len(host_list)
-            cluster.target_system = "OS+TECS"
-            cluster.os = "CGSL"
             cluster.model = _("Default")
             host_info = deploy_view.format_deploy_info(host_list)
             cluster.host_deploying = host_info[0]['count']

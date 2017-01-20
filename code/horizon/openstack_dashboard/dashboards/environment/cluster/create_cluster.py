@@ -17,6 +17,8 @@ from openstack_dashboard.dashboards.environment.cluster import net_plane \
 from openstack_dashboard.dashboards.environment.cluster import role \
     as cluster_role
 from openstack_dashboard.dashboards.environment.deploy import deploy_rule_lib
+from openstack_dashboard.dashboards.environment.version import views \
+    as version_views
 
 import logging
 LOG = logging.getLogger(__name__)
@@ -49,6 +51,17 @@ class CreateView(views.HorizonTemplateView):
         cluster_lists = [c for c in clusters]
         context['clusters'] = cluster_lists
         context["roles"] = self.get_roles_data()
+       
+        backend_types = api.daisy.backend_types_get(self.request)
+        backend_types_dict = backend_types.to_dict()
+        if len(backend_types_dict['default_backend_types']) == 0:
+            context['hide_templates'] = True
+            context['target_system_list'] = []
+        else:
+            context['target_system_list'] = \
+                backend_types_dict['default_backend_types'].split(',')
+        context['tecs_version_list'] = \
+            version_views.get_kolla_version_list(self.request)
         return context
 
 
@@ -67,7 +80,9 @@ def create_submit(request):
             name=cluster["cluster_name"],
             description=cluster["description"],
             networking_parameters=cluster["networking_parameters"],
-            use_dns=cluster["use_dns"])
+            use_dns=cluster["use_dns"],
+            target_systems=cluster["target_systems"],
+            tecs_version_id=cluster["tecs_version_id"])
         cluster_new.append({
             "id": cluster_created.id
         })
