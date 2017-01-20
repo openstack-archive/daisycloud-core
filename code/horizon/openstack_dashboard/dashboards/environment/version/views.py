@@ -99,3 +99,16 @@ def upload_version(request):
     url = reverse('horizon:environment:version:index')
     response = http.HttpResponseRedirect(url)
     return response
+
+def get_kolla_version_list(request):
+    kolla_version_list = []
+    versions = api.daisy.version_list(request, filters={"type": "kolla"})
+    version_lists = [c for c in versions]
+    version_lists.reverse()
+    for version in version_lists:
+        kolla_version_list.append({
+            "version_id": version.id,
+            "version_name": version.name
+        })
+
+    return kolla_version_list

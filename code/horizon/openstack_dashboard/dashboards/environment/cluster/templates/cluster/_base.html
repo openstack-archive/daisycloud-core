@@ -46,6 +46,18 @@
         });
     });
     
+	function get_target_system_values(){
+        var systems = "os"
+
+        {% for target in target_system_list %}
+        if ($("#target_system_{{ target }}").attr("checked")){
+            systems += "+" + $("#target_system_{{ target }}").val();
+        }
+        {% endfor %}
+
+        return systems;
+    }
+	
     function get_network_values(){
         var networking_parameters = {
             "base_mac": $("#base_mac").val(),
@@ -82,6 +94,31 @@
             <select id="use_dns" name="use_dns" class="form-control">
                 <option value="0">{% trans "No" %}</option>
                 <option value="1" selected="selected">{% trans "Yes" %}</option>
+            </select>
+        </div>
+    </div>
+    <div style="clear:both" class="form-group">
+        <label style="text-align:right;" for="target_system_os" class="col-sm-3 control-label">{% trans 'Target system' %}</label>
+        <div style="float:left;" class="col-sm-4">
+            <label class="radio-inline" style="font-size:120%;">
+                <input type="checkbox" id="target_system_os" value="os" checked="checked" disabled="disabled">os
+            </label>
+            {% for target in target_system_list %}
+            {% if target != "proton" %}
+            <label class="radio-inline" style="font-size:120%;">
+                <input type="checkbox" id="target_system_{{ target }}" class="target_system NO_CHANGE" value="{{ target }}">{{ target }}
+            </label>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    <div style="clear:both" class="form-group form-default-tecs">
+        <label style="text-align:right;" for="default_tecs" class="col-sm-3 control-label">{% trans 'Default KOLLA' %}</label>
+        <div style="float:left;" class="col-sm-4">
+            <select id="default_tecs" name="default_tecs" class="form-control">
+                {% for tecs in tecs_version_list %}
+                <option value="{{ tecs.version_id }}">{{ tecs.version_name }}</option>
+                {% endfor %}
             </select>
         </div>
     </div>
