@@ -470,7 +470,6 @@ def _get_host_interfaces(host_info):
         for assigned_network in interface['assigned_networks']:
             if assigned_network['network_type'] == 'DATAPLANE':
                 assigned_network['ip'] = None
-                break
 
             # remove duplicates assigned networks
             if assigned_network.get('ip') not in no_dup_networks.keys() \

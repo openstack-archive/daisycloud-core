@@ -36,6 +36,7 @@ from daisy.api.backends.osinstall import osdriver
 import ConfigParser
 import copy
 import fcntl
+from oslo_utils import importutils
 
 STR_MASK = '*' * 8
 LOG = logging.getLogger(__name__)
@@ -1129,7 +1130,7 @@ def if_used_shared_storage(req, cluster_id):
             backend_disk = importutils.import_module(
                 'daisy.api.backends.%s.disk_array' % backend)
         except Exception:
-            return False
+            pass
         else:
             if hasattr(backend_disk, 'get_disk_array_info'):
                 disks_info = backend_disk.get_disk_array_info(req, cluster_id)
