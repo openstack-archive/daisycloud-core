@@ -428,20 +428,28 @@ class TestInstall(test.TestCase):
     @mock.patch('daisy.api.backends.kolla.common.get_roles_detail')
     @mock.patch('daisy.api.backends.common.get_cluster_networks_detail')
     @mock.patch('daisy.api.backends.kolla.install._get_local_ip')
-    @mock.patch('os.chdir')
-    @mock.patch('pbr.version.VersionInfo')
-    @mock.patch('os.getcwd')
     def test_get_cluster_kolla_config(
-            self, mock_do_getcwd, mock_do_cached_version_string,
-            mock_do_chdir, mock_do__get_local_ip,
+            self, mock_do__get_local_ip,
             mock_do_get_cluster_networks_detail,
             mock_do_get_roles_detail,
             mock_do_get_hosts_of_role, mock_do_get_host_detail,
             mock_do_get_controller_node_cfg, mock_do_get_computer_node_cfg):
-
-        mock_do_getcwd.return_value = {}
-        mock_do_cached_version_string.side_effect = Version
-        mock_do_chdir.return_value = {}
+        cmd = 'mkdir -p /home/kolla_install/docker/'
+        subprocesscall(cmd)
+        cmd1 = 'rm -rf /home/kolla_install/docker/test.version'
+        subprocesscall(cmd1)
+        cmd2 = 'touch /home/kolla_install/docker/test.version'
+        subprocesscall(cmd2)
+        f1 = open('/home/kolla_install/docker/test.version', 'a')
+        f1.write('tag = 3.0.2')
+        f1.close()
+        cmd3 = 'rm -rf /home/kolla_install/docker/all.yml'
+        subprocesscall(cmd3)
+        cmd4 = 'touch /home/kolla_install/docker/all.yml'
+        subprocesscall(cmd4)
+        f2 = open('/home/kolla_install/docker/all.yml', 'a')
+        f2.write('openstack_release : 3.0.2')
+        f2.close()
         mock_do__get_local_ip.return_value = '127.0.0.1'
         mock_do_get_cluster_networks_detail.return_value = cluster_networks
         mock_do_get_roles_detail.return_value = roles
@@ -460,6 +468,10 @@ class TestInstall(test.TestCase):
             install.get_cluster_kolla_config(
             self.req,
             '8ad27e36-f3e2-48b4-84b8-5b676c6fabde')
+        cmd_end1 = 'rm -rf /home/kolla_install/docker/test.version'
+        subprocesscall(cmd_end1)
+        cmd_end2 = 'rm -rf /home/kolla_install/docker/all.yml'
+        subprocesscall(cmd_end2)
         self.assertEqual('3.0.2', kolla_config['Version'])
 
     @mock.patch('daisy.api.backends.kolla.install._get_local_ip')
