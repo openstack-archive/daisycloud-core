@@ -17,6 +17,7 @@
 /host_Templates endpoint for Daisy v1 API
 """
 
+import os
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
 from webob.exc import HTTPConflict
