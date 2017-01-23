@@ -22,9 +22,31 @@ from django.conf.urls import url
 
 from openstack_dashboard.dashboards.environment.version import views
 
+VERSION = r'^(?P<version_id>[^/]+)/%s$'
 
 urlpatterns = patterns(
     'openstack_dashboard.dashboards.environment.version.views',
     url(r'^$', views.VersionView.as_view(), name='index'),
     url(r'upload$', views.upload_version, name='upload'),
+    url(VERSION % 'update_version',
+        views.UpdateVersionView.as_view(),
+        name='update_version'),
+    url(r'get_appointed_system_versions/$',
+        views.get_appointed_system_versions,
+        name='get_appointed_system_versions'),
+    url(r'get_headstrong_server_files/$',
+        views.get_headstrong_server_files,
+        name='get_headstrong_server_files'),
+    url(r'get_version_file_types/$',
+        views.get_version_file_types,
+        name='get_version_file_types'),
+    url(r'get_appointed_patch_files/$',
+        views.get_appointed_patch_files,
+        name='get_appointed_patch_files'),
+    url(r'check_disk_space_and_file_exist/$',
+        views.check_disk_space_and_file_exist,
+        name='check_disk_space_and_file_exist'),
+    url(r'get_appointed_system_packages/$',
+        views.get_appointed_system_packages,
+        name='get_appointed_system_packages'),
 )
