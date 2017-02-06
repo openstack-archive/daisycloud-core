@@ -405,14 +405,6 @@ class Controller(controller.BaseController):
             cidr = network_meta['cidr']
 
             utils.validate_ip_format(gateway)
-            return_flag = self._is_in_network_range(gateway, cidr)
-            if not return_flag:
-                msg = (
-                    _(
-                        'The gateway %s was not in the same segment '
-                        'with the cidr %s of management network.' %
-                        (gateway, cidr)))
-                raise HTTPBadRequest(explanation=msg)
 
         network_meta = registry.add_network_metadata(req.context, network_meta)
         return {'network_meta': network_meta}
@@ -696,14 +688,6 @@ class Controller(controller.BaseController):
             gateway = network_meta.get('gateway', orig_network_meta['gateway'])
             cidr = network_meta.get('cidr', orig_network_meta['cidr'])
             utils.validate_ip_format(gateway)
-            return_flag = self._is_in_network_range(gateway, cidr)
-            if not return_flag:
-                msg = (
-                    _(
-                        'The gateway %s was not in the same '
-                        'segment with the cidr %s of management network.' %
-                        (gateway, cidr)))
-                raise HTTPBadRequest(explanation=msg)
 
         try:
             network_meta = registry.update_network_metadata(req.context,
