@@ -192,6 +192,9 @@ def valid_cluster_networks(cluster_networks):
             if network1['id'] == network2['id']:
                 continue
             if network1.get('cidr', None) == network2.get('cidr', None):
+                if (not network1.get('cidr') and
+                        not network2.get('cidr')):
+                    continue
                 if (str(network1.get('vlan_id', None)) !=
                         str(network2.get('vlan_id', None))):
                     msg = (_("When cidr equal for networks %s and %s, "
@@ -216,12 +219,24 @@ def valid_cluster_networks(cluster_networks):
                              % (network1['name'], network2['name'])))
                     LOG.error(msg)
                     raise exc.HTTPBadRequest(explanation=msg)
+            else:
+                if (str(network1.get('vlan_id', None)) ==
+                        str(network2.get('vlan_id', None))):
+                    if (not network1.get('vlan_id') and
+                            not network2.get('vlan_id')):
+                        continue
+                    msg = (_("When vlan id equal for networks '%s' and '%s',"
+                             " cidr must be equal for them."
+                             % (network1['name'], network2['name'])))
+                    LOG.error(msg)
+                    raise exc.HTTPBadRequest(explanation=msg)
 
 
 def check_gateway_uniqueness(new_cluster_networks):
     used_gateways = set()
     for network in new_cluster_networks:
-        if network.get('gateway'):
+        if (network['network_type'] != 'DATAPLANE' and
+                network.get('gateway')):
             used_gateways.add(network['gateway'])
     if len(used_gateways) > 1:
         msg = (_("Only one gateway is allowed."))
