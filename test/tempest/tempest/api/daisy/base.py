@@ -105,6 +105,11 @@ class BaseDaisyTest(tempest.test.BaseTestCase):
         return host_list
 
     @classmethod
+    def host_check(self, **host_meta):
+        check_result = self.daisy_client.hosts.host_check(**host_meta)
+        return check_result
+
+    @classmethod
     def get_host_detail(self, host_meta):
         host_detail = self.daisy_client.hosts.get(host_meta)
         return host_detail
