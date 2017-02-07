@@ -116,6 +116,7 @@ class Controller(object):
         params = self._get_query_params(req)
 
         nodes = self._get_hosts(req.context, **params)
+        nodes.sort(key=lambda x: x['name'])
 
         return dict(nodes=nodes)
 
@@ -360,16 +361,8 @@ class Controller(object):
     @utils.mutating
     def get_host(self, req, id):
         """Return data about the given node id."""
-        os_version_dict = {}
         try:
             host_data = self.db_api.host_get(req.context, id)
-            if utils.is_uuid_like(host_data.os_version_id):
-                version = self.db_api.get_os_version(
-                    req.context, host_data.os_version_id)
-                if version:
-                    os_version_dict['name'] = version.name
-                    os_version_dict['id'] = version.id
-                    os_version_dict['desc'] = version.description
             msg = "Successfully retrieved host %(id)s" % {'id': id}
             LOG.debug(msg)
         except exception.NotFound:
@@ -386,8 +379,6 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to show host %s") % id)
             raise
-
-        # Currently not used
 
         host_interface = self.db_api.get_host_interface(req.context, id)
 
@@ -414,8 +405,6 @@ class Controller(object):
             host_data = dict(host=host_data)
         if host_interface:
             host_data['host']['interfaces'] = host_interface
-        if os_version_dict:
-            host_data['host']['os_version'] = os_version_dict
         if role_name:
             host_data['host']['role'] = role_name
             host_data['host']['deployment_backends'] = backends
