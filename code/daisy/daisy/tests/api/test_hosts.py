@@ -59,3 +59,97 @@ class TestHostsApiConfig(test.TestCase):
         self.controller.delete_host(req, host_id)
         response = self.controller.delete_host(req, host_id)
         self.assertEqual(200, response.status_code)
+
+    @mock.patch('logging.Logger')
+    def test_host_check_ipmi_with_active_host(self, mock_log):
+        host_id = '1'
+        host = {'os_status': 'active',
+                'id': '1',
+                'name': 'host_1'}
+        mock_log.side_effect = self._log_handler
+        self.assertEqual({
+            'ipmi_check_result': 'active host do not need ipmi check'},
+            self.controller._host_ipmi_check(host_id, host))
+
+    @mock.patch('logging.Logger')
+    def test_host_check_ipmi_with_no_ipmi_addr(self, mock_log):
+        host_id = '1'
+        host = {'id': '1',
+                'name':'test',
+                'os_status': 'init',
+                'ipmi_addr': None,
+                'ipmi_user': 'zteroot',
+                'ipmi_passwd': 'superuser'}
+        mock_log.side_effect = self._log_handler
+        self.assertEqual({
+            'ipmi_check_result': "No ipmi address configed for host 1, "
+                                 "please check"},
+            self.controller._host_ipmi_check(host_id, host))
+
+    @mock.patch('logging.Logger')
+    def test_host_check_ipmi_with_no_ipmi_user(self, mock_log):
+        host_id = '1'
+        host = {'id': '1',
+                'name': 'test',
+                'os_status': 'init',
+                'ipmi_addr': '192.168.1.2',
+                'ipmi_user': None,
+                'ipmi_passwd': 'superuser'}
+        mock_log.side_effect = self._log_handler
+        self.assertEqual({
+            'ipmi_check_result': "No ipmi user configed for host 1, "
+                                 "please check"},
+            self.controller._host_ipmi_check(host_id, host))
+
+    @mock.patch('logging.Logger')
+    @mock.patch('subprocess.Popen.communicate')
+    def test_host_check_ipmi_with_no_ipmi_passwd(self,
+                                                 mock_communicate,
+                                                 mock_log):
+        host_id = '1'
+        host = {'id': '1',
+                'name': 'test',
+                'os_status': 'init',
+                'ipmi_addr': '192.168.1.2',
+                'ipmi_user': 'zteroot',
+                'ipmi_passwd': None}
+        mock_log.side_effect = self._log_handler
+        mock_communicate.return_value = \
+            ('', 'Unable to get Chassis Power Status')
+        self.assertEqual({'ipmi_check_result': 'ipmi check failed'},
+                         self.controller._host_ipmi_check(host_id, host))
+
+    @mock.patch('logging.Logger')
+    @mock.patch('subprocess.Popen.communicate')
+    def test_host_check_ipmi_with_correct_ipmi_parameters(self,
+                                                          mock_communicate,
+                                                          mock_log):
+        host_id = '1'
+        host = {'id': '1',
+                'name': 'host_1',
+                'os_status': 'init',
+                'ipmi_addr': '192.168.1.2',
+                'ipmi_user': 'zteroot',
+                'ipmi_passwd': 'superuser'}
+        mock_log.side_effect = self._log_handler
+        mock_communicate.return_value = ('Chassis Power is on', '')
+        self.assertEqual({'ipmi_check_result': 'ipmi check successfully'},
+                         self.controller._host_ipmi_check(host_id, host))
+
+    @mock.patch('logging.Logger')
+    @mock.patch('subprocess.Popen.communicate')
+    def test_host_check_ipmi_with_error_ipmi_parameters(self,
+                                                        mock_communicate,
+                                                        mock_log):
+        host_id = '1'
+        host = {'id': '1',
+                'os_status': 'init',
+                'name': 'host_1',
+                'ipmi_addr': '192.168.1.2',
+                'ipmi_user': 'zteroot',
+                'ipmi_passwd': 'superuser'}
+        mock_log.side_effect = self._log_handler
+        mock_communicate.return_value = \
+            ('', 'Unable to get Chassis Power Status')
+        self.assertEqual({'ipmi_check_result': 'ipmi check failed'},
+                         self.controller._host_ipmi_check(host_id, host))
