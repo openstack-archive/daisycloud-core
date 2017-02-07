@@ -16,6 +16,7 @@ from oslo_log import log as logging
 from tempest import config
 import tempest.test
 from daisyclient.v1 import client as daisy_client
+from ironicclient import client as ironic_client
 from tempest.api.daisy.v1.fake.logical_network_fake import FakeDiscoverHosts
 
 CONF = config.CONF
@@ -36,6 +37,9 @@ class BaseDaisyTest(tempest.test.BaseTestCase):
         cls.daisy_endpoint = CONF.daisy.daisy_endpoint
         cls.daisy_client = daisy_client.Client(version=cls.daisy_version,
                                                endpoint=cls.daisy_endpoint)
+        cls.ironic_client = ironic_client.get_client(
+            1, os_auth_token='fake',
+            ironic_url='http://127.0.0.1:6385/v1')
 
     @classmethod
     def resource_cleanup(cls):
