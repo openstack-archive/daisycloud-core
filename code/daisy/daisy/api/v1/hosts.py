@@ -2437,49 +2437,19 @@ class Controller(controller.BaseController):
         orig_host_meta = self.get_host_meta_or_404(req, host_id)
         check_item = host_meta['check_item']
         if check_item == 'ipmi':
-            ipmi_check_result = {}
-            if orig_host_meta.get('hwm_id'):
-                daisy_cmn.check_discover_state_with_hwm(req, orig_host_meta)
-            else:
-                daisy_cmn.check_discover_state_with_no_hwm(req, orig_host_meta)
-            if orig_host_meta.get('discover_state') \
-                    and 'SSH' in orig_host_meta['discover_state']:
-                ipmi_check_result['ipmi_check_result'] = \
-                    'host discovered by ssh do not need ipmi check'
-            elif orig_host_meta.get('discover_state') \
-                    and 'PXE' in orig_host_meta['discover_state']:
-                ipmi_check_result['ipmi_check_result'] = \
-                    'host discovered by hwm do not need ipmi check'
-            elif orig_host_meta['os_status'] == 'active':
-                ipmi_check_result['ipmi_check_result'] = \
-                    'active host do not need ipmi check'
-            else:
-                ipmi_ip = orig_host_meta.get('ipmi_addr', None)
-                ipmi_user = orig_host_meta.get('ipmi_user', None)
-                ipmi_password = orig_host_meta.get('ipmi_passwd', None)
-                ipmi_config = [{'ipmi address': ipmi_ip},
-                               {'ipmi user': ipmi_user}
-                               ]
-                for i in ipmi_config:
-                    if not i.values()[0]:
-                        ipmi_check_result['ipmi_check_result'] = \
-                            "No %s configed for host %s, please " \
-                            "check" % (i.keys()[0], orig_host_meta['name'])
+            path = os.path.join(os.path.abspath(os.path.dirname(
+                os.path.realpath(__file__))), 'ext')
+            for root, dirs, names in os.walk(path):
+                filename = 'router.py'
+                if filename in names:
+                    ext_name = root.split(path)[1].strip('/')
+                    ext_func = "%s.api.hosts" % ext_name
+                    extension = importutils.import_module(
+                        'daisy.api.v1.ext.%s' % ext_func)
+                    if 'host_check_ipmi' in dir(extension):
+                        ipmi_check_result = extension.host_check_ipmi(
+                            host_id, orig_host_meta)
                         return {'check_result': ipmi_check_result}
-                cmd = 'ipmitool -I lanplus -H %s  -U %s -P %s chassis ' \
-                      'power status' % (ipmi_ip, ipmi_user, ipmi_password)
-                obj = subprocess.Popen(cmd,
-                                       shell=True,
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE)
-                (stdoutput, erroutput) = obj.communicate()
-                if 'Chassis Power is on' in stdoutput:
-                    ipmi_check_result['ipmi_check_result'] = \
-                        'ipmi check successfully'
-                elif 'Unable to get Chassis Power Status' in erroutput:
-                    ipmi_check_result['ipmi_check_result'] = \
-                        'ipmi check failed'
-            return {'check_result': ipmi_check_result}
 
 
 class HostDeserializer(wsgi.JSONRequestDeserializer):
