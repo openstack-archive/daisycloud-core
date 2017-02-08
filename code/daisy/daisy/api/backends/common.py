@@ -903,7 +903,6 @@ def _get_discover_host_by_mac(req, host_mac):
     params = dict()
     discover_hosts = \
         registry.get_discover_hosts_detail(req.context, **params)
-    LOG.info("%s" % discover_hosts)
     for host in discover_hosts:
         if host.get('mac') == host_mac:
             return host
@@ -914,7 +913,6 @@ def _get_discover_host_filter_by_ip(req, host_ip):
     params = {}
     discover_hosts = \
         registry.get_discover_hosts_detail(req.context, **params)
-    LOG.debug("%s" % discover_hosts)
     for host in discover_hosts:
         if host.get('ip') == host_ip:
             return host

@@ -2278,7 +2278,6 @@ class Controller(controller.BaseController):
         params = {}
         discover_hosts = \
             registry.get_discover_hosts_detail(req.context, **params)
-        LOG.debug("%s" % discover_hosts)
         for host in discover_hosts:
             if host.get('ip') == host_ip:
                 return host
@@ -2335,7 +2334,6 @@ class Controller(controller.BaseController):
         params = dict()
         discover_hosts = \
             registry.get_discover_hosts_detail(req.context, **params)
-        LOG.debug("%s" % discover_hosts)
         for host in discover_hosts:
             if host.get('mac') == host_mac:
                 return host
