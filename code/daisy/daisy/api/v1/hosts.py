@@ -711,7 +711,7 @@ class Controller(controller.BaseController):
                 extension = importutils.import_module(
                     'daisy.api.v1.ext.%s' % ext_func)
                 if 'complement_host_extra_info' in dir(extension):
-                    extension.complement_host_extra_info(host_meta)
+                    extension.complement_host_extra_info(req, host_meta)
 
         os_handle = get_os_handle()
         os_handle.check_discover_state(req,
