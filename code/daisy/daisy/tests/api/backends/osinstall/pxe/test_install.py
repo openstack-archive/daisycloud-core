@@ -2,7 +2,6 @@ import mock
 import unittest
 import webob
 import exceptions
-from daisy.context import RequestContext
 import subprocess
 from daisy.api.backends.osinstall.pxe import install as os
 
@@ -41,8 +40,6 @@ class TestOs(unittest.TestCase):
     def setUp(self):
         super(TestOs, self).setUp()
         self.req = webob.Request.blank('/')
-        self.req.context = RequestContext(is_admin=True, user='fake user',
-                                          tenant='fake tenant')
 
     def tearDown(self):
         super(TestOs, self).tearDown()
