@@ -179,6 +179,7 @@ class Host(BASE, DaisyBase):
     disks = Column(JSONEncodedDict(), default={})
     devices = Column(JSONEncodedDict(), default={})
     pci = Column(JSONEncodedDict(), default={})
+    tecs_patch_id = Column(String(36))
 
 
 class DiscoverHost(BASE, DaisyBase):
