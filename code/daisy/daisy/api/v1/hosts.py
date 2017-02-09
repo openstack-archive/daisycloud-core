@@ -622,12 +622,6 @@ class Controller(controller.BaseController):
                                      request=req,
                                      content_type="text/plain")
 
-        if 'ipmi_addr' in host_meta and host_meta['ipmi_addr']:
-            if 'ipmi_user' not in host_meta:
-                host_meta['ipmi_user'] = 'zteroot'
-            if 'ipmi_passwd' not in host_meta:
-                host_meta['ipmi_passwd'] = 'superuser'
-
         self._check_dvs_huge(host_meta)
 
         if host_meta.get('config_set_id'):
@@ -1675,15 +1669,6 @@ class Controller(controller.BaseController):
                 msg = "os_status is not valid."
                 LOG.error(msg)
                 raise HTTPNotFound(msg)
-
-        if (('ipmi_addr' in host_meta and host_meta['ipmi_addr']) or
-                orig_host_meta['ipmi_addr']):
-            if 'ipmi_user' not in host_meta and not\
-                    orig_host_meta['ipmi_user']:
-                host_meta['ipmi_user'] = 'zteroot'
-            if 'ipmi_passwd' not in host_meta and not \
-                    orig_host_meta['ipmi_passwd']:
-                host_meta['ipmi_passwd'] = 'superuser'
 
         if host_meta.get('os_status', None) != 'init' and \
                 orig_host_meta.get('os_status', None) == 'active':
