@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% load i18n %}
 
 {% block title %}
@@ -19,6 +19,8 @@
             "cluster_name": $("#cluster_name").val(),
             "networking_parameters": get_network_values(),
             "use_dns": $("#use_dns").val(),
+	    "target_systems": get_target_system_values(),
+	    "tecs_version_id": $("#default_tecs").val(),
             "description":$("#description").val()
         }
         var role_info = {};
@@ -68,12 +70,12 @@
 
         var url = "{% url 'horizon:environment:cluster:create_submit' %}";
         do_post(url, JSON.stringify(params), goto_select_host, goto_modify_host);
-    }    
+    }
 
     function goto_select_host(cluster_list){
         if (cluster_list.length > 0){
-            window.location = "/dashboard/environment/deploy/" 
-                              + cluster_list[0].id 
+            window.location = "/dashboard/environment/deploy/"
+                              + cluster_list[0].id
                               + "/selecthosts";
         }
     }
@@ -81,14 +83,14 @@
     function goto_modify_host(cluster_list){
         if (cluster_list.length > 0){
             $("#cluster_create_modal").data("cluster_id", cluster_id);
-        }            
+        }
     }
 
     function operate_cluster(){
         $(".form-cluster-validator").data('bootstrapValidator').resetForm();
         $(".form-roles-validator").data('bootstrapValidator').resetForm();
         $(".form-net-plane").data('bootstrapValidator').resetForm();
-        
+
         $(".form-cluster-validator").data('bootstrapValidator').validate()
         if (!$(".form-cluster-validator").data('bootstrapValidator').isValid()){
             $('#cluster_create_modal a[href="#cluster_baseinfo"]').tab('show')
@@ -97,13 +99,13 @@
 
         $(".form-roles-validator").data('bootstrapValidator').validate()
         if (!$(".form-roles-validator").data('bootstrapValidator').isValid()){
-            $('#cluster_create_modal a[href="#cluster_role"]').tab('show')                
+            $('#cluster_create_modal a[href="#cluster_role"]').tab('show')
             return;
         }
 
         $(".form-net-plane").data("bootstrapValidator").validate()
         if (!$(".form-net-plane").data('bootstrapValidator').isValid()){
-            $('#cluster_create_modal a[href="#cluster_netplane"]').tab('show')                
+            $('#cluster_create_modal a[href="#cluster_netplane"]').tab('show')
             return;
         }
 
