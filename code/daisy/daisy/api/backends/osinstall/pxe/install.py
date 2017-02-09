@@ -327,6 +327,9 @@ def get_cluster_hosts_config(req, cluster_id):
                 if role['name'] in host_detail['role'] and\
                         role['glance_lv_size']:
                     host_detail['glance_lv_size'] = role['glance_lv_size']
+                if role['name'] in host_detail['role'] and\
+                        role['docker_vg_size']:
+                    host_detail['docker_vg_size'] = role['docker_vg_size']
                 if role.get('db_lv_size', None) and host_roles and\
                         role['name'] in host_roles:
                     role_host_db_lv_size_lists.append(role['db_lv_size'])
