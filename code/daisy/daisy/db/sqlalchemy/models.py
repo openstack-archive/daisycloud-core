@@ -369,6 +369,7 @@ class Role(BASE, DaisyBase):
     db_lv_size = Column(Integer(), default=0)
     glance_lv_size = Column(Integer(), default=0)
     nova_lv_size = Column(Integer(), default=0)
+    docker_vg_size = Column(Integer(), default=0)
     disk_location = Column(String(255), nullable=False, default='local')
     ntp_server = Column(String(255))
     role_type = Column(String(255))
