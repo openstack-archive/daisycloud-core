@@ -58,5 +58,4 @@ class MigrationsMixin(test_migrations.WalkVersionsMixin):
         return self.engine
 
     def test_walk_versions(self):
-        # No more downgrades
-        self._walk_versions(False, False)
+        self._walk_versions(False, True)
