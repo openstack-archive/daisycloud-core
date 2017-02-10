@@ -127,7 +127,7 @@ def get_os_handle():
 def list_2_file(f, cluster_list):
     f.seek(0)
     for cluster_id in cluster_list:
-        f.write(cluster_id+"\n")
+        f.write(cluster_id + "\n")
 
 
 def file_2_list(f, cluster_list):
@@ -820,7 +820,7 @@ def get_management_ip(host_detail, is_throw_exception=True):
                 interface['assigned_networks']):
             for as_network in interface['assigned_networks']:
                 if ((as_network.get('name', '') == 'MANAGEMENT' or
-                    as_network.get('network_type', '') == 'MANAGEMENT') and
+                     as_network.get('network_type', '') == 'MANAGEMENT') and
                         'ip' in as_network):
                     host_management_ip = as_network['ip']
 
@@ -984,6 +984,10 @@ def check_vlan_nic_and_join_vlan_network(req, cluster_id,
                     vlan_id = nic_name_list[len(nic_name_list) - 1]
                     nic_name = interface_info['name'][: -len(vlan_id) - 1]
                     exclude_networks = ['DATAPLANE', 'EXTERNAL']
+                    cluster_data = registry.get_cluster_metadata(
+                        req.context, cluster_id)
+                    if not cluster_data.get('use_provider_ha', None):
+                        exclude_networks.extend(['OUTBAND', 'TECSClient'])
                     use_share_disk = if_used_shared_storage(req, cluster_id)
                     if not use_share_disk:
                         exclude_networks.append('STORAGE')
@@ -1069,6 +1073,10 @@ def check_bond_or_ether_nic_and_join_network(req,
                             LOG.error(msg)
                             raise exception.Forbidden(msg)
                         exclude_networks = ['DATAPLANE', 'EXTERNAL']
+                        cluster_data = registry.get_cluster_metadata(
+                            req.context, cluster_id)
+                        if not cluster_data.get('use_provider_ha', None):
+                            exclude_networks.extend(['OUTBAND', 'TECSClient'])
                         use_share_disk = if_used_shared_storage(req,
                                                                 cluster_id)
                         if not use_share_disk:
