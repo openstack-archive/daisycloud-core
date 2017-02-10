@@ -21,8 +21,14 @@ host_id = Column('host_id', String(36), nullable=True)
 
 
 def upgrade(migrate_engine):
+    print("004 upgrade")
     meta.bind = migrate_engine
 
     discover_hosts = Table('discover_hosts', meta, autoload=True)
     discover_hosts.create_column(message)
     discover_hosts.create_column(host_id)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    pass

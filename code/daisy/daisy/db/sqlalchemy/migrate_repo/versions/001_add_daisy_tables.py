@@ -822,6 +822,7 @@ def define_cinder_volumes_table(meta):
 
 
 def upgrade(migrate_engine):
+    print("001 upgrade")
     meta = MetaData()
     meta.bind = migrate_engine
     tables = [define_hosts_table(meta),
@@ -855,3 +856,8 @@ def upgrade(migrate_engine):
               define_service_disks_table(meta),
               define_cinder_volumes_table(meta)]
     create_tables(tables)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    pass

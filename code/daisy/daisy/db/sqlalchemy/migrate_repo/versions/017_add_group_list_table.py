@@ -20,8 +20,14 @@ group_list = Column('group_list', Text())
 
 
 def upgrade(migrate_engine):
+    print("017 upgrade")
     meta = MetaData()
     meta.bind = migrate_engine
 
     hosts = Table('hosts', meta, autoload=True)
     hosts.create_column(group_list)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    pass

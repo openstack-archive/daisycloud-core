@@ -21,9 +21,15 @@ cluster_tecs_version_id = Column('tecs_version_id', String(36))
 
 
 def upgrade(migrate_engine):
+    print("019 upgrade")
     meta.bind = migrate_engine
     hosts = Table('hosts', meta, autoload=True)
     hosts.create_column(host_tecs_version_id)
 
     clusters = Table('clusters', meta, autoload=True)
     clusters.create_column(cluster_tecs_version_id)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    print("019 downgrade")

@@ -21,7 +21,13 @@ data_ips = Column('data_ips', String(255))
 
 
 def upgrade(migrate_engine):
+    print("005 upgrade")
     meta.bind = migrate_engine
 
     cinder_volumes = Table('cinder_volumes', meta, autoload=True)
     cinder_volumes.create_column(data_ips)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    pass

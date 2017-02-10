@@ -45,6 +45,7 @@ def define_version_patch_table(meta):
 
 
 def upgrade(migrate_engine):
+    print("016 upgrade")
     meta = MetaData()
     meta.bind = migrate_engine
 
@@ -55,3 +56,8 @@ def upgrade(migrate_engine):
     hosts.create_column(version_patch_id)
     clusters = Table('clusters', meta, autoload=True)
     clusters.create_column(target_system)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    pass

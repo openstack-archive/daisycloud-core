@@ -64,8 +64,14 @@ def define_host_template_table(meta):
 
 
 def upgrade(migrate_engine):
+    print("003 upgrade")
     meta = MetaData()
     meta.bind = migrate_engine
     tables = [define_template_table(meta),
               define_host_template_table(meta)]
     create_tables(tables)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    pass

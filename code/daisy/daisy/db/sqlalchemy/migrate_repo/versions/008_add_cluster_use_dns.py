@@ -21,7 +21,13 @@ use_dns = Column('use_dns', Integer(), default=0)
 
 
 def upgrade(migrate_engine):
+    print("008 upgrade")
     meta.bind = migrate_engine
 
     roles = Table('clusters', meta, autoload=True)
     roles.create_column(use_dns)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    pass

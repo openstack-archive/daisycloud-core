@@ -70,6 +70,16 @@ class Database(fixtures.Fixture):
         self.engine.dispose()
         conn = self.engine.connect()
         db_migrate.db_sync()
+
+        # This is for running into db downgrade code
+        db_migrate.db_sync(version=0)
+
+        # Since we do not support downgrade, we need to reset db
+        # Before the second db_sync().
+        self.engine.dispose()
+
+        db_migrate.db_sync()
+
         if sql_connection == "sqlite://":
             conn = self.engine.connect()
             self._DB = "".join(line for line in conn.connection.iterdump())

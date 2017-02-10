@@ -24,6 +24,7 @@ dvs_cpus = Column('dvs_cpus', String(255))
 
 
 def upgrade(migrate_engine):
+    print("012 upgrade")
     meta.bind = migrate_engine
 
     hosts = Table('hosts', meta, autoload=True)
@@ -32,3 +33,8 @@ def upgrade(migrate_engine):
     hosts.create_column(pci_high_cpuset)
     hosts.create_column(os_cpus)
     hosts.create_column(dvs_cpus)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    pass
