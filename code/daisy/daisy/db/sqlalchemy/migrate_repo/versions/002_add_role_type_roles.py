@@ -21,7 +21,13 @@ role_type = Column('role_type', String(255))
 
 
 def upgrade(migrate_engine):
+    print("002 upgrade")
     meta.bind = migrate_engine
 
     roles = Table('roles', meta, autoload=True)
     roles.create_column(role_type)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    pass

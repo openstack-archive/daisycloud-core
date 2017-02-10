@@ -21,7 +21,13 @@ mac = Column('mac', String(36))
 
 
 def upgrade(migrate_engine):
+    print("013 upgrade")
     meta.bind = migrate_engine
 
     discover_hosts = Table('discover_hosts', meta, autoload=True)
     discover_hosts.create_column(mac)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    pass

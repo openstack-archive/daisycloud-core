@@ -27,6 +27,7 @@ dvs_config_desc = Column('dvs_config_desc', String(255))
 
 
 def upgrade(migrate_engine):
+    print("021 upgrade")
     meta.bind = migrate_engine
     hosts = Table('hosts', meta, autoload=True)
     hosts.create_column(dvs_config_type)
@@ -37,3 +38,8 @@ def upgrade(migrate_engine):
     hosts.create_column(flow_mode)
     hosts.create_column(virtio_queue_size)
     hosts.create_column(dvs_config_desc)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    print("021 downgrade")

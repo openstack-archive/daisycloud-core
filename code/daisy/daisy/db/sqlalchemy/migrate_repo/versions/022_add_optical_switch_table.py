@@ -45,7 +45,13 @@ def define_optical_switchs_table(meta):
 
 
 def upgrade(migrate_engine):
+    print("022 upgrade")
     meta = MetaData()
     meta.bind = migrate_engine
     tables = [define_optical_switchs_table(meta), ]
     create_tables(tables)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    print("022 downgrade")

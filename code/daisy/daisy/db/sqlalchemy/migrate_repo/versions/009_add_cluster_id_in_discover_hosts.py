@@ -21,7 +21,13 @@ cluster_id = Column('cluster_id', String(36))
 
 
 def upgrade(migrate_engine):
+    print("009 upgrade")
     meta.bind = migrate_engine
 
     discover_hosts = Table('discover_hosts', meta, autoload=True)
     discover_hosts.create_column(cluster_id)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    pass

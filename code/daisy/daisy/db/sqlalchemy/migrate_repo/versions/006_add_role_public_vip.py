@@ -21,7 +21,13 @@ public_vip = Column('public_vip', String(255))
 
 
 def upgrade(migrate_engine):
+    print("006 upgrade")
     meta.bind = migrate_engine
 
     roles = Table('roles', meta, autoload=True)
     roles.create_column(public_vip)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    pass

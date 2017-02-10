@@ -20,7 +20,13 @@ config_set_id = Column('config_set_id', String(36))
 
 
 def upgrade(migrate_engine):
+    print("014 upgrade")
     meta.bind = migrate_engine
 
     hosts = Table('hosts', meta, autoload=True)
     hosts.create_column(config_set_id)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    pass

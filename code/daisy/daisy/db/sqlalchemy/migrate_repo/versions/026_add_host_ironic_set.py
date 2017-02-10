@@ -19,6 +19,7 @@ from daisy.db.sqlalchemy.models import JSONEncodedDict
 def upgrade(migrate_engine):
     # Upgrade operations go here. Don't create your own engine; bind
     # migrate_engine to your metadata
+    print("026 upgrade")
     meta = MetaData()
     system = Column('system', JSONEncodedDict(), default={})
     cpu = Column('cpu', JSONEncodedDict(), default={})
@@ -39,4 +40,4 @@ def upgrade(migrate_engine):
 
 def downgrade(migrate_engine):
     # Operations to reverse the above upgrade go here.
-    pass
+    print("026 downgrade")

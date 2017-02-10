@@ -21,7 +21,13 @@ protocol_type = Column('protocol_type', String(36))
 
 
 def upgrade(migrate_engine):
+    print("010 upgrade")
     meta.bind = migrate_engine
 
     service_disks = Table('service_disks', meta, autoload=True)
     service_disks.create_column(protocol_type)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    pass

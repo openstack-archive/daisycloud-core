@@ -13,6 +13,7 @@ current_speed = Column('current_speed', String(64))
 def upgrade(migrate_engine):
     # Upgrade operations go here. Don't create your own engine; bind
     # migrate_engine to your metadata
+    print("027 upgrade")
     meta.bind = migrate_engine
     host_interfaces = Table('host_interfaces', meta, autoload=True)
     host_interfaces.create_column(state)
@@ -22,4 +23,4 @@ def upgrade(migrate_engine):
 
 def downgrade(migrate_engine):
     # Operations to reverse the above upgrade go here.
-    pass
+    print("027 downgrade")

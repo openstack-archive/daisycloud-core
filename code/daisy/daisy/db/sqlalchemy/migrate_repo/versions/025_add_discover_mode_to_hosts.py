@@ -20,6 +20,12 @@ discover_mode = Column('discover_mode', String(64), nullable=True)
 
 
 def upgrade(migrate_engine):
+    print("025 upgrade")
     meta.bind = migrate_engine
     hosts = Table('hosts', meta, autoload=True)
     hosts.create_column(discover_mode)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    print("025 downgrade")

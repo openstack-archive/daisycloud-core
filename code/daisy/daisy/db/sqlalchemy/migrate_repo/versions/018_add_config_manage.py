@@ -118,6 +118,7 @@ def define_config_service_table(meta):
 
 
 def upgrade(migrate_engine):
+    print("018 upgrade")
     meta = MetaData()
     meta.bind = migrate_engine
 
@@ -130,3 +131,8 @@ def upgrade(migrate_engine):
 
     configs = Table('configs', meta, autoload=True)
     configs.create_column(template_config_id)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    pass

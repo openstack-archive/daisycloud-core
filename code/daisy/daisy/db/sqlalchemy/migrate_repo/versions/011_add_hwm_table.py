@@ -42,6 +42,7 @@ def define_hwm_table(meta):
 
 
 def upgrade(migrate_engine):
+    print("011 upgrade")
     meta = MetaData()
     meta.bind = migrate_engine
 
@@ -54,3 +55,8 @@ def upgrade(migrate_engine):
 
     clusters = Table('clusters', meta, autoload=True)
     clusters.create_column(cluster_hwm_ip)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    pass

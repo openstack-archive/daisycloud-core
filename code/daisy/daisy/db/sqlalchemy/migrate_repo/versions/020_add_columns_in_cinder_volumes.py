@@ -22,8 +22,14 @@ resource_pools = Column('resource_pools', String(255))
 
 
 def upgrade(migrate_engine):
+    print("020 upgrade")
     meta.bind = migrate_engine
 
     cinder_volumes = Table('cinder_volumes', meta, autoload=True)
     cinder_volumes.create_column(root_pwd)
     cinder_volumes.create_column(resource_pools)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    print("020 downgrade")

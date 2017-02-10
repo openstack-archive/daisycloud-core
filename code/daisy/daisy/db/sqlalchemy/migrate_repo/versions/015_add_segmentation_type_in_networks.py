@@ -24,6 +24,7 @@ gre_id_end = Column('gre_id_end', Integer())
 
 
 def upgrade(migrate_engine):
+    print("015 upgrade")
     meta.bind = migrate_engine
     networks = Table('networks', meta, autoload=True)
     networks.create_column(segmentation_type)
@@ -31,3 +32,8 @@ def upgrade(migrate_engine):
     networks.create_column(vni_end)
     networks.create_column(gre_id_start)
     networks.create_column(gre_id_end)
+
+
+def downgrade(migrate_engine):
+    # Operations to reverse the above upgrade go here.
+    pass
