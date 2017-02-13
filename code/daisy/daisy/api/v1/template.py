@@ -617,6 +617,16 @@ class Controller(controller.BaseController):
                         req.context, template_content_network)
 
             params = {'filters': {'cluster_id': cluster_id}}
+            hwm_list = registry.hwm_list_metadata(req.context)
+            if hwm_list:
+                hwm_ip = hwm_list[0]['hwm_ip']
+            else:
+                hwm_ip = ''
+            update_cluster = {}
+            update_cluster['hwm_ip'] = hwm_ip
+            return_cluster = registry.update_cluster_metadata(req.context,
+                                                              cluster_id,
+                                                              update_cluster)
             roles = registry.get_roles_detail(req.context, **params)
             template_content_roles = template_content['roles']
             for template_content_role in template_content_roles:
