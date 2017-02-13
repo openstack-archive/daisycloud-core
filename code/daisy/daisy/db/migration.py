@@ -45,6 +45,7 @@ def get_backend():
                     cfg.CONF.database.backend).driver
     return _IMPL
 
+
 INIT_VERSION = 0
 
 MIGRATE_REPO_PATH = os.path.join(
