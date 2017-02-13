@@ -438,7 +438,7 @@ class Controller(controller.BaseController):
                 extension = importutils.import_module(
                     'daisy.api.v1.ext.%s' % ext_func)
                 if 'template_to_host' in dir(extension):
-                    extension.template_to_host(orig_host_meta)
+                    extension.template_to_host(req, orig_host_meta)
         params = {'filters': {'cluster_name': host_template['cluster_name']}}
         templates = registry.host_template_lists_metadata(
             req.context, **params)
