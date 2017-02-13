@@ -1,5 +1,6 @@
 import mock
 import webob
+from webob.exc import HTTPBadRequest
 from oslo_serialization import jsonutils
 from daisy.api.v1 import disk_array
 from daisy.context import RequestContext
@@ -226,3 +227,18 @@ class TestDiskArray(test.TestCase):
                                              disk_meta)
         self.assertEqual('FUJITSU_ETERNUS-2',
                          disk_meta.get('backend_index', None))
+
+    @mock.patch('daisy.registry.client.v1.api.list_service_disk_metadata')
+    @mock.patch('daisy.registry.client.v1.api.delete_service_disk_metadata')
+    def test_unique_service_in_role(self, mock_delete, mock_list_disks):
+        mock_delete.return_value = True
+        mock_list_disks.return_value = \
+            [{'id': '1', 'service': 'db', 'disk_location': 'share_cluster'},
+             {'id': '2', 'service': 'db', 'disk_location': 'share_cluster'},
+             {'id': '3', 'service': 'db', 'disk_location': 'share'}]
+        disk_meta = \
+            {'service': 'db', 'disk_location': 'share_cluster', 'role_id': '5'}
+        self.assertRaises(HTTPBadRequest,
+                          self.controller._unique_service_in_role,
+                          self.req,
+                          disk_meta)
