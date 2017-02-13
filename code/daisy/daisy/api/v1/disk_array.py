@@ -167,12 +167,23 @@ class Controller(controller.BaseController):
         params = {'filters': {'role_id': disk_meta['role_id']}}
         service_disks = registry.list_service_disk_metadata(
             req.context, **params)
+        import pdb;pdb.set_trace()
         if disk_meta['disk_location'] == 'share_cluster':
+            share_cluster_count = 0
             for disk in service_disks:
                 if disk['service'] == disk_meta['service'] and \
                         disk['disk_location'] != 'share_cluster':
                     id = disk['id']
                     registry.delete_service_disk_metadata(req.context, id)
+                if disk['disk_location'] == 'share_cluster':
+                    share_cluster_count += 1
+            if share_cluster_count >= 2:
+                msg = "There were more than two disk services %s in role %s" %\
+                        (disk_meta['service'], disk_meta['role_id'])
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg,
+                                     request=req,
+                                     content_type="text/plain")
         else:
             for service_disk in service_disks:
                 if service_disk['disk_location'] == 'share_cluster' and \
