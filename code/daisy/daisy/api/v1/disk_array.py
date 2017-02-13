@@ -168,11 +168,21 @@ class Controller(controller.BaseController):
         service_disks = registry.list_service_disk_metadata(
             req.context, **params)
         if disk_meta['disk_location'] == 'share_cluster':
+            share_cluster_count = 0
             for disk in service_disks:
                 if disk['service'] == disk_meta['service'] and \
                         disk['disk_location'] != 'share_cluster':
                     id = disk['id']
                     registry.delete_service_disk_metadata(req.context, id)
+                if disk['disk_location'] == 'share_cluster':
+                    share_cluster_count += 1
+            if share_cluster_count >= 2:
+                msg = "There were more than two disk services %s in role %s" %\
+                    (disk_meta['service'], disk_meta['role_id'])
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg,
+                                     request=req,
+                                     content_type="text/plain")
         else:
             for service_disk in service_disks:
                 if service_disk['disk_location'] == 'share_cluster' and \
@@ -740,7 +750,7 @@ class Controller(controller.BaseController):
                                  request=req,
                                  content_type="text/plain")
         else:
-                self.get_role_meta_or_404(req, disk_meta['role_id'])
+            self.get_role_meta_or_404(req, disk_meta['role_id'])
         optical_switchs = eval(disk_meta['switch_array'])
         for optical_switch in optical_switchs:
             for switch_config in optical_switch.keys():
@@ -798,23 +808,23 @@ class Controller(controller.BaseController):
                                      content_type="text/plain")
             if key == 'fc_driver' \
                     and disk_meta['fc_driver'] not in FC_DRIVER:
-                    msg = "'%s' is not supported as fc driver when " \
-                          "config optical switch" % \
-                          disk_meta['fc_driver']
-                    LOG.error(msg)
-                    raise HTTPBadRequest(explanation=msg,
-                                         request=req,
-                                         content_type="text/plain")
+                msg = "'%s' is not supported as fc driver when " \
+                      "config optical switch" % \
+                      disk_meta['fc_driver']
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg,
+                                     request=req,
+                                     content_type="text/plain")
             if key == 'fc_zoneing_policy' \
                     and disk_meta['fc_zoneing_policy'] not in \
                     FC_ZONEING_POLICY:
-                    msg = "'%s' is not supported as " \
-                          "fc_zoneing_policy when config optical " \
-                          "switch" % disk_meta['fc_zoneing_policy']
-                    LOG.error(msg)
-                    raise HTTPBadRequest(explanation=msg,
-                                         request=req,
-                                         content_type="text/plain")
+                msg = "'%s' is not supported as " \
+                      "fc_zoneing_policy when config optical " \
+                      "switch" % disk_meta['fc_zoneing_policy']
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg,
+                                     request=req,
+                                     content_type="text/plain")
         if 'role_id' in disk_meta:
             self._raise_404_if_role_deleted(req, disk_meta['role_id'])
         orgin_optical_switch = self.get_optical_switch_meta_or_404(req, id)
