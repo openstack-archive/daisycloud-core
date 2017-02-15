@@ -865,10 +865,7 @@ class OSInstall():
                         daisy_cmn.subprocess_call(
                             'sed -i "/%s/d" /root/.ssh/known_hosts'
                             % host_management_ip)
-                if self.skip_pxe_ipmi and self.skip_pxe_ipmi == 'true':
-                    return
-                else:
-                    self._set_disk_start_mode(host_detail)
+                self._set_disk_start_mode(host_detail)
             else:
                 if host_status['os_progress'] ==\
                         host_last_status['os_progress']:
