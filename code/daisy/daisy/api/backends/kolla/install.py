@@ -18,7 +18,6 @@
 """
 import subprocess
 import os
-import pbr.version
 import time
 from oslo_log import log as logging
 from webob.exc import HTTPForbidden
@@ -174,11 +173,30 @@ def get_cluster_kolla_config(req, cluster_id):
     docker_namespace = 'kolla'
     host_name_ip = {}
     host_name_ip_list = []
-    recently_dir = os.getcwd()
-    os.chdir(kolla_file + '/kolla')
-    openstack_version = pbr.version.VersionInfo(
-        'kolla').cached_version_string()
-    os.chdir(recently_dir)
+    version_flag = False
+    version_path = kolla_file + '/docker/'
+    for parent, dirnames, filenames in os.walk(version_path):
+        for filename in filenames:
+            if filename.endswith('.version'):
+                filename = version_path + filename
+                for line in open(filename):
+                    if 'tag' in line:
+                        version_flag = True
+                        kolla_openstack_version = line.strip()
+                        openstack_version = kolla_openstack_version.split(
+                            "= ")[1]
+    if version_flag == False:
+        version_path = kolla_file + '/kolla/ansible/group_vars/'
+        for parent, dirnames, filenames in os.walk(version_path):
+            for filename in filenames:
+                if filename == 'all.yml':
+                    filename = version_path + filename
+                    for line in open(filename):
+                        if 'openstack_release:' in line:
+                            version_flag = True
+                            kolla_openstack_version = line.strip()
+                            openstack_version = kolla_openstack_version.split(
+                                ": ")[1]
     docker_registry_ip = _get_local_ip()
     docker_registry = docker_registry_ip + ':4000'
     cluster_networks = daisy_cmn.get_cluster_networks_detail(req, cluster_id)
