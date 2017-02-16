@@ -365,7 +365,7 @@ def allocate_clc_cpus(host_detail):
         host_hw_info[f] = host_obj.get(f)
 
     host_id = host_detail.get('id')
-    clc_pci_list = utils.get_clc_pci_info(host_hw_info.get('pci', {}))
+    clc_pci_list = utils.get_clc_pci_info(host_hw_info['pci'].values())
     if not clc_pci_list:
         return pci_cpu_sets
     else:
@@ -446,10 +446,10 @@ def allocate_cpus(host_detail):
         if dvs_cpusets['dvs'].get('dvsv', []):
             host_cpu_sets['suggest_dvsv_cpus'] =\
                 utils.cpu_list_to_str(dvs_cpusets['dvs']['dvsv'])
-    host_cpu_sets['suggest_dvs_cpus'] =\
-        utils.cpu_list_to_str(dvs_cpusets['dvs'].get(
-            'dvsv', []) + dvs_cpusets['dvs'].get('dvsc', []) +
-        dvs_cpusets['dvs'].get('dvsp', []))
+        host_cpu_sets['suggest_dvs_cpus'] =\
+            utils.cpu_list_to_str(dvs_cpusets['dvs'].get(
+                'dvsv', []) + dvs_cpusets['dvs'].get('dvsc', []) +
+            dvs_cpusets['dvs'].get('dvsp', []))
     host_cpu_sets['suggest_os_cpus'] = utils.cpu_list_to_str(os_cpus)
 
     LOG.info("NUMA CPU usage for host %s: %s"
