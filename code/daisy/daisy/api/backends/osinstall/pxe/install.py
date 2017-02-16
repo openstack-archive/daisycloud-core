@@ -756,7 +756,8 @@ class OSInstall():
                                                                  'pxe')
         return ipmi_result_flag
 
-    def _set_power_reset(self, host_detail):
+    def _set_power_reset(self, host_detail, ipmi_result_flag):
+        host_manufacturer = host_detail['system'].get('manufacturer')
         if host_detail.get('hwm_id'):
             host_hwm_meta = {
                 "hwm_ip": host_detail.get('hwm_ip'),
@@ -785,7 +786,7 @@ class OSInstall():
                 ipmi_result_flag = self._set_boot_pxe(host_detail)
                 if host_detail.get('hwm_id') or ipmi_result_flag:
                     self._install_os_for_baremetal(host_detail)
-                    self._set_power_reset(host_detail)
+                    self._set_power_reset(host_detail, ipmi_result_flag)
 
     def _set_disk_start_mode(self, host_detail):
         host_manufacturer = host_detail['system'].get('manufacturer')
