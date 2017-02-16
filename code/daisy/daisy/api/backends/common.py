@@ -315,7 +315,7 @@ def delete_role_hosts(req, role_id):
 
 
 def set_role_status_and_progress(req, cluster_id, opera, status,
-                                 backend_name='tecs'):
+                                 backend_name='tecs', host_id=None):
     """
     set information in role of some backend.
     :status:key in host_role tables, such as:
@@ -326,6 +326,8 @@ def set_role_status_and_progress(req, cluster_id, opera, status,
         if role.get('deployment_backend') == backend_name:
             role_hosts = get_hosts_of_role(req, role['id'])
             for role_host in role_hosts:
+                if host_id and role_host['host_id'] != host_id:
+                    continue
                 if (opera == 'upgrade' and role_host['status'] in ['active']) \
                         or (opera == 'install' and role_host['status'] not in
                             ['active', 'updating', 'update-failed']):
