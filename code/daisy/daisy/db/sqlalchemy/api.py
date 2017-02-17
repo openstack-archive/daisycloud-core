@@ -33,6 +33,7 @@ from oslo_utils import timeutils
 import osprofiler.sqlalchemy
 from retrying import retry
 import six
+from operator import itemgetter
 # NOTE(jokke): simplified transition to py3, behaves like py2 xrange
 from six.moves import range
 import sqlalchemy
@@ -183,13 +184,18 @@ def get_ip_with_equal_cidr(cluster_id,network_plane_name,session, exclude_ips=[]
     equal_cidr_network_plane_id_list = []
     available_ip_list = copy.deepcopy(exclude_ips)
 
-    sql_network_plane_cidr = "select networks.cidr from networks \
+    sql_network_plane_cidr = "select networks.cidr,network_type,id from networks \
                               where networks.name='" + network_plane_name + \
                              "' and networks.cluster_id='" + cluster_id + \
                              "' and networks.deleted=0"
     query_network_plane_cidr = \
         session.execute(sql_network_plane_cidr).fetchone()
-    network_cidr = query_network_plane_cidr.values().pop()
+    LOG.info('query_network_plane_cidr: %s' % query_network_plane_cidr.values())
+    network_cidr = query_network_plane_cidr.values()[0]
+    network_type = query_network_plane_cidr.values()[1]
+    tmp_netword_id = query_network_plane_cidr.values()[2]
+    if network_type == 'DATAPLANE':
+        return get_used_ip_in_dataplan_net(tmp_netword_id, session)
     if not network_cidr:
         msg = "Error:The CIDR is blank of %s!" % network_plane_name
         LOG.error(msg)
@@ -241,6 +247,19 @@ def get_ip_with_equal_cidr(cluster_id,network_plane_name,session, exclude_ips=[]
         for tmp_ip in query_ip_list:
             ip_pop = tmp_ip.values().pop()
             available_ip_list.append(ip_pop)
+    LOG.info('available_ip_list: %s ' % available_ip_list)
+    return list(set(available_ip_list))
+
+def get_used_ip_in_dataplan_net(network_id, session):
+    available_ip_list = []
+    sql_ip = "select assigned_networks.ip from assigned_networks \
+             where assigned_networks.deleted=0 and \
+             assigned_networks.network_id='" + network_id + \
+             "' order by assigned_networks.ip"
+    query_ip_list = session.execute(sql_ip).fetchall()
+    for tmp_ip in query_ip_list:
+        ip_pop = tmp_ip.values().pop()
+        available_ip_list.append(ip_pop)
     return list(set(available_ip_list))
 
 
@@ -319,8 +338,8 @@ def check_ip_exist(cluster_id, network_plane_name,
 
 def check_ip_ranges(ip_ranges_one,available_ip_list):
     ip_range = copy.deepcopy(ip_ranges_one.values())
-    ip_ranges_end = ip_range.pop()
-    ip_ranges_start = ip_range.pop()
+    ip_ranges_end = ip_range[1]
+    ip_ranges_start = ip_range[0]
     inter_num = ip_into_int(ip_ranges_start)
     ip_ranges_end_inter = ip_into_int(ip_ranges_end)
     while True:
@@ -364,6 +383,35 @@ def change_host_name(context, values, mangement_ip, host_ref):
 def compare_same_cidr_ip(x, y):
     return eval(x[0].split('.').pop()) - eval(y[0].split('.').pop())
 
+def sort_ip_ranges_with_cidr(ip_ranges, net_cidr=None):
+    '''
+    ip_ranges=[('12.18.1.5', '12.18.1.6', '12.18.1.1/24', '12.18.1.5'),
+            ('12.18.1.15', '12.18.1.16', '12.18.1.1/24', '12.18.1.5'),
+            ('13.18.1.5', '13.18.1.5', '13.18.1.1/24', '13.18.1.5'),
+            ('2.1.1.12', '2.1.1.12', '2.1.1.1/24', '2.1.1.1'),
+            ('2.1.1.17', '2.1.1.32', '2.1.1.1/24', '2.1.1.1'),
+            ('9.18.1.1', '9.18.1.2', '9.18.1.1/24', '9.18.1.1')]
+    '''
+    tmp_ip_ranges = copy.deepcopy(ip_ranges)
+    convert_ip_ranges=[]
+    for ip_range in tmp_ip_ranges:
+        int_start_ip = ip_into_int(ip_range[0])
+        cidr = ip_range[2]
+        if cidr and cidr != 'None':
+            cidr_ip = cidr.split('/')[0]
+            int_cidr_ip = ip_into_int(cidr_ip)
+        elif net_cidr and is_in_cidr_range(ip_range[0], net_cidr):
+            cidr_ip = net_cidr.split('/')[0]
+            int_cidr_ip = ip_into_int(cidr_ip)
+        else:
+            int_cidr_ip = 0
+        convert_ip_ranges.append((int_cidr_ip, int_start_ip, ip_range))
+    convert_ip_ranges = sorted(convert_ip_ranges, key=itemgetter(0,1))
+    LOG.info('convert_ip_ranges: %s' % convert_ip_ranges)
+    sorted_ip_ranges = [ip_range[2] for ip_range in convert_ip_ranges]
+    LOG.info('sort_ip_ranges_with_cidr ip ranges: %s' % sorted_ip_ranges)
+    return sorted_ip_ranges
+
 
 def according_to_cidr_distribution_ip(cluster_id, network_plane_name,
                                       session, exclude_ips=[]):
@@ -386,12 +434,17 @@ def according_to_cidr_distribution_ip(cluster_id, network_plane_name,
             return distribution_ip
         available_ip_list = get_ip_with_equal_cidr(
             cluster_id, network_plane_name, session, exclude_ips)
-        sql_ip_ranges = "select ip_ranges.start,end from \
+        sql_ip_ranges = "select ip_ranges.start,end,cidr,gateway from \
                          ip_ranges where network_id='" + network_id + \
-                        "' and ip_ranges.deleted=0"
+                        "' and ip_ranges.deleted=0 and start"
         query_ip_ranges = session.execute(sql_ip_ranges).fetchall()
-        query_ip_ranges = sorted(query_ip_ranges, cmp=compare_same_cidr_ip)
+        LOG.info('query_ip_ranges: %s ' % query_ip_ranges)
+
+        #query_ip_ranges = sorted(query_ip_ranges, cmp=compare_same_cidr_ip)
+        LOG.info('sorted query_ip_ranges: %s ' % query_ip_ranges)
         if query_ip_ranges:
+            query_ip_ranges = \
+                sort_ip_ranges_with_cidr(query_ip_ranges, network_cidr)
             for ip_ranges_one in query_ip_ranges:
                 check_ip_exist_list = \
                     check_ip_ranges(ip_ranges_one, available_ip_list)
@@ -4241,11 +4294,12 @@ def delete_network_ip_range(context,  network_id):
 def get_network_ip_range(context,  network_id):
     session = get_session()
     with session.begin():
-        sql_ip_ranges="select ip_ranges.start,end from ip_ranges where ip_ranges." \
-                      "network_id='"+network_id+"' and ip_ranges.deleted=0 " \
-                                                "order by ip_ranges.start"
+        sql_ip_ranges="select ip_ranges.start,end,cidr,gateway from ip_ranges \
+            where ip_ranges.network_id='"+network_id+"' and \
+            ip_ranges.deleted=0 and start order by ip_ranges.start"
         ip_ranges = session.execute(sql_ip_ranges).fetchall()
-        ip_ranges_sorted = sorted(ip_ranges, cmp=compare_same_cidr_ip)
+        #ip_ranges_sorted = sorted(ip_ranges, cmp=compare_same_cidr_ip)
+        ip_ranges_sorted=sort_ip_ranges_with_cidr(ip_ranges)
     return ip_ranges_sorted
 def network_get_all(context, cluster_id=None, filters=None, marker=None, limit=None,
                   sort_key=None, sort_dir=None):
@@ -4325,6 +4379,10 @@ def network_get_all(context, cluster_id=None, filters=None, marker=None, limit=N
                 ip_range_dict={}
                 ip_range_dict['start']=str(ip_range['start'])
                 ip_range_dict['end']=str(ip_range['end'])
+                if 'cidr' in ip_range:
+                    ip_range_dict['cidr']=str(ip_range['cidr'])
+                if 'gateway' in ip_range:
+                    ip_range_dict['gateway']=str(ip_range['gateway'])
                 ip_range_list.append(ip_range_dict)
         network['ip_ranges']=ip_range_list
         network_dict = network.to_dict()
@@ -4482,8 +4540,16 @@ def _network_update(context, values, network_id):
                 else:
                     ip_ranges = values['ip_ranges']
                 old_ip_ranges = get_network_ip_range(context,  network_id)
-                new_ip_ranges = [tuple(ran.values()) for ran in
-                                 ip_ranges]
+                # new_ip_ranges = [tuple(ran.values()) for ran in
+                #                  ip_ranges]
+                new_ip_ranges = []
+                for ip_range in ip_ranges:
+                    tmp_start = ip_range.get('start', None)
+                    tmp_end = ip_range.get('end', None)
+                    tmp_cidr = ip_range.get('cidr', None)
+                    tmp_gw = ip_range.get('gateway', None)
+                    new_ip_ranges.append(
+                        (tmp_start, tmp_end, tmp_cidr, tmp_gw))
                 if new_ip_ranges != old_ip_ranges:
                     ssh_host_ip = get_ip_of_ssh_discover_host(session)
                     check_assigned_ip_in_ip_range(network_ip_list,
@@ -4494,6 +4560,8 @@ def _network_update(context, values, network_id):
                         ip_range_ref = models.IpRange()
                         ip_range_ref['start'] = ip_range[0]
                         ip_range_ref['end'] = ip_range[1]
+                        ip_range_ref['cidr'] = ip_range[2]
+                        ip_range_ref['gateway'] = ip_range[3]
                         ip_range_ref.network_id = network_ref.id
                         ip_range_ref.save(session=session)
                     del values['ip_ranges']
@@ -4523,13 +4591,17 @@ def _network_update(context, values, network_id):
                     try:
                         ip_ranges_values['start'] = ip_range["start"]
                         ip_ranges_values['end'] = ip_range["end"]
+                        if ip_range.get('cidr'):
+                            ip_ranges_values['cidr'] = ip_range['cidr']
+                        if ip_range.get('gateway'):
+                            ip_ranges_values['gateway'] = ip_range['gateway']
                         ip_ranges_values['network_id'] = network_ref.id
                         ip_range_ref = models.IpRange()
                         ip_range_ref.update(ip_ranges_values)
                         _update_values(ip_range_ref, ip_ranges_values)
                         ip_range_ref.save(session=session)
                     except db_exception.DBDuplicateEntry:
-                        raise exception.Duplicate("ip rangge %s already exists!"
+                        raise exception.Duplicate("ip range %s already exists!"
                                           % values['ip_ranges'])
 
     return _network_get(context, network_ref.id)
@@ -4558,6 +4630,10 @@ def _network_get(context, network_id=None, cluster_id=None, session=None, force_
                 ip_range_dict={}
                 ip_range_dict['start']=str(ip_range['start'])
                 ip_range_dict['end']=str(ip_range['end'])
+                if 'cidr' in ip_range:
+                    ip_range_dict['cidr']=str(ip_range['cidr'])
+                if 'gateway' in ip_range:
+                    ip_range_dict['gateway']=str(ip_range['gateway'])
                 ip_range_list.append(ip_range_dict)
         networks['ip_ranges']=ip_range_list
 

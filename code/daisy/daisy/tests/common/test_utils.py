@@ -51,3 +51,21 @@ class TestUtils(test.TestCase):
                      'numa_node1': node1_cpus, }
         self.assertRaises(exception.Invalid,
                           utils.get_numa_node_from_cpus, numa_cpus, cpus_str)
+
+    def test_cidr_convert_to_ip_ranges(self):
+        cidr = '192.168.1.25/31'
+        ip_range = utils.cidr_convert_to_ip_ranges(cidr)
+        self.assertEqual('192.168.1.24', ip_range[0])
+        self.assertEqual('192.168.1.25', ip_range[1])
+
+    def test_is_ip_ranges_overlapped(self):
+        ip_ranges = [['12.1.1.1', '12.1.1.12'], ['12.1.1.9', '12.1.1.17']]
+        self.assertEqual(True, utils.is_ip_ranges_overlapped(ip_ranges))
+
+    def test_is_cidrs_overlapped_true(self):
+        cidrs = ['12.1.1.1/24', '13.1.1.1/24', '13.1.1.1/23']
+        self.assertEqual(True, utils.is_cidrs_overlapped(cidrs))
+
+    def test_is_cidrs_overlapped_false(self):
+        cidrs = ['12.1.1.1/24', '13.1.1.1/24', '14.1.1.1/23']
+        self.assertEqual(False, utils.is_cidrs_overlapped(cidrs))
