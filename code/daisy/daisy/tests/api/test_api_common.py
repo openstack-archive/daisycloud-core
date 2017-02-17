@@ -1,4 +1,8 @@
+import mock
+import webob
 from daisy import test
+from daisy.context import RequestContext
+from daisy.common import exception
 from daisy.api import common
 from webob import exc
 from daisy.tests import fakes
@@ -180,3 +184,105 @@ class TestApiCommon(test.TestCase):
 
         self.assertRaises(exc.HTTPBadRequest,
                           common.check_gateway_uniqueness, nets)
+
+    def test_valid_ip_ranges_with_cidr(self):
+        ip_ranges = [
+                        {
+                            'start': '12.18.1.5',
+                            'cidr': '12.18.1.1/24',
+                            'end': '12.18.1.5',
+                            'gateway': '12.18.1.2'
+                        },
+                        {
+                            'start': '112.18.1.15',
+                            'cidr': '112.18.1.1/24',
+                            'end': '112.18.1.15',
+                            'gateway': '112.18.1.5'
+                        },
+                    ]
+        cidr = '12.10.1.2/24'
+        common.valid_ip_ranges_with_cidr(ip_ranges, cidr)
+
+    def test_valid_ip_ranges_with_cidr_invalid_startip(self):
+        ip_ranges = [
+                        {
+                            'start': '13.18.1.5',
+                            'cidr': '12.18.1.1/24',
+                            'end': '12.18.1.5',
+                            'gateway': '12.18.1.2'
+                        },
+                        {
+                            'start': '112.18.1.15',
+                            'cidr': '112.18.1.1/24',
+                            'end': '112.18.1.15',
+                            'gateway': '112.18.1.5'
+                        },
+                    ]
+        cidr = '12.10.1.2/24'
+        self.assertRaises(exc.HTTPForbidden,
+                          common.valid_ip_ranges_with_cidr,
+                          ip_ranges,
+                          cidr)
+
+    def test_valid_ip_ranges_with_cidr_invalid_endip(self):
+        ip_ranges = [
+                        {
+                            'start': '12.18.1.5',
+                            'cidr': '12.18.1.1/24',
+                            'end': '13.18.1.5',
+                            'gateway': '12.18.1.2'
+                        },
+                        {
+                            'start': '112.18.1.15',
+                            'cidr': '112.18.1.1/24',
+                            'end': '112.18.1.15',
+                            'gateway': '112.18.1.5'
+                        },
+                    ]
+        cidr = '12.10.1.2/24'
+        self.assertRaises(exc.HTTPForbidden,
+                          common.valid_ip_ranges_with_cidr,
+                          ip_ranges,
+                          cidr)
+
+    def test_valid_ip_ranges_with_cidr_invalid_gateway(self):
+        ip_ranges = [
+                        {
+                            'start': '12.18.1.5',
+                            'cidr': '12.18.1.1/24',
+                            'end': '12.18.1.9',
+                            'gateway': '12.18.1.5'
+                        },
+                        {
+                            'start': '112.18.1.15',
+                            'cidr': '112.18.1.1/24',
+                            'end': '112.18.1.15',
+                            'gateway': '112.18.1.5'
+                        },
+                    ]
+        cidr = '12.10.1.2/24'
+        self.assertRaises(exc.HTTPBadRequest,
+                          common.valid_ip_ranges_with_cidr,
+                          ip_ranges,
+                          cidr)
+
+    def test_valid_ip_ranges_with_cidr_cidr_overlapped(self):
+        ip_ranges = [
+                        {
+                            'start': '12.18.1.5',
+                            'cidr': '12.18.1.1/24',
+                            'end': '12.18.1.5',
+                            'gateway': '12.18.1.2'
+                        },
+                        {
+                            'start': '112.18.1.15',
+                            'cidr': '112.18.1.1/24',
+                            'end': '112.18.1.15',
+                            'gateway': '112.18.1.5'
+                        },
+                    ]
+        cidr = '12.18.1.1/26'
+        self.assertRaises(exc.HTTPBadRequest,
+                          common.valid_ip_ranges_with_cidr,
+                          ip_ranges,
+                          cidr)
