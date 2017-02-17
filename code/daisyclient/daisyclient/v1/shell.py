@@ -1375,7 +1375,8 @@ def do_config_detail(gc, args):
            help='ip of build pxe server')
 @utils.arg('--ip-ranges', metavar='<IP_RANGES>', nargs='+',
            help='ip ranges of network.  \
-           for example:"start":"172.16.0.2","end":"172.16.0.126"')
+           for example:"start":"172.16.0.2", "end":"172.16.0.126", \
+           "cidr":"172.16.0.126/24", "gateway":"172.16.0.1"')
 @utils.arg('--gateway', metavar='<GATEWAY>',
            help='gate way of network')
 @utils.arg('--type', metavar='<TYPE>',
@@ -1407,6 +1408,10 @@ def do_network_add(gc, args):
                         ip_range_ref['start'] = str(v)
                     if str(k) == "end":
                         ip_range_ref['end'] = str(v)
+                    if str(k) == "cidr":
+                        ip_range_ref['cidr'] = str(v)
+                    if str(k) == "gateway":
+                        ip_range_ref['gateway'] = str(v)
                 except ValueError:
                     raise exc.CommandError("ip_ranges error")
             ip_range_list.append(ip_range_ref)
@@ -1455,7 +1460,8 @@ def do_network_add(gc, args):
            help='ip of build pxe server')
 @utils.arg('--ip-ranges', metavar='<IP_RANGES>', nargs='+',
            help='ip ranges of network,for example:"start":\
-           "172.16.0.2","end":"172.16.0.126"')
+           "172.16.0.2","end":"172.16.0.126","cidr":"172.16.0.126/24",\
+           "gateway":"172.16.0.1"')
 @utils.arg('--gateway', metavar='<GATEWAY>',
            help='gate way of network')
 @utils.arg('--type', metavar='<TYPE>',
@@ -1492,6 +1498,10 @@ def do_network_update(gc, args):
                         ip_range_ref['start'] = str(v)
                     if str(k) == "end":
                         ip_range_ref['end'] = str(v)
+                    if str(k) == "cidr":
+                        ip_range_ref['cidr'] = str(v)
+                    if str(k) == "gateway":
+                        ip_range_ref['gateway'] = str(v)
                 except ValueError:
                     raise exc.CommandError("ip_ranges error")
             ip_range_list.append(ip_range_ref)
