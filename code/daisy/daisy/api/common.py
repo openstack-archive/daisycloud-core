@@ -171,6 +171,63 @@ def valid_ip_ranges(ip_ranges, cidr=None):
             last_ip_range_end = int_ip_range[1]
 
 
+def valid_ip_ranges_with_cidr(ip_ranges, cidr=None):
+    ip_ranges_list = []
+    cidrs_list = []
+    for ip_range in ip_ranges:
+        tmp_cidr = ip_range.get('cidr', None)
+        ip_start = ip_range.get('start', None)
+        ip_end = ip_range.get('end', None)
+        tmp_gw = ip_range.get('gateway', None)
+        tmp_ip_range = []
+        if tmp_cidr and tmp_cidr != 'None' and \
+                ip_start and ip_start != 'None' and \
+                ip_end and ip_end != 'None':
+            utils.valid_cidr(tmp_cidr)
+            cidrs_list.append(tmp_cidr)
+            if not utils.is_ip_in_cidr(ip_start, tmp_cidr):
+                msg = (
+                    _("IP address %s was not in the range of"
+                      " CIDR %s." % (ip_start, tmp_cidr)))
+                LOG.error(msg)
+                raise exc.HTTPForbidden(explanation=msg)
+
+            if not utils.is_ip_in_cidr(ip_end, tmp_cidr):
+                msg = (
+                    _("IP address %s was not in the range of"
+                      " CIDR %s." % (ip_end, tmp_cidr)))
+                LOG.error(msg)
+                raise exc.HTTPForbidden(explanation=msg)
+        if tmp_cidr and tmp_gw and tmp_gw != 'None':
+            utils.validate_ip_format(tmp_gw)
+
+        if ip_start and ip_end:
+            utils.validate_ip_format(ip_start)
+            utils.validate_ip_format(ip_end)
+            ip_ranges_list.append({'start': ip_start, 'end': ip_end})
+            tmp_ip_range.append({'start': ip_start, 'end': ip_end})
+        if tmp_ip_range and tmp_gw and tmp_gw != 'None':
+            LOG.info('ip_ranges: %s, tmp_gw: %s' % (tmp_ip_range, tmp_gw))
+            if utils.is_ip_in_ranges(tmp_gw, tmp_ip_range):
+                msg = (
+                    _(
+                        'The gateway %s can not in the ip ranges of: %s ' %
+                        (tmp_gw, tmp_ip_range)))
+                LOG.error(msg)
+                raise exc.HTTPBadRequest(explanation=msg)
+    if ip_ranges_list:
+        valid_ip_ranges(ip_ranges_list)
+    if cidr:
+        utils.valid_cidr(cidr)
+        cidrs_list.append(cidr)
+    LOG.info('cidrs_list: %s' % cidrs_list)
+    if utils.is_cidrs_overlapped(set(cidrs_list)):
+        overlapped_cidrs = list(set(cidrs_list))
+        msg = 'cidr can not be overlap with each other: %s' % overlapped_cidrs
+        LOG.error(msg)
+        raise exc.HTTPBadRequest(explanation=msg)
+
+
 def valid_vlan_id(vlan_id):
     if not vlan_id:
         msg = (_("IP ranges not given."))
