@@ -6,6 +6,7 @@ from daisy import test
 import mock
 from oslo_serialization import jsonutils
 import webob
+from webob import exc
 
 network_list = [{u'alias': None,
                  u'capability': u'high',
@@ -607,3 +608,418 @@ class TestNetworkApi(test.TestCase):
             req, network_id, network_meta)
         self.assertEqual(network_meta['custom_name'],
                          update_network['network_meta']['custom_name'])
+
+    @mock.patch('daisy.api.common.valid_network_range')
+    @mock.patch('daisy.registry.client.v1.api.add_network_metadata')
+    @mock.patch('daisy.registry.client.v1.api.get_networks_detail')
+    @mock.patch('daisy.registry.client.v1.api.get_cluster_metadata')
+    def test_add_network_invalid_ip_ranges(self, get_cluster, get_networks,
+                                           add_network,
+                                           fake_valid_network_range):
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True,
+                                     user='fake user',
+                                     tenant='fake tenamet')
+        ip_ranges = [
+            {
+                'start': '12.18.1.5',
+                'cidr': '12.18.1.1/24',
+                'end': '12.18.1.5',
+                'gateway': '12.18.1.2'
+            },
+            {
+                'start': '112.18.1.15',
+                'cidr': '112.18.1.1/24',
+                'end': '112.18.1.15',
+                'gateway': '112.18.1.5'
+            },
+        ]
+        network_meta = {'name': 'PUBLICAPI',
+                        'network_type': 'PUBLICAPI',
+                        'ip_ranges': str(ip_ranges)
+                        }
+        return_network = {'name': 'MANAGEMENT1',
+                          'network_type': 'MANAGEMENT',
+                          'custom_name': 'management1'}
+        fake_valid_network_range.return_value = True
+        self.assertRaises(
+            exc.HTTPForbidden, self.controller.add_network, req, network_meta)
+
+    @mock.patch('daisy.api.common.valid_network_range')
+    @mock.patch('daisy.registry.client.v1.api.add_network_metadata')
+    @mock.patch('daisy.registry.client.v1.api.get_networks_detail')
+    @mock.patch('daisy.registry.client.v1.api.get_cluster_metadata')
+    def test_add_network_publicapi_net(self, get_cluster, get_networks,
+                                       add_network, fake_valid_network_range):
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True,
+                                     user='fake user',
+                                     tenant='fake tenamet')
+        ip_ranges = [
+            {
+                'start': '112.18.1.5',
+                'cidr': '112.18.1.1/24',
+                'end': '112.18.1.5',
+                'gateway': '112.18.1.2'
+            },
+            {
+                'start': '112.18.1.15',
+                'cidr': '112.18.1.1/24',
+                'end': '112.18.1.15',
+                'gateway': '112.18.1.1'
+            },
+        ]
+        network_meta = {'name': 'PUBLICAPI',
+                        'network_type': 'PUBLICAPI',
+                        'ip_ranges': str(ip_ranges),
+                        'cidr': '112.18.1.1/24'
+                        }
+        return_network = {'name': 'PUBLICAPI',
+                          'network_type': 'PUBLICAPI'}
+        get_cluster.return_value = []
+        get_networks.return_value = []
+        add_network.return_value = return_network
+        fake_valid_network_range.return_value = True
+        network = self.controller.add_network(req, network_meta)
+        self.assertEqual('PUBLICAPI',
+                         network['network_meta']['name'])
+
+    @mock.patch('daisy.api.v1.networks.Controller.get_network_meta_or_404')
+    @mock.patch('daisy.api.common.valid_network_range')
+    @mock.patch('daisy.registry.client.v1.api.add_network_metadata')
+    @mock.patch('daisy.registry.client.v1.api.get_networks_detail')
+    @mock.patch('daisy.registry.client.v1.api.get_cluster_metadata')
+    def test_add_network_invalid_with_ip_ranges(self,
+                                                get_cluster,
+                                                get_networks,
+                                                add_network,
+                                                fake_valid_network_range):
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True,
+                                     user='fake user',
+                                     tenant='fake tenamet')
+        ip_ranges = [
+            {
+                'start': '112.18.1.5',
+                'cidr': '112.18.1.1/24',
+                'gateway': '112.18.1.2'
+            },
+            {
+                'start': '112.18.1.15',
+                'cidr': '112.18.1.1/24',
+                'end': '112.18.1.15',
+                'gateway': '112.18.1.1'
+            },
+        ]
+        network_meta = {'name': 'PUBLICAPI',
+                        'network_type': 'PUBLICAPI',
+                        'ip_ranges': str(ip_ranges),
+                        'cidr': '112.18.1.1/24'
+                        }
+        return_network = {'name': 'PUBLICAPI',
+                          'network_type': 'PUBLICAPI'}
+        # get_cluster.return_value = []
+        # get_networks.return_value = []
+        # add_network.return_value = return_network
+        fake_valid_network_range.return_value = True
+        self.assertRaises(
+            exc.HTTPForbidden, self.controller.add_network, req, network_meta)
+
+    @mock.patch('daisy.api.common.valid_network_range')
+    @mock.patch('daisy.registry.client.v1.api.add_network_metadata')
+    @mock.patch('daisy.registry.client.v1.api.get_networks_detail')
+    @mock.patch('daisy.registry.client.v1.api.get_cluster_metadata')
+    def test_add_network_dataplane_net(self, get_cluster, get_networks,
+                                       add_network, fake_valid_network_range):
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True,
+                                     user='fake user',
+                                     tenant='fake tenamet')
+        ip_ranges = [
+            {
+                'start': '112.18.1.5',
+                'cidr': '112.18.1.1/24',
+                'end': '112.18.1.5',
+                'gateway': '112.18.1.2'
+            },
+            {
+                'start': '112.18.1.15',
+                'cidr': '112.18.1.1/24',
+                'end': '112.18.1.15',
+                'gateway': '112.18.1.1'
+            },
+        ]
+        network_meta = {'name': 'DATAPLANE',
+                        'network_type': 'DATAPLANE',
+                        'ip_ranges': str(ip_ranges),
+                        'cidr': '112.18.1.1/24',
+                        'gateway': '112.18.1.1'
+                        }
+        return_network = {'name': 'DATAPLANE',
+                          'network_type': 'DATAPLANE'}
+        get_cluster.return_value = []
+        get_networks.return_value = []
+        add_network.return_value = return_network
+        fake_valid_network_range.return_value = True
+        network = self.controller.add_network(req, network_meta)
+        self.assertEqual('DATAPLANE',
+                         network['network_meta']['name'])
+
+    @mock.patch('daisy.registry.client.v1.api.update_network_metadata')
+    @mock.patch('daisy.api.v1.networks.Controller._is_dataplane_in_use')
+    @mock.patch('daisy.registry.client.v1.api.get_networks_detail')
+    @mock.patch('daisy.registry.client.v1.api.get_cluster_metadata')
+    @mock.patch('daisy.registry.client.v1.api.get_network_metadata')
+    def test_update_network_dataplane_net(self, get_network_meta,
+                                          get_cluster_meta,
+                                          get_networks_detail,
+                                          fake_is_dataplane_in_use,
+                                          fake_update_network):
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True,
+                                     user='fake user',
+                                     tenant='fake tenamet')
+        ip_ranges = [
+            {
+                'start': '112.18.1.5',
+                'cidr': '112.18.1.1/24',
+                'end': '112.18.1.5',
+                'gateway': '112.18.1.2'
+            },
+            {
+                'start': '112.18.1.15',
+                'cidr': '112.18.1.1/24',
+                'end': '112.18.1.15',
+                'gateway': '112.18.1.1'
+            },
+        ]
+        network_id = 'cf531581-a283-41dd-9e4e-4b98454d54e7'
+        network_meta = {'cluster_id': '1',
+                        'name': 'physnet1',
+                        'network_type': 'DATAPLANE',
+                        'segmentation_type': 'vxlan',
+                        'ip_ranges': str(ip_ranges),
+                        'cidr': '112.18.1.1/24', }
+        orig_network_meta = {'cidr': '112.18.1.1/24',
+                             'gateway': '112.18.1.1',
+                             'cluster_id': '1',
+                             'vlan_id': None,
+                             'deleted': False,
+                             'id': 'cf531581-a283-41dd-9e4e-4b98454d54e7',
+                             'network_type': 'DATAPLANE',
+                             'segmentation_type': 'vxlan',
+                             'type': 'default'}
+        cluster_meta = {'id': '1', 'deleted': False, }
+        networks_detail = [{'cluster_id': '1',
+                            'gateway': '112.18.1.1',
+                            'vlan_id': None,
+                            'id': 'cf531581-a283-41dd-9e4e-4b98454d54e7',
+                            'ip_ranges': [
+                                {
+                                    'end': '112.18.1.16',
+                                    'start': '112.18.1.17'}],
+                            'name': 'physnet1',
+                            'network_type': 'DATAPLANE',
+                            'physnet_name': 'physnet_eth1',
+                            'segmentation_type': 'vxlan',
+                            'type': 'default'}]
+
+        get_network_meta.return_value = orig_network_meta
+        get_cluster_meta.return_value = cluster_meta
+        get_networks_detail.return_value = networks_detail
+        fake_update_network.return_value = network_meta
+        fake_is_dataplane_in_use.return_value = False
+        updated_network = self.controller.update_network(
+            req, network_id, network_meta)
+        self.assertEqual('physnet1', updated_network['network_meta']['name'])
+
+    @mock.patch('daisy.registry.client.v1.api.update_network_metadata')
+    @mock.patch('daisy.api.v1.networks.Controller._is_dataplane_in_use')
+    @mock.patch('daisy.registry.client.v1.api.get_networks_detail')
+    @mock.patch('daisy.registry.client.v1.api.get_cluster_metadata')
+    @mock.patch('daisy.registry.client.v1.api.get_network_metadata')
+    def test_update_network_publicapi_net(self, get_network_meta,
+                                          get_cluster_meta,
+                                          get_networks_detail,
+                                          fake_is_dataplane_in_use,
+                                          fake_update_network):
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True,
+                                     user='fake user',
+                                     tenant='fake tenamet')
+        ip_ranges = [
+            {
+                'start': '112.18.1.5',
+                'cidr': '112.18.1.1/24',
+                'end': '112.18.1.5',
+                'gateway': '112.18.1.2'
+            },
+            {
+                'start': '112.18.1.15',
+                'cidr': '112.18.1.1/24',
+                'end': '112.18.1.15',
+                'gateway': '112.18.1.1'
+            },
+        ]
+        network_id = 'cf531581-a283-41dd-9e4e-4b98454d54e7'
+        network_meta = {'cluster_id': '1',
+                        'name': 'PUBLICAPI',
+                        'network_type': 'PUBLICAPI',
+                        'segmentation_type': 'vxlan',
+                        'ip_ranges': str(ip_ranges),
+                        'cidr': '112.18.1.1/24', }
+        orig_network_meta = {'cidr': '112.18.1.1/24',
+                             'gateway': '112.18.1.1',
+                             'cluster_id': '1',
+                             'vlan_id': None,
+                             'deleted': False,
+                             'id': 'cf531581-a283-41dd-9e4e-4b98454d54e7',
+                             'network_type': 'PUBLICAPI',
+                             'type': 'default'}
+        cluster_meta = {'id': '1', 'deleted': False, }
+        networks_detail = [{'cluster_id': '1',
+                            'gateway': '112.18.1.1',
+                            'vlan_id': None,
+                            'id': 'cf531581-a283-41dd-9e4e-4b98454d54e7',
+                            'ip_ranges': [
+                                {
+                                    'end': '112.18.1.16',
+                                    'start': '112.18.1.17'}],
+                            'name': 'physnet1',
+                            'network_type': 'PUBLICAPI',
+                            'physnet_name': 'PUBLICAPI',
+                            'type': 'default'}]
+
+        get_network_meta.return_value = orig_network_meta
+        get_cluster_meta.return_value = cluster_meta
+        get_networks_detail.return_value = networks_detail
+        fake_update_network.return_value = network_meta
+        fake_is_dataplane_in_use.return_value = False
+        updated_network = self.controller.update_network(
+            req, network_id, network_meta)
+        self.assertEqual('PUBLICAPI', updated_network['network_meta']['name'])
+
+    @mock.patch('daisy.registry.client.v1.api.update_network_metadata')
+    @mock.patch('daisy.api.v1.networks.Controller._is_dataplane_in_use')
+    @mock.patch('daisy.registry.client.v1.api.get_networks_detail')
+    @mock.patch('daisy.registry.client.v1.api.get_cluster_metadata')
+    @mock.patch('daisy.registry.client.v1.api.get_network_metadata')
+    def test_update_network_invalid_cidr(self, get_network_meta,
+                                         get_cluster_meta,
+                                         get_networks_detail,
+                                         fake_is_dataplane_in_use,
+                                         fake_update_network):
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True,
+                                     user='fake user',
+                                     tenant='fake tenamet')
+        ip_ranges = [
+            {
+                'start': '112.18.1.5',
+                'cidr': '112.18.1.1/24',
+                'end': '112.18.1.5',
+                'gateway': '112.18.1.2'
+            },
+            {
+                'start': '112.18.1.15',
+                'cidr': '112.18.1.1/24',
+                'end': '112.18.1.15',
+                'gateway': '112.18.1.1'
+            },
+        ]
+        network_id = 'cf531581-a283-41dd-9e4e-4b98454d54e7'
+        network_meta = {'cluster_id': '1',
+                        'name': 'PUBLICAPI',
+                        'network_type': 'PUBLICAPI',
+                        'ip_ranges': str(ip_ranges),
+                        'cidr': None}
+        orig_network_meta = {'cidr': None,
+                             'gateway': '112.18.1.1',
+                             'cluster_id': '1',
+                             'vlan_id': None,
+                             'deleted': False,
+                             'id': 'cf531581-a283-41dd-9e4e-4b98454d54e7',
+                             'network_type': 'PUBLICAPI',
+                             'type': 'default'}
+        cluster_meta = {'id': '1', 'deleted': False, }
+        networks_detail = [{'cluster_id': '1',
+                            'gateway': '112.18.1.1',
+                            'vlan_id': None,
+                            'id': 'cf531581-a283-41dd-9e4e-4b98454d54e7',
+                            'ip_ranges': [
+                                {
+                                    'end': '112.18.1.16',
+                                    'start': '112.18.1.17'}],
+                            'name': 'physnet1',
+                            'network_type': 'PUBLICAPI',
+                            'type': 'default'}]
+
+        get_network_meta.return_value = orig_network_meta
+        get_cluster_meta.return_value = cluster_meta
+        get_networks_detail.return_value = networks_detail
+        fake_update_network.return_value = network_meta
+        fake_is_dataplane_in_use.return_value = False
+        self.assertRaises(exc.HTTPForbidden, self.controller.update_network,
+                          req, network_id, network_meta)
+
+    @mock.patch('daisy.registry.client.v1.api.update_network_metadata')
+    @mock.patch('daisy.api.v1.networks.Controller._is_dataplane_in_use')
+    @mock.patch('daisy.registry.client.v1.api.get_networks_detail')
+    @mock.patch('daisy.registry.client.v1.api.get_cluster_metadata')
+    @mock.patch('daisy.registry.client.v1.api.get_network_metadata')
+    def test_update_network_invalid_ipranges(self, get_network_meta,
+                                             get_cluster_meta,
+                                             get_networks_detail,
+                                             fake_is_dataplane_in_use,
+                                             fake_update_network):
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True,
+                                     user='fake user',
+                                     tenant='fake tenamet')
+        ip_ranges = [
+            {
+                'cidr': '112.18.1.1/24',
+                'end': '112.18.1.5',
+                'gateway': '112.18.1.2'
+            },
+            {
+                'start': '112.18.1.15',
+                'cidr': '112.18.1.1/24',
+                'end': '112.18.1.15',
+                'gateway': '112.18.1.1'
+            },
+        ]
+        network_id = 'cf531581-a283-41dd-9e4e-4b98454d54e7'
+        network_meta = {'cluster_id': '1',
+                        'name': 'PUBLICAPI',
+                        'network_type': 'PUBLICAPI',
+                        'ip_ranges': str(ip_ranges),
+                        'cidr': '112.18.1.1/24'}
+        orig_network_meta = {'cidr': '112.18.1.1/24',
+                             'gateway': '112.18.1.1',
+                             'cluster_id': '1',
+                             'vlan_id': None,
+                             'deleted': False,
+                             'id': 'cf531581-a283-41dd-9e4e-4b98454d54e7',
+                             'network_type': 'PUBLICAPI',
+                             'type': 'default'}
+        cluster_meta = {'id': '1', 'deleted': False, }
+        networks_detail = [{'cluster_id': '1',
+                            'gateway': '112.18.1.1',
+                            'vlan_id': None,
+                            'id': 'cf531581-a283-41dd-9e4e-4b98454d54e7',
+                            'ip_ranges': [
+                                {
+                                    'end': '112.18.1.16',
+                                    'start': '112.18.1.17'}],
+                            'name': 'physnet1',
+                            'network_type': 'PUBLICAPI',
+                            'type': 'default'}]
+
+        get_network_meta.return_value = orig_network_meta
+        get_cluster_meta.return_value = cluster_meta
+        get_networks_detail.return_value = networks_detail
+        fake_update_network.return_value = network_meta
+        fake_is_dataplane_in_use.return_value = False
+        self.assertRaises(exc.HTTPForbidden, self.controller.update_network,
+                          req, network_id, network_meta)
