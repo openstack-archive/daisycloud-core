@@ -844,7 +844,6 @@ class OSInstall():
                 host_status['messages'] = "OS installed successfully"
                 # wait for nicfix script complete
                 time.sleep(10)
-                self._set_disk_start_mode(host_detail)
                 # node state: in use
                 node_state = 'true'
                 path = os.path.join(os.path.abspath(os.path.dirname(
