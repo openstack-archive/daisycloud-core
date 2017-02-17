@@ -286,6 +286,10 @@ class HostInterface(BASE, DaisyBase):
     state = Column(String(64))
     max_speed = Column(String(64))
     current_speed = Column(String(64))
+    parent_id = Column(String(36))
+    vf_index = Column(Integer)
+    is_support_vf = Column(Boolean, default=False)
+    is_vf = Column(Boolean, default=False)
 
 
 class Network(BASE, DaisyBase):
@@ -316,6 +320,8 @@ class Network(BASE, DaisyBase):
     mtu = Column(Integer(), nullable=False, default=1500)
     alias = Column(String(255))
     custom_name = Column(String(255))
+    svlan_start = Column(Integer, default=3000)
+    svlan_end = Column(Integer, default=4094)
 
 
 class IpRange(BASE, DaisyBase):

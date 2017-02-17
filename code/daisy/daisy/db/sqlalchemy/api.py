@@ -669,11 +669,19 @@ def _host_update(context, values, host_id):
                             host_interfaces_values['is_deployment'] = 0
                     if host_interfaces_values.has_key('id'):
                         del host_interfaces_values['id']
+                    if host_interfaces_values.get('vf'):
+                        host_interfaces_values['is_support_vf'] = True
                     host_interface_ref = models.HostInterface()
                     host_interface_ref.update(host_interfaces_values)
                     host_interface_ref.host_id = host_id
                     _update_values(host_interface_ref, host_interfaces_values)
                     host_interface_ref.save(session=session)
+                    if host_interfaces_values.get('vf'):
+                        _update_host_interface_vf_info(context,
+                                                       host_id,
+                                                       host_interface_ref.id,
+                                                       host_interfaces_values.get('vf'),
+                                                       session)
 
                     if values.has_key('cluster'):
                         if network.has_key('assigned_networks'):
@@ -784,10 +792,19 @@ def _host_update(context, values, host_id):
                             host_interfaces_values['is_deployment'] = 1
                         else:
                             host_interfaces_values['is_deployment'] = 0
+                    if host_interfaces_values.get('vf'):
+                        host_interfaces_values['is_support_vf'] = True
                     host_interfaces_values['host_id'] = host_ref.id
                     host_interface_ref.update(host_interfaces_values)
                     _update_values(host_interface_ref, host_interfaces_values)
                     host_interface_ref.save(session=session)
+                    if host_interfaces_values.get('vf'):
+                        _update_host_interface_vf_info(context,
+                                                       host_ref.id,
+                                                       host_interface_ref.id,
+                                                       host_interfaces_values.get('vf'),
+                                                       session)
+
 
                     if values.has_key('cluster'):
                         if network.has_key('assigned_networks'):
@@ -879,36 +896,42 @@ def get_host_interface(context, host_id, mac=None, session=None,
             query = query.filter_by(deleted=False)
 
         host_interface = query.all()
-
+        pf_host_interface = []
         for interface in host_interface:
-            assigned_networks_list = []
-            openvswitch_type = ''
-            assignnetwork_query = \
-                session.query(models.AssignedNetworks).filter_by(
-                    interface_id=interface.id).filter_by(deleted=False)
-            assignnetwork_list = assignnetwork_query.all()
-            for assignnetwork in assignnetwork_list:
-                query_network = \
-                    session.query(models.Network).filter_by(
-                        id=assignnetwork.network_id).filter_by(
-                        deleted=False).first()
-                if query_network:
-                    assigned_networks_info = {'name': query_network.name,
-                                              'ip': assignnetwork.ip,
-                                              'type': query_network.network_type}
+            if not interface.is_vf:
+                pf_host_interface.append(interface)
+                assigned_networks_list = []
+                openvswitch_type = ''
+                assignnetwork_query = \
+                    session.query(models.AssignedNetworks).filter_by(
+                        interface_id=interface.id).filter_by(deleted=False)
+                assignnetwork_list = assignnetwork_query.all()
+                for assignnetwork in assignnetwork_list:
+                    query_network = \
+                        session.query(models.Network).filter_by(
+                            id=assignnetwork.network_id).filter_by(
+                            deleted=False).first()
+                    if query_network:
+                        assigned_networks_info = {'name': query_network.name,
+                                                  'ip': assignnetwork.ip,
+                                                  'type': query_network.network_type}
 
-                    assigned_networks_list.append(assigned_networks_info)
-                    if query_network.network_type in ['DATAPLANE']:
-                        openvswitch_type = assignnetwork.vswitch_type
-            interface.assigned_networks = assigned_networks_list
-            interface.vswitch_type = openvswitch_type
+                        assigned_networks_list.append(assigned_networks_info)
+                        if query_network.network_type in ['DATAPLANE']:
+                            openvswitch_type = assignnetwork.vswitch_type
+                interface.assigned_networks = assigned_networks_list
+                interface.vswitch_type = openvswitch_type
+
+                if interface.is_support_vf:
+                    vf_infos = [inter.to_dict() for inter in host_interface if inter.parent_id==interface.id]
+                    interface.vf = sorted(vf_infos, key=lambda x: x["vf_index"])
 
     except sa_orm.exc.NoResultFound:
         msg = "No host found with ID %s" % host_id
         LOG.debug(msg)
         raise exception.NotFound(msg)
 
-    return host_interface
+    return pf_host_interface
 
 
 def get_host_interface_mac(context, mac, session=None,
@@ -916,7 +939,7 @@ def get_host_interface_mac(context, mac, session=None,
     session = session or get_session()
     try:
         query = session.query(models.HostInterface).filter_by(
-            mac=mac).filter_by(deleted=False)
+            mac=mac).filter_by(deleted=False).filter_by(is_vf=False)
         if not force_show_deleted and not context.can_see_deleted:
             query = query.filter_by(deleted=False)
 
@@ -4401,7 +4424,7 @@ def get_ip_of_ssh_discover_host(session):
     ssh_host_ip_list = []
     for item in query.all():
         ip_query_sql = "select ip from host_interfaces where host_interfaces." \
-                       "host_id='%s'" % item.HostInterface.host_id
+                       "host_id='%s' and is_vf=0" % item.HostInterface.host_id
         ip_query_result = session.execute(ip_query_sql).fetchall()
         ip_query_list = [item[0] for item in ip_query_result if item[0]]
         ssh_host_ip_list.extend(ip_query_list)
@@ -5512,7 +5535,7 @@ def host_template_get_all(context, filters=None, marker=None, limit=None,
 def host_interfaces_get_all(context, filters=None):
     filters = filters or {}
     session = get_session()
-    query = session.query(models.HostInterface).filter_by(deleted=0)
+    query = session.query(models.HostInterface).filter_by(deleted=0).filter_by(is_vf=False)
 
     if 'host_id' in filters:
         host_id = filters.pop('host_id')
@@ -5528,6 +5551,8 @@ def host_interfaces_get_all(context, filters=None):
         query = query.filter_by(pci=pci)
     host_interfaces = []
     for host_interface in query.all():
+        if host_interface.is_support_vf:
+            host_interface.vf = _get_host_interface_vf_info(context,host_interface.id,session)
         host_interface = host_interface.to_dict()
         host_interfaces.append(host_interface)
     return host_interfaces
@@ -6365,3 +6390,47 @@ def template_service_get_all(context, filters=None, marker=None, limit=None,
                              for template_service in template_services
                              if template_service["id"] in service_ids]
     return template_services
+
+def _get_host_interface_vf_info(context, pf_interface_id, session = None):
+    session = session or get_session()
+    query = session.query(models.HostInterface).filter_by(deleted = False)
+    if pf_interface_id:
+        query = query.filter_by(parent_id = pf_interface_id)
+    else:
+        msg = "Physical interface ID is NULL"
+        LOG.error(msg)
+        raise exception.NotFound(msg)
+    query = _paginate_query(query, models.HostInterface, None,
+                            ['vf_index'],sort_dir = 'asc')
+    vf_infos = []
+    for vf_info in query.all():
+        vf_dict = vf_info.to_dict()
+        vf_infos.append(vf_dict)
+    return vf_infos
+
+def _update_host_interface_vf_info(context, host_id, pf_interface_id, vf_values, session):
+    if vf_values and session:
+        if not isinstance(vf_values, list):
+            vf_values = list(eval(vf_values))
+        for vm_info in vf_values:
+            if 'slaves' in vm_info:
+                slaves = vm_info.get('slaves', "")
+                slaves = slaves.split()
+                if len(slaves) == 1:
+                    vm_info['slave1'] = slaves[0]
+                elif len(slaves) == 2:
+                    vm_info['slave1'] = slaves[0]
+                    vm_info['slave2'] = slaves[1]
+                del vm_info['slaves']
+            if vm_info.has_key('index'):
+                vm_info['vf_index'] = vm_info['index']
+            if vm_info.has_key('id'):
+                del vm_info['id']
+            vm_info['is_vf'] = True
+            vm_info['parent_id'] = pf_interface_id
+            vm_info['host_id'] = host_id
+            host_interface_ref = models.HostInterface()
+            host_interface_ref.update(vm_info)
+            _update_values(host_interface_ref, vm_info)
+            host_interface_ref.save(session = session)
+
