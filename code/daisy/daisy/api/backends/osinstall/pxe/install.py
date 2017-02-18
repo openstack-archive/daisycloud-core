@@ -685,7 +685,7 @@ class OSInstall():
                     % host_detail['id']
                 raise exception.NotFound(message=self.message)
 
-                ipmi_result_flag = self._set_boot_or_power_state(host_detail,
+            ipmi_result_flag = self._set_boot_or_power_state(host_detail,
                                                                  'pxe')
 
         host_interfaces = _get_host_interfaces(host_detail)
