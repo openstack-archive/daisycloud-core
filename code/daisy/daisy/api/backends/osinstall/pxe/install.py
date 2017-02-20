@@ -599,7 +599,12 @@ class OSInstall():
                 os_version_file = "/var/lib/daisy/" + os_version
         if os_version_file:
             test_os_version_exist = 'test -f %s' % os_version_file
-            daisy_cmn.subprocess_call(test_os_version_exist)
+            try:
+                daisy_cmn.subprocess_call(test_os_version_exist)
+            except exception.SubprocessCmdFailed:
+                self.message = 'Os version file %s not ' \
+                               'exist ' % os_version_file
+                raise exception.NotFound(message=self.message)
         else:
             self.message = "No OS version file configed for host %s" %\
                            host_detail['id']
@@ -766,7 +771,7 @@ class OSInstall():
             if ipmi_result_flag:
                 self._set_boot_or_power_state(host_detail, 'reset')
 
-    def _begin_install_os(self, hosts_detail):
+    def _begin_install_os(self, hosts_detail, cluster_id):
         # all hosts status is set to 'pre-install' before os installing
         for host_detail in hosts_detail:
             host_status = {'os_status': host_os_status['PRE_INSTALL'],
@@ -776,7 +781,18 @@ class OSInstall():
                                             host_status)
 
         for host_detail in hosts_detail:
-            self._install_os_for_baremetal(host_detail)
+            try:
+                self._install_os_for_baremetal(host_detail)
+            except Exception as e:
+                LOG.error(e.message)
+                host_meta = {'os_status': 'install-failed',
+                             'messages': e.message}
+                daisy_cmn.update_db_host_status(self.req,
+                                                host_detail['id'], host_meta)
+                daisy_cmn.set_role_status_and_progress(
+                    self.req, cluster_id, 'install',
+                    {'messages': '', 'progress': '0'}, 'tecs',
+                    host_detail['id'])
 
     def _set_disk_start_mode(self, host_detail):
         host_manufacturer = host_detail['system'].get('manufacturer')
@@ -952,7 +968,7 @@ class OSInstall():
                 time.sleep(self.time_step)
         return hosts_install_status
 
-    def install_os(self, hosts_detail, role_hosts_ids):
+    def install_os(self, hosts_detail, role_hosts_ids, cluster_id):
         # 15 hosts ,install 10 firstly ,then 5 host
         # output :host_detail=5 ,role_hosts_ids is failed host among 10 hosts
         if len(hosts_detail) > self.max_parallel_os_num:
@@ -971,7 +987,7 @@ class OSInstall():
             if host_manufacturer == 'Cisco Systems Inc':
                 host_detail['location'] = \
                     get_host_location_of_cisco(host_detail)
-        self._begin_install_os(install_hosts)
+        self._begin_install_os(install_hosts, cluster_id)
         install_hosts = _rm_ipmi_failed_host(self.req, install_hosts)
         LOG.info(_("Begin to query install progress..."))
         # wait to install completely
