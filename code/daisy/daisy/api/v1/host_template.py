@@ -445,6 +445,7 @@ class Controller(controller.BaseController):
         hosts_param = []
         host_template_used = {}
         if templates and templates[0]:
+            print "@@@@@@" + templates
             hosts_param = json.loads(templates[0]['hosts'])
             for host in hosts_param:
                 if host['name'] == host_template['host_template_name']:
@@ -524,8 +525,8 @@ class Controller(controller.BaseController):
             for host_template_interface in host_template_interfaces:
                 if host_template_interface['type'] == 'ether':
                     for orig_host_interface in orig_host_interfaces:
-                        if orig_host_interface['pci'] ==\
-                                host_template_interface['pci']:
+                        if orig_host_interface['name'] ==\
+                                host_template_interface['name']:
                             interface_match_flag += 1
                             host_template_interface['mac'] =\
                                 orig_host_interface['mac']
