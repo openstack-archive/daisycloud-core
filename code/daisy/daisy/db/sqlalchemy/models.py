@@ -658,6 +658,21 @@ class CinderVolume(BASE, DaisyBase):
     role_id = Column(String(36), ForeignKey('roles.id'), nullable=False)
 
 
+class NeutronBackend(BASE, DaisyBase):
+
+    """Represents an neutron backend in the datastore."""
+    __tablename__ = 'neutron_backend'
+    __table_args__ = (Index('ix_neutron_backend_deleted', 'deleted'),)
+
+    user_name = Column(String(255))
+    user_pwd = Column(String(255))
+    controller_ip = Column(String(255))
+    neutron_backends_type = Column(String(255))
+    sdn_type = Column(String(255))
+    port = Column(String(255))
+    role_id = Column(String(36), ForeignKey('roles.id'), nullable=False)
+
+
 class OpticalSwitch(BASE, DaisyBase):
 
     """Represents an optical switch in the datastore."""
@@ -749,7 +764,7 @@ def register_models(engine):
               Subnet, FloatIpRange, DnsNameservers, Router, ServiceDisk,
               CinderVolume, OpticalSwitch, Version, VersionPatch,
               TemplateConfig, TemplateFunc, TemplateFuncConfigs,
-              TemplateService, ConfigService)
+              TemplateService, ConfigService, NeutronBackend)
     for model in models:
         model.metadata.create_all(engine)
 
@@ -764,6 +779,6 @@ def unregister_models(engine):
               Subnet, FloatIpRange, DnsNameservers, Router, ServiceDisk,
               CinderVolume, OpticalSwitch, Version, VersionPatch,
               TemplateConfig, TemplateFunc, TemplateFuncConfigs,
-              TemplateService, ConfigService)
+              TemplateService, ConfigService, NeutronBackend)
     for model in models:
         model.metadata.drop_all(engine)

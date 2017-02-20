@@ -36,6 +36,7 @@ from daisy.registry.api.v1 import disk_array
 from daisy.registry.api.v1 import template_configs
 from daisy.registry.api.v1 import template_funcs
 from daisy.registry.api.v1 import template_services
+from daisy.registry.api.v1 import neutron_backend
 
 LOG = logging.getLogger(__name__)
 _LE = i18n._LE
@@ -1524,3 +1525,72 @@ class RegistryClient(BaseClient):
         template_service_list = jsonutils.loads(res.read())[
             'template_services']
         return template_service_list
+
+    def add_neutron_backend(self, neutron_backend_metadata):
+        """
+        Tells registry about an network's metadata
+        """
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        if 'neutron_backend' not in neutron_backend_metadata:
+            neutron_backend_metadata = dict(
+                neutron_backend=neutron_backend_metadata)
+
+        body = jsonutils.dumps(neutron_backend_metadata)
+
+        res = self.do_request(
+            "POST",
+            "/neutron_backend",
+            body=body,
+            headers=headers)
+        # Registry returns a JSONified dict(image=image_info)
+        data = jsonutils.loads(res.read())
+        return data['neutron_backend']
+
+    def update_neutron_backend(self, neutron_backend_id,
+                               neutron_backend_metadata):
+        """
+        Updates Registry's information about an neutron_backend
+        """
+        if 'neutron_backend' not in neutron_backend_metadata:
+            neutron_backend_metadata = dict(
+                neutron_backend=neutron_backend_metadata)
+
+        body = jsonutils.dumps(neutron_backend_metadata)
+
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        res = self.do_request("PUT",
+                              "/neutron_backend/%s" % neutron_backend_id,
+                              body=body, headers=headers)
+        data = jsonutils.loads(res.read())
+        return data['neutron_backend']
+
+    def delete_neutron_backend(self, neutron_backend_id):
+        """
+        Deletes Registry's information about an network
+        """
+        res = self.do_request("DELETE",
+                              "/neutron_backend/%s" % neutron_backend_id)
+        data = jsonutils.loads(res.read())
+        return data['neutron_backend']
+
+    def list_neutron_backend(self, **kwargs):
+        """
+        Returns a list of neutron_backend data mappings from Registry
+        """
+        params = self._extract_params(kwargs, neutron_backend.SUPPORTED_PARAMS)
+        res = self.do_request("GET", "/neutron_backend/list", params=params)
+        neutron_backend_list = jsonutils.loads(res.read())['neutron_backends']
+        return neutron_backend_list
+
+    def get_neutron_backend_detail(self, neutron_backend_id):
+        """Return a list of neutron_backend associations from Registry."""
+        res = self.do_request("GET",
+                              "/neutron_backend/%s" % neutron_backend_id)
+        data = jsonutils.loads(res.read())['neutron_backend']
+        return data
