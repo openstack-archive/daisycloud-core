@@ -13,6 +13,7 @@
 
 """Handling introspection data from the ramdisk."""
 
+import copy
 import logging
 import time
 
@@ -53,6 +54,13 @@ def format_node_info_for_daisy_client(node_info, ipmi_addr, os_status,
     interface_list = []
     interfaces = node_info.get('interfaces', {})
     for value in interfaces.values():
+        vf_list = []
+        vf_dict = value.get('vf')
+        if vf_dict:
+            if not isinstance(vf_dict, dict):
+                vf_dict = dict(eval(vf_dict))
+            vf_list = vf_dict.values()
+
         slaves = []
         if value.get("slaves"):
             slaves = value.get("slaves").split()
@@ -67,7 +75,8 @@ def format_node_info_for_daisy_client(node_info, ipmi_addr, os_status,
             'current_speed': value['current_speed'],
             'netmask': value['netmask'],
             'type': value['type'],
-            'slaves': slaves
+            'slaves': slaves,
+            'vf': vf_list
         }
         interface_list.append(interface)
 
@@ -115,7 +124,12 @@ def format_node_info_for_ironic(node_info):
                 data_dict['path'] = '/' + property + 's' + '/' + key
             else:
                 data_dict['path'] = '/' + property + '/' + key
-            data_dict['value'] = value
+            if property == 'interfaces' and 'vf'in value:
+                value_copy = copy.deepcopy(value)
+                value_copy.pop('vf')
+                data_dict['value'] = value_copy
+            else:
+                data_dict['value'] = value
             patch.append(data_dict)
 
     LOG.debug('patch:%s', patch)

@@ -64,7 +64,9 @@ ML2_TYPE = [
     'ovs,sriov(macvtap)',
     'ovs,sriov(direct)',
     'sriov(macvtap)',
-    'sriov(direct)']
+    'sriov(direct)',
+    'dvs,sriov(direct)']
+NEED_VF_TYPE = ['dvs,sriov(direct)']
 SUPPORT_HOST_PAGE_SIZE = ['2M', '1G']
 config = ConfigParser.ConfigParser()
 config.read(daisy_cmn.daisy_conf_file)
@@ -1166,6 +1168,187 @@ class Controller(controller.BaseController):
                 LOG.error(msg)
                 raise HTTPForbidden(explanation=msg)
 
+    def _interface_has_vf(self, interface):
+        if interface and isinstance(interface, dict):
+            if interface.get('is_support_vf'):
+                return True
+        return False
+
+    def _get_interface_by_name(self, name, interfaces):
+        if not interfaces:
+            return None
+
+        if not isinstance(interfaces, list):
+            interfaces = eval(interfaces)
+
+        for interface in interfaces:
+            if name == interface.get('name'):
+                return interface
+
+        return None
+
+    def _check_vswitch_type(self, req, interface, interfaces):
+        vswitch_type = interface.get('vswitch_type')
+        if vswitch_type:
+            if vswitch_type not in ML2_TYPE:
+                msg = "vswitch_type (%s) is not supported" \
+                      % vswitch_type
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg, request=req,
+                                     content_type="text/plain")
+
+            if vswitch_type in NEED_VF_TYPE:
+                if "bond" == interface.get('type'):
+                    slave_names = interface.get('slaves')
+                    if slave_names:
+                        for slave_name in slave_names:
+                            interface_slave = \
+                                self._get_interface_by_name(slave_name,
+                                                            interfaces)
+                            if not self._interface_has_vf(interface_slave):
+                                msg = "vswitch_type (%s) is "\
+                                      "not supported because slave %s"\
+                                      " of %s does not support VF" % \
+                                    (vswitch_type,
+                                     slave_name,
+                                     interface['name'])
+                                LOG.error(msg)
+                                raise HTTPBadRequest(
+                                    explanation=msg,
+                                    request=req,
+                                    content_type="text/plain")
+                else:
+                    if not self._interface_has_vf(interface):
+                        msg = "vswitch_type (%s) is not supported "\
+                              "because interface %s does not support VF" %\
+                            (vswitch_type, interface['name'])
+                        LOG.error(msg)
+                        raise HTTPBadRequest(explanation=msg, request=req,
+                                             content_type="text/plain")
+
+    def _check_interface_on_update_host(self, req, host_meta, orig_host_meta):
+        orig_mac_list = []
+        # get cluster id
+        cluster_id = host_meta.get('cluster')
+        if not cluster_id:
+            clusters = registry.get_clusters_detail(req.context)
+            orig_cluster_name = orig_host_meta.get('cluster', None)
+            orig_cluster_id = None
+            for cluster in clusters:
+                if cluster['name'] == orig_cluster_name:
+                    orig_cluster_id = cluster['id']
+                    break
+            cluster_id = orig_cluster_id
+
+        if 'interfaces' in host_meta:
+            host_meta_interfaces = list(eval(host_meta['interfaces']))
+            ether_nic_names_list = list()
+            bond_nic_names_list = list()
+            bond_slaves_lists = list()
+            interface_num = 0
+            assigned_networks_of_interfaces = []
+            for interface_param in host_meta_interfaces:
+                if not interface_param.get('pci', None) and \
+                        interface_param.get('type', None) == 'ether':
+                    msg = "The Interface need a non-null pci"
+                    LOG.error(msg)
+                    raise HTTPBadRequest(explanation=msg,
+                                         request=req,
+                                         content_type="text/plain")
+                self._check_vswitch_type(req,
+                                         interface_param,
+                                         host_meta_interfaces)
+                # check bond in pairs
+                if interface_param.get('name', None):
+                    if 'type' in interface_param and \
+                            interface_param['type'] == 'bond':
+                        bond_nic_names_list.append(interface_param['name'])
+                        slave_list = []
+                        if interface_param.get('slaves', None):
+                            bond_slaves_lists.append(interface_param['slaves'])
+                        elif interface_param.get('slave1', None) and \
+                                interface_param.get('slave2', None):
+                            slave_list.append(interface_param['slave1'])
+                            slave_list.append(interface_param['slave2'])
+                            bond_slaves_lists.append(slave_list)
+                        else:
+                            msg = (
+                                _("Slaves parameter can not be "
+                                  "None when nic type was bond."))
+                            LOG.error(msg)
+                            raise HTTPForbidden(msg)
+                    else:  # type == ether or interface without type field
+                        ether_nic_names_list.append(interface_param['name'])
+                else:
+                    msg = (_("Nic name can not be None."))
+                    LOG.error(msg)
+                    raise HTTPForbidden(msg)
+
+                # set is_deployment status
+                if 'is_deployment' in interface_param:
+                    if interface_param['is_deployment'] == "True" or \
+                            interface_param[
+                            'is_deployment']:
+                        interface_param['is_deployment'] = 1
+                    else:
+                        interface_param['is_deployment'] = 0
+
+                # check assigned networks
+                if ('assigned_networks' in interface_param and
+                        interface_param['assigned_networks'] != [''] and
+                        interface_param['assigned_networks']):
+                    if cluster_id:
+                        LOG.info(
+                            "interface['assigned_networks']: %s" %
+                            interface_param['assigned_networks'])
+                        if interface_param.get('type', None) == "bond":
+                            bond_type = interface_param.get("bond_type", None)
+                            assigned_networks_of_one_interface = \
+                                self._check_asged_net(
+                                    req, cluster_id,
+                                    interface_param['assigned_networks'],
+                                    bond_type)
+                        else:
+                            assigned_networks_of_one_interface = self. \
+                                _check_asged_net(
+                                    req, cluster_id,
+                                    interface_param['assigned_networks'])
+
+                        self._update_networks_phyname(
+                            req, interface_param, cluster_id)
+                        host_meta['cluster'] = cluster_id
+                    else:
+                        msg = "cluster must be given first " \
+                              "when network plane is allocated"
+                        LOG.error(msg)
+                        raise HTTPBadRequest(explanation=msg,
+                                             request=req,
+                                             content_type="text/plain")
+                    assigned_networks_of_interfaces.\
+                        append(assigned_networks_of_one_interface)
+                else:
+                    assigned_networks_of_interfaces.\
+                        append([])
+                interface_num += 1
+
+            interfaces_db = orig_host_meta.get('interfaces', None)
+            orig_mac_list = [interface_db['mac'] for interface_db in
+                             interfaces_db if interface_db['mac']]
+
+            self._compare_assigned_networks_between_interfaces(
+                interface_num, assigned_networks_of_interfaces)
+
+            # check bond slaves validity
+            self.check_bond_slaves_validity(
+                bond_slaves_lists, ether_nic_names_list)
+            nic_name_list = ether_nic_names_list + bond_nic_names_list
+            if len(set(nic_name_list)) != len(nic_name_list):
+                msg = (_("Nic name must be unique."))
+                LOG.error(msg)
+                raise HTTPForbidden(msg)
+
+        return orig_mac_list
+
     @utils.mutating
     def update_host(self, req, id, host_meta):
         """
@@ -1186,73 +1369,12 @@ class Controller(controller.BaseController):
             raise HTTPForbidden(explanation=msg,
                                 request=req,
                                 content_type="text/plain")
-        orig_mac_list = list()
         self._verify_host_name(req, id, orig_host_meta, host_meta)
-        if 'interfaces' in host_meta:
-            for interface_param in eval(host_meta['interfaces']):
-                if not interface_param.get('pci', None) and \
-                        interface_param.get('type', None) == 'ether':
-                    msg = "The Interface need a non-null pci"
-                    LOG.error(msg)
-                    raise HTTPBadRequest(explanation=msg,
-                                         request=req,
-                                         content_type="text/plain")
 
-                if 'vswitch_type' in interface_param and interface_param[
-                        'vswitch_type'] != '' and \
-                        interface_param['vswitch_type'] not in ML2_TYPE:
-                    msg = "vswitch_type %s is not supported" % interface_param[
-                        'vswitch_type']
-                    LOG.error(msg)
-                    raise HTTPBadRequest(explanation=msg, request=req,
-                                         content_type="text/plain")
-            interfaces_db = orig_host_meta.get('interfaces', None)
-            orig_mac_list = [interface_db['mac'] for interface_db in
-                             interfaces_db if interface_db['mac']]
-            orig_pci_list = [interface_db['pci'] for interface_db in
-                             interfaces_db if interface_db['pci']]
-            if interfaces_db and len(orig_pci_list):
-                interfaces_param = eval(host_meta['interfaces'])
-                interfaces_db_ether = [
-                    interface_db for interface_db in interfaces_db if
-                    interface_db.get(
-                        'type', None) != 'bond']
-                interfaces_param_ether = [
-                    interface_param for interface_param in interfaces_param if
-                    interface_param.get(
-                        'type', None) != 'bond']
-                if len(interfaces_param) < len(interfaces_db_ether):
-                    msg = "Forbidden to update part of interfaces"
-                    LOG.error(msg)
-                    raise HTTPForbidden(explanation=msg)
-            # pci in subnet interface is null,
-                    # comment it to avoid the bug. 20160508 gaoming
-            if '':
-                pci_count = 0
-                for interface_db in interfaces_db:
-                    if interface_db.get('type', None) != 'bond':
-                        for interface_param in interfaces_param_ether:
-                            if interface_param['pci'] == interface_db['pci']:
-                                pci_count += 1
-                                if interface_param[
-                                        'mac'] != interface_db['mac']:
-                                    msg = "Forbidden to modify mac of " \
-                                          "interface with pci %s" % \
-                                          interface_db['pci']
-                                    LOG.error(msg)
-                                    raise HTTPForbidden(explanation=msg)
-                                if interface_param[
-                                        'type'] != interface_db['type']:
-                                    msg = "Forbidden to modify type of " \
-                                          "interface with pci %s" % \
-                                          interface_db['pci']
-                                    LOG.error(msg)
-                                    raise HTTPForbidden(explanation=msg)
-                if pci_count != len(interfaces_db_ether):
-                    msg = "Forbidden to modify pci of interface"
-                    LOG.error(msg)
-                    raise HTTPForbidden(explanation=msg)
-
+        orig_mac_list = \
+            self._check_interface_on_update_host(req,
+                                                 host_meta,
+                                                 orig_host_meta)
         self._verify_host_cluster(req, id, orig_host_meta, host_meta)
         if ('resource_type' in host_meta and
                 host_meta['resource_type'] not in self.support_resource_type):
@@ -1551,14 +1673,6 @@ class Controller(controller.BaseController):
                                             request=req,
                                             content_type="text/plain")
 
-        clusters = registry.get_clusters_detail(req.context)
-        orig_cluster_name = orig_host_meta.get('cluster', None)
-        orig_cluster_id = None
-        for cluster in clusters:
-            if cluster['name'] == orig_cluster_name:
-                orig_cluster_id = cluster['id']
-        cluster_id = host_meta.get('cluster', orig_cluster_id)
-
         params = self._get_query_params(req)
         role_list = registry.get_roles_detail(req.context, **params)
         if 'role' in host_meta:
@@ -1583,95 +1697,6 @@ class Controller(controller.BaseController):
                 msg = "cluster params is none"
                 LOG.error(msg)
                 raise HTTPNotFound(msg)
-
-        if 'interfaces' in host_meta:
-            host_meta_interfaces = list(eval(host_meta['interfaces']))
-            ether_nic_names_list = list()
-            bond_nic_names_list = list()
-            bond_slaves_lists = list()
-            interface_num = 0
-            assigned_networks_of_interfaces = []
-            for interface in host_meta_interfaces:
-                if interface.get('name', None):
-                    if 'type' in interface and interface['type'] == 'bond':
-                        bond_nic_names_list.append(interface['name'])
-                        slave_list = []
-                        if interface.get('slaves', None):
-                            bond_slaves_lists.append(interface['slaves'])
-                        elif interface.get('slave1', None) and \
-                                interface.get('slave2', None):
-                            slave_list.append(interface['slave1'])
-                            slave_list.append(interface['slave2'])
-                            bond_slaves_lists.append(slave_list)
-                        else:
-                            msg = (
-                                _("Slaves parameter can not be "
-                                  "None when nic type was bond."))
-                            LOG.error(msg)
-                            raise HTTPForbidden(msg)
-                    else:  # type == ether or interface without type field
-                        ether_nic_names_list.append(interface['name'])
-                else:
-                    msg = (_("Nic name can not be None."))
-                    LOG.error(msg)
-                    raise HTTPForbidden(msg)
-                if 'is_deployment' in interface:
-                    if interface['is_deployment'] == "True" or interface[
-                            'is_deployment']:
-                        interface['is_deployment'] = 1
-                    else:
-                        interface['is_deployment'] = 0
-
-                if ('assigned_networks' in interface and
-                        interface['assigned_networks'] != [''] and
-                        interface['assigned_networks']):
-                    if cluster_id:
-                        LOG.info(
-                            "interface['assigned_networks']: %s" %
-                            interface['assigned_networks'])
-                        if interface.get('type', None) == "bond":
-                            bond_type = interface.get("bond_type", None)
-                            if bond_type:
-                                assigned_networks_of_one_interface = self. \
-                                    _check_asged_net(req,
-                                                     cluster_id,
-                                                     interface[
-                                                         'assigned_networks'],
-                                                     bond_type)
-                        else:
-                            assigned_networks_of_one_interface = self. \
-                                _check_asged_net(req,
-                                                 cluster_id,
-                                                 interface[
-                                                     'assigned_networks'])
-
-                        self._update_networks_phyname(
-                            req, interface, cluster_id)
-                        host_meta['cluster'] = cluster_id
-                    else:
-                        msg = "cluster must be given first " \
-                              "when network plane is allocated"
-                        LOG.error(msg)
-                        raise HTTPBadRequest(explanation=msg,
-                                             request=req,
-                                             content_type="text/plain")
-                    assigned_networks_of_interfaces.\
-                        append(assigned_networks_of_one_interface)
-                else:
-                    assigned_networks_of_interfaces.\
-                        append([])
-                interface_num += 1
-            self._compare_assigned_networks_between_interfaces(
-                interface_num, assigned_networks_of_interfaces)
-
-            # check bond slaves validity
-            self.check_bond_slaves_validity(
-                bond_slaves_lists, ether_nic_names_list)
-            nic_name_list = ether_nic_names_list + bond_nic_names_list
-            if len(set(nic_name_list)) != len(nic_name_list):
-                msg = (_("Nic name must be unique."))
-                LOG.error(msg)
-                raise HTTPForbidden(msg)
 
         if 'os_status' in host_meta:
             if host_meta['os_status'] not in \
@@ -1931,7 +1956,7 @@ class Controller(controller.BaseController):
                                                discover_host_meta)
                     msg = (_("Do trustme.sh %s failed!" %
                              discover_host_meta['ip']))
-                    LOG.warn(_(msg))
+                    LOG.warn(msg)
                     fp.write(msg)
                 else:
                     mac_info = re.search(r'"mac": ([^,\n]*)', exc_result)
@@ -2044,7 +2069,7 @@ class Controller(controller.BaseController):
         try:
             for t in threads:
                 t.join()
-        except:
+        except Exception:
             LOG.warn(_("Join discover host thread %s failed!" % t))
 
     @utils.mutating
