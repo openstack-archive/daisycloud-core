@@ -344,6 +344,31 @@ class BaseController(object):
                                           request=request,
                                           content_type='text/plain')
 
+    def get_neutron_backend_meta_or_404(self, request, id):
+        """
+        Grabs the config metadata for an config with a supplied
+        identifier or raises an HTTPNotFound (404) response
+
+        :param request: The WSGI/Webob Request object
+        :param host_id: The opaque config identifier
+
+        :raises HTTPNotFound if config does not exist
+        """
+        context = request.context
+        try:
+            return registry.get_neutron_backend_metadata(context, id)
+        except exception.NotFound:
+            msg = "neutron_backend with identifier %s not found" % id
+            LOG.debug(msg)
+            raise webob.exc.HTTPNotFound(
+                msg, request=request, content_type='text/plain')
+        except exception.Forbidden:
+            msg = "Forbidden config access"
+            LOG.debug(msg)
+            raise webob.exc.HTTPForbidden(msg,
+                                          request=request,
+                                          content_type='text/plain')
+
     def get_cinder_volume_meta_or_404(self, request, id):
         """
         Grabs the config metadata for an config with a supplied
