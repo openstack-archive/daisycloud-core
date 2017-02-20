@@ -30,12 +30,12 @@ UPDATE_PARAMS = ('name', 'description', 'status', 'progress', 'config_set_id',
                  # compatibility with the legacy client library
                  'deleted', 'db_lv_size', 'nova_lv_size', 'disk_location',
                  'ntp_server', 'role_type', 'db_vip', 'glance_vip',
-                 'public_vip', 'mongodb_vip')
+                 'public_vip', 'mongodb_vip', 'docker_vg_size')
 
 CREATE_PARAMS = ('id', 'name', 'description', 'status', 'progress',
                  'config_set_id', 'nodes', 'services', 'cluster_id', 'type',
                  'vip', 'glance_lv_size', 'db_vip', 'glance_vip', 'public_vip',
-                 'mongodb_vip', 'deployment_backend',
+                 'mongodb_vip', 'deployment_backend', 'docker_vg_size',
                  'db_lv_size', 'nova_lv_size', 'disk_location', 'role_type')
 
 DEFAULT_PAGE_SIZE = 20
