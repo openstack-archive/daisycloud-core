@@ -657,6 +657,16 @@ class Controller(controller.BaseController):
         """
         self._enforce(req, 'delete_host')
         try:
+            orig_host_meta = self.get_host_meta_or_404(req, id)
+            if orig_host_meta.get('interfaces', None):
+                macs = [interface['mac'] for interface
+                        in orig_host_meta['interfaces'] if interface['mac']]
+                for mac in macs:
+                    delete_host_discovery_info = 'pxe_os_install_clean ' + mac
+                    subprocess.call(delete_host_discovery_info,
+                                    shell=True,
+                                    stdout=open('/dev/null', 'w'),
+                                    stderr=subprocess.STDOUT)
             registry.delete_host_metadata(req.context, id)
         except exception.NotFound as e:
             msg = (_("Failed to find host to delete: %s") %
