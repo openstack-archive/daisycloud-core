@@ -52,7 +52,6 @@ SUPPORTED_PARAMS = daisy.api.v1.SUPPORTED_PARAMS
 SUPPORTED_FILTERS = daisy.api.v1.SUPPORTED_FILTERS
 ACTIVE_IMMUTABLE = daisy.api.v1.ACTIVE_IMMUTABLE
 
-
 DISCOVER_DEFAULTS = {
     'listen_port': '5050',
     'ironic_url': 'http://127.0.0.1:6385/v1',
@@ -133,7 +132,7 @@ class Controller(controller.BaseController):
         network = self.get_network_meta_or_404(req, network_id)
         if network is None or network['deleted']:
             msg = _("Network with identifier %s has been deleted.") % \
-                network_id
+                  network_id
             LOG.error(msg)
             raise HTTPNotFound(msg)
 
@@ -141,7 +140,7 @@ class Controller(controller.BaseController):
         cluster = self.get_cluster_meta_or_404(req, cluster_id)
         if cluster is None or cluster['deleted']:
             msg = _("Cluster with identifier %s has been deleted.") % \
-                cluster_id
+                  cluster_id
             LOG.error(msg)
             raise HTTPNotFound(msg)
 
@@ -247,7 +246,7 @@ class Controller(controller.BaseController):
         '''
 
         if not type and not cluster_id:
-            msg = "error, the type and cluster_id "\
+            msg = "error, the type and cluster_id " \
                   "can not be empty at the same time"
             LOG.error(msg)
             raise HTTPForbidden(msg)
@@ -348,10 +347,10 @@ class Controller(controller.BaseController):
             self, interface_num, assigned_networks_of_interfaces):
         for interface_id in range(interface_num):
             for interface_id_compare in range(interface_id + 1, interface_num):
-                network1_name, network2_name = self.\
+                network1_name, network2_name = self. \
                     _compare_assigned_networks_of_interface(
-                        assigned_networks_of_interfaces[interface_id],
-                        assigned_networks_of_interfaces[interface_id_compare])
+                    assigned_networks_of_interfaces[interface_id],
+                    assigned_networks_of_interfaces[interface_id_compare])
                 if network1_name and network2_name:
                     msg = (_('Network %s and network %s with same '
                              'cidr can not be assigned to different '
@@ -398,8 +397,8 @@ class Controller(controller.BaseController):
             if interface.get(
                     'type',
                     None) != 'bond' and not interface.get(
-                    'mac',
-                    None):
+                'mac',
+                None):
                 msg = _('The ether interface need a non-null mac ')
                 LOG.error(msg)
                 raise HTTPBadRequest(explanation=msg,
@@ -408,8 +407,8 @@ class Controller(controller.BaseController):
             if interface.get(
                     'type',
                     None) == 'ether' and not interface.get(
-                    'pci',
-                    None):
+                'pci',
+                None):
                 msg = "The Interface need a non-null pci"
                 LOG.error(msg)
                 raise HTTPBadRequest(explanation=msg,
@@ -436,13 +435,13 @@ class Controller(controller.BaseController):
 
             if 'is_deployment' in interface:
                 if interface['is_deployment'] == "True" or interface[
-                        'is_deployment']:
+                    'is_deployment']:
                     interface['is_deployment'] = 1
                 else:
                     interface['is_deployment'] = 0
 
             if ('assigned_networks' in interface and
-                    interface['assigned_networks'] != [''] and
+                        interface['assigned_networks'] != [''] and
                     interface['assigned_networks']):
                 have_assigned_network = True
                 if cluster_id:
@@ -477,7 +476,7 @@ class Controller(controller.BaseController):
                                          content_type="text/plain")
 
             if ('ip' in interface and interface['ip'] and
-                    'netmask' in interface and interface['netmask']):
+                        'netmask' in interface and interface['netmask']):
                 have_ip_netmask = True
 
             if 'mac' in interface and 'ip' in interface:
@@ -488,24 +487,24 @@ class Controller(controller.BaseController):
                         host_meta["id"] = host_info['host_id']
 
             if 'vswitch_type' in interface and interface[
-                    'vswitch_type'] != '' and \
-                    interface['vswitch_type'] not in \
-                    ML2_TYPE:
+                'vswitch_type'] != '' and \
+                            interface['vswitch_type'] not in \
+                            ML2_TYPE:
                 msg = "vswitch_type %s is not supported" % interface[
                     'vswitch_type']
                 LOG.error(msg)
                 raise HTTPBadRequest(explanation=msg, request=req,
                                      content_type="text/plain")
             interface_num += 1
-            assigned_networks_of_intefaces.\
+            assigned_networks_of_intefaces. \
                 append(assigned_networks_of_one_interface)
 
         for interface_id in range(interface_num):
             for interface_id_compare in range(interface_id + 1, interface_num):
-                network1_name, network2_name = self.\
+                network1_name, network2_name = self. \
                     _compare_assigned_networks_of_interface(
-                        assigned_networks_of_intefaces[interface_id],
-                        assigned_networks_of_intefaces[interface_id_compare])
+                    assigned_networks_of_intefaces[interface_id],
+                    assigned_networks_of_intefaces[interface_id_compare])
                 if network1_name and network2_name:
                     msg = (_('Network %s and network %s with same '
                              'cidr can not be assigned to different '
@@ -542,9 +541,9 @@ class Controller(controller.BaseController):
             has_dvs = utils.get_dvs_interfaces(host_interfaces)
             if has_dvs:
                 if (('hugepages' in host_meta and
-                     int(host_meta['hugepages']) < 10) or
-                    ('hugepagesize' in host_meta and
-                     host_meta['hugepagesize'] != '1G')):
+                             int(host_meta['hugepages']) < 10) or
+                        ('hugepagesize' in host_meta and
+                                 host_meta['hugepagesize'] != '1G')):
                     host_name = (host_meta.get('name') or
                                  orig_host_meta.get('name'))
                     msg = _("hugepages should be larger than 10G "
@@ -729,7 +728,7 @@ class Controller(controller.BaseController):
             cluster_info = registry.get_clusters_detail(req.context, **params)
             cluster_id = cluster_info[0]['id']
 
-            ctl_ha_nodes_min_mac =\
+            ctl_ha_nodes_min_mac = \
                 daisy_cmn.get_ctl_ha_nodes_min_mac(req, cluster_id)
             sorted_ha_nodes = \
                 sorted(ctl_ha_nodes_min_mac.iteritems(), key=lambda d: d[1])
@@ -754,7 +753,7 @@ class Controller(controller.BaseController):
             service_lun_info = []
             for disk in service_disks:
                 if disk['service'] == 'db' and \
-                        disk['disk_location'] == 'share_cluster':
+                                disk['disk_location'] == 'share_cluster':
                     db_share_cluster_disk.append(disk)
                 if disk['disk_location'] == 'share':
                     tmp_disk = {}
@@ -902,10 +901,10 @@ class Controller(controller.BaseController):
         if same_pci_list:
             msg = "The nic name of interface [%s] " \
                   "with same pci,please check!" % ",".join(
-                      same_pci_list)
+                same_pci_list)
             LOG.error(msg)
             raise HTTPForbidden(msg)
-        # 1-----------------------------------------------------------------
+            # 1-----------------------------------------------------------------
 
     def _verify_interface_among_hosts(self, req, host_meta):
         """
@@ -942,12 +941,12 @@ class Controller(controller.BaseController):
                 for interface in exist_node_info['interfaces']:
                     if interface.get(
                             'mac', None) != input_host_pxe_info.get(
-                            'mac', None) or interface.get(
-                            'type', None) == "bond":
+                        'mac', None) or interface.get(
+                        'type', None) == "bond":
                         continue
                     if exist_node.get('dmi_uuid') \
                             and exist_node.get('dmi_uuid') != \
-                            host_meta.get('dmi_uuid'):
+                                    host_meta.get('dmi_uuid'):
                         msg = "The 'mac' of host interface is exist in " \
                               "db, but 'dmi_uuid' is different.We think " \
                               "you want update the host, but the host " \
@@ -979,9 +978,9 @@ class Controller(controller.BaseController):
                                 stdout=open('/dev/null', 'w'),
                                 stderr=subprocess.STDOUT)
         if ('role' not in host_meta and
-                'status' in orig_host_meta and
-                orig_host_meta['status'] == 'with-role' and
-                orig_host_meta['os_status'] != 'init'):
+                    'status' in orig_host_meta and
+                    orig_host_meta['status'] == 'with-role' and
+                    orig_host_meta['os_status'] != 'init'):
             role_info = {'messages': '', 'progress': '0', 'status': 'init'}
             host_roles = daisy_cmn.get_roles_of_host(req, orig_host_meta['id'])
             for host_role in host_roles:
@@ -1102,12 +1101,12 @@ class Controller(controller.BaseController):
             if os_version not in version_id_list:
                 msg = _("os version %s does not exist") % os_version
                 raise HTTPForbidden(explanation=msg)
-        # else:
-        #     version_file_list = [version['name'] for version in version_list]
-        #     if not os_version.split("/")[-1] in version_file_list:
-        #         msg = _("os version %s does not exist") % \
-        #               os_version.split("/")[-1]
-        #         raise HTTPForbidden(explanation=msg)
+                # else:
+                #     version_file_list = [version['name'] for version in version_list]
+                #     if not os_version.split("/")[-1] in version_file_list:
+                #         msg = _("os version %s does not exist") % \
+                #               os_version.split("/")[-1]
+                #         raise HTTPForbidden(explanation=msg)
 
     def _verify_host_name(self, req, host_id, orig_host_meta, host_meta):
         if (host_meta.get('os_status', "") != 'init') and \
@@ -1191,7 +1190,7 @@ class Controller(controller.BaseController):
         if 'interfaces' in host_meta:
             for interface_param in eval(host_meta['interfaces']):
                 if not interface_param.get('pci', None) and \
-                        interface_param.get('type', None) == 'ether':
+                                interface_param.get('type', None) == 'ether':
                     msg = "The Interface need a non-null pci"
                     LOG.error(msg)
                     raise HTTPBadRequest(explanation=msg,
@@ -1199,8 +1198,8 @@ class Controller(controller.BaseController):
                                          content_type="text/plain")
 
                 if 'vswitch_type' in interface_param and interface_param[
-                        'vswitch_type'] != '' and \
-                        interface_param['vswitch_type'] not in ML2_TYPE:
+                    'vswitch_type'] != '' and \
+                                interface_param['vswitch_type'] not in ML2_TYPE:
                     msg = "vswitch_type %s is not supported" % interface_param[
                         'vswitch_type']
                     LOG.error(msg)
@@ -1225,7 +1224,7 @@ class Controller(controller.BaseController):
                     msg = "Forbidden to update part of interfaces"
                     LOG.error(msg)
                     raise HTTPForbidden(explanation=msg)
-            # pci in subnet interface is null,
+                    # pci in subnet interface is null,
                     # comment it to avoid the bug. 20160508 gaoming
             if '':
                 pci_count = 0
@@ -1235,14 +1234,14 @@ class Controller(controller.BaseController):
                             if interface_param['pci'] == interface_db['pci']:
                                 pci_count += 1
                                 if interface_param[
-                                        'mac'] != interface_db['mac']:
+                                    'mac'] != interface_db['mac']:
                                     msg = "Forbidden to modify mac of " \
                                           "interface with pci %s" % \
                                           interface_db['pci']
                                     LOG.error(msg)
                                     raise HTTPForbidden(explanation=msg)
                                 if interface_param[
-                                        'type'] != interface_db['type']:
+                                    'type'] != interface_db['type']:
                                     msg = "Forbidden to modify type of " \
                                           "interface with pci %s" % \
                                           interface_db['pci']
@@ -1255,7 +1254,8 @@ class Controller(controller.BaseController):
 
         self._verify_host_cluster(req, id, orig_host_meta, host_meta)
         if ('resource_type' in host_meta and
-                host_meta['resource_type'] not in self.support_resource_type):
+                    host_meta[
+                        'resource_type'] not in self.support_resource_type):
             msg = "resource type is not supported, please use it in %s" % \
                   self.support_resource_type
             LOG.error(msg)
@@ -1264,10 +1264,10 @@ class Controller(controller.BaseController):
         if host_meta.get(
                 'os_status',
                 None) != 'init' and orig_host_meta.get(
-                'os_status',
-                None) == 'active':
+            'os_status',
+            None) == 'active':
             if host_meta.get('root_disk', None) and host_meta[
-                    'root_disk'] != orig_host_meta['root_disk']:
+                'root_disk'] != orig_host_meta['root_disk']:
                 msg = _(
                     "Forbidden to update root_disk of %s "
                     "when os_status is active if "
@@ -1298,12 +1298,12 @@ class Controller(controller.BaseController):
         if host_meta.get(
                 'os_status',
                 None) != 'init' and orig_host_meta.get(
-                'os_status',
-                None) == 'active':
+            'os_status',
+            None) == 'active':
             if host_meta.get(
                     'root_lv_size', None) and int(
-                    host_meta['root_lv_size']) != orig_host_meta[
-                    'root_lv_size']:
+                host_meta['root_lv_size']) != orig_host_meta[
+                'root_lv_size']:
                 msg = _(
                     "Forbidden to update root_lv_size of %s "
                     "when os_status is active if "
@@ -1336,12 +1336,36 @@ class Controller(controller.BaseController):
                     1024 * 1024)
                 boot_partition_m = 400
                 redundant_partiton_m = 600
-                free_root_disk_storage_size_m = root_disk_storage_size_m - \
-                    boot_partition_m - redundant_partiton_m
+                if host_meta.get('role', None):
+                    host_role_names = eval(host_meta['role'])
+                elif orig_host_meta.get('role', None):
+                    host_role_names = orig_host_meta['role']
+                else:
+                    host_role_names = []
+                if 'CONTROLLER_HA' in host_role_names:
+                    params = self._get_query_params(req)
+
+                    role_list = registry.get_roles_detail(
+                        req.context, **params)
+                    ctrle_ha_role_info = [role for role in role_list if
+                                          role['name'] == 'CONTROLLER_HA' and
+                                          role['type'] == 'default']
+                    docker_vg_size_m = ctrle_ha_role_info[0].get(
+                        ctrle_ha_role_info[0]['docker_vg_size'], 104448)
+                    free_root_disk_storage_size_m = root_disk_storage_size_m \
+                                                    - boot_partition_m - \
+                                                    redundant_partiton_m - \
+                                                    docker_vg_size_m
+                else:
+                    free_root_disk_storage_size_m = root_disk_storage_size_m \
+                                                    - boot_partition_m - \
+                                                    redundant_partiton_m
                 if (root_lv_size / 4) * 4 > free_root_disk_storage_size_m:
-                    msg = "root_lv_size of %s is larger " \
-                          "than the free_root_disk_storage_size." % \
-                          orig_host_meta['id']
+                    msg = (_("root_lv_size of %s is larger than the  free "
+                             "root disk storage_size.the free"
+                             " stroage is %s M " %
+                             (orig_host_meta['id'],
+                              free_root_disk_storage_size_m)))
                     LOG.error(msg)
                     raise HTTPForbidden(explanation=msg,
                                         request=req,
@@ -1367,11 +1391,11 @@ class Controller(controller.BaseController):
         if host_meta.get(
                 'os_status',
                 None) != 'init' and orig_host_meta.get(
-                'os_status',
-                None) == 'active':
+            'os_status',
+            None) == 'active':
             if host_meta.get(
                     'swap_lv_size', None) and int(
-                    host_meta['swap_lv_size']) != \
+                host_meta['swap_lv_size']) != \
                     orig_host_meta['swap_lv_size']:
                 msg = _(
                     "Forbidden to update swap_lv_size of %s "
@@ -1402,14 +1426,14 @@ class Controller(controller.BaseController):
                 disk_storage_size_b = 0
                 for key in orig_host_meta['disks']:
                     if orig_host_meta['disks'][key]['disk'].find("-fc-") \
-                            != -1 or orig_host_meta['disks'][key]['disk'].\
+                            != -1 or orig_host_meta['disks'][key]['disk']. \
                             find("-iscsi-") != -1 \
-                            or orig_host_meta['disks'][key]['name'].\
-                            find("mpath") != -1 \
-                            or orig_host_meta['disks'][key]['name'].\
-                            find("spath") != -1 \
+                            or orig_host_meta['disks'][key]['name']. \
+                                    find("mpath") != -1 \
+                            or orig_host_meta['disks'][key]['name']. \
+                                    find("spath") != -1 \
                             or orig_host_meta['disks'][key]['removable'] == \
-                            'removable':
+                                    'removable':
                         continue
                     stroage_size_str = orig_host_meta['disks'][key]['size']
                     stroage_size_b_int = int(
@@ -1433,29 +1457,34 @@ class Controller(controller.BaseController):
                     for host_role_name in host_role_names:
                         for role in role_lists:
                             if host_role_name == role[
-                                    'name'] and role['type'] == 'default':
+                                'name'] and role['type'] == 'default':
                                 roles_of_host.append(role)
                     db_lv_size = 0
                     nova_lv_size = 0
                     glance_lv_size = 0
+                    docker_vg_size = 0
                     for role_of_host in roles_of_host:
                         if role_of_host['name'] == 'CONTROLLER_HA':
                             if role_of_host.get('glance_lv_size', None):
                                 glance_lv_size = role_of_host['glance_lv_size']
                             if role_of_host.get('db_lv_size', None):
                                 db_lv_size = role_of_host['db_lv_size']
+                            if role_of_host.get('docker_vg_size', None):
+                                docker_vg_size = role_of_host['docker_vg_size']
                         if role_of_host['name'] == 'COMPUTER':
                             nova_lv_size = role_of_host['nova_lv_size']
                     free_disk_storage_size_m = disk_storage_size_m - \
-                        boot_partition_m - \
-                        redundant_partiton_m - \
-                        (root_lv_size / 4) * 4 - (glance_lv_size / 4) * 4 - \
-                        (nova_lv_size / 4) * 4 - \
-                        (db_lv_size / 4) * 4
+                                               redundant_partiton_m - \
+                                               boot_partition_m - (
+                                                (root_lv_size / 4) * 4 + (
+                                                glance_lv_size / 4) * 4 + (
+                                                nova_lv_size / 4) * 4 + (
+                                                db_lv_size / 4) * 4 + (
+                                                docker_vg_size / 4) * 4)
                 else:
                     free_disk_storage_size_m = disk_storage_size_m - \
-                        boot_partition_m - redundant_partiton_m - \
-                        (root_lv_size / 4) * 4
+                                               boot_partition_m - redundant_partiton_m - \
+                                               (root_lv_size / 4) * 4
                 if (swap_lv_size / 4) * 4 > free_disk_storage_size_m:
                     msg = "the sum of swap_lv_size and " \
                           "glance_lv_size and nova_lv_size and " \
@@ -1487,10 +1516,10 @@ class Controller(controller.BaseController):
         if host_meta.get(
                 'os_status',
                 None) != 'init' and orig_host_meta.get(
-                'os_status',
-                None) == 'active':
+            'os_status',
+            None) == 'active':
             if host_meta.get('root_pwd', None) and host_meta[
-                    'root_pwd'] != orig_host_meta['root_pwd']:
+                'root_pwd'] != orig_host_meta['root_pwd']:
                 msg = _(
                     "Forbidden to update root_pwd of %s "
                     "when os_status is active if "
@@ -1503,17 +1532,17 @@ class Controller(controller.BaseController):
             if not host_meta.get(
                     'root_pwd',
                     None) and not orig_host_meta.get(
-                    'root_pwd',
-                    None):
+                'root_pwd',
+                None):
                 host_meta['root_pwd'] = 'ossdbg1'
 
         if host_meta.get(
                 'os_status',
                 None) != 'init' and orig_host_meta.get(
-                'os_status',
-                None) == 'active':
+            'os_status',
+            None) == 'active':
             if host_meta.get('isolcpus', None) and host_meta[
-                    'isolcpus'] != orig_host_meta['isolcpus']:
+                'isolcpus'] != orig_host_meta['isolcpus']:
                 msg = _(
                     "Forbidden to update isolcpus of %s "
                     "when os_status is active if "
@@ -1617,13 +1646,13 @@ class Controller(controller.BaseController):
                     raise HTTPForbidden(msg)
                 if 'is_deployment' in interface:
                     if interface['is_deployment'] == "True" or interface[
-                            'is_deployment']:
+                        'is_deployment']:
                         interface['is_deployment'] = 1
                     else:
                         interface['is_deployment'] = 0
 
                 if ('assigned_networks' in interface and
-                        interface['assigned_networks'] != [''] and
+                            interface['assigned_networks'] != [''] and
                         interface['assigned_networks']):
                     if cluster_id:
                         LOG.info(
@@ -1655,10 +1684,10 @@ class Controller(controller.BaseController):
                         raise HTTPBadRequest(explanation=msg,
                                              request=req,
                                              content_type="text/plain")
-                    assigned_networks_of_interfaces.\
+                    assigned_networks_of_interfaces. \
                         append(assigned_networks_of_one_interface)
                 else:
-                    assigned_networks_of_interfaces.\
+                    assigned_networks_of_interfaces. \
                         append([])
                 interface_num += 1
             self._compare_assigned_networks_between_interfaces(
@@ -1681,10 +1710,10 @@ class Controller(controller.BaseController):
                 raise HTTPNotFound(msg)
 
         if host_meta.get('os_status', None) != 'init' and \
-                orig_host_meta.get('os_status', None) == 'active':
+                        orig_host_meta.get('os_status', None) == 'active':
             if host_meta.get(
                     'hugepages', None) and int(
-                    host_meta['hugepages']) != orig_host_meta['hugepages']:
+                host_meta['hugepages']) != orig_host_meta['hugepages']:
                 msg = _("Forbidden to update hugepages of %s"
                         " when os_status is active if "
                         "you don't want to install os") % host_meta['name']
@@ -1718,10 +1747,10 @@ class Controller(controller.BaseController):
                             memory.strip().split(' ')[0]))
 
         if host_meta.get('os_status', None) != 'init' and \
-                orig_host_meta.get('os_status', None) == 'active':
+                        orig_host_meta.get('os_status', None) == 'active':
             if host_meta.get('hugepagesize', None) and \
-                    host_meta['hugepagesize'] != \
-                    orig_host_meta['hugepagesize']:
+                            host_meta['hugepagesize'] != \
+                            orig_host_meta['hugepagesize']:
                 msg = _(
                     "Forbidden to update hugepagesize of %s"
                     " when os_status is active if you don't "
@@ -1745,15 +1774,17 @@ class Controller(controller.BaseController):
                         LOG.error(msg)
                         raise HTTPBadRequest(explanation=msg)
                 if host_meta['hugepagesize'] == '2M' and \
-                        int(host_meta['hugepagesize'][0]) * 1024 > \
-                        int(memory.strip().split(' ')[0]):
+                                        int(host_meta['hugepagesize'][
+                                                0]) * 1024 > \
+                                int(memory.strip().split(' ')[0]):
                     msg = "The host %s forbid to use hugepage because it's " \
                           "memory is too small" % id
                     LOG.error(msg)
                     raise HTTPForbidden(explanation=msg)
                 if host_meta['hugepagesize'] == '1G' and \
-                        int(host_meta['hugepagesize'][0]) * 1024 * 1024 > \
-                        int(memory.strip().split(' ')[0]):
+                                                int(host_meta['hugepagesize'][
+                                                        0]) * 1024 * 1024 > \
+                                int(memory.strip().split(' ')[0]):
                     msg = "The hugepagesize is too big, you can choose 2M " \
                           "for a try."
                     LOG.error(msg)
@@ -1761,13 +1792,14 @@ class Controller(controller.BaseController):
                 if 'hugepages' in host_meta:
                     self._compute_hugepage_memory(host_meta['hugepages'], int(
                         memory.strip().split(' ')[0]),
-                        host_meta['hugepagesize'])
+                                                  host_meta['hugepagesize'])
                 if 'hugepages' not in host_meta and \
                         orig_host_meta.get('hugepages', None):
                     self._compute_hugepage_memory(orig_host_meta['hugepages'],
                                                   int(
-                        memory.strip().split(' ')[0]),
-                        host_meta['hugepagesize'])
+                                                      memory.strip().split(' ')[
+                                                          0]),
+                                                  host_meta['hugepagesize'])
 
         self._check_dvs_huge(host_meta, orig_host_meta)
 
@@ -1788,8 +1820,8 @@ class Controller(controller.BaseController):
                         "you don't want to install os") % host_meta['name']
                 raise HTTPForbidden(explanation=msg)
             if host_meta.get('group_list', None) and \
-                    host_meta['group_list'] != \
-                    orig_host_meta['group_list']:
+                            host_meta['group_list'] != \
+                            orig_host_meta['group_list']:
                 msg = _("Forbidden to update group list of %s "
                         "when os status is active if "
                         "you don't want to install os") % host_meta['name']
@@ -1806,8 +1838,8 @@ class Controller(controller.BaseController):
                 self._check_group_list(os_version_type, group_list)
 
         if (host_meta.get('config_set_id') and
-                host_meta['config_set_id'] !=
-                orig_host_meta.get('config_set_id')):
+                    host_meta['config_set_id'] !=
+                    orig_host_meta.get('config_set_id')):
             self.get_config_set_meta_or_404(req,
                                             host_meta['config_set_id'])
 
@@ -1938,14 +1970,14 @@ class Controller(controller.BaseController):
                     mac = eval(mac_info.group(1))
                     filters = {'mac': mac}
                     update_info = {}
-                    host_interfaces =\
+                    host_interfaces = \
                         registry.get_all_host_interfaces(req.context, filters)
                     if host_interfaces and \
                             (self.is_host_discover_success_4_ssh(
-                            req, host_interfaces[0]['host_id'])):
+                                req, host_interfaces[0]['host_id'])):
                         update_info['status'] = 'DISCOVERY_SUCCESSFUL'
-                        update_info['message'] =\
-                            "discover host for %s successfully!" %\
+                        update_info['message'] = \
+                            "discover host for %s successfully!" % \
                             discover_host_meta['ip']
                         update_info['host_id'] = host_interfaces[0]['host_id']
                         LOG.info("update_info['host_id']:%s",
@@ -1969,7 +2001,7 @@ class Controller(controller.BaseController):
             except subprocess.CalledProcessError as e:
                 update_info = {}
                 update_info['status'] = 'DISCOVERY_FAILED'
-                update_info['message'] = "discover host for %s failed!" %\
+                update_info['message'] = "discover host for %s failed!" % \
                                          discover_host_meta['ip']
                 self.update_progress_to_db(
                     req, update_info, discover_host_meta)
@@ -2002,7 +2034,7 @@ class Controller(controller.BaseController):
         cluster_id = host_meta.get('cluster_id', None)
         if cluster_id:
             params = {'cluster_id': cluster_id}
-        discover_host_meta_list =\
+        discover_host_meta_list = \
             registry.get_discover_hosts_detail(req.context, **params)
         filters = {}
         host_interfaces = \
@@ -2102,7 +2134,7 @@ class Controller(controller.BaseController):
                 if host and host['status'] != 'DISCOVERY_SUCCESSFUL':
                     host_info = {}
                     host_info['ip'] = host_meta.get('ip', host.get('ip'))
-                    host_info['passwd'] =\
+                    host_info['passwd'] = \
                         host_meta.get('passwd', host.get('passwd'))
                     host_info['user'] = \
                         host_meta.get('user', host.get('user'))
@@ -2265,7 +2297,7 @@ class Controller(controller.BaseController):
     def _get_discover_host_ip(self, req):
         params = {}
         hosts_ip = list()
-        discover_hosts =\
+        discover_hosts = \
             registry.get_discover_hosts_detail(req.context, **params)
         for host in discover_hosts:
             if host.get('ip', None):
@@ -2321,7 +2353,7 @@ class Controller(controller.BaseController):
     def _get_discover_host_mac(self, req):
         params = dict()
         hosts_mac = list()
-        discover_hosts =\
+        discover_hosts = \
             registry.get_discover_hosts_detail(req.context, **params)
         for host in discover_hosts:
             if host.get('mac'):
