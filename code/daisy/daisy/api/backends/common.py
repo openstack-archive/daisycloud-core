@@ -729,26 +729,27 @@ def get_ctl_ha_nodes_min_mac(req, cluster_id):
     return ctl_ha_nodes_min_mac
 
 
-def update_db_host_status(req, host_id, host_status, version_id=None,
-                          version_patch_id=None):
+def update_db_host_status(req, host_id, host_status, version_id=None):
     """
     Update host status and intallation progress to db.
     :return:
     """
     try:
         host_meta = {}
-        if host_status.get('os_progress', None):
+        if "os_progress" in host_status:
             host_meta['os_progress'] = host_status['os_progress']
-        if host_status.get('os_status', None):
+        if "os_status" in host_status:
             host_meta['os_status'] = host_status['os_status']
-        if host_status.get('messages', None):
+        if "messages" in host_status:
             host_meta['messages'] = host_status['messages']
-        if host_status.get('tecs_version_id', None):
+        if "tecs_version_id" in host_status:
             host_meta['tecs_version_id'] = host_status['tecs_version_id']
+        if "tecs_patch_id" in host_status:
+            host_meta['tecs_patch_id'] = host_status['tecs_patch_id']
+        if "version_patch_id" in host_status:
+            host_meta['version_patch_id'] = host_status['version_patch_id']
         if version_id:
             host_meta['os_version_id'] = version_id
-        if version_patch_id:
-            host_meta['version_patch_id'] = version_patch_id
         hostinfo = registry.update_host_metadata(req.context,
                                                  host_id,
                                                  host_meta)
