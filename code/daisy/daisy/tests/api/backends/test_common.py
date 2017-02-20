@@ -174,3 +174,24 @@ class TestCommon(test.TestCase):
         mock_do_update_host.side_effect = mock_update_host
         host_info = common.update_db_host_status(req, host_id, host_status)
         self.assertEqual("456", host_info['version_patch_id'])
+
+    @mock.patch('daisy.registry.client.v1.api.'
+                'update_role_host_metadata')
+    @mock.patch('daisy.registry.client.v1.api.get_role_host_metadata')
+    @mock.patch('daisy.registry.client.v1.api.get_roles_detail')
+    def test_set_role_status_and_progress_with_host_id(
+            self, mock_get_roles, mock_get_role_host, mock_update_role_host):
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True, user='fake user',
+                                     tenant='fake tenant')
+        host_id = '2'
+        cluster_id = '1'
+        opera = 'install'
+        status = {}
+        backend_name = 'tecs'
+        mock_get_roles.return_value = [{'id': '1',
+                                        'deployment_backend': 'tecs'}]
+        mock_get_role_host.return_value = [{'host_id': '1'}]
+        common.set_role_status_and_progress(req, cluster_id, opera, status,
+                                            backend_name, host_id)
+        self.assertFalse(mock_update_role_host.called)
