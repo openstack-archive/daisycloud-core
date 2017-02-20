@@ -4,6 +4,10 @@ import webob
 import exceptions
 import subprocess
 from daisy.api.backends.osinstall.pxe import install as os
+from daisy.db.sqlalchemy import api
+from daisy.context import RequestContext
+from daisy.common import exception
+from daisy import test
 
 
 def subprocesscall(cmd):
@@ -40,6 +44,7 @@ class TestOs(unittest.TestCase):
     def setUp(self):
         super(TestOs, self).setUp()
         self.req = webob.Request.blank('/')
+        self._log_handler.reset()
 
     def tearDown(self):
         super(TestOs, self).tearDown()
@@ -170,3 +175,77 @@ class TestOs(unittest.TestCase):
         self.assertRaises(exceptions.Exception,
                           os.set_disk_start_of_cisco,
                           host_detail)
+
+
+class TestInstall(test.TestCase):
+    _log_handler = MockLoggingHandler()
+    _log_messages = _log_handler.messages
+
+    def setUp(self):
+        super(TestInstall, self).setUp()
+        self.req = webob.Request.blank('/')
+        self._log_handler.reset()
+
+    def tearDown(self):
+        super(TestInstall, self).tearDown()
+
+    @mock.patch("daisy.api.backends.common.set_role_status_and_progress")
+    @mock.patch("daisy.api.backends.common.update_db_host_status")
+    @mock.patch('logging.Logger')
+    @mock.patch("daisy.api.backends.common.subprocess_call")
+    def test_begin_install_os_with_error_ipmi(self,
+                                              mock_subprocess,
+                                              mock_log,
+                                              mock_update_host,
+                                              mock_set_role):
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True, user='fake user',
+                                     tenant='fake tenant')
+        cluster_id = '1'
+
+        def check_version(tecs_version):
+            pass
+
+        def set_role(req, cluster_id, opera, status, backend_name, host_id):
+            pass
+
+        def update_host_meta(req, host_id, host_meta):
+            pass
+
+        hosts_detail = [{'os_version_file': 'tecs',
+                         'memory': {'total': 102400},
+                         'disks': {'sda': {'disk': 'abc',
+                                           'removable': 'abc',
+                                           'name': 'sda',
+                                           'size': '102400'}},
+                         'system': {'manufacturer': 'abc'},
+                         'ipmi_addr': '',
+                         'ipmi_user': 'zteroot',
+                         'ipmi_passwd': 'superuser',
+                         'id': '1',
+                         'swap_lv_size': 51200}]
+        mock_subprocess.side_effect = check_version
+        mock_log.side_effect = self._log_handler
+        mock_update_host.side_effect = update_host_meta
+        mock_set_role.side_effect = set_role
+        os.OSInstall(req, cluster_id)._begin_install_os(hosts_detail,
+                                                        cluster_id)
+        self.assertTrue(mock_set_role.called)
+
+    @mock.patch("daisy.api.backends.common.subprocess_call")
+    def test_install_os_for_baremetal_with_no_version_file(self,
+                                                           mock_subprocess):
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True, user='fake user',
+                                     tenant='fake tenant')
+
+        def subprocess_return(cmd):
+            msg = "execute cmd failed by subprocess call"
+            raise exception.SubprocessCmdFailed(message=msg)
+        cluster_id = '1'
+        host_detail = {'os_version_file': 'mimosa.iso'}
+        mock_subprocess.side_effect = subprocess_return
+        self.assertRaises(
+            exception.NotFound,
+            os.OSInstall(req, cluster_id)._install_os_for_baremetal,
+            host_detail)

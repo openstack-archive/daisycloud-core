@@ -185,7 +185,7 @@ class InstallTask(object):
             # all os will be installed batch by batch with
             # max_parallel_os_number which was set in daisy-api.conf
             (order_hosts_need_os, role_hosts_need_os) = os_install.install_os(
-                order_hosts_need_os, role_hosts_need_os)
+                order_hosts_need_os, role_hosts_need_os, self.cluster_id)
             # after a batch of os install over, judge if all
             # role hosts install os completely,
             # if role_hosts_need_os all install(including success and failed),
