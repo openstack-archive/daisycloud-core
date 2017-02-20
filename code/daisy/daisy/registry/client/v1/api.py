@@ -779,3 +779,33 @@ def get_template_service_metadata(context, template_service_id):
 def list_template_service_metadata(context, **kwargs):
     c = get_registry_client(context)
     return c.list_template_service(**kwargs)
+
+
+def add_neutron_backend_metadata(context, neutron_backend_meta):
+    c = get_registry_client(context)
+    return c.add_neutron_backend(neutron_backend_meta)
+
+
+def delete_neutron_backend_metadata(context, neutron_backend_id):
+    LOG.debug("Deleting neutron_backend metadata %s...", neutron_backend_id)
+    c = get_registry_client(context)
+    return c.delete_neutron_backend(neutron_backend_id)
+
+
+def update_neutron_backend_metadata(context, 
+                                    neutron_backend_id,
+                                    neutron_backend_meta):
+    LOG.debug("Updating config metadata for config_file %s...",
+              neutron_backend_id)
+    c = get_registry_client(context)
+    return c.update_neutron_backend(neutron_backend_id, neutron_backend_meta)
+
+
+def get_neutron_backend_metadata(context, neutron_backend_id):
+    c = get_registry_client(context)
+    return c.get_neutron_backend_detail(neutron_backend_id)
+
+
+def list_neutron_backend_metadata(context, **kwargs):
+    c = get_registry_client(context)
+    return c.list_neutron_backend(**kwargs)
