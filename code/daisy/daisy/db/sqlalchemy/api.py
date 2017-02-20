@@ -6441,3 +6441,154 @@ def template_service_get_all(context, filters=None, marker=None, limit=None,
                              for template_service in template_services
                              if template_service["id"] in service_ids]
     return template_services
+
+
+def _check_neutron_backend_id(neutron_backend_id):
+    """
+    check if the given project id is valid before executing operations. For
+    now, we only check its length. The original purpose of this method is
+    wrapping the different behaviors between MySql and DB2 when the project id
+    length is longer than the defined length in database model.
+    :param neutron_backend_id: The id of the project we want to check
+    :return: Raise NoFound exception if given project id is invalid
+    """
+    if (neutron_backend_id and
+       len(neutron_backend_id) > models.NeutronBackend.id.property.columns[0].type.length):
+        raise exception.NotFound()
+
+
+def _neutron_backend_get(context, neutron_backend_id=None, role_id=None,
+                         marker=None, session=None, force_show_deleted=False):
+    """Get an neutron_backend or raise if it does not exist."""
+    if neutron_backend_id is not None:
+        _check_neutron_backend_id(neutron_backend_id)
+    session = session or get_session()
+
+    try:
+        if neutron_backend_id is not None:
+            query = session.query(models.NeutronBackend).filter_by(id=neutron_backend_id).filter_by(deleted=False)
+        elif role_id is not None:
+            query = session.query(models.NeutronBackend).filter_by(role_id=role_id).filter_by(deleted=False)
+        else:
+            query = session.query(models.NeutronBackend).filter_by(deleted=False)
+        # filter out deleted items if context disallows it
+        if not force_show_deleted and not context.can_see_deleted:
+            query = query.filter_by(deleted=False)
+
+        if neutron_backend_id is not None:
+            neutron_backend = query.one()
+        else:
+            neutron_backend = query.all()
+    except sa_orm.exc.NoResultFound:
+        msg = "No neutron_backend found with ID %s" % neutron_backend_id
+        LOG.debug(msg)
+        raise exception.NotFound(msg)
+
+    return neutron_backend
+
+
+def _neutron_backend_update(context, values, neutron_backend_id):
+    """
+    Used internally by neutron_backend_add and project_update
+
+    :param context: Request context
+    :param values: A dict of attributes to set
+    :param neutron_backend_id: If None, create the neutron_backend, otherwise, find and update it
+    """
+
+    # NOTE(jbresnah) values is altered in this so a copy is needed
+    values = values.copy()
+    session = get_session()
+    with session.begin():
+        if neutron_backend_id:
+            # Don't drop created_at if we're passing it in...
+            _drop_protected_attrs(models.NeutronBackend, values)
+            # NOTE(iccha-sethi): updated_at must be explicitly set in case
+            #                   only ImageProperty table was modifited
+            values['updated_at'] = timeutils.utcnow()
+            # Validate fields for projects table. This is similar to what is done
+            # for the query result update except that we need to do it prior
+            # in this case.
+            # TODO(dosaboy): replace this with a dict comprehension once py26
+            #                support is deprecated.
+            query = session.query(models.NeutronBackend).filter_by(id=neutron_backend_id).filter_by(deleted=False)
+            updated = query.update(values, synchronize_session='fetch')
+
+            if not updated:
+                msg = (_('update neutron_backend_id %(neutron_backend_id)s failed') %
+                       {'neutron_backend_id': neutron_backend_id})
+                raise exception.Conflict(msg)
+        else:
+            neutron_backend_ref = models.NeutronBackend()
+            neutron_backend_ref.update(values)
+            _update_values(neutron_backend_ref, values)
+            try:
+                neutron_backend_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("neutron_backend ID %s already exists!"
+                                          % values['id'])
+
+            neutron_backend_id = neutron_backend_ref.id
+    return _neutron_backend_get(context, neutron_backend_id)
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def neutron_backend_add(context, values):
+    """Add a neutron backend from the values dictionary."""
+    return _neutron_backend_update(context, values, None)
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def neutron_backend_destroy(context, neutron_backend_id):
+    """Destroy the neutron_backend or raise if it does not exist."""
+    session = get_session()
+    with session.begin():
+        neutron_backend_ref = _neutron_backend_get(context,
+                                                   neutron_backend_id,
+                                                   session=session)
+        neutron_backend_ref.delete(session=session)
+    return neutron_backend_ref
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def neutron_backend_update(context, neutron_backend_id, values):
+    """
+    Set the given properties on an cluster and update it.
+
+    :raises NotFound if cluster does not exist.
+    """
+    return _neutron_backend_update(context, values, neutron_backend_id)
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def neutron_backend_detail(context, neutron_backend_id):
+    neutron_backend_ref = _neutron_backend_get(context, neutron_backend_id)
+    return neutron_backend_ref
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def neutron_backend_list(context, filters=None, **param):
+    """
+    Get all neutron_backends that match zero or more filters.
+
+    :param filters: dict of filter keys and values. If a 'properties'
+                    key is present, it is treated as a dict of key/value
+                    filters on the host properties attribute
+    :param marker: host id after which to start page
+    :param limit: maximum number of hosts to return
+    :param sort_key: list of host attributes by which results should be sorted
+    :param sort_dir: directions in which results should be sorted (asc, desc)
+    """
+    filters = filters or {}
+
+    role_id = None
+    if 'role_id' in filters:
+        role_id = filters.pop('role_id')
+
+    neutron_backend_ref = _neutron_backend_get(context, role_id=role_id)
+    return neutron_backend_ref
