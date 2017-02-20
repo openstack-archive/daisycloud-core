@@ -568,3 +568,19 @@ class TestSqlalchemyApi(test.TestCase):
         assigned_networks = api.get_assigned_networks_by_network_id(
             self.req.context, network_id)
         self.assertEqual(assigned_networks, [])
+
+    def test_get_host_interface_vf_info(self):
+        self.assertRaises(exception.NotFound,
+                          api._get_host_interface_vf_info,
+                          self.req.context, None)
+
+    @mock.patch('daisy.db.sqlalchemy.models.HostInterface.save')
+    def test_update_host_interface_vf_info(self, mock_host_interface_save):
+        session = FakeSession()
+        host_id = "9692370d-7378-4ef8-9e21-1afe5cd1564a"
+        pf_interface_id = "d1e5ce54-f96d-41da-8f28-4535918660b7"
+        vf_values = "[{'name':'bond0','slaves':'enp3s0,enp3s1','index':0}]"
+        mock_host_interface_save.return_value = None
+        api._update_host_interface_vf_info(self.req.context, host_id,
+                                           pf_interface_id, vf_values, session)
+        self.assertTrue(mock_host_interface_save.called)
