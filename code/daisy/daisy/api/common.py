@@ -34,82 +34,60 @@ def get_pxe_mac(host_detail):
     return pxe_macs
 
 
+def check_keys_in_pairs(key1, key2, dict_data):
+    """
+    key1,key2 in dict_data or key1,key2 not in dict_data return True
+    if key1 in dict_data but key2 not in dict_data or else return False
+    :param key1,key2, check keys
+    :param dict_data checked  data
+    """
+    if key1 and key2 and isinstance(dict_data, dict):
+        if key1 in dict_data and key2 not in dict_data:
+            return False
+        elif key2 in dict_data and key1 not in dict_data:
+            return False
+    return True
+
+
+def is_value_in_range(value_min, value_max, range):
+    if (value_min >= range[0] and value_min <= range[1]) \
+            and (value_max >= range[0] and value_max <= range[1]):
+        if value_min < value_max:
+            return True
+    return False
+
+
+def _valid_appointed_network_range(req, network_meta,
+                                   key_start, key_end, check_range):
+    if not check_keys_in_pairs(key_start, key_end, network_meta):
+            msg = "%s and %s must be appeared "\
+                  "at the same time" % (key_start, key_end)
+            LOG.error(msg)
+            raise exc.HTTPBadRequest(explanation=msg, request=req)
+    else:
+        value_min = network_meta.get(key_start, None)
+        value_max = network_meta.get(key_end, None)
+        if value_min is not None and value_max is not None:
+            value_min = int(value_min)
+            value_max = int(value_max)
+            if not is_value_in_range(value_min, value_max, check_range):
+                msg = "%s:%d and %s:%d must be in %d~%d and start:%d less than end:%d" \
+                      % (key_start, value_min, key_end, value_max,
+                         check_range[0], check_range[1], value_min, value_max)
+                LOG.error(msg)
+                raise exc.HTTPBadRequest(explanation=msg, request=req)
+
+
 def valid_network_range(req, network_meta):
-    if (('vlan_start' in network_meta and
-         'vlan_end' not in network_meta) or
-        ('vlan_start' not in network_meta and
-            'vlan_end' in network_meta)):
-        msg = "vlan-start and vlan-end must be appeared "\
-              "at the same time"
-        LOG.error(msg)
-        raise exc.HTTPBadRequest(explanation=msg, request=req)
-    if 'vlan_start' in network_meta:
-        if not (int(network_meta['vlan_start']) >= 1 and
-                int(network_meta['vlan_start']) <= 4094):
-            msg = "vlan_start must be a integer in 1~4096"
-            LOG.error(msg)
-            raise exc.HTTPBadRequest(explanation=msg, request=req)
-    if 'vlan_end' in network_meta:
-        if not (int(network_meta['vlan_end']) >= 1 and
-                int(network_meta['vlan_end']) <= 4094):
-            msg = "vlan_end must be a integer in 1~4096"
-            LOG.error(msg)
-            raise exc.HTTPBadRequest(explanation=msg, request=req)
-        if int(network_meta['vlan_start']) > int(network_meta['vlan_end']):
-            msg = "vlan_start must be less than vlan_end"
-            LOG.error(msg)
-            raise exc.HTTPBadRequest(explanation=msg, request=req)
-
-    if (('vni_start' in network_meta and 'vni_end' not in
-         network_meta) or (
-            'vni_start' not in network_meta and
-            'vni_end' in network_meta)):
-
-        msg = "vni_start and vni_end must be appeared at the same time"
-        LOG.error(msg)
-        raise exc.HTTPBadRequest(explanation=msg, request=req)
-    if 'vni_start' in network_meta:
-        if not (int(network_meta['vni_start']) >= 1 and
-                int(network_meta['vni_start']) <= 16777216):
-            msg = "vni_start must be a integer in 1~16777216"
-            LOG.error(msg)
-            raise exc.HTTPBadRequest(explanation=msg, request=req)
-    if 'vni_end' in network_meta:
-        if not (int(network_meta['vni_end']) >= 1 and
-                int(network_meta['vni_end']) <= 16777216):
-            msg = "vni_end must be a integer in 1~16777216"
-            LOG.error(msg)
-            raise exc.HTTPBadRequest(explanation=msg, request=req)
-        if int(network_meta['vni_start']) > int(network_meta['vni_end']):
-            msg = "vni_start must be less than vni_end"
-            LOG.error(msg)
-            raise exc.HTTPBadRequest(explanation=msg, request=req)
-
-    if (('gre_id_start' in network_meta and
-         'gre_id_end' not in network_meta) or
-        ('gre_id_start' not in network_meta and
-            'gre_id_end' in network_meta)):
-        msg = "gre_id_start and gre_id_end must"\
-            "be appeared at the same time"
-        LOG.error(msg)
-        raise exc.HTTPBadRequest(explanation=msg, request=req)
-    if 'gre_id_start' in network_meta:
-        if not (int(network_meta['gre_id_start']) >= 1 and
-                int(network_meta['gre_id_start']) <= 4094):
-            msg = "gre_id_start must be a integer in 1~4094"
-            LOG.error(msg)
-            raise exc.HTTPBadRequest(explanation=msg, request=req)
-    if 'gre_id_end' in network_meta:
-        if not (int(network_meta['gre_id_end']) >= 1 and
-                int(network_meta['gre_id_end']) <= 4094):
-            msg = "gre_id_end must be a integer in 1~4094"
-            LOG.error(msg)
-            raise exc.HTTPBadRequest(explanation=msg, request=req)
-        if int(network_meta['gre_id_start']) >\
-                int(network_meta['gre_id_end']):
-            msg = "gre_id_start must be less than gre_id_end"
-            LOG.error(msg)
-            raise exc.HTTPBadRequest(explanation=msg, request=req)
+    default_range = [1, 4094]
+    _valid_appointed_network_range(req, network_meta,
+                                   'vlan_start', 'vlan_end', default_range)
+    _valid_appointed_network_range(req, network_meta,
+                                   'vni_start', 'vni_end', [1, 16777216])
+    _valid_appointed_network_range(req, network_meta,
+                                   'gre_id_start', 'gre_id_end', default_range)
+    _valid_appointed_network_range(req, network_meta,
+                                   'svlan_start', 'svlan_end', default_range)
 
 
 def valid_ip_ranges(ip_ranges, cidr=None):
