@@ -715,7 +715,38 @@ class Controller(controller.BaseController):
         :raises HTTPNotFound if role metadata is not available to user
         """
         self._enforce(req, 'get_role')
-        role_meta = self.get_role_meta_or_404(req, id)
+        role_meta_tmp = self.get_role_meta_or_404(req, id)
+        params = dict()
+        neutron_backend_meta = {}
+        neutron_backends_array = {}
+        neutron_backends_list = []
+        neutron_backends = registry.list_neutron_backend_metadata(req.context,
+                                                                  **params)
+        for neutron_backend_meta_tmp in neutron_backends:
+            if neutron_backend_meta_tmp['role_id'] == id:
+                neutron_backend_meta_tmp.pop('created_at')
+                neutron_backend_meta_tmp.pop('updated_at')
+                neutron_backend_meta_tmp.pop('role_id')
+                neutron_backend_meta_tmp.pop('id')
+                neutron_backend_meta_tmp.pop('deleted_at')
+                neutron_backend_meta['sdn_controller_type'] =\
+                    neutron_backend_meta_tmp['neutron_backends_type']
+                neutron_backend_meta['neutron_agent_type'] =\
+                    neutron_backend_meta_tmp['sdn_type']
+                neutron_backend_meta['zenic_port'] =\
+                    neutron_backend_meta_tmp['port']
+                neutron_backend_meta['zenic_user_name'] =\
+                    neutron_backend_meta_tmp['user_name']
+                neutron_backend_meta['zenic_user_password'] =\
+                    neutron_backend_meta_tmp['user_pwd']
+                neutron_backend_meta['zenic_ip'] =\
+                    neutron_backend_meta_tmp['controller_ip']
+                neutron_backends_list.append(neutron_backend_meta)
+                neutron_backend_meta = {}
+        neutron_backends_array['neutron_backends_array'] =\
+            neutron_backends_list
+        role_meta = dict(role_meta_tmp.items() +
+                         neutron_backends_array.items())
         return {'role_meta': role_meta}
 
     def detail(self, req):
@@ -789,6 +820,45 @@ class Controller(controller.BaseController):
             if cluster_meta['public_vip']:
                 cluster_meta = registry.update_cluster_metadata(
                     req.context, orig_role_meta['cluster_id'], cluster_meta)
+
+        params = dict()
+        neutron_backends = registry.list_neutron_backend_metadata(req.context,
+                                                                  **params)
+        if neutron_backends and 'neutron_backends_array' in role_meta:
+            for neutron_backend in neutron_backends:
+                if neutron_backend.get('role_id') == id:
+                    registry.delete_neutron_backend_metadata(
+                        req.context,
+                        neutron_backend['id'])
+
+        if orig_role_meta['role_type'] == "CONTROLLER_HA":
+            neutron_backend_meta_tmp = {}
+            neutron_backend_metas = {}
+            neutron_backend_meta = {}
+            if role_meta.get('neutron_backends_array', None):
+                neutron_backend_metas = list(
+                    eval(role_meta.get('neutron_backends_array')))
+                for neutron_backend_meta_tmp in neutron_backend_metas:
+                    neutron_backend_meta['neutron_backends_type'] =\
+                        neutron_backend_meta_tmp['sdn_controller_type']
+                    neutron_backend_meta['sdn_type'] =\
+                        neutron_backend_meta_tmp['neutron_agent_type']
+                    neutron_backend_meta['port'] =\
+                        neutron_backend_meta_tmp['zenic_port']
+                    neutron_backend_meta['user_name'] =\
+                        neutron_backend_meta_tmp['zenic_user_name']
+                    neutron_backend_meta['user_pwd'] =\
+                        neutron_backend_meta_tmp['zenic_user_password']
+                    neutron_backend_meta['controller_ip'] =\
+                        neutron_backend_meta_tmp['zenic_ip']
+                    neutron_backend_meta['role_id'] = orig_role_meta['id']
+
+                    if neutron_backend_meta:
+                        neutron_backend_meta =\
+                            registry.add_neutron_backend_metadata(
+                                req.context, neutron_backend_meta)
+                    neutron_backend_meta = {}
+                del role_meta['neutron_backends_array']
 
         self._enforce(req, 'modify_image')
         # orig_role_meta = self.get_role_meta_or_404(req, id)

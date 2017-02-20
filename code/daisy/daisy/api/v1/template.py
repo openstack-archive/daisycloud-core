@@ -259,6 +259,16 @@ class Controller(controller.BaseController):
             self._del_general_params(cinder_volume)
         return cinder_volumes
 
+    def _get_neutron_backends(self, req, role):
+        neutron_backend_params = {'filters': {'role_id': role['id']}}
+        neutron_backends = registry.list_neutron_backend_metadata(
+            req.context, **neutron_backend_params)
+        for neutron_backend in neutron_backends:
+            if neutron_backend.get('role_id', None):
+                neutron_backend['role_id'] = role['name']
+            self._del_general_params(neutron_backend)
+        return neutron_backends
+
     def _get_optical_switchs(self, req, role):
         optical_switch_params = {'filters': {'role_id': role['id']}}
         optical_switchs = registry.list_optical_switch_metadata(
@@ -292,6 +302,7 @@ class Controller(controller.BaseController):
         template_name = template.get('template_name', None)
         self._enforce(req, 'export_db_to_json')
         cinder_volume_list = []
+        neutron_backend_list = []
         service_disk_list = []
         optical_switch_list = []
         template_content = {}
@@ -324,6 +335,8 @@ class Controller(controller.BaseController):
                     service_disk_list += services_disk
                     optical_switchs = self._get_optical_switchs(req, role)
                     optical_switch_list += optical_switchs
+                    neutron_backends = self._get_neutron_backends(req, role)
+                    neutron_backend_list += neutron_backends
 
                     if role.get('config_set_id', None):
                         config_set = registry.get_config_set_metadata(
@@ -365,6 +378,7 @@ class Controller(controller.BaseController):
                 template_content['roles'] = roles
                 template_content['networks'] = networks
                 template_content['cinder_volumes'] = cinder_volume_list
+                template_content['neutron_backends'] = neutron_backend_list
                 template_content['optical_switchs'] = optical_switch_list
                 template_content['services_disk'] = service_disk_list
                 template_json['content'] = json.dumps(template_content)
@@ -468,6 +482,25 @@ class Controller(controller.BaseController):
                 msg = "can't find role %s in new cluster when\
                        import cinder_volumes from template"\
                        % template_cinder_volume['role_id']
+                raise HTTPBadRequest(explanation=msg, request=req)
+
+    def _import_neutron_backends_to_db(self, req,
+                                       template_neutron_backends, roles):
+        for template_neutron_backend in template_neutron_backends:
+            has_template_role = False
+            for role in roles:
+                if template_neutron_backend['role_id'] == role['name']:
+                    has_template_role = True
+                    template_neutron_backend['role_id'] = role['id']
+                    break
+            if has_template_role:
+                registry.add_neutron_backend_metadata(req.context,
+                                                      template_neutron_backend)
+            else:
+                msg = "can't find role %s in new cluster when\
+                       import neutron_backends from template"\
+                       % template_neutron_backend['role_id']
+                LOG.error(msg)
                 raise HTTPBadRequest(explanation=msg, request=req)
 
     def _import_optical_switchs_to_db(self, req,
@@ -635,6 +668,9 @@ class Controller(controller.BaseController):
 
             self._import_cinder_volumes_to_db(
                 req, template_content['cinder_volumes'], roles)
+            if 'neutron_backends' in template_content:
+                self._import_neutron_backends_to_db(
+                    req, template_content['neutron_backends'], roles)
             if 'optical_switchs' in template_content:
                 self._import_optical_switchs_to_db(
                     req, template_content['optical_switchs'], roles)

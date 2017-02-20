@@ -29,6 +29,7 @@ from daisy.registry.api.v1 import version_patchs
 from daisy.registry.api.v1 import template_configs
 from daisy.registry.api.v1 import template_funcs
 from daisy.registry.api.v1 import template_services
+from daisy.registry.api.v1 import neutron_backend
 
 
 def init(mapper):
@@ -589,6 +590,28 @@ def init(mapper):
                    controller=template_services_resource,
                    action="get_template_service",
                    conditions=dict(method=["GET"]))
+
+    neutron_backend_resource = neutron_backend.create_resource()
+    mapper.connect("/neutron_backend",
+                   controller=neutron_backend_resource,
+                   action='neutron_backend_add',
+                   conditions={'method': ['POST']})
+    mapper.connect("/neutron_backend/{id}",
+                   controller=neutron_backend_resource,
+                   action='neutron_backend_delete',
+                   conditions={'method': ['DELETE']})
+    mapper.connect("/neutron_backend/list",
+                   controller=neutron_backend_resource,
+                   action='neutron_backend_list',
+                   conditions={'method': ['GET']})
+    mapper.connect("/neutron_backend/{id}",
+                   controller=neutron_backend_resource,
+                   action='neutron_backend_detail',
+                   conditions={'method': ['GET']})
+    mapper.connect("/neutron_backend/{id}",
+                   controller=neutron_backend_resource,
+                   action='neutron_backend_update',
+                   conditions={'method': ['PUT']})
 
 
 class API(wsgi.Router):
