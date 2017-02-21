@@ -327,6 +327,8 @@ class IpRange(BASE, DaisyBase):
     start = Column(String(128))
     end = Column(String(128))
     network_id = Column(String(36))
+    cidr = Column(String(255))
+    gateway = Column(String(255))
 
 
 class HostRole(BASE, DaisyBase):
