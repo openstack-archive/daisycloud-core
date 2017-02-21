@@ -1395,6 +1395,12 @@ def do_config_detail(gc, args):
            help='Private plane mtu.eg.:1600.')
 @utils.arg('--segmentation-type', metavar='<SEGMENTATION_TYPE>',
            help='network plane segmentation type.')
+@utils.arg('--svlan-start', metavar='<SVLAN_START>',
+           help='svlan start of network.it should be a integer in "1~4096",\
+            and it must be appeared with svlan end')
+@utils.arg('--svlan-end', metavar='<SVLAN_END>',
+           help='svlan end of network.it should be a integer in "1~4096",\
+            and it must be appeared with svlan start')
 def do_network_add(gc, args):
     """Add a network."""
     ip_range_list = []
@@ -1482,6 +1488,12 @@ def do_network_add(gc, args):
            help='alias of network')
 @utils.arg('--segmentation-type', metavar='<SEGMENTATION_TYPE>',
            help='network plane segmentation type.')
+@utils.arg('--svlan-start', metavar='<SVLAN_START>',
+           help='svlan start of network.it should be a integer in "1~4096",\
+            and it must be appeared with svlan end')
+@utils.arg('--svlan-end', metavar='<SVLAN_END>',
+           help='svlan end of network.it should be a integer in "1~4096",\
+            and it must be appeared with svlan start')
 def do_network_update(gc, args):
     """Update a specific network."""
     # Filter out None values
