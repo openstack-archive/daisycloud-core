@@ -1415,164 +1415,100 @@ class TestHostsApiConfig(test.TestCase):
                           self.controller._verify_host_cluster, req,
                           "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
                           orig_host_meta, host_meta)
-    """
-    @mock.patch('logging.Logger')
-    @mock.patch("daisy.api.v1.hosts.Controller.get_host_meta_or_404")
-    def test_host_check_ipmi_with_hwm_discovered_host(self,
-                                                      mock_get_host,
-                                                      mock_log):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
-        host = {'hwm_id': '1',
-                'id': '1',
-                'name': 'host_1'}
-        mock_get_host.return_value = host
-        mock_log.side_effect = self._log_handler
-        self.assertEqual({
-            'check_result': {
-                'ipmi_check_result':
-                    'host discovered by hwm do not need ipmi check'}},
-                         self.controller.host_check(req, self.host_meta))
 
     @mock.patch('logging.Logger')
-    @mock.patch("daisy.api.v1.hosts.Controller.get_host_meta_or_404")
-    def test_host_check_ipmi_with_active_host(self, mock_get_host, mock_log):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
+    def test_host_check_ipmi_with_active_host(self, mock_log):
+        host_id = '1'
         host = {'os_status': 'active',
                 'id': '1',
                 'name': 'host_1'}
-        mock_get_host.return_value = host
         mock_log.side_effect = self._log_handler
         self.assertEqual({
-            'check_result': {
-                'ipmi_check_result':
-                    'active host do not need ipmi check'}},
-            self.controller.host_check(req, self.host_meta))
+            'ipmi_check_result': 'active host do not need ipmi check'},
+            self.controller._host_ipmi_check(host_id, host))
 
     @mock.patch('logging.Logger')
-    @mock.patch("daisy.api.v1.hosts.Controller.get_host_meta_or_404")
-    def test_host_check_ipmi_with_no_ipmi_addr(self, mock_get_host, mock_log):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
+    def test_host_check_ipmi_with_no_ipmi_addr(self, mock_log):
+        host_id = '1'
         host = {'id': '1',
-                'name':'test',
+                'name': 'test',
                 'os_status': 'init',
                 'ipmi_addr': None,
                 'ipmi_user': 'zteroot',
                 'ipmi_passwd': 'superuser'}
-        mock_get_host.return_value = host
         mock_log.side_effect = self._log_handler
-        self.assertEqual({
-            'check_result': {
-                'ipmi_check_result': "No ipmi address configed for "
-                                     "host 1, please check"}},
-                         self.controller.host_check(req, self.host_meta))
+        self.assertEqual({'ipmi_check_result': "No ipmi address "
+                                               "configed for host 1, "
+                                               "please check"},
+                         self.controller._host_ipmi_check(host_id, host))
 
     @mock.patch('logging.Logger')
-    @mock.patch("daisy.api.v1.hosts.Controller.get_host_meta_or_404")
-    def test_host_check_ipmi_with_no_ipmi_user(self, mock_get_host, mock_log):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
+    def test_host_check_ipmi_with_no_ipmi_user(self, mock_log):
+        host_id = '1'
         host = {'id': '1',
                 'name': 'test',
                 'os_status': 'init',
                 'ipmi_addr': '192.168.1.2',
                 'ipmi_user': None,
                 'ipmi_passwd': 'superuser'}
-        mock_get_host.return_value = host
         mock_log.side_effect = self._log_handler
-        self.assertEqual({
-            'check_result': {
-                'ipmi_check_result': "No ipmi user configed for host "
-                                     "1, please check"}},
-                         self.controller.host_check(req, self.host_meta))
+        self.assertEqual({'ipmi_check_result': "No ipmi user configed "
+                                               "for host 1, please check"},
+                         self.controller._host_ipmi_check(host_id, host))
 
     @mock.patch('logging.Logger')
-    @mock.patch("daisy.api.v1.hosts.Controller.get_host_meta_or_404")
     @mock.patch('subprocess.Popen.communicate')
     def test_host_check_ipmi_with_no_ipmi_passwd(self,
                                                  mock_communicate,
-                                                 mock_get_host,
                                                  mock_log):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
+        host_id = '1'
         host = {'id': '1',
                 'name': 'test',
                 'os_status': 'init',
                 'ipmi_addr': '192.168.1.2',
                 'ipmi_user': 'zteroot',
                 'ipmi_passwd': None}
-        mock_get_host.return_value = host
         mock_log.side_effect = self._log_handler
         mock_communicate.return_value = \
             ('', 'Unable to get Chassis Power Status')
-        self.assertEqual({
-            'check_result': {
-                'ipmi_check_result': 'ipmi check failed'}},
-                         self.controller.host_check(req, self.host_meta))
+        self.assertEqual({'ipmi_check_result': 'ipmi check failed'},
+                         self.controller._host_ipmi_check(host_id, host))
 
     @mock.patch('logging.Logger')
-    @mock.patch("daisy.api.v1.hosts.Controller.get_host_meta_or_404")
     @mock.patch('subprocess.Popen.communicate')
     def test_host_check_ipmi_with_correct_ipmi_parameters(self,
                                                           mock_communicate,
-                                                          mock_get_host,
                                                           mock_log):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
+        host_id = '1'
         host = {'id': '1',
                 'name': 'host_1',
                 'os_status': 'init',
                 'ipmi_addr': '192.168.1.2',
                 'ipmi_user': 'zteroot',
                 'ipmi_passwd': 'superuser'}
-        mock_get_host.return_value = host
         mock_log.side_effect = self._log_handler
         mock_communicate.return_value = ('Chassis Power is on', '')
-        self.assertEqual({
-            'check_result': {
-                'ipmi_check_result': 'ipmi check successfully'}},
-                         self.controller.host_check(req, self.host_meta))
+        self.assertEqual({'ipmi_check_result': 'ipmi check successfully'},
+                         self.controller._host_ipmi_check(host_id, host))
 
     @mock.patch('logging.Logger')
-    @mock.patch("daisy.api.v1.hosts.Controller.get_host_meta_or_404")
     @mock.patch('subprocess.Popen.communicate')
     def test_host_check_ipmi_with_error_ipmi_parameters(self,
                                                         mock_communicate,
-                                                        mock_get_host,
                                                         mock_log):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
+        host_id = '1'
         host = {'id': '1',
                 'os_status': 'init',
                 'name': 'host_1',
                 'ipmi_addr': '192.168.1.2',
                 'ipmi_user': 'zteroot',
                 'ipmi_passwd': 'superuser'}
-        mock_get_host.return_value = host
         mock_log.side_effect = self._log_handler
         mock_communicate.return_value = \
             ('', 'Unable to get Chassis Power Status')
-        self.assertEqual({
-            'check_result': {
-                'ipmi_check_result': 'ipmi check failed'}},
-                         self.controller.host_check(req, self.host_meta))
-    """
+        self.assertEqual({'ipmi_check_result': 'ipmi check failed'},
+                         self.controller._host_ipmi_check(host_id, host))
+
     @mock.patch('daisy.registry.client.v1.api.update_host_metadata')
     @mock.patch('daisy.registry.client.v1.api.get_roles_detail')
     @mock.patch('daisy.registry.client.v1.api.get_clusters_detail')
