@@ -181,7 +181,8 @@ class TestApiCommon(test.TestCase):
         self.assertRaises(exc.HTTPBadRequest,
                           common.check_gateway_uniqueness, nets)
 
-    def test_valid_ip_ranges_with_cidr(self):
+    @mock.patch('daisy.api.common.valid_ip_ranges')
+    def test_valid_ip_ranges_with_cidr(self, fake_valid_ip_ranges):
         ip_ranges = [
             {
                 'start': '12.18.1.5',
