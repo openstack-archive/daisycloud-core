@@ -482,7 +482,8 @@ class Controller(controller.BaseController):
                                              host_id)
         ignore_ssh_key_list = ["root_disk", "root_lv_size", "swap_lv_size",
                                "isolcpus", "os_version_file", "os_version_id",
-                               "root_pwd", "hugepages", "hugepagesize"]
+                               "root_pwd", "hugepages", "hugepagesize",
+                               "discover_mode"]
         if ssh_host_flag:
             for ignore_key in ignore_ssh_key_list:
                 if host_template_used.get(ignore_key, None):
