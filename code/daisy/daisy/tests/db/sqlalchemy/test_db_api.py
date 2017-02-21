@@ -732,3 +732,87 @@ class TestSqlalchemyApi(test.TestCase):
         update_networks = \
             api._network_update(self.req.context, update_info, network_id)
         self.assertEqual(update_info['cidr'], update_networks['cidr'])
+
+    def test_get_host_interface_vf_info(self):
+        self.assertRaises(exception.NotFound,
+                          api._get_host_interface_vf_info,
+                          self.req.context, None)
+
+    @mock.patch('daisy.db.sqlalchemy.models.HostInterface.save')
+    def test_update_host_interface_vf_info(self, mock_host_interface_save):
+        session = FakeSession()
+        host_id = "9692370d-7378-4ef8-9e21-1afe5cd1564a"
+        pf_interface_id = "d1e5ce54-f96d-41da-8f28-4535918660b7"
+        vf_values = "[{'name':'ens301','index':0}]"
+        mock_host_interface_save.return_value = None
+        api._update_host_interface_vf_info(self.req.context, host_id,
+                                           pf_interface_id, vf_values, session)
+        self.assertTrue(mock_host_interface_save.called)
+
+        vf_values = "[{'name':'bond0_0','slaves':'enp3s0 enp3s1','index':0}]"
+        mock_host_interface_save.return_value = None
+        api._update_host_interface_vf_info(self.req.context, host_id,
+                                           pf_interface_id, vf_values, session)
+        self.assertTrue(mock_host_interface_save.called)
+
+    def test_add_host_interface_vf(self):
+        host_id = u'9692370d-7378-4ef8-9e21-1afe5cd1566c'
+        host_meta = {
+            u'name': u'host-192-168-1-102',
+            u'description': u'default',
+            u'discover_mode': u'SSH',
+            u'dmi_uuid': u'574775DC-0000-1000-0000-744AA400B807',
+            u'id': host_id,
+            u'interfaces': unicode([{u'bond_type': None,
+                                     u'ip': u'10.43.203.44',
+                                     u'is_deployment': False,
+                                     u'mac': u'a0:36:9f:91:85:a9',
+                                     u'max_speed': u'1000baseT/Full',
+                                     u'name': u'ens8f1.900',
+                                     u'netmask': u'255.255.254.0',
+                                     u'vf': [
+                                         {'name': 'ens301', 'index': 0}]}]),
+        }
+
+        api.host_add(self.req.context, host_meta)
+        ret = api.host_interfaces_get_all(self.req.context)
+        self.assertEqual(ret[0]["host_id"], host_id)
+        api.host_destroy(self.req.context, host_id)
+
+    def test_update_host_interface_vf(self):
+        host_id = u'9692370d-7378-4ef8-9e21-1afe5cd1566c'
+        host_meta = {
+            u'name': u'host-192-168-1-102',
+            u'description': u'default',
+            u'discover_mode': u'SSH',
+            u'dmi_uuid': u'574775DC-0000-1000-0000-744AA400B807',
+            u'id': host_id,
+            u'interfaces': unicode([{u'bond_type': None,
+                                     u'ip': u'10.43.203.44',
+                                     u'is_deployment': False,
+                                     u'mac': u'a0:36:9f:91:85:a9',
+                                     u'max_speed': u'1000baseT/Full',
+                                     u'name': u'ens8f1.900',
+                                     u'netmask': u'255.255.254.0',
+                                     u'vf': [
+                                         {'name': 'ens301', 'index': 0}]}]),
+        }
+
+        update_meta = {
+            u'interfaces': unicode([{u'bond_type': None,
+                                     u'ip': u'10.43.203.44',
+                                     u'is_deployment': False,
+                                     u'mac': u'a0:36:9f:91:85:a9',
+                                     u'max_speed': u'1000baseT/Full',
+                                     u'name': u'ens8f1.900',
+                                     u'netmask': u'255.255.254.0',
+                                     u'vf': [
+                                         {'name': 'ens301', 'index': 1}]}]),
+        }
+
+        api.host_add(self.req.context, host_meta)
+        api.host_update(self.req.context, host_id, update_meta)
+        ret = api.host_interfaces_get_all(self.req.context)
+        self.assertEqual(ret[0]["host_id"], host_id)
+        api.host_destroy(self.req.context, host_id)
+

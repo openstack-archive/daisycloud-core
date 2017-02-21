@@ -28,14 +28,14 @@ UPDATE_PARAMS = ('alias', 'mtu', 'vlan_id', 'ip', 'name', 'cluster_id',
                  'gateway', 'cidr', 'description', 'type', 'ml2_type',
                  'network_type', 'physnet_name', 'capability',
                  'segmentation_type', 'vni_start', 'vni_end',
-                 'gre_id_start', 'gre_id_end')
+                 'gre_id_start', 'gre_id_end', 'svlan_start', 'svlan_end')
 
 CREATE_PARAMS = ('alias', 'mtu', 'vlan_id', 'ip', 'id', 'name', 'cluster_id',
                  'ip_ranges', 'vlan_start',
                  'vlan_end', 'gateway', 'cidr', 'description', 'type',
                  'ml2_type', 'network_type', 'physnet_name', 'capability',
                  'segmentation_type', 'vni_start', 'vni_end', 'gre_id_start',
-                 'gre_id_end')
+                 'gre_id_end', 'svlan_start', 'svlan_end')
 
 DEFAULT_PAGE_SIZE = 20
 
