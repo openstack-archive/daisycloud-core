@@ -36,6 +36,7 @@ from daisyclient.v1.backup_restore import BackupRestoreManager
 from daisyclient.v1.backend_types import BackendTypesManager
 from daisyclient.v1.versions import VersionManager
 from daisyclient.v1.version_patchs import VersionPatchManager
+from daisyclient.v1.deploy_server import DeployServerManager
 
 
 class Client(object):
@@ -74,3 +75,4 @@ class Client(object):
         self.backend_types = BackendTypesManager(self.http_client)
         self.versions = VersionManager(self.http_client)
         self.version_patchs = VersionPatchManager(self.http_client)
+        self.deploy_server = DeployServerManager(self.http_client)
