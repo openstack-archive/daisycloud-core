@@ -836,10 +836,11 @@ def get_host_min_mac(host_interfaces):
     return min_mac
 
 
-def cidr_netmask_to_ip(int_netmask):
-    inter_ip = lambda x: '.'.join(
-        [str(x / (256**i) % 256) for i in range(3, -1, -1)])
+def inter_ip(info):
+    return '.'.join([str(info / (256**i) % 256) for i in range(3, -1, -1)])
 
+
+def cidr_netmask_to_ip(int_netmask):
     cidr_to_ip = inter_ip(2**32 - 2**(32 - int(int_netmask)))
     return cidr_to_ip
 
@@ -908,8 +909,8 @@ def ip_into_int(ip):
 
 
 def int_into_ip(num):
-    inter_ip = lambda x: '.'.join(
-        [str(x / (256 ** i) % 256) for i in range(3, -1, -1)])
+    # inter_ip = lambda x: '.'.join(
+    #     [str(x / (256 ** i) % 256) for i in range(3, -1, -1)])
     return inter_ip(num)
 
 
@@ -955,6 +956,66 @@ def is_ip_in_ranges(ip, ip_ranges):
             return True
 
     return False
+
+
+def cidr_convert_to_ip_ranges(cidr):
+    '''
+    The default cidr format is correct.
+    '''
+    if not cidr:
+        return
+    str_ip_mask = cidr.split('/')[1]
+    ip_addr = cidr.split('/')[0]
+    ip_int = ip_into_int(ip_addr)
+    mask = ~(2**(32 - int(str_ip_mask)) - 1)
+    ip_addr_min = int_into_ip(ip_int & (mask & 0xffffffff))
+    ip_addr_max = int_into_ip(ip_int | (~mask & 0xffffffff))
+    if ip_addr_min.split('.')[3] == '0':
+        ip_addr_min = ip_addr_min.split('.')[0] + '.' + \
+            ip_addr_min.split('.')[1] + '.' + ip_addr_min.split('.')[2] + '.1'
+    return [ip_addr_min, ip_addr_max]
+
+
+def is_ip_ranges_overlapped(ip_ranges):
+    '''
+    The default ip range format is correct, such as [12.1.1.1, 12.1.1.12].
+    '''
+    if not ip_ranges:
+        return
+    LOG.info('is_ip_ranges_overlapped: %s' % ip_ranges)
+    int_ip_ranges = []
+    for ip_range in ip_ranges:
+        int_start_ip = ip_into_int(ip_range[0])
+        int_end_ip = ip_into_int(ip_range[1])
+        int_ip_ranges.append([int_start_ip, int_end_ip])
+    sorted_int_ip_ranges_list = \
+        sorted(int_ip_ranges, key=lambda x: x[0])
+    last_ip_range_end = 0
+    for int_ip_range in sorted_int_ip_ranges_list:
+        if (last_ip_range_end and
+                last_ip_range_end >= int_ip_range[0]):
+            msg = (_("Ip ranges can not be overlap with each other."))
+            # such as "[10, 15], [12, 16]", last_ip_range_end >=
+            # int_ip_range[0], this ip ranges were overlap
+            LOG.error(msg)
+            return True
+        else:
+            last_ip_range_end = int_ip_range[1]
+    return False
+
+
+def is_cidrs_overlapped(cidrs_list):
+    '''
+    The default cidr format is correct, such as '12.1.1.1/24'.
+    cidrs = ['12.1.1.1/24', '13.1.1.1/24', ...]
+    '''
+    if not cidrs_list:
+        return
+    LOG.info('is_cidrs_overlapped: %s' % cidrs_list)
+    cidr_ranges = []
+    for cidr in cidrs_list:
+        cidr_ranges.append(cidr_convert_to_ip_ranges(cidr))
+    return is_ip_ranges_overlapped(cidr_ranges)
 
 
 def merge_ip_ranges(ip_ranges):
@@ -1138,7 +1199,7 @@ def cpu_list_to_str(cpu_list):
 
     for group in group_cpus:
         if len(group) > 2:
-            group_spec = ("%s-%s" % (group[0], group[0]+len(group)-1))
+            group_spec = ("%s-%s" % (group[0], group[0] + len(group) - 1))
         else:
             group_str = [str(num) for num in group]
             group_spec = ','.join(group_str)

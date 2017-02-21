@@ -307,77 +307,33 @@ class Controller(controller.BaseController):
         if network_meta.get('ip_ranges', None) and \
                 eval(network_meta['ip_ranges']):
             cidr = None
-            if 'cidr' not in network_meta:
+            if 'cidr' not in network_meta and \
+                    network_meta['network_type'] != 'DATAPLANE':
                 msg = (
                     _("When ip range was specified, the CIDR parameter "
                       "can not be empty."))
                 LOG.warn(msg)
                 raise HTTPForbidden(msg)
             else:
-                cidr = network_meta['cidr']
-                cidr_division = cidr.split('/')
-                if len(cidr_division) != 2 or (
-                    cidr_division[1] and int(
-                        cidr_division[1]) > 32 or int(
-                        cidr_division[1]) < 0):
-                    msg = (_("Wrong CIDR format."))
-                    LOG.warn(msg)
-                    raise HTTPForbidden(msg)
-                utils.validate_ip_format(cidr_division[0])
-
                 ip_ranges = eval(network_meta['ip_ranges'])
-                last_ip_range_end = 0
-                int_ip_ranges_list = list()
-                sorted_int_ip_ranges_list = list()
-                for ip_pair in ip_ranges:
-                    if ['start', 'end'] != ip_pair.keys():
-                        msg = (
-                            _("IP range was not start with 'start:' or "
-                              "end with 'end:'."))
-                        LOG.warn(msg)
-                        raise HTTPForbidden(msg)
-                    ip_start = ip_pair['start']
-                    ip_end = ip_pair['end']
-                    utils.validate_ip_format(ip_start)  # check ip format
-                    utils.validate_ip_format(ip_end)
-
-                    if not self._is_in_network_range(ip_start, cidr):
-                        msg = (
-                            _("IP address %s was not in the range "
-                              "of CIDR %s." % (ip_start, cidr)))
-                        LOG.warn(msg)
-                        raise HTTPForbidden(msg)
-
-                    if not self._is_in_network_range(ip_end, cidr):
-                        msg = (
-                            _("IP address %s was not in the range "
-                              "of CIDR %s." % (ip_end, cidr)))
-                        LOG.warn(msg)
-                        raise HTTPForbidden(msg)
-
-                    # transform ip format to int when the string format is
-                    # valid
-                    int_ip_start = self._ip_into_int(ip_start)
-                    int_ip_end = self._ip_into_int(ip_end)
-
-                    if int_ip_start > int_ip_end:
-                        msg = (_("Wrong ip range format."))
-                        LOG.warn(msg)
-                        raise HTTPForbidden(msg)
-                    int_ip_ranges_list.append([int_ip_start, int_ip_end])
-                sorted_int_ip_ranges_list = sorted(
-                    int_ip_ranges_list, key=lambda x: x[0])
-
-                for int_ip_range in sorted_int_ip_ranges_list:
-                    if last_ip_range_end and last_ip_range_end >= int_ip_range[
-                            0]:
-                        msg = (_("Between ip ranges can not be overlap."))
-                        # such as "[10, 15], [12, 16]", last_ip_range_end >=
-                        # int_ip_range[0], this ip ranges were overlap
-                        LOG.warn(msg)
-                        raise HTTPForbidden(msg)
-                    else:
-                        last_ip_range_end = int_ip_range[1]
+                if network_meta['network_type'] != 'DATAPLANE':
+                    cidr = network_meta['cidr']
+                    utils.valid_cidr(cidr)
+                    net_ip_ranges_list = []
+                    for ip_pair in ip_ranges:
+                        if not set(['start', 'end']).issubset(ip_pair.keys()):
+                            msg = (
+                                _("IP range was not start with 'start:' or "
+                                  "end with 'end:'."))
+                            LOG.warn(msg)
+                            raise HTTPForbidden(msg)
+                        ip_start = ip_pair['start']
+                        ip_end = ip_pair['end']
+                        net_ip_ranges_list.append({'start': ip_start,
+                                                   'end': ip_end})
+                    common.valid_ip_ranges(net_ip_ranges_list, cidr)
+                else:
+                    common.valid_ip_ranges_with_cidr(ip_ranges)
 
         if network_meta.get('cidr', None) \
                 and network_meta.get('vlan_id', None) \
@@ -396,11 +352,8 @@ class Controller(controller.BaseController):
                                  'have the same cidr'))
                         raise HTTPBadRequest(explanation=msg)
 
-        if network_meta.get(
-                'gateway',
-                None) and network_meta.get(
-                'cidr',
-                None):
+        if network_meta.get('gateway', None) and \
+                network_meta.get('cidr', None):
             gateway = network_meta['gateway']
             cidr = network_meta['cidr']
 
@@ -615,15 +568,7 @@ class Controller(controller.BaseController):
         cidr = network_meta.get('cidr', orig_network_meta['cidr'])
         vlan_id = network_meta.get('vlan_id', orig_network_meta['vlan_id'])
         if cidr:
-            cidr_division = cidr.split('/')
-            if len(cidr_division) != 2 or (
-                cidr_division[1] and int(
-                    cidr_division[1]) > 32 or int(
-                    cidr_division[1]) < 0):
-                msg = (_("Wrong CIDR format."))
-                LOG.warn(msg)
-                raise HTTPForbidden(msg)
-            utils.validate_ip_format(cidr_division[0])
+            utils.valid_cidr(cidr)
 
         if cidr and vlan_id and cluster_id:
             networks = registry.get_networks_detail(req.context, cluster_id)
@@ -651,70 +596,35 @@ class Controller(controller.BaseController):
 
         if network_meta.get('ip_ranges', None) and \
                 eval(network_meta['ip_ranges']):
-            if not cidr:
+            dataplane_type = \
+                network_meta.get('network_type',
+                                 orig_network_meta['network_type'])
+            if not cidr and dataplane_type != 'DATAPLANE':
                 msg = (
                     _("When ip range was specified, "
                       "the CIDR parameter can not be empty."))
                 LOG.warn(msg)
                 raise HTTPForbidden(msg)
             ip_ranges = eval(network_meta['ip_ranges'])
-            last_ip_range_end = 0
-            int_ip_ranges_list = list()
-            sorted_int_ip_ranges_list = list()
-            for ip_pair in ip_ranges:
-                if ['start', 'end'] != ip_pair.keys():
-                    msg = (
-                        _("IP range was not start with 'start:' "
-                          "or end with 'end:'."))
-                    LOG.warn(msg)
-                    raise HTTPForbidden(msg)
-                ip_start = ip_pair['start']
-                ip_end = ip_pair['end']
-                utils.validate_ip_format(ip_start)  # check ip format
-                utils.validate_ip_format(ip_end)
+            if dataplane_type != 'DATAPLANE':
+                net_ip_ranges_list = []
+                for ip_pair in ip_ranges:
+                    if not set(['start', 'end']).issubset(ip_pair.keys()):
+                        msg = (
+                            _("IP range was not start with 'start:' or "
+                              "end with 'end:'."))
+                        LOG.warn(msg)
+                        raise HTTPForbidden(msg)
+                    ip_start = ip_pair['start']
+                    ip_end = ip_pair['end']
+                    net_ip_ranges_list.append({'start': ip_start,
+                                               'end': ip_end})
+                common.valid_ip_ranges(net_ip_ranges_list, cidr)
+            else:
+                common.valid_ip_ranges_with_cidr(ip_ranges, cidr)
 
-                if not self._is_in_network_range(ip_start, cidr):
-                    msg = (
-                        _("IP address %s was not in the "
-                          "range of CIDR %s." % (ip_start, cidr)))
-                    LOG.warn(msg)
-                    raise HTTPForbidden(msg)
-
-                if not self._is_in_network_range(ip_end, cidr):
-                    msg = (
-                        _("IP address %s was not in the "
-                          "range of CIDR %s." % (ip_end, cidr)))
-                    LOG.warn(msg)
-                    raise HTTPForbidden(msg)
-
-                # transform ip format to int when the string format is valid
-                int_ip_start = self._ip_into_int(ip_start)
-                int_ip_end = self._ip_into_int(ip_end)
-
-                if int_ip_start > int_ip_end:
-                    msg = (_("Wrong ip range format."))
-                    LOG.warn(msg)
-                    raise HTTPForbidden(msg)
-                int_ip_ranges_list.append([int_ip_start, int_ip_end])
-            sorted_int_ip_ranges_list = sorted(
-                int_ip_ranges_list, key=lambda x: x[0])
-            LOG.warn("sorted_int_ip_ranges_list: " % sorted_int_ip_ranges_list)
-            # check ip ranges overlap
-            for int_ip_range in sorted_int_ip_ranges_list:
-                if last_ip_range_end and last_ip_range_end >= int_ip_range[0]:
-                    msg = (_("Between ip ranges can not be overlap."))
-                    # such as "[10, 15], [12, 16]", last_ip_range_end >=
-                    # int_ip_range[0], this ip ranges were overlap
-                    LOG.warn(msg)
-                    raise HTTPForbidden(msg)
-                else:
-                    last_ip_range_end = int_ip_range[1]
-
-        if network_meta.get(
-                'gateway',
-                orig_network_meta['gateway']) and network_meta.get(
-                'cidr',
-                orig_network_meta['cidr']):
+        if network_meta.get('gateway', orig_network_meta['gateway']) \
+                and network_meta.get('cidr', orig_network_meta['cidr']):
             gateway = network_meta.get('gateway', orig_network_meta['gateway'])
             cidr = network_meta.get('cidr', orig_network_meta['cidr'])
             utils.validate_ip_format(gateway)
