@@ -1415,814 +1415,96 @@ class TestHostsApiConfig(test.TestCase):
                           self.controller._verify_host_cluster, req,
                           "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
                           orig_host_meta, host_meta)
-    """
-    @mock.patch('logging.Logger')
-    @mock.patch("daisy.api.v1.hosts.Controller.get_host_meta_or_404")
-    def test_host_check_ipmi_with_hwm_discovered_host(self,
-                                                      mock_get_host,
-                                                      mock_log):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
-        host = {'hwm_id': '1',
-                'id': '1',
-                'name': 'host_1'}
-        mock_get_host.return_value = host
-        mock_log.side_effect = self._log_handler
-        self.assertEqual({
-            'check_result': {
-                'ipmi_check_result':
-                    'host discovered by hwm do not need ipmi check'}},
-                         self.controller.host_check(req, self.host_meta))
 
     @mock.patch('logging.Logger')
-    @mock.patch("daisy.api.v1.hosts.Controller.get_host_meta_or_404")
-    def test_host_check_ipmi_with_active_host(self, mock_get_host, mock_log):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
+    def test_host_check_ipmi_with_active_host(self, mock_log):
+        host_id = '1'
         host = {'os_status': 'active',
                 'id': '1',
                 'name': 'host_1'}
-        mock_get_host.return_value = host
         mock_log.side_effect = self._log_handler
         self.assertEqual({
-            'check_result': {
-                'ipmi_check_result':
-                    'active host do not need ipmi check'}},
-            self.controller.host_check(req, self.host_meta))
+            'ipmi_check_result': 'active host do not need ipmi check'},
+            self.controller._host_ipmi_check(host_id, host))
 
     @mock.patch('logging.Logger')
-    @mock.patch("daisy.api.v1.hosts.Controller.get_host_meta_or_404")
-    def test_host_check_ipmi_with_no_ipmi_addr(self, mock_get_host, mock_log):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
+    def test_host_check_ipmi_with_no_ipmi_addr(self, mock_log):
+        host_id = '1'
         host = {'id': '1',
-                'name':'test',
+                'name': 'test',
                 'os_status': 'init',
                 'ipmi_addr': None,
                 'ipmi_user': 'zteroot',
                 'ipmi_passwd': 'superuser'}
-        mock_get_host.return_value = host
         mock_log.side_effect = self._log_handler
-        self.assertEqual({
-            'check_result': {
-                'ipmi_check_result': "No ipmi address configed for "
-                                     "host 1, please check"}},
-                         self.controller.host_check(req, self.host_meta))
+        self.assertEqual({'ipmi_check_result': "No ipmi address "
+                                               "configed for host 1, "
+                                               "please check"},
+                         self.controller._host_ipmi_check(host_id, host))
 
     @mock.patch('logging.Logger')
-    @mock.patch("daisy.api.v1.hosts.Controller.get_host_meta_or_404")
-    def test_host_check_ipmi_with_no_ipmi_user(self, mock_get_host, mock_log):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
+    def test_host_check_ipmi_with_no_ipmi_user(self, mock_log):
+        host_id = '1'
         host = {'id': '1',
                 'name': 'test',
                 'os_status': 'init',
                 'ipmi_addr': '192.168.1.2',
                 'ipmi_user': None,
                 'ipmi_passwd': 'superuser'}
-        mock_get_host.return_value = host
         mock_log.side_effect = self._log_handler
-        self.assertEqual({
-            'check_result': {
-                'ipmi_check_result': "No ipmi user configed for host "
-                                     "1, please check"}},
-                         self.controller.host_check(req, self.host_meta))
+        self.assertEqual({'ipmi_check_result': "No ipmi user configed "
+                                               "for host 1, please check"},
+                         self.controller._host_ipmi_check(host_id, host))
 
     @mock.patch('logging.Logger')
-    @mock.patch("daisy.api.v1.hosts.Controller.get_host_meta_or_404")
     @mock.patch('subprocess.Popen.communicate')
     def test_host_check_ipmi_with_no_ipmi_passwd(self,
                                                  mock_communicate,
-                                                 mock_get_host,
                                                  mock_log):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
+        host_id = '1'
         host = {'id': '1',
                 'name': 'test',
                 'os_status': 'init',
                 'ipmi_addr': '192.168.1.2',
                 'ipmi_user': 'zteroot',
                 'ipmi_passwd': None}
-        mock_get_host.return_value = host
         mock_log.side_effect = self._log_handler
         mock_communicate.return_value = \
             ('', 'Unable to get Chassis Power Status')
-        self.assertEqual({
-            'check_result': {
-                'ipmi_check_result': 'ipmi check failed'}},
-                         self.controller.host_check(req, self.host_meta))
+        self.assertEqual({'ipmi_check_result': 'ipmi check failed'},
+                         self.controller._host_ipmi_check(host_id, host))
 
     @mock.patch('logging.Logger')
-    @mock.patch("daisy.api.v1.hosts.Controller.get_host_meta_or_404")
     @mock.patch('subprocess.Popen.communicate')
     def test_host_check_ipmi_with_correct_ipmi_parameters(self,
                                                           mock_communicate,
-                                                          mock_get_host,
                                                           mock_log):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
+        host_id = '1'
         host = {'id': '1',
                 'name': 'host_1',
                 'os_status': 'init',
                 'ipmi_addr': '192.168.1.2',
                 'ipmi_user': 'zteroot',
                 'ipmi_passwd': 'superuser'}
-        mock_get_host.return_value = host
         mock_log.side_effect = self._log_handler
         mock_communicate.return_value = ('Chassis Power is on', '')
-        self.assertEqual({
-            'check_result': {
-                'ipmi_check_result': 'ipmi check successfully'}},
-                         self.controller.host_check(req, self.host_meta))
+        self.assertEqual({'ipmi_check_result': 'ipmi check successfully'},
+                         self.controller._host_ipmi_check(host_id, host))
 
     @mock.patch('logging.Logger')
-    @mock.patch("daisy.api.v1.hosts.Controller.get_host_meta_or_404")
     @mock.patch('subprocess.Popen.communicate')
     def test_host_check_ipmi_with_error_ipmi_parameters(self,
                                                         mock_communicate,
-                                                        mock_get_host,
                                                         mock_log):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
+        host_id = '1'
         host = {'id': '1',
                 'os_status': 'init',
                 'name': 'host_1',
                 'ipmi_addr': '192.168.1.2',
                 'ipmi_user': 'zteroot',
                 'ipmi_passwd': 'superuser'}
-        mock_get_host.return_value = host
         mock_log.side_effect = self._log_handler
         mock_communicate.return_value = \
             ('', 'Unable to get Chassis Power Status')
-        self.assertEqual({
-            'check_result': {
-                'ipmi_check_result': 'ipmi check failed'}},
-                         self.controller.host_check(req, self.host_meta))
-    """
-    @mock.patch('daisy.registry.client.v1.api.update_host_metadata')
-    @mock.patch('daisy.registry.client.v1.api.get_roles_detail')
-    @mock.patch('daisy.registry.client.v1.api.get_clusters_detail')
-    def test_host_update_with_removable_disk(self,
-                                             mock_get_clusters,
-                                             mock_get_roles,
-                                             mock_update_host):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
-        host_id = '1'
-        host_meta = {'os_status': 'active'}
-        host = {
-            'deleted': 0,
-            'os_status': 'init',
-            'disks': {
-                "sr0": {
-                    "name": "sr0",
-                    "extra": ["ata-Slimtype_DVD_A_DS8ACSH_426603507668", ""],
-                    "removable": "removable",
-                    "model": "Slimtype DVD A  DS8ACSH",
-                    "disk": "",
-                    "size": ""},
-                "sda": {
-                    "name": "sda",
-                    "extra": ["scsi-SASR7805_456_A32D532E", ""],
-                    "removable": "non-removable",
-                    "model": "",
-                    "disk": "pci-0000:09:00.0-scsi-0:0:0:0",
-                    "size": " 999643152384 bytes"}},
-            'root_disk': 'sda',
-            'root_lv_size': 102400,
-            'memory': {"total": "65551468 kB",
-                       "phy_memory_1": {"slots": " 24",
-                                        "devices_20":
-                                            {"frequency": " Unknown",
-                                             "type": " <OUT OF SPEC>",
-                                             "size": " No Module "
-                                                     "Installed"},
-                                        "maximum_capacity": " 768 GB"}},
-            'cpu': {"numa_node0": "0-9,20-29",
-                    "total": 40,
-                    "numa_node1": "10-19,30-39",
-                    "real": 2,
-                    "spec_35": {"model": " Intel(R) Xeon(R) CPU E"
-                                         "5-2650 v3 @ 2.30GHz",
-                                "frequency": 2822.621}},
-            'ipmi_addr': '10.43.2.3',
-            'ipmi_user': 'aaa',
-            'ipmi_passwd': 'aaa',
-            'os_version_file': None,
-            'os_version_id': None}
-        host_return = {'deleted': '0',
-                       'os_status': 'init',
-                       'disks': {
-                           "sda":
-                               {"name": "sda",
-                                "extra": ["scsi-SASR7805_456_A32D532E",
-                                          ""],
-                                "removable": "non-removable",
-                                "model": "",
-                                "disk": "pci-0000:09:00.0-scsi-0:0:0:0",
-                                "size": " 999643152384 bytes"}},
-                       'root_disk': 'sda',
-                       'root_lv_size': 102400,
-                       'memory': {"total": "65551468 kB",
-                                  "phy_memory_1": {"slots": " 24",
-                                                   "devices_20":
-                                                       {"frequency":
-                                                            " Unknown",
-                                                        "type":
-                                                            " <OUT OF SPEC>",
-                                                        "size": " No Module "
-                                                                "Installed"},
-                                                   "maximum_capacity":
-                                                       " 768 GB"}}
-                       }
-        clusters = [{'id': '1',
-                     'name': 'test'}]
-        roles = [{'id': '1'}]
-        versions = [{'id': 'fe604c80-b5a0-4454-bbfd-2295ad8f1e5d'}]
-        self.controller.get_host_meta_or_404 = mock.Mock(return_value=host)
-        mock_get_clusters.return_value = clusters
-        mock_get_roles.return_value = roles
-        mock_update_host.return_value = host_return
-        host_detail = self.controller.update_host(req, host_id, host_meta)
-        self.assertEqual(1, len(host_detail['host_meta']['disks']))
-
-    def test_check_interface_on_update_host(self):
-        host_id = "fe604c80-b5a0-4454-bbfd-2295ad8f1e5d"
-        req = fakes.HTTPRequest.blank('/nodes/%s' % host_id)
-        host_meta = {"cluster": "111111-222222-333333",
-                     "interfaces": """[
-                        {
-                            "name": "enp3s0f0",
-                            "is_deployment": False,
-                            "deleted": False,
-                            "ip": "192.168.1.8",
-                            "is_vf": False,
-                            "mac": "4c:09:b4:b0:ac:4b",
-                            "netmask": "255.255.255.0",
-                            "vswitch_type": "",
-                            "state": "up",
-                            "pci": "0000: 03: 00.0",
-                            "current_speed": "100Mb/s",
-                            "assigned_networks": [
-                            ],
-                            "max_speed": "1000baseT/Full",
-                            "host_id": "f2af88bf-a336-4e90-9c2b-cbb11638e580",
-                            "type": "ether",
-                            "is_support_vf": False
-                        },
-                        {
-                            "name": "enp3s0f1",
-                            "is_deployment": False,
-                            "deleted": False,
-                            "ip": "10.43.203.224",
-                            "is_vf": False,
-                            "mac": "4c:09:b4:b0:ac:4c",
-                            "netmask": "255.255.254.0",
-                            "vswitch_type": "",
-                            "state": "up",
-                            "pci": "0000: 03: 00.1",
-                            "current_speed": "100Mb/s",
-                            "assigned_networks": [
-                            ],
-                            "max_speed": "1000baseT/Full",
-                            "host_id": "f2af88bf-a336-4e90-9c2b-cbb11638e580",
-                            "type": "ether",
-                            "is_support_vf": False
-                        },
-                        {
-                            "mode": "active-backup;off",
-                            "type": "bond",
-                            "name": "bond0",
-                            "slave1":"enp3s0f0",
-                            "slave2":"enp3s0f1",
-                            "bond_type": "dvs/sr-iov/ovs"
-                        }   ]"""}
-        orig_host_meta = {
-            "cluster": "test_host",
-            "interfaces":
-                [{
-                    "name": "enp3s0f0",
-                    "is_deployment": False,
-                    "deleted": False,
-                    "ip": "192.168.1.8",
-                    "is_vf": False,
-                    "mac": "4c:09:b4:b0:ac:4b",
-                    "netmask": "255.255.255.0",
-                    "vswitch_type": "",
-                    "state": "up",
-                    "pci": "0000: 03: 00.0",
-                    "current_speed": "100Mb/s",
-                    "assigned_networks": [
-                    ],
-                    "max_speed": "1000baseT/Full",
-                    "host_id": "f2af88bf-a336-4e90-9c2b-cbb11638e580",
-                    "type": "ether",
-                    "is_support_vf": False
-                }, {
-                    "name": "enp3s0f1",
-                    "is_deployment": False,
-                    "deleted": False,
-                    "ip": "10.43.203.224",
-                    "is_vf": False,
-                    "mac": "4c:09:b4:b0:ac:4c",
-                    "netmask": "255.255.254.0",
-                    "vswitch_type": "",
-                    "state": "up",
-                    "pci": "0000: 03: 00.1",
-                    "current_speed": "100Mb/s",
-                    "assigned_networks": [
-                    ],
-                    "max_speed": "1000baseT/Full",
-                    "host_id": "f2af88bf-a336-4e90-9c2b-cbb11638e580",
-                    "type": "ether",
-                    "is_support_vf": False
-                }]}
-        mac_list = ["4c:09:b4:b0:ac:4c", "4c:09:b4:b0:ac:4b"]
-        result = self.controller.\
-            _check_interface_on_update_host(req, host_meta, orig_host_meta)
-        self.assertEqual(len(mac_list), len(result))
-
-    @mock.patch('daisy.registry.client.v1.api.'
-                'update_phyname_of_network')
-    @mock.patch('daisy.registry.client.v1.api.get_all_networks')
-    @mock.patch('daisy.registry.client.v1.api.get_networks_detail')
-    @mock.patch('daisy.registry.client.v1.api.get_clusters_detail')
-    def test_check_interface_on_update_host_without_bond_type(
-            self, mock_get_clusters_detail, mock_get_cluster_network,
-            mock_get_all_networks, mock_update_network):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
-
-        def update_network(req, networks):
-            pass
-
-        host_meta = {
-            'cluster': '1',
-            'interfaces':
-                "[{'name': 'enp3s2','ip': '192.168.1.2',"
-                "'mac': '00:23:cd:96:53:96','pci': '0000:03:02.0',"
-                "'assigned_networks': [],"
-                "'host_id': '1','type': 'ether'},"
-                "{'name': 'bond0','bond_type': '',"
-                "'mode': 'active-backup;off',"
-                "'slaves': ['enp2s0', 'enp3s2'],"
-                "'assigned_networks':[{'ip': '192.168.1.5',"
-                "'name': 'PUBLICAPI'}],'host_id': '1','type': 'bond'},"
-                "{'name': 'enp2s0','ip': '10.43.178.21',"
-                "'mac': '00:24:21:74:8a:56','pci': '0000:02:00.0',"
-                "'assigned_networks': [],'host_id': '1',"
-                "'type': 'ether'}, {'name': 'enp3s1', "
-                "'mac': '00:23:cd:96:53:97', 'pci': '0000:03:02.1', "
-                "'type': 'ether'}]"}
-        orig_host_meta = {'status': 'in-cluster',
-                          'discover_mode': 'PXE',
-                          'cluster_name': 'cluster_1',
-                          'os_status': 'active',
-                          'root_disk': 'sda',
-                          'root_lv_size': 102400,
-                          'swap_lv_size': 51200,
-                          'root_pwd': 'ossdbg1',
-                          'isolcpus': '',
-                          'deleted': 0,
-                          'interfaces': [{'name': 'enp3s2',
-                                          'mac': '00:23:cd:96:53:96',
-                                          'pci': '0000:03:02.0',
-                                          'is_deployment': ''},
-                                         {'name': 'bond0',
-                                          'mac': '',
-                                          'pci': '',
-                                          'is_deployment': ''},
-                                         {'mac': '00:24:21:74:8a:56',
-                                          'pci': '0000:02:00.0',
-                                          'is_deployment': ''},
-                                         {'mac': '00:24:21:74:8a:57',
-                                          'pci': '0000:02:00.1',
-                                          'is_deployment': True}]}
-        mock_get_clusters_detail.return_value = [{'id': '1',
-                                                  'name': 'cluster_1'}]
-        mock_get_cluster_network.return_value = [{'name': 'PUBLICAPI',
-                                                  'id': '1'}]
-        mock_get_all_networks.return_value = [{'name': 'PUBLICAPI',
-                                               'id': '1',
-                                               'cidr': '192.168.1.1/24',
-                                               'network_type': 'PUBLICAPI'
-                                               }]
-        mock_update_network.side_effect = update_network
-        mac_list = self.controller._check_interface_on_update_host(
-            req, host_meta, orig_host_meta)
-        self.assertIn('00:23:cd:96:53:96', mac_list)
-
-    @mock.patch('daisy.registry.client.v1.client.RegistryClient.do_request')
-    @mock.patch('daisy.registry.client.v1.api.get_all_networks')
-    @mock.patch('daisy.registry.client.v1.api.get_networks_detail')
-    @mock.patch('daisy.registry.client.v1.api.get_clusters_detail')
-    def test_check_interface_on_update_host_with_bond_type(
-            self, mock_get_clusters_detail, mock_get_cluster_network,
-            mock_get_all_networks, mock_do_request):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
-        host_meta = {
-            'cluster': '1',
-            'interfaces':
-                "[{'name': 'enp3s2','ip': '192.168.1.2',"
-                "'mac': '00:23:cd:96:53:96','pci': '0000:03:02.0',"
-                "'assigned_networks': [],"
-                "'host_id': '1','type': 'ether'},"
-                "{'name': 'bond0','bond_type': 'linux',"
-                "'mode': 'active-backup;off',"
-                "'slaves': ['enp2s0', 'enp3s2'],"
-                "'assigned_networks':[{'name': 'physnet1'}],"
-                "'host_id': '1','type': 'bond'},"
-                "{'name': 'enp2s0','ip': '10.43.178.21',"
-                "'mac': '00:24:21:74:8a:56','pci': '0000:02:00.0',"
-                "'assigned_networks': [],'host_id': '1',"
-                "'type': 'ether'}, {'name': 'enp3s1', "
-                "'mac': '00:23:cd:96:53:97', 'pci': '0000:03:02.1', "
-                "'type': 'ether'}]"}
-        orig_host_meta = {'status': 'in-cluster',
-                          'discover_mode': 'PXE',
-                          'cluster_name': 'cluster_1',
-                          'os_status': 'active',
-                          'root_disk': 'sda',
-                          'root_lv_size': 102400,
-                          'swap_lv_size': 51200,
-                          'root_pwd': 'ossdbg1',
-                          'isolcpus': '',
-                          'deleted': 0,
-                          'interfaces': [{'name': 'enp3s2',
-                                          'mac': '00:23:cd:96:53:96',
-                                          'pci': '0000:03:02.0',
-                                          'is_deployment': ''},
-                                         {'name': 'bond0',
-                                          'mac': '',
-                                          'pci': '',
-                                          'is_deployment': ''},
-                                         {'mac': '00:24:21:74:8a:56',
-                                          'pci': '0000:02:00.0',
-                                          'is_deployment': ''},
-                                         {'mac': '00:24:21:74:8a:57',
-                                          'pci': '0000:02:00.1',
-                                          'is_deployment': True}]}
-        mock_get_clusters_detail.return_value = [{'id': '1',
-                                                  'name': 'cluster_1'}]
-        mock_get_cluster_network.return_value = [{'name': 'DATAPLANE',
-                                                  'id': '1'}]
-        mock_get_all_networks.return_value = [{'name': 'physnet1',
-                                               'id': '1',
-                                               'cidr': '',
-                                               'network_type': 'DATAPLANE'
-                                               }]
-        mock_do_request.side_effect = self.fake_do_request
-        self.assertRaises(webob.exc.HTTPBadRequest,
-                          self.controller._check_interface_on_update_host,
-                          req, host_meta, orig_host_meta)
-
-
-class TestGetClusterNetworkInfo(test.TestCase):
-    _log_handler = MockLoggingHandler()
-    _log_messages = _log_handler.messages
-
-    def setUp(self):
-        super(TestGetClusterNetworkInfo, self).setUp()
-        self.controller = hosts.Controller()
-        self._log_handler.reset()
-
-    @mock.patch('logging.Logger.error')
-    def test_get_cluster_networks_info_with_None(self, mock_log):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
-
-        mock_log.side_effect = self._log_handler.error
-        self.assertRaises(webob.exc.HTTPForbidden,
-                          self.controller.get_cluster_networks_info,
-                          req)
-        self.assertIn('error, the type and cluster_id '
-                      'can not be empty at the same time',
-                      self._log_messages['error'])
-
-    @mock.patch('daisy.registry.client.v1.api.get_all_networks')
-    def test_get_cluster_networks_info_with_type_and_cluster_id(
-            self, mock_get_all_networks):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
-
-        def fake_get_all_networks(context, **params):
-            if params == {'filters': {'cluster_id': 'cluster_1111',
-                                      'type': 'default'}}:
-                get_result = {"cluster_1111 , default"}
-                return get_result
-
-        mock_get_all_networks.side_effect = fake_get_all_networks
-        return_all_networks = self.controller.get_cluster_networks_info(
-            req, cluster_id='cluster_1111', type='default')
-        self.assertEqual({"cluster_1111 , default"}, return_all_networks)
-
-    @mock.patch('daisy.registry.client.v1.api.get_all_networks')
-    def test_get_cluster_networks_info_with_type(self, mock_get_all_networks):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
-
-        def fake_get_all_networks(context, **params):
-            if params == {'filters': {'cluster_id': 'cluster_1111'}}:
-                get_result = {"cluster_1111"}
-                return get_result
-            elif params == {'filters': {'type': 'default'}}:
-                get_result = {"default"}
-                return get_result
-
-        mock_get_all_networks.side_effect = fake_get_all_networks
-        return_all_networks = self.controller.get_cluster_networks_info(
-            req, type='default')
-        self.assertEqual({"default"}, return_all_networks)
-
-    @mock.patch('daisy.registry.client.v1.api.get_all_networks')
-    def test_get_cluster_networks_info_with_cluter_id(self,
-                                                      mock_get_all_networks):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
-
-        def fake_get_all_networks(context, **params):
-            if params == {'filters': {'cluster_id': 'cluster_1111'}}:
-                get_result = {"cluster_1111"}
-                return get_result
-            elif params == {'filters': {'type': 'default'}}:
-                get_result = {"default"}
-                return get_result
-
-        mock_get_all_networks.side_effect = fake_get_all_networks
-        return_all_networks = self.controller.get_cluster_networks_info(
-            req, cluster_id='cluster_1111')
-        self.assertEqual({"cluster_1111"}, return_all_networks)
-
-    @mock.patch('daisy.api.backends.common.update_role_host')
-    @mock.patch('daisy.api.backends.common.get_roles_of_host')
-    @mock.patch('subprocess.call')
-    def test_ready_to_discover_host(self, mock_do_call, mock_do_get_roles,
-                                    mock_do_update_role):
-        def mock_call(*args, **kwargs):
-            pass
-
-        def mock_get_roles(*args, **kwargs):
-            pass
-
-        def mock_update_role(*args, **kwargs):
-            pass
-
-        req = webob.Request.blank('/')
-        host_meta = {'os_status': 'init'}
-        mock_do_call.side_effect = mock_call
-        mock_do_get_roles.side_effect = mock_get_roles
-        mock_do_update_role.side_effect = mock_update_role
-        self.controller._ready_to_discover_host(req, host_meta,
-                                                set_host_meta())
-        self.assertEqual(None, host_meta.get('role'))
-
-    def test_ready_to_discover_host_with_tecs_version(self):
-        req = webob.Request.blank('/')
-        orig_host_meta = {'tecs_version_id': '1',
-                          'tecs_patch_id': '1'}
-        host_meta = {}
-        self.controller._ready_to_discover_host(req, host_meta,
-                                                orig_host_meta)
-        self.assertEqual(None, host_meta.get('tecs_version_id'))
-        self.assertEqual(None, host_meta.get('tecs_patch_id'))
-
-    def test_check_add_host_interfaces(self):
-        req = webob.Request.blank('/')
-        host_info = set_host_meta()
-        self.assertRaises(webob.exc.HTTPBadRequest,
-                          self.controller._check_add_host_interfaces,
-                          req, host_info)
-
-    @mock.patch('daisy.registry.client.v1.api.get_hosts_detail')
-    def test_verify_host_name_with_os_active(self, mock_do_get_hosts_detail):
-
-        def mock_get_hosts_detail(*args, **kwargs):
-            return []
-
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
-        mock_do_get_hosts_detail.side_effect = mock_get_hosts_detail
-        host_meta = {
-            "id": "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
-            "os_status": "active",
-            "name": "host-1"}
-        orig_host_meta = {
-            "id": "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
-            "os_status": "active",
-            "name": "host-2"}
-        self.assertRaises(webob.exc.HTTPForbidden,
-                          self.controller._verify_host_name, req,
-                          "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
-                          orig_host_meta, host_meta)
-
-    @mock.patch('daisy.registry.client.v1.api.get_hosts_detail')
-    def test_verify_host_name_with_empty(self, mock_do_get_hosts_detail):
-
-        def mock_get_hosts_detail(*args, **kwargs):
-            return []
-
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
-        mock_do_get_hosts_detail.side_effect = mock_get_hosts_detail
-        host_meta = {
-            "id": "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
-            "os_status": "init",
-            "name": ""}
-        orig_host_meta = {
-            "id": "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
-            "os_status": "init",
-            "name": "host-1"}
-        self.assertEqual(None, self.controller._verify_host_name(
-            req, "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
-            orig_host_meta, host_meta))
-
-    @mock.patch('daisy.registry.client.v1.api.get_hosts_detail')
-    def test_verify_host_name_with_format_no_valid(
-            self, mock_do_get_hosts_detail):
-
-        def mock_get_hosts_detail(*args, **kwargs):
-            return []
-
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
-        mock_do_get_hosts_detail.side_effect = mock_get_hosts_detail
-        host_meta = {
-            "id": "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
-            "os_status": "init",
-            "name": "~~~~"}
-        orig_host_meta = {
-            "id": "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
-            "os_status": "init",
-            "name": "host-1"}
-        self.assertRaises(webob.exc.HTTPForbidden,
-                          self.controller._verify_host_name, req,
-                          "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
-                          orig_host_meta, host_meta)
-
-    @mock.patch('daisy.registry.client.v1.api.get_hosts_detail')
-    def test_verify_host_name_with_out_length(
-            self, mock_do_get_hosts_detail):
-
-        def mock_get_hosts_detail(*args, **kwargs):
-            return []
-
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
-        mock_do_get_hosts_detail.side_effect = mock_get_hosts_detail
-        host_meta = {
-            "id": "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
-            "os_status": "init",
-            "name": "a123456789a123456789a123456789a123456789"}
-        orig_host_meta = {
-            "id": "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
-            "os_status": "init",
-            "name": "host-1"}
-        self.assertRaises(webob.exc.HTTPForbidden,
-                          self.controller._verify_host_name, req,
-                          "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
-                          orig_host_meta, host_meta)
-
-    @mock.patch('daisy.registry.client.v1.api.get_hosts_detail')
-    def test_check_host_name_with_conflict(self, mock_do_get_hosts_detail):
-
-        def mock_get_hosts_detail(*args, **kwargs):
-            return [
-                {
-                    'id': u'f9b3aa0b-43c6-437a-9243-e7d141d22114',
-                    'name': u'abcddd'
-                },
-                {
-                    'id': u'bad3f85a-aa2a-429e-b941-7f2d8312dc2a',
-                    'name': u'abcd'
-                },
-                {
-                    'id': u'b3ea6edc-8758-41e6-9b5b-ebfea2622c06',
-                    'name': u'abcdddd'
-                },
-                {
-                    'id': u'840b92ab-7e79-4a7d-be0a-5e735e0a836e',
-                    'name': u''
-                }
-            ]
-
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
-        mock_do_get_hosts_detail.side_effect = mock_get_hosts_detail
-        host_meta = {
-            "id": "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
-            "os_status": "init",
-            "name": "abcddd"}
-        orig_host_meta = {
-            "id": "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
-            "os_status": "init",
-            "name": "host-1"}
-        self.assertRaises(webob.exc.HTTPForbidden,
-                          self.controller._verify_host_name, req,
-                          "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
-                          orig_host_meta, host_meta)
-
-    def test_verify_host_cluster_with_in_cluster(self):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
-        host_meta = {
-            "id": "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
-            'hwm_id': '1',
-            "cluster": "66e57b5c-fc4f-4c09-a550-b057ff4f5452",
-            "name": "abcddd"}
-        orig_host_meta = {
-            "id": "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
-            "status": "in-cluster",
-            "name": "host-1"}
-        host_cluster = [{
-            "id": "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
-            "cluster_id": "66e57b5c-fc4f-4c09-a550-b057ff4f5453",
-            "status": "in-cluster",
-            "name": "host-1"}]
-        registry.get_host_clusters = \
-            mock.Mock(return_value=host_cluster)
-        self.controller.get_cluster_meta_or_404 = \
-            mock.Mock(return_value={"id": "66e57b5c-fc4f-"
-                                          "4c09-a550-b057ff4f5452"})
-        daisy_cmn.check_discover_state_with_hwm = \
-            mock.Mock(return_value=check_result(host_meta,
-                                                'SSH:DISCOVERY_SUCCESSFUL'))
-        self.assertRaises(webob.exc.HTTPForbidden,
-                          self.controller._verify_host_cluster, req,
-                          "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
-                          orig_host_meta, host_meta)
-
-    @mock.patch('daisy.registry.client.v1.api.delete_host_metadata')
-    @mock.patch('subprocess.call')
-    @mock.patch('daisy.registry.client.v1.api.get_host_metadata')
-    def test_delete_install_unfinished_host(self, mock_get_host,
-                                            mock_call,
-                                            mock_delete_host):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True,
-                                     user='fake user',
-                                     tenant='fake tenant')
-
-        def del_mac(cmd, shell, stdout, stderr):
-            pass
-        host_id = '1'
-        mock_get_host.return_value = {'interfaces': [{'mac': '1'}]}
-        mock_call.side_effect = del_mac
-        mock_delete_host.return_value = {}
-        self.controller.delete_host(req, host_id)
-        response = self.controller.delete_host(req, host_id)
-        self.assertEqual(200, response.status_code)
-
-    def test_interface_has_vf(self):
-        interface = {"name": "eth0", "is_support_vf": True}
-        ret = self.controller._interface_has_vf(interface)
-        self.assertTrue(ret)
-
-    def test_get_interface_by_name(self):
-        name = "eth0"
-        ret = self.controller._get_interface_by_name(name, None)
-        self.assertIsNone(ret)
-
-        intfaces = "[{'name': 'eth1'}]"
-        ret = self.controller._get_interface_by_name(name, intfaces)
-        self.assertIsNone(ret)
+        self.assertEqual({'ipmi_check_result': 'ipmi check failed'},
+                         self.controller._host_ipmi_check(host_id, host))
