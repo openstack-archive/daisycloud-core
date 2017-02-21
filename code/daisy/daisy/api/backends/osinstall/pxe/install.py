@@ -757,8 +757,8 @@ class OSInstall():
                     % host_detail['id']
                 raise exception.NotFound(message=self.message)
 
-                ipmi_result_flag = self._set_boot_or_power_state(host_detail,
-                                                                 'pxe')
+            ipmi_result_flag = self._set_boot_or_power_state(host_detail,
+                                                             'pxe')
         return ipmi_result_flag
 
     def _set_power_reset(self, host_detail, ipmi_result_flag):
