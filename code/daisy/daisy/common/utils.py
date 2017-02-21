@@ -1208,6 +1208,23 @@ def get_numa_node_from_cpus(numa, str_cpus):
     return numa_nodes
 
 
+def get_numa_node_from_dvsc_cpus(numa, dvsc_cpus):
+    numa_nodes = []
+    cpu_list = cpu_str_to_list(dvsc_cpus)
+    for cpu in cpu_list:
+        for key in numa.keys():
+            if cpu in numa[key]:
+                try:
+                    numa_node = int(key.split('numa_node')[1])
+                except:
+                    raise exception.Invalid("Get numa node failed")
+                numa_nodes.append(numa_node)
+
+    numa_nodes = list(set(numa_nodes))
+    numa_nodes.sort()
+    return numa_nodes
+
+
 def get_provider_client(provider_ip):
     endpoint = "http://" + provider_ip + ":8089"
     args = {'version': 1.0, 'endpoint': endpoint}
