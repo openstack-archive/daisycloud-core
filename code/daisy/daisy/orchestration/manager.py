@@ -51,9 +51,9 @@ class OrchestrationManager():
         if not host_list:
             LOG.warn("No installed active node in cluster")
         host_list = [host for host in host_list
-                     if host.discover_state == "PXE:DISCOVERY_SUCCESSFUL"]
+                     if host.discover_mode == "PXE"]
         if not host_list:
-            LOG.warn("No PXE:DISCOVERY_SUCCESSFUL node in cluster")
+            LOG.warn("No pxe discover successful node in cluster")
         for host in host_list:
             host_info = daisy_client.hosts.get(host.id)
             if hasattr(host_info, "role") and ["COMPUTER"] == host_info.role \
@@ -81,7 +81,6 @@ class OrchestrationManager():
             host_info.isolcpus = active_compute_host.isolcpus
             host_info.ipmi_user = active_compute_host.ipmi_user
             host_info.ipmi_passwd = active_compute_host.ipmi_passwd
-            host_info.isolcpus = active_compute_host.isolcpus
             host_info.vcpu_pin_set = active_compute_host.vcpu_pin_set
             host_info.dvs_high_cpuset = active_compute_host.dvs_high_cpuset
             host_info.pci_high_cpuset = active_compute_host.pci_high_cpuset
@@ -97,21 +96,23 @@ class OrchestrationManager():
             host_info.flow_mode = active_compute_host.flow_mode
             host_info.virtio_queue_size = active_compute_host.virtio_queue_size
             host_info.dvs_config_type = active_compute_host.dvs_config_type
+            host_info.tecs_patch_id = active_compute_host.tecs_patch_id
         else:
             LOG.warn("No installed active computer node in cluster")
             return None
 
         if active_compute_host:
+            host_info.interfaces = [x for x in host_info.interfaces if
+                                    x['type'] == "ether"]
             for interface in host_info.interfaces:
                 for compute_interface in active_compute_host.interfaces:
-                    if interface['pci'] == compute_interface['pci'] and \
+                    if interface['name'] == compute_interface['name'] and \
                        "assigned_networks" in compute_interface:
                         for assigned_network in compute_interface[
                                 'assigned_networks']:
                             assigned_network['ip'] = ''
                         interface['assigned_networks'] = compute_interface[
                             'assigned_networks']
-                        interface['name'] = compute_interface['name']
                         interface['netmask'] = compute_interface['netmask']
                         interface['gateway'] = compute_interface['gateway']
                         interface['mode'] = compute_interface['mode']
@@ -161,29 +162,43 @@ class OrchestrationManager():
             active_compu_memory_str = str(compute_host.memory['total'])
             active_compu_memory_size =\
                 int(active_compu_memory_str.strip().split()[0])
-            if memory_size_b_int < active_compu_memory_size:
+            # host memory can't be lower than the installed host memory size-1G
+            if memory_size_b_int < active_compu_memory_size - 1024 * 1024:
                 msg = "new host memory is lower than %s" % compute_host.name
                 LOG.warn(msg)
                 continue
-            is_isomorphic = False
-            for interface in new_interfaces:
-                if interface['type'] != "ether":
-                    continue
-                for compute_interface in compute_host.interfaces:
-                    if interface['pci'] == compute_interface['pci'] and\
-                       interface['max_speed'] == \
-                       compute_interface['max_speed']:
-                        is_isomorphic = True
-                    elif interface['pci'] == compute_interface['pci'] and \
-                            interface['max_speed'] != \
-                            compute_interface['max_speed']:
-                        msg = "%s and new host interface max speed are different"\
-                              % (compute_host.name)
-                        LOG.warn(msg)
-                        is_isomorphic = False
-                        break
-                if not is_isomorphic:
-                    break
+            is_isomorphic = self._check_interface_isomorphic(
+                new_interfaces, compute_host)
             if is_isomorphic:
                 return compute_host
         return False
+
+    def _check_interface_isomorphic(self, new_interfaces, active_host):
+        is_isomorphic = False
+        for interface in new_interfaces:
+            if interface['type'] != "ether":
+                continue
+            is_isomorphic = False
+            for compute_interface in active_host.interfaces:
+                if compute_interface['type'] != "ether":
+                    continue
+                max_speed = compute_interface['max_speed']
+                if interface['name'] == compute_interface['name'] and \
+                        interface['pci'] == compute_interface['pci'] and\
+                        (interface['max_speed'] == max_speed):
+                    is_isomorphic = True
+                elif (interface['name'] == compute_interface['name'])\
+                        and (interface['max_speed'] != max_speed):
+                    msg = "%s and new host %s max speed are different" \
+                          % (active_host.name, interface['name'])
+                    LOG.warn(msg)
+                    return False
+                elif (interface['name'] == compute_interface['name']) and\
+                        (interface['pci'] != compute_interface['pci']):
+                    msg = "%s and new host %s pci are different" \
+                          % (active_host.name, interface['name'])
+                    LOG.warn(msg)
+                    return False
+            if not is_isomorphic:
+                return False
+        return is_isomorphic
