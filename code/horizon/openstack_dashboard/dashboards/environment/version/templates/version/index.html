@@ -90,7 +90,11 @@
                 var url = "/dashboard/environment/version/get_appointed_system_versions/";
                 do_post(url, JSON.stringify({'file_type': $("#file_type").val()}), update_correspond_file_option);
             }
-            check_disk_space_and_file_exist();
+
+            if ($("#local_file").attr('checked') == 'checked')
+                check_disk_space_and_file_exist();
+            else
+                $("#server_file").click();
         });
 
         $(".file_position").on("click", function(){
@@ -104,8 +108,11 @@
                 $(".form-server-file").removeClass("hide");
 
                 // 获取服务端文件信息
+                var params = {
+                    "file_type": $("#file_type").val()
+                }
                 var url = "/dashboard/environment/version/get_headstrong_server_files/";
-                do_post(url, JSON.stringify({}), update_server_file_option);
+                do_post(url, JSON.stringify(params), update_server_file_option);
             }
         });
 

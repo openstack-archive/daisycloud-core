@@ -919,7 +919,8 @@ class TestHostsApiConfig(test.TestCase):
                     u'id': u'4b6970c5-ef1d-4599-a1d7-70175a888e6d',
                     u'description': u'default',
                     u'hwm_ip': None,
-                    u'os_version_file': "/var/lib/daisy/redhat123.iso",
+                    u'os_version_file': "/var/lib/daisy/versionfile"
+                                        "/os/redhat123.iso",
                     u'dmi_uuid': u'03000200-0400-0500-0006-000700080009',
                     u'hwm_id': None,
                     u'pci_high_cpuset': None,
@@ -1121,7 +1122,7 @@ class TestHostsApiConfig(test.TestCase):
 
     def test_get_os_version_when_host_meta_has_os_version_file(self):
         host_meta = set_host_meta()
-        host_meta['os_version'] = '/var/lib/daisy/redhat123.iso'
+        host_meta['os_version'] = '/var/lib/daisy/versionfile/os/redhat123.iso'
         orig_host_meta = set_orig_host_meta()
         os_version = self.controller._get_os_version(host_meta,
                                                      orig_host_meta)
@@ -1131,16 +1132,19 @@ class TestHostsApiConfig(test.TestCase):
         host_meta = set_host_meta()
         orig_host_meta = set_orig_host_meta()
         orig_host_meta['os_version_id'] = None
-        orig_host_meta['os_version_file'] = '/var/lib/daisy/redhat321.iso'
+        orig_host_meta['os_version_file'] = '/var/lib/daisy/' \
+                                            'versionfile/os/redhat321.iso'
         os_version = self.controller._get_os_version(host_meta,
                                                      orig_host_meta)
         self.assertEqual(orig_host_meta['os_version_file'], os_version)
 
     def test_get_os_version_when_host_and_orig_host_has_os_version_file(self):
         host_meta = set_host_meta()
-        host_meta['os_version'] = '/var/lib/daisy/redhat123.iso'
+        host_meta['os_version'] = '/var/lib/daisy/versionfile/os' \
+                                  '/redhat123.iso'
         orig_host_meta = set_orig_host_meta()
-        orig_host_meta['os_version_id'] = '/var/lib/daisy/redhat321.iso'
+        orig_host_meta['os_version_id'] = '/var/lib/daisy/versionfile' \
+                                          '/os/redhat321.iso'
         os_version = self.controller._get_os_version(host_meta,
                                                      orig_host_meta)
         self.assertEqual(host_meta['os_version'], os_version)
@@ -1238,7 +1242,7 @@ class TestHostsApiConfig(test.TestCase):
         self.controller._check_os_version = mock.Mock(return_value=None)
         mock_do_request.side_effect = self.fake_do_request
         update_host = self.controller.update_host(req, id, host_meta)
-        self.assertEqual('/var/lib/daisy/redhat123.iso',
+        self.assertEqual('/var/lib/daisy/versionfile/os/redhat123.iso',
                          update_host['host_meta']['os_version_file'])
 
     @mock.patch("daisy.api.v1.hosts.Controller.get_host_meta_or_404")
