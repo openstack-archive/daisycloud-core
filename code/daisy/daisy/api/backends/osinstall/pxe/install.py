@@ -1030,7 +1030,7 @@ class OSInstall():
 def _os_thread_bin(req, host_ip, host_id, update_file, update_script):
     host_meta = {}
     password = "ossdbg1"
-    LOG.info(_("Begin update os for host %s." % (host_ip)))
+    LOG.info(_("Begin upgrade os for host %s." % (host_ip)))
     cmd = 'mkdir -p /var/log/daisy/daisy_update/'
     daisy_cmn.subprocess_call(cmd)
 
@@ -1062,10 +1062,10 @@ def _os_thread_bin(req, host_ip, host_id, update_file, update_script):
             if e.returncode == 255 and "reboot" in e.output.strip():
                 host_meta['os_progress'] = 100
                 host_meta['os_status'] = host_os_status['ACTIVE']
-                host_meta['messages'] = "upgrade OS successfully,os reboot"
+                host_meta['messages'] = "OS upgrade successfully, reboot"
                 daisy_cmn.update_db_host_status(req, host_id, host_meta)
                 LOG.info(
-                    _("Update os for %s successfully,os reboot!" % host_ip))
+                    _("OS upgrade for %s successfully,system reboot!" % host_ip))
                 daisy_cmn.check_reboot_ping(host_ip)
             else:
                 host_meta['os_progress'] = 0
@@ -1073,18 +1073,16 @@ def _os_thread_bin(req, host_ip, host_id, update_file, update_script):
                 host_meta[
                     'messages'] = \
                     e.output.strip()[-400:-30].replace('\n', ' ')
-                LOG.error(_("Update OS for %s failed!" % host_ip))
+                LOG.error(_("Upgrade OS for %s failed!" % host_ip))
                 daisy_cmn.update_db_host_status(req, host_id, host_meta)
             fp.write(e.output.strip())
         else:
             host_meta['os_progress'] = 100
             host_meta['os_status'] = host_os_status['ACTIVE']
-            host_meta['messages'] = "upgrade OS successfully"
+            host_meta['messages'] = "OS upgraded successfully"
             daisy_cmn.update_db_host_status(req, host_id, host_meta)
             LOG.info(_("Upgrade OS for %s successfully!" % host_ip))
             fp.write(exc_result)
-            if "reboot" in exc_result:
-                daisy_cmn.check_reboot_ping(host_ip)
 
 
 # this will be raise raise all the exceptions of the thread to log file
@@ -1166,7 +1164,7 @@ def upgrade(self, req, cluster_id, version_id, version_patch_id,
         host_meta = daisy_cmn.get_host_detail(req, host_id)
         host_ip = daisy_cmn.get_host_network_ip(
             req, host_meta, cluster_networks, 'MANAGEMENT')
-        if daisy_cmn.get_local_deployment_ip(host_ip):
+        if daisy_cmn.get_local_deployment_ip([host_ip]):
             LOG.exception("%s host os upgrade by hand" % host_ip)
             continue
         host_set = set()
