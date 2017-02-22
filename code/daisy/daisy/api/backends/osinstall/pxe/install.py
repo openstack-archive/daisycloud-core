@@ -776,7 +776,7 @@ class OSInstall():
             if ipmi_result_flag:
                 self._set_boot_or_power_state(host_detail, 'reset')
 
-    def _begin_install_os(self, hosts_detail, cluster_id=None):
+    def _begin_install_os(self, hosts_detail, cluster_id):
         # all hosts status is set to 'pre-install' before os installing
         for host_detail in hosts_detail:
             host_status = {'os_status': host_os_status['PRE_INSTALL'],
@@ -981,7 +981,7 @@ class OSInstall():
                 time.sleep(self.time_step)
         return hosts_install_status
 
-    def install_os(self, hosts_detail, role_hosts_ids, cluster_id=None):
+    def install_os(self, hosts_detail, role_hosts_ids, cluster_id):
         # 15 hosts ,install 10 firstly ,then 5 host
         # output :host_detail=5 ,role_hosts_ids is failed host among 10 hosts
         if len(hosts_detail) > self.max_parallel_os_num:
