@@ -596,7 +596,7 @@ class OSInstall():
                 host_detail['os_version_id'])
             if version_info:
                 os_version = version_info['name']
-                os_version_file = "/var/lib/daisy/" + os_version
+                os_version_file = "/var/lib/daisy/versionfile/os/" + os_version
         if os_version_file:
             test_os_version_exist = 'test -f %s' % os_version_file
             try:
@@ -1029,7 +1029,7 @@ def _os_thread_bin(req, host_ip, host_id, update_file, update_script):
         daisy_cmn.subprocess_call(cmd, fp)
         cmd = 'clush -S -b -w %s  "rm -rf /home/daisy_update/*"' % (host_ip,)
         daisy_cmn.subprocess_call(cmd, fp)
-        cmd = 'clush -S -w %s -c /var/lib/daisy/tecs/%s\
+        cmd = 'clush -S -w %s -c /var/lib/daisy/versionfile/os/%s\
                  /var/lib/daisy/os/%s \
                  --dest=/home/daisy_update' % (
             host_ip, update_file, update_script,)
@@ -1127,7 +1127,7 @@ def _cmp_os_version(new_os_file, old_os_version,
                        "/usr/sbin/" % (password, target_host_ip, shell_file)]
             daisy_cmn.run_scrip(scripts)
 
-        cmp_script = "tfg_showversion /var/lib/daisy/tecs/%s %s"\
+        cmp_script = "tfg_showversion /var/lib/daisy/versionfile/os/%s %s"\
                      % (new_os_file, old_os_version)
         try:
             result = subprocess.check_output(cmp_script, shell=True,
