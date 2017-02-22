@@ -3,6 +3,7 @@ from daisy.api.backends import common
 from daisy import test
 import webob
 from daisy.context import RequestContext
+from daisy.common import exception
 
 
 class MockLoggingHandler(object):
@@ -153,3 +154,7 @@ class TestCommon(test.TestCase):
         mock_do_update_host.side_effect = mock_update_host
         host_info = common.update_db_host_status(req, host_id, host_status)
         self.assertEqual("456", host_info['version_patch_id'])
+
+    def test_get_local_deployment_ip_with_string(self):
+        self.assertRaises(exception.InvalidIP,
+                          common.get_local_deployment_ip, '192.168.1.5')

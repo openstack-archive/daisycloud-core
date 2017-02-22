@@ -6,6 +6,7 @@ import subprocess
 from daisy.api.backends.osinstall.pxe import install
 from daisy.db.sqlalchemy import api
 from daisy.common import exception
+import daisy.api.backends.common as daisy_cmn
 
 
 def update_host_meta(req):
@@ -181,3 +182,80 @@ class TestOsInstall(test.TestCase):
                               cluster_id,
                               False)._install_os_for_baremetal,
             host_detail)
+
+    @mock.patch('daisy.api.backends.common.update_db_host_status')
+    def test_upgrade_no_local_ip(self, mock_update_db_host):
+        req = webob.Request.blank('/')
+        cluster_id = "123"
+        version_id = "1"
+        version_patch_id = "12"
+        update_script = "test.txt"
+        update_file = "test"
+        hosts_list = ['123', '345']
+        update_object = "redhat"
+        daisy_cmn.get_cluster_networks_detail = mock.Mock(return_value={})
+        daisy_cmn.get_host_detail = mock.Mock(return_value={})
+        daisy_cmn.get_host_network_ip = mock.Mock(return_value="1.1.1.1")
+        daisy_cmn.check_ping_hosts = mock.Mock(return_value={})
+        daisy_cmn.get_local_deployment_ip = mock.Mock(return_value="")
+        mock_update_db_host.return_value = 'ok'
+        install.upgrade_os = mock.Mock(return_value={})
+        install.upgrade(self, req, cluster_id, version_id, version_patch_id,
+                        update_file, update_script, hosts_list, update_object)
+        self.assertTrue(mock_update_db_host.called)
+
+    @mock.patch('daisy.api.backends.common.update_db_host_status')
+    def test_upgrade_has_local_ip(self, mock_update_db_host):
+        req = webob.Request.blank('/')
+        cluster_id = "123"
+        version_id = "1"
+        version_patch_id = "12"
+        update_script = "test.txt"
+        update_file = "test"
+        hosts_list = ['123', '345']
+        update_object = "redhat"
+        daisy_cmn.get_cluster_networks_detail = mock.Mock(return_value={})
+        daisy_cmn.get_host_detail = mock.Mock(return_value={})
+        daisy_cmn.get_host_network_ip = mock.Mock(return_value="1.1.1.1")
+        daisy_cmn.check_ping_hosts = mock.Mock(return_value={})
+        daisy_cmn.get_local_deployment_ip = mock.Mock(return_value="1.1.1.1")
+        mock_update_db_host.return_value = 'ok'
+        install.upgrade_os = mock.Mock(return_value={})
+        install.upgrade(self, req, cluster_id, version_id, version_patch_id,
+                        update_file, update_script, hosts_list, update_object)
+        self.assertFalse(mock_update_db_host.called)
+
+    @mock.patch("daisy.api.backends.common.subprocess_call")
+    @mock.patch("subprocess.check_output")
+    @mock.patch('daisy.api.backends.common.update_db_host_status')
+    @mock.patch('daisy.api.backends.common.check_reboot_ping')
+    def test_os_thread_bin_nomal(self, mock_do_reboot_ping,
+                                 mock_do_update_db_status,
+                                 mock_check_output, mock_subprocess_call):
+        def mock_reboot_ping():
+            return
+
+        def mock_update_db_status(req, host_id, host_meta):
+            return
+
+        mock_do_reboot_ping.side_effect = mock_reboot_ping
+        mock_do_update_db_status.side_effect = mock_update_db_status
+        mock_subprocess_call.return_value = None
+        cmd = 'mkdir -p /var/log/daisy/daisy_update/'
+        subprocesscall(cmd)
+        cmd1 = "touch /var/log/daisy/daisy_update/10.43.177.1_update" \
+               "_os.log"
+        subprocesscall(cmd1)
+        host_ip = "10.43.177.1"
+        host_meta = {'id': '123', 'root_pwd': 'ossdbg1'}
+        log_file = '/var/log/daisy/daisy_update/%s_update_os.log' \
+                   % host_ip
+        update_file = "test.txt"
+        update_object = "vplat"
+        vpatch_id = ""
+        exec_result = 'upgrade successfully'
+        mock_check_output.return_value = exec_result
+        install._os_thread_bin(self.req, host_ip, host_meta['id'], update_file,
+                               update_object)
+        self.assertEqual(6, mock_subprocess_call.call_count)
+        self.assertEqual(1, mock_check_output.call_count)
