@@ -45,6 +45,7 @@ from daisyclient.v1 import param_helper
 import daisyclient.v1.backup_restore
 import daisyclient.v1.versions
 import daisyclient.v1.version_patchs
+import daisyclient.v1.deploy_server
 from daisy.common import utils as daisy_utils
 
 _bool_strict = functools.partial(strutils.bool_from_string, strict=True)
@@ -2613,3 +2614,42 @@ def do_version_patch_delete(dc, args):
                 print('[Fail]')
             print('%s: Unable to delete version_patch %s'
                   % (e, version_patch))
+
+
+@utils.arg('--page-size', metavar='<SIZE>', default=None, type=int,
+           help='Number to request in each paginated request.')
+@utils.arg('--sort-key', default='id',
+           choices=daisyclient.v1.deploy_server.SORT_KEY_VALUES,
+           help='Sort deploy server list by specified field.')
+@utils.arg('--sort-dir', default='asc',
+           choices=daisyclient.v1.deploy_server.SORT_DIR_VALUES,
+           help='Sort deploy server list in specified direction.')
+def do_deploy_server_list(dc, args):
+    """List deploy servers you can access."""
+    kwargs = {'filters': {}}
+    if args.page_size is not None:
+        kwargs['page_size'] = args.page_size
+
+    kwargs['sort_key'] = args.sort_key
+    kwargs['sort_dir'] = args.sort_dir
+
+    template_funcs = dc.deploy_server.list(**kwargs)
+    columns = ['ID', 'Name', 'Cluster_id', 'Description',
+               'Vlan_start', 'Vlan_end', 'Gateway', 'Cidr',
+               'Type', 'Ip_ranges', 'Segmentation_type',
+               'custom_name', 'nics', 'pxe_nic']
+    utils.print_list(template_funcs, columns)
+
+
+@utils.arg('deployment_interface', metavar='<DEPLOYMENT_INTERFACE>',
+           help='The interface to deploy.')
+@utils.arg('server_ip', metavar='<SERVER_IP>',
+           help='The server ip to deploy.')
+def do_pxe_env_check(gc, args):
+    """Check pxe env."""
+    fields = {}
+    fields.update({
+        'deployment_interface': args.deployment_interface,
+        'server_ip': args.server_ip})
+    pxe_env = gc.deploy_server.pxe_env_check(**fields)
+    _daisy_show(pxe_env)
