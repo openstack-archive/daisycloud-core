@@ -7,6 +7,7 @@ import json as jsonutils
 import daisy.registry.client.v1.api as registry
 import daisy.api.backends.common as daisy_cmn
 from daisy.tests.api import fakes
+from daisy.db.sqlalchemy import api
 
 
 def set_host_meta():
@@ -1832,6 +1833,154 @@ class TestHostsApiConfig(test.TestCase):
         self.assertRaises(webob.exc.HTTPBadRequest,
                           self.controller._check_interface_on_update_host,
                           req, host_meta, orig_host_meta)
+
+    @mock.patch('logging.Logger')
+    @mock.patch('daisy.registry.client.v1.api.'
+                'update_discover_host_metadata')
+    @mock.patch('daisy.registry.client.v1.api.'
+                'get_all_host_interfaces')
+    @mock.patch('daisy.registry.client.v1.api.'
+                'get_discover_hosts_detail')
+    def test_add_discover_host_with_exist_host_with_mac(
+            self, mock_get_discovered_hosts,
+            mock_get_all_host_interfaces,
+            mock_update_discover_host, mock_log):
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True,
+                                     user='fake user',
+                                     tenant='fake tenant')
+
+        def update_discover_host(context, host_id, host_info):
+            discover_host_meta = {'ip': '1.2.3.4',
+                                  'status': 'init',
+                                  'user': 'root',
+                                  'passwd': 'ossdbg1'
+                                  }
+            discover_host = api.discover_host_add(context, discover_host_meta)
+            discover_host_id = discover_host['id']
+            api.discover_host_update(context, discover_host_id, host_info)
+            discover_hosts = api.discover_host_get_all(context)
+            discover_host_id = discover_hosts[0]['id']
+            discover_host_info = api.discover_host_get(context,
+                                                       discover_host_id)
+            api.discover_host_destroy(context, discover_host_id)
+            return discover_host_info
+
+        host_meta = {'ip': '1.2.3.4',
+                     'passwd': 'ossdbg1',
+                     'user': 'root',
+                     'mac': '4c:09:b4:b1:c1:f0'}
+        mock_get_discovered_hosts.return_value = [{'ip': '1.2.3.4',
+                                                   'status': 'init',
+                                                   'id': '1'}]
+        mock_get_all_host_interfaces.return_value = [{'host_id': '1'}]
+        mock_update_discover_host.side_effect = update_discover_host
+        mock_log.side_effect = self._log_handler
+        update_discover_host = self.controller.add_discover_host(req,
+                                                                 host_meta)
+        self.assertEqual('1', update_discover_host['host_meta']['host_id'])
+
+    @mock.patch('daisy.api.v1.hosts.Controller.'
+                '_get_discover_host_filter_by_ip')
+    @mock.patch('daisy.api.v1.hosts.Controller._get_discover_host_ip')
+    @mock.patch('logging.Logger')
+    def test_add_discover_host_with_exist_host(self, mock_log,
+                                               mock_get_discover_host_ip,
+                                               mock_get_discover_host):
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True,
+                                     user='fake user',
+                                     tenant='fake tenant')
+        mock_get_discover_host_ip.return_value = ['1.2.3.4']
+        mock_get_discover_host.return_value = {
+            'ip': '1.2.3.4', 'status': 'DISCOVERY_SUCCESSFUL'}
+        host_meta = {'ip': '1.2.3.4',
+                     'passwd': 'ossdbg1',
+                     'user': 'root'}
+        mock_log.side_effect = self._log_handler
+        self.assertRaises(webob.exc.HTTPForbidden,
+                          self.controller.add_discover_host, req, host_meta)
+
+    @mock.patch('daisy.api.v1.hosts.Controller._get_discover_host_ip')
+    @mock.patch('logging.Logger')
+    def test_add_discover_host_with_not_exist_host_without_password(
+            self, mock_log, mock_get_discover_host_ip):
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True,
+                                     user='fake user',
+                                     tenant='fake tenant')
+        mock_get_discover_host_ip.return_value = []
+        mock_log.side_effect = self._log_handler
+        host_meta = {'ip': '1.2.3.4'}
+        self.assertRaises(webob.exc.HTTPBadRequest,
+                          self.controller.add_discover_host, req, host_meta)
+
+    @mock.patch('logging.Logger')
+    @mock.patch('daisy.registry.client.v1.api.'
+                'add_discover_host_metadata')
+    @mock.patch('daisy.registry.client.v1.api.'
+                'get_all_host_interfaces')
+    @mock.patch('daisy.registry.client.v1.api.'
+                'get_discover_hosts_detail')
+    def test_add_discover_host_with_not_exist_host_with_mac(
+            self, mock_get_discovered_hosts,
+            mock_get_all_host_interfaces,
+            mock_add_discover_host, mock_log):
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True,
+                                     user='fake user',
+                                     tenant='fake tenant')
+
+        def add_new_discover_host(context, host_info):
+            return api.discover_host_add(context, host_info)
+
+        host_meta = {'ip': '1.2.3.4',
+                     'passwd': 'ossdbg1',
+                     'user': 'root',
+                     'mac': '4c:09:b4:b1:c1:f0'}
+        mock_get_discovered_hosts.return_value = [{'ip': '1.2.3.6',
+                                                   'status': 'init',
+                                                   'id': '1'}]
+        mock_get_all_host_interfaces.return_value = [{'host_id': '2'}]
+        mock_add_discover_host.side_effect = add_new_discover_host
+        mock_log.side_effect = self._log_handler
+        add_host_info = self.controller.add_discover_host(req, host_meta)
+        self.assertEqual('2', add_host_info['host_meta']['host_id'])
+
+    @mock.patch('logging.Logger')
+    @mock.patch('daisy.registry.client.v1.api.'
+                'update_discover_host_metadata')
+    @mock.patch('daisy.registry.client.v1.api.'
+                'get_all_host_interfaces')
+    @mock.patch('daisy.registry.client.v1.api.'
+                'get_discover_hosts_detail')
+    def test_discover_host_bin_with_discovered_host(
+            self, mock_get_discover_hosts_detail,
+            mock_get_all_host_interfaces, mock_update_discover_host, mock_log):
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True,
+                                     user='fake user',
+                                     tenant='fake tenant')
+        host_meta = {}
+
+        def get_discover_hosts(context, **params):
+            discover_host_meta1 = {'ip': '1.2.3.4',
+                                   'user': 'root',
+                                   'passwd': 'ossdbg1'}
+            api.discover_host_add(context, discover_host_meta1)
+            return api.discover_host_get_all(context)
+
+        def update_discover_host(context, host_id, host_info):
+            api.discover_host_update(context, host_id, host_info)
+            api.discover_host_destroy(context, host_id)
+
+        mock_get_discover_hosts_detail.side_effect = get_discover_hosts
+        mock_get_all_host_interfaces.return_value = [{'ip': '1.2.3.4',
+                                                      'host_id': '3'}]
+        mock_update_discover_host.side_effect = update_discover_host
+        mock_log.side_effect = self._log_handler
+        self.controller.discover_host_bin(req, host_meta)
+        self.assertTrue(mock_update_discover_host.called)
 
 
 class TestGetClusterNetworkInfo(test.TestCase):

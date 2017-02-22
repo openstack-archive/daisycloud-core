@@ -341,6 +341,9 @@ class HostManager(base.ManagerWithFind):
                 msg = 'create() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
 
+        if fields.get('hwm_id'):
+            params = self.get_min_mac(fields['hwm_id'])
+            fields['mac'] = params.get('mac')
         hdrs = self._host_meta_to_headers(fields)
 
         resp, body = self.client.post('/v1/discover/nodes',
