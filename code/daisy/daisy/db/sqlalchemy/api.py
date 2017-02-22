@@ -5774,9 +5774,14 @@ def version_get_all(context, filters=None, marker=None, limit=None,
     versions = []
     for version in query.all():
         version_dict = version.to_dict()
-        version_sql = "select * from hosts,clusters where (hosts.os_version_id ='"\
-            + version_dict['id'] +"' and hosts.deleted=0) or (clusters.tecs_version_id='"\
-            + version_dict['id'] +"' and clusters.deleted=0)"
+        version_sql = "select * from hosts,clusters where (" \
+                      "(hosts.os_version_id ='" + version_dict['id'] +\
+                      "' or hosts.version_patch_id ='" + \
+                      version_dict['id'] +"' or hosts.tecs_version_id ='"\
+                      + version_dict['id'] +"' or hosts.tecs_patch_id ='"\
+                      + version_dict['id'] +"') and hosts.deleted=0) or " \
+                                            "(clusters.tecs_version_id='"\
+                      + version_dict['id'] +"' and clusters.deleted=0)"
         hosts_number = session.execute(version_sql).fetchone()
         if hosts_number:
             version_dict['status'] = "used"
