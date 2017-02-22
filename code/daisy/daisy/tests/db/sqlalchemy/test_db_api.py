@@ -4,6 +4,7 @@ from daisy.db.sqlalchemy import api
 from daisy import test
 from daisy.tests import test_utils
 import mock
+from oslo_db.sqlalchemy import session
 from oslo_db.sqlalchemy.session import Query
 import webob
 
@@ -733,6 +734,37 @@ class TestSqlalchemyApi(test.TestCase):
         update_networks = \
             api._network_update(self.req.context, update_info, network_id)
         self.assertEqual(update_info['cidr'], update_networks['cidr'])
+
+    @mock.patch('daisy.db.sqlalchemy.api.get_session')
+    def test_version_get_all(self, mock_do_sesison):
+        def mock_sesison(*args, **kwargs):
+            return FakeSession()
+        version_values = {'id': '1', 'status': 'used'}
+        filters_value = {
+            'deleted': False,
+            'cluster_id': u'a0ed9c30-afd3-4bba-bf0f-12ed44e42332'}
+        limit_value = 25
+        sort_key_value = ['created_at']
+        sort_dir_value = ['desc']
+        mock_do_sesison.side_effect = mock_sesison
+
+        class User(object):
+            def __init__(self, id, status):
+                self.id = id
+                self.status = status
+
+            def to_dict(self):
+                return {'id': self.id, 'status': self.status}
+
+        user = User(id='1', status='used')
+        Query.all = mock.Mock(return_value=[user])
+        session.query = mock.Mock(return_value=version_values)
+        versions = api.version_get_all(self.req.context,
+                                       filters=filters_value,
+                                       limit=limit_value,
+                                       sort_key=sort_key_value,
+                                       sort_dir=sort_dir_value)
+        self.assertEqual(version_values['id'], versions[0]['id'])
 
     def test_get_host_interface_vf_info(self):
         self.assertRaises(exception.NotFound,
