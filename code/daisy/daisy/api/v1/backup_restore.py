@@ -21,6 +21,7 @@ import datetime
 import os
 import subprocess
 import ConfigParser
+import webob
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
 from webob.exc import HTTPForbidden
@@ -263,18 +264,20 @@ class Controller(controller.BaseController):
         :raises HTTPBadRequest if restore failed
         """
         self.check_file_format(req, file_meta)
-        restore_scripts = [
-            'test -d {0} || mkdir {0}'.format(BACK_PATH),
-            'test -d {0} || mkdir {0}'.format('/home/daisy_install/'),
-            'tar -zxvf {1} -C {0}>/dev/null 2>&1'.format(
-                BACK_PATH, file_meta['backup_file_path']),
-            'mysql < {0}daisy_tmp/database.sql'.format(BACK_PATH),
-            'cp {0}daisy_tmp/daisy.conf /home/daisy_install/'.format(
-                BACK_PATH),
-            'rm -rf {0}daisy_tmp'.format(BACK_PATH)
-        ]
-        daisy_cmn.run_scrip(restore_scripts, msg='Restore failed!')
-        LOG.info('Restore successfully')
+        restore_cmd = "/var/lib/daisy/tecs/daisy_restore.sh\
+                      %s" % (file_meta['backup_file_path'],)
+        LOG.info(restore_cmd)
+        try:
+            subprocess.check_output(restore_cmd,
+                                    shell=True,
+                                    stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            msg = "Restore command '%s' failed by subprocess call, "\
+                  "error message: %s." % (restore_cmd, e.output.strip())
+            LOG.error(msg)
+            raise webob.exc.HTTPBadRequest(explanation=msg)
+        else:
+            LOG.info('Restore successfully')
 
     @utils.mutating
     def get_backup_file_version(self, req, file_meta):
