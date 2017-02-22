@@ -942,6 +942,8 @@ def do_service_update(gc, args):
 @utils.arg('--glance-lv-size', metavar='<GLANCE_LV_SIZE>',
            help='the size of logic volume disk for storaging image,\
             and the unit is M.')
+@utils.arg('--docker-vg-size', metavar='<DOCKER_VG_SIZE>',
+           help='the size of docker_vg(M).')
 @utils.arg('--deployment-backend', metavar='<deployment_backend>',
            help="deployment backend, supported bacends are \
            'tecs' and 'zenic' now.")
@@ -1063,6 +1065,8 @@ def do_role_detail(gc, args):
            help='the size of database disk(M).')
 @utils.arg('--nova-lv-size', metavar='<NOVA_LV_SIZE>',
            help='the size of logic volume disk for nvoa, and the unit is MB.')
+@utils.arg('--docker-vg-size', metavar='<DOCKER_VG_SIZE>',
+           help='the size of docker_vg(M).')
 @utils.arg('--disk-location', metavar='<DISK_LOCATION>',
            help='where disks used by backends application from, default is "local". \
                  "local" means disks come from local host, \
