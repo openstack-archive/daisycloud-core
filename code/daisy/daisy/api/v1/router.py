@@ -39,6 +39,7 @@ from daisy.api.v1 import version_patchs
 from daisy.api.v1 import template_configs
 from daisy.api.v1 import template_funcs
 from daisy.api.v1 import template_services
+from daisy.api.v1 import deploy_server
 
 
 class API(wsgi.Router):
@@ -638,6 +639,16 @@ class API(wsgi.Router):
                        controller=template_services_resource,
                        action="get_template_service",
                        conditions=dict(method=["GET"]))
+
+        deploy_server_resource = deploy_server.create_resource()
+        mapper.connect("/deploy_server",
+                       controller=deploy_server_resource,
+                       action="list_deploy_server",
+                       conditions={'method': ['GET']})
+        mapper.connect("/deploy_servers/pxe_env_check",
+                       controller=deploy_server_resource,
+                       action='pxe_env_check',
+                       conditions={'method': ['POST']})
 
         path = os.path.join(os.path.abspath(os.path.dirname(
                                             os.path.realpath(__file__))),
