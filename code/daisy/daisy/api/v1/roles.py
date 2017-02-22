@@ -651,6 +651,10 @@ class Controller(controller.BaseController):
         self._check_role_add_parameters(req, role_meta, role_service_id_list)
         role_name = role_meta["name"]
         role_description = role_meta["description"]
+        if role_meta.get('role_type',
+                         None) == 'CONTROLLER_HA' and not role_meta.get(
+                'docker_vg_size', None):
+            role_meta['docker_vg_size'] = 104448
         print role_name
         print role_description
 
@@ -760,6 +764,17 @@ class Controller(controller.BaseController):
         role_host_info_list = registry.get_role_host_metadata(req.context, id)
         role_host_id_list = [role_host['host_id']
                              for role_host in role_host_info_list]
+        if orig_role_meta['role_type'] == "CONTROLLER_HA":
+            if not role_meta.get('docker_vg_size',
+                                 orig_role_meta['docker_vg_size']):
+                role_meta['docker_vg_size'] = '104448'
+        if orig_role_meta['role_type'] != "CONTROLLER_HA" and role_meta.get(
+                'docker_vg_size', None):
+            msg = _("only CONTROLLER_HA can be updated with docker_vg_size.")
+            LOG.debug(msg)
+            raise HTTPForbidden(explanation=msg,
+                                request=req,
+                                content_type="text/plain")
         self._check_role_update_parameters(
             req,
             role_meta,
