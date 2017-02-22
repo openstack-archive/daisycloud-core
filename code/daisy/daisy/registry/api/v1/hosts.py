@@ -118,6 +118,8 @@ class Controller(object):
         nodes = self._get_hosts(req.context, **params)
         nodes.sort(key=lambda x: x['name'])
 
+        for node in nodes:
+            node = self._host_additional_info(req, node)
         return dict(nodes=nodes)
 
     def _get_query_params(self, req):
@@ -384,6 +386,39 @@ class Controller(object):
             LOG.exception(_LE("Unable to delete host %s") % id)
             raise
 
+    def _host_additional_info(self, req, host_data):
+        host_id = host_data.get("id")
+        host_status = host_data.get("status")
+        if 'host' not in host_data:
+            host_data = dict(host=host_data)
+        host_interface = self.db_api.get_host_interface(req.context, host_id)
+        if host_interface:
+            host_data['host']['interfaces'] = host_interface
+        role_name = []
+        backends = set()
+        if host_status == "with-role":
+            host_roles = self.db_api.role_host_member_get(
+                req.context, None, host_id)
+            for host_role in host_roles:
+                role_info = self.db_api.role_get(
+                    req.context, host_role.role_id)
+                role_name.append(role_info['name'])
+                backends.add(role_info.get('deployment_backend'))
+        if role_name:
+            host_data['host']['role'] = role_name
+            host_data['host']['deployment_backends'] = backends
+        host_cluster = self.db_api.cluster_host_member_find(
+            req.context, None, host_id)
+        if host_cluster:
+            cluster_info = self.db_api.cluster_get(
+                req.context, host_cluster[0]['cluster_id'])
+            cluster_name = cluster_info['name']
+        else:
+            cluster_name = None
+        if cluster_name:
+            host_data['host']['cluster'] = cluster_name
+        return host_data
+
     @utils.mutating
     def get_host(self, req, id):
         """Return data about the given node id."""
@@ -405,40 +440,42 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to show host %s") % id)
             raise
+        host = self._host_additional_info(req, host_data)
+        return host
 
         # Currently not used
 
-        host_interface = self.db_api.get_host_interface(req.context, id)
+        #host_interface = self.db_api.get_host_interface(req.context, id)
 
-        role_name = []
-        backends = set()
-        if host_data.status == "with-role":
-            host_roles = self.db_api.role_host_member_get(
-                req.context, None, id)
-            for host_role in host_roles:
-                role_info = self.db_api.role_get(
-                    req.context, host_role.role_id)
-                role_name.append(role_info['name'])
-                backends.add(role_info.get('deployment_backend'))
-        host_cluster = self.db_api.cluster_host_member_find(
-            req.context, None, id)
-        if host_cluster:
-            cluster_info = self.db_api.cluster_get(
-                req.context, host_cluster[0]['cluster_id'])
-            cluster_name = cluster_info['name']
-        else:
-            cluster_name = None
+        #role_name = []
+        #backends = set()
+        #if host_data.status == "with-role":
+        #    host_roles = self.db_api.role_host_member_get(
+        #        req.context, None, id)
+        #    for host_role in host_roles:
+        #        role_info = self.db_api.role_get(
+        #            req.context, host_role.role_id)
+        #        role_name.append(role_info['name'])
+        #        backends.add(role_info.get('deployment_backend'))
+        #host_cluster = self.db_api.cluster_host_member_find(
+        #    req.context, None, id)
+        #if host_cluster:
+        #    cluster_info = self.db_api.cluster_get(
+        #        req.context, host_cluster[0]['cluster_id'])
+        #    cluster_name = cluster_info['name']
+        #else:
+        #    cluster_name = None
 
-        if 'host' not in host_data:
-            host_data = dict(host=host_data)
-        if host_interface:
-            host_data['host']['interfaces'] = host_interface
-        if role_name:
-            host_data['host']['role'] = role_name
-            host_data['host']['deployment_backends'] = backends
-        if cluster_name:
-            host_data['host']['cluster'] = cluster_name
-        return host_data
+        #if 'host' not in host_data:
+        #    host_data = dict(host=host_data)
+        #if host_interface:
+        #    host_data['host']['interfaces'] = host_interface
+        #if role_name:
+        #    host_data['host']['role'] = role_name
+        #    host_data['host']['deployment_backends'] = backends
+        #if cluster_name:
+        #    host_data['host']['cluster'] = cluster_name
+        #return host_data
 
     @utils.mutating
     def get_host_interface(self, req, body):
@@ -808,8 +845,6 @@ class Controller(object):
         """Return data about the given cluster id."""
         try:
             cluster_data = self.db_api.cluster_get(req.context, id)
-            msg = "Successfully retrieved cluster %(id)s" % {'id': id}
-            LOG.debug(msg)
             networking_parameters = {}
             networking_parameters['gre_id_range'] = [
                 cluster_data['gre_id_start'], cluster_data['gre_id_end']]
