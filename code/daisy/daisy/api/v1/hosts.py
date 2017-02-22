@@ -2035,7 +2035,8 @@ class Controller(controller.BaseController):
         LOG.info('existed_host_ip**: %s', existed_host_ip)
 
         for discover_host in discover_host_meta_list:
-            if discover_host['status'] != 'DISCOVERY_SUCCESSFUL':
+            if discover_host['status'] != 'DISCOVERY_SUCCESSFUL' and \
+                    discover_host['ip']:
                 update_info = {}
                 update_info['status'] = 'DISCOVERING'
                 update_info['message'] = 'DISCOVERING'
@@ -2043,7 +2044,8 @@ class Controller(controller.BaseController):
                 self.update_progress_to_db(req, update_info, discover_host)
         threads = []
         for discover_host_meta in discover_host_meta_list:
-            if discover_host_meta['ip'] in existed_host_ip:
+            if discover_host_meta['ip'] \
+                    and discover_host_meta['ip'] in existed_host_ip:
                 update_info = {}
                 update_info['status'] = 'DISCOVERY_SUCCESSFUL'
                 update_info['message'] = "discover host for %s successfully!" \
@@ -2055,7 +2057,8 @@ class Controller(controller.BaseController):
                 self.update_progress_to_db(
                     req, update_info, discover_host_meta)
                 continue
-            if discover_host_meta['status'] != 'DISCOVERY_SUCCESSFUL':
+            if discover_host_meta['ip'] and discover_host_meta['status'] \
+                    != 'DISCOVERY_SUCCESSFUL':
                 t = threading.Thread(
                     target=self.thread_bin, args=(
                         req, cluster_id, discover_host_meta))
@@ -2118,52 +2121,55 @@ class Controller(controller.BaseController):
             raise HTTPBadRequest(explanation=msg,
                                  request=req,
                                  content_type="text/plain")
+
+        discover_hosts_ip = self._get_discover_host_ip(req)
+        host_interfaces = []
+        if host_meta.get('mac'):
+            filters = {'mac': host_meta['mac']}
+            host_interfaces = registry.get_all_host_interfaces(req.context,
+                                                               filters)
+        if host_meta['ip'] in discover_hosts_ip:
+            host = self._get_discover_host_filter_by_ip(req, host_meta['ip'])
+            if host and host['status'] != 'DISCOVERY_SUCCESSFUL':
+                host_info = {}
+                host_info['ip'] = host_meta.get('ip', host.get('ip'))
+                host_info['passwd'] = \
+                    host_meta.get('passwd', host.get('passwd'))
+                host_info['user'] = host_meta.get('user', host.get('user'))
+                host_info['status'] = 'init'
+                host_info['message'] = 'None'
+                if host_interfaces:
+                    host_info['host_id'] = host_interfaces[0]['host_id']
+                discover_host_info = \
+                    registry.update_discover_host_metadata(req.context,
+                                                           host['id'],
+                                                           host_info)
+            else:
+                msg = (_("ip %s already existed and this host has been "
+                         "discovered successfully. " % host_meta['ip']))
+                LOG.error(msg)
+                raise HTTPForbidden(explanation=msg,
+                                    request=req,
+                                    content_type="text/plain")
         else:
-            discover_hosts_ip = self._get_discover_host_ip(req)
-            if host_meta['ip'] in discover_hosts_ip:
-                host = self._get_discover_host_filter_by_ip(req,
-                                                            host_meta['ip'])
-                if host and host['status'] != 'DISCOVERY_SUCCESSFUL':
-                    host_info = {}
-                    host_info['ip'] = host_meta.get('ip', host.get('ip'))
-                    host_info['passwd'] =\
-                        host_meta.get('passwd', host.get('passwd'))
-                    host_info['user'] = \
-                        host_meta.get('user', host.get('user'))
-                    host_info['status'] = 'init'
-                    host_info['message'] = 'None'
-                    host_meta = \
-                        registry.update_discover_host_metadata(req.context,
-                                                               host['id'],
-                                                               host_info)
-                    return {'host_meta': host_meta}
-                else:
-                    msg = (_("ip %s already existed and this host has "
-                             "been discovered successfully. "
-                             % host_meta['ip']))
-                    LOG.error(msg)
-                    raise HTTPForbidden(explanation=msg,
-                                        request=req,
-                                        content_type="text/plain")
             self.validate_ip_format(host_meta['ip'])
-
-        if not host_meta.get('user', None):
-            host_meta['user'] = 'root'
-
-        if not host_meta.get('passwd', None):
-            msg = "PASSWD parameter can not be None."
-            LOG.error(msg)
-            raise HTTPBadRequest(explanation=msg,
-                                 request=req,
-                                 content_type="text/plain")
-        if not host_meta.get('status', None):
-            host_meta['status'] = 'init'
-
-        try:
-            discover_host_info = \
-                registry.add_discover_host_metadata(req.context, host_meta)
-        except exception.Invalid as e:
-            raise HTTPBadRequest(explanation=e.msg, request=req)
+            if not host_meta.get('user', None):
+                host_meta['user'] = 'root'
+            if not host_meta.get('passwd', None):
+                msg = "PASSWD parameter can not be None."
+                LOG.error(msg)
+                raise HTTPBadRequest(explanation=msg,
+                                     request=req,
+                                     content_type="text/plain")
+            if not host_meta.get('status', None):
+                host_meta['status'] = 'init'
+            if host_interfaces:
+                host_meta['host_id'] = host_interfaces[0]['host_id']
+            try:
+                discover_host_info = \
+                    registry.add_discover_host_metadata(req.context, host_meta)
+            except exception.Invalid as e:
+                raise HTTPBadRequest(explanation=e.msg, request=req)
         return {'host_meta': discover_host_info}
 
     @utils.mutating
