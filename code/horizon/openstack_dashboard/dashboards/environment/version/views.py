@@ -30,7 +30,11 @@ LOG = logging.getLogger(__name__)
 def get_version_path(file_type=None):
     if file_type and file_type == "zenic":
         return getattr(settings, 'DAISY_ZENIC_VER_PATH',
-                       "/var/lib/daisy/zenic/")
+                       "/var/lib/daisy/versionfile/zenic/")
+    if file_type and file_type in ['redhat 6.5', 'redhat 7.0', 'suse',
+                                   'centos 7.0', 'windows', 'vplat']:
+        return getattr(settings, 'DAISY_OS_VER_PATH',
+                       "/var/lib/daisy/versionfile/os/")
     return getattr(settings, 'DAISY_VER_PATH',
                    "/var/lib/daisy/kolla/")
 
@@ -385,7 +389,8 @@ def get_appointed_system_versions(request):
 
 
 def get_headstrong_server_files(request):
-    version_path = get_version_path()
+    data = json.loads(request.body)
+    version_path = get_version_path(data["file_type"])
     file_names = get_version_file_names(request)
 
     server_file_types = [".bin", ".iso"]
