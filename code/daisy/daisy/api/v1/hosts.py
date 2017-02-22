@@ -694,19 +694,7 @@ class Controller(controller.BaseController):
         else:
             return Response(body='', status=200)
 
-    @utils.mutating
-    def get_host(self, req, id):
-        """
-        Returns metadata about an host in the HTTP headers of the
-        response object
-
-        :param req: The WSGI/Webob Request object
-        :param id: The opaque host identifier
-
-        :raises HTTPNotFound if host metadata is not available to user
-        """
-        self._enforce(req, 'get_host')
-        host_meta = self.get_host_meta_or_404(req, id)
+    def _host_additional_info(self, req, host_meta):
         path = os.path.join(os.path.abspath(os.path.dirname(
             os.path.realpath(__file__))), 'ext')
         for root, dirs, names in os.walk(path):
@@ -779,6 +767,23 @@ class Controller(controller.BaseController):
 
         return {'host_meta': host_meta}
 
+    @utils.mutating
+    def get_host(self, req, id):
+        """
+        Returns metadata about an host in the HTTP headers of the
+        response object
+
+        :param req: The WSGI/Webob Request object
+        :param id: The opaque host identifier
+
+        :raises HTTPNotFound if host metadata is not available to user
+        """
+        self._enforce(req, 'get_host')
+        host_meta = self.get_host_meta_or_404(req, id)
+        self._host_additional_info(req, host_meta)
+
+        return {'host_meta': host_meta}
+
     def detail(self, req):
         """
         Returns detailed information for all available nodes
@@ -801,8 +806,7 @@ class Controller(controller.BaseController):
         try:
             nodes = registry.get_hosts_detail(req.context, **params)
             for node in nodes:
-                os_handle.check_discover_state(req,
-                                               node)
+                self._host_additional_info(req, node)
         except exception.Invalid as e:
             raise HTTPBadRequest(explanation=e.msg, request=req)
         return dict(nodes=nodes)
