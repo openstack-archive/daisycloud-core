@@ -50,6 +50,8 @@ CREATE_PARAMS = ('id', 'name', 'description', 'resource_type', 'dmi_uuid',
                  'discover_mode', 'system', 'cpu',
                  'memory', 'disks', 'devices', 'pci')
 
+CHECK_PARAMS = ('id', 'check_item')
+
 DEFAULT_PAGE_SIZE = 200
 
 SORT_DIR_VALUES = ('asc', 'desc')
@@ -468,4 +470,16 @@ class HostManager(base.ManagerWithFind):
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
         # return Host(self, meta)
+        return Host(self, self._format_host_meta_for_user(body['host']))
+
+    def host_check(self, **kwargs):
+        hdrs = {}
+        fields = {}
+        for field in kwargs:
+            if field in CHECK_PARAMS:
+                fields[field] = kwargs[field]
+            elif field == 'return_req_id':
+                continue
+        hdrs.update(self._host_meta_to_headers(fields))
+        resp, body = self.client.post('/v1/check', headers=None, data=hdrs)
         return Host(self, self._format_host_meta_for_user(body['host']))
