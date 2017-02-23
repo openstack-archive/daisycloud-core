@@ -602,7 +602,9 @@ class Controller(controller.BaseController):
         if host_meta.get('os_status', None) == 'init':
             self._set_pxe_interface_for_host(req, host_meta)
 
-        self._check_add_host_interfaces(req, host_meta)
+        result = self._check_add_host_interfaces(req, host_meta)
+        if result:
+            return result
 
         if 'resource_type' in host_meta:
             if host_meta['resource_type'] not in self.support_resource_type:
@@ -919,10 +921,6 @@ class Controller(controller.BaseController):
         """
         # If true, the host need update, not add and update is successful.
         self._verify_interface_in_same_host(host_meta['interfaces'])
-
-        # host pxe interface info
-        input_host_pxe_info = self._count_host_pxe_info(
-            host_meta['interfaces'])
         # verify interface between exist host and input host in cluster
         list_params = {
             'sort_key': u'name',
@@ -932,31 +930,32 @@ class Controller(controller.BaseController):
         for id in [host['id'] for host in all_hosts]:
             host_meta_list = registry.get_host_metadata(req.context, id)
             exist_nodes.append(host_meta_list)
-        if input_host_pxe_info:
-            input_host_pxe_info = input_host_pxe_info[0]
+        interfaces = list(eval(host_meta['interfaces']))
+        for host_interface in interfaces:
+            host_mac = host_interface.get('mac', None)
+            if not host_mac:
+                continue
             for exist_node in exist_nodes:
                 id = exist_node.get('id', None)
                 os_status = exist_node.get('os_status', None)
-                exist_node_info = self.get_host(req, id).get('host_meta', None)
+                exist_node_info = self.get_host(req, id).get('host_meta',
+                                                             None)
                 if not exist_node_info.get('interfaces', None):
                     continue
-
                 for interface in exist_node_info['interfaces']:
-                    if interface.get(
-                            'mac', None) != input_host_pxe_info.get(
-                            'mac', None) or interface.get(
-                            'type', None) == "bond":
+                    if interface.get('type', None) == "bond":
                         continue
-                    if exist_node.get('dmi_uuid') \
-                            and exist_node.get('dmi_uuid') != \
-                            host_meta.get('dmi_uuid'):
-                        msg = "The 'mac' of host interface is exist in " \
-                              "db, but 'dmi_uuid' is different.We think " \
-                              "you want update the host, but the host " \
-                              "can't find."
-                        LOG.error(msg)
-                        raise HTTPForbidden(explanation=msg)
-                    return (id, os_status)
+                    if interface.get('mac', None) == host_mac:
+                        if exist_node.get('dmi_uuid') \
+                                and exist_node.get('dmi_uuid') != \
+                                host_meta.get('dmi_uuid'):
+                            msg = "The 'mac' of host interface is exist " \
+                                  "in db, but 'dmi_uuid' is different.We" \
+                                  " think you want update the host, but " \
+                                  "the host can't find."
+                            LOG.error(msg)
+                            raise HTTPForbidden(explanation=msg)
+                        return (id, os_status)
         return (None, None)
 
     def _get_swap_lv_size_m(self, memory_size_m):
@@ -1371,9 +1370,26 @@ class Controller(controller.BaseController):
         self._verify_host_name(req, id, orig_host_meta, host_meta)
 
         orig_mac_list = \
-            self._check_interface_on_update_host(req,
-                                                 host_meta,
+            self._check_interface_on_update_host(req, host_meta,
                                                  orig_host_meta)
+        new_mac_list = []
+        if interfaces in host_meta:
+            interfaces = eval(host_meta['interfaces'])
+            new_mac_list = [interface['mac'] for interface in
+                            interfaces if interface.get('mac')]
+            if orig_mac_list:
+                orig_min_mac = min(orig_mac_list)
+            if new_mac_list:
+                new_min_mac = min(new_mac_list)
+            if orig_mac_list and new_mac_list and \
+                    (min(new_min_mac, orig_min_mac) != orig_min_mac):
+                ironic_data = utils.get_host_hw_info(interfaces)
+                orig_host_meta['disks'] = ironic_data.get('disks')
+                orig_host_meta['memory'] = ironic_data.get('memory')
+                orig_host_meta['devices'] = ironic_data.get('devices')
+                orig_host_meta['pci'] = ironic_data.get('pci')
+                orig_host_meta['system'] = ironic_data.get('system')
+                orig_host_meta['cpu'] = ironic_data.get('cpu')
         self._verify_host_cluster(req, id, orig_host_meta, host_meta)
         if ('resource_type' in host_meta and
                 host_meta['resource_type'] not in self.support_resource_type):
@@ -1867,7 +1883,6 @@ class Controller(controller.BaseController):
                                                       host_meta)
 
             if orig_mac_list:
-                orig_min_mac = min(orig_mac_list)
                 discover_host = self._get_discover_host_by_mac(req,
                                                                orig_min_mac)
                 if discover_host:
