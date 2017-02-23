@@ -670,7 +670,8 @@ class TestSqlalchemyApi(test.TestCase):
         session = api.get_session()
         distribution_ip1 = api.according_to_cidr_distribution_ip(
             cluster_id, network_plane_name, session)
-        self.assertEqual('112.18.1.2', distribution_ip1)
+        # gateway = '112.18.1.2'
+        self.assertEqual('112.18.1.3', distribution_ip1)
 
     def test_get_network_ip_range(self):
         network_values = {
