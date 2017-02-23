@@ -6,6 +6,7 @@ import webob
 import json as jsonutils
 import daisy.registry.client.v1.api as registry
 import daisy.api.backends.common as daisy_cmn
+from daisy.common import utils
 from daisy.tests.api import fakes
 from daisy.db.sqlalchemy import api
 
@@ -1838,6 +1839,7 @@ class TestHostsApiConfig(test.TestCase):
                           self.controller._check_interface_on_update_host,
                           req, host_meta, orig_host_meta)
 
+<<<<<<< HEAD
     @mock.patch('logging.Logger')
     @mock.patch('daisy.registry.client.v1.api.'
                 'update_discover_host_metadata')
@@ -1985,6 +1987,109 @@ class TestHostsApiConfig(test.TestCase):
         mock_log.side_effect = self._log_handler
         self.controller.discover_host_bin(req, host_meta)
         self.assertTrue(mock_update_discover_host.called)
+=======
+    def test__verify_interface_among_hosts(self):
+        host_meta = {
+            'cluster': '1',
+            'dmi_uuid': '03000200-0400-0500-0006-000700080009',
+            'interfaces':
+                "[{'name': 'enp132s0f2292','ip': '192.168.1.2',"
+                "'mac': '4c:09:b4:b2:80:8c','pci': '0000:03:02.0',"
+                "'assigned_networks': [],"
+                "'host_id': '1','type': 'ether'},"
+                "{'name': 'bond0','bond_type': '',"
+                "'mode': 'active-backup;off',"
+                "'slaves': ['enp2s0', 'enp132s0f2292'],"
+                "'assigned_networks':[{'ip': '192.168.1.5',"
+                "'name': 'PUBLICAPI'}],'host_id': '1','type': 'bond'},"
+                "{'name': 'enp2s0','ip': '10.43.178.21',"
+                "'mac': '00:24:21:74:8a:56','pci': '0000:02:00.0',"
+                "'assigned_networks': [],'host_id': '1',"
+                "'type': 'ether'}, {'name': 'enp3s1', "
+                "'mac': '00:23:cd:96:53:97', 'pci': '0000:03:02.1', "
+                "'type': 'ether'}]"}
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True,
+                                     user='fake user',
+                                     tenant='fake tenamet')
+        self.controller._verify_interface_in_same_host = mock.Mock(return_value={}) 
+        registry.get_hosts_detail = mock.Mock(return_value=[self.orig_host_meta])
+        registry.get_host_metadata = mock.Mock(return_value=self.orig_host_meta)
+        self.controller.get_host = mock.Mock(return_value={'host_meta': self.orig_host_meta})
+        id = ""
+        os_status = ""
+        (id, status) = self.controller._verify_interface_among_hosts(req, host_meta)
+        self.assertEqual("4b6970c5-ef1d-4599-a1d7-70175a888e6d", id)
+
+    def test_add_host_with_same_host(self):
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True,
+                                     user='fake user',
+                                     tenant='fake tenamet')
+        self.controller._check_add_host_interfaces = \
+            mock.Mock(return_value="samehost")
+        result = self.controller.add_host(req, self.host_meta)
+        self.assertEqual('samehost', result)
+
+    def test_update_host_with_same_host(self):
+        host_meta = {
+            'id': '4b6970c5-ef1d-4599-a1d7-70175a888e6d',
+            'cluster': '1',
+            'dmi_uuid': '03000200-0400-0500-0006-000700080009',
+            'root_disk': 'sda',
+            'os_status': 'init',
+            'interfaces':
+                "[{'name': 'enp132s0f2292','ip': '192.168.1.2',"
+                "'mac': '4c:09:b4:b2:80:8c','pci': '0000:03:02.0',"
+                "'assigned_networks': [],"
+                "'host_id': '1','type': 'ether'},"
+                "{'name': 'bond0','bond_type': '',"
+                "'mode': 'active-backup;off',"
+                "'slaves': ['enp2s0', 'enp132s0f2292'],"
+                "'assigned_networks':[{'ip': '192.168.1.5',"
+                "'name': 'PUBLICAPI'}],'host_id': '1',"
+                "'type': 'bond'},"
+                "{'name': 'enp2s0','ip': '10.43.178.21',"
+                "'mac': '00:24:21:74:8a:56','pci': '0000:02:00.0',"
+                "'assigned_networks': [],'host_id': '1',"
+                "'type': 'ether'}, {'name': 'enp3s1', "
+                "'mac': '00:23:cd:96:53:97', 'pci': '0000:03:02.1', "
+                "'type': 'ether'}]",
+            'disks': {
+                u'sda': {u'name': u'sda',
+                         u'extra': [u'scsi-3500003956831a6d8',
+                                    u'wwn-0x500003956831a6d8'],
+                         u'removable': u'',
+                         u'model': u'',
+                         u'disk': u'pci-0000:01:00.0-sas-'
+                         u'0x500003956831a6da-lun-0',
+                         u'size': u' 200127266816 bytes'}}}
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True,
+                                     user='fake user',
+                                     tenant='fake tenamet')
+        self.controller.get_host_meta_or_404 = mock.Mock(
+            return_value=self.orig_host_meta)
+        self.controller._check_interface_on_update_host = mock.Mock(
+            return_value=['4c:09:b4:b2:80:8c', '00:24:21:74:8a:56'])
+        self.controller._verify_host_cluster = mock.Mock(return_value={})
+        utils.get_host_hw_info = \
+            mock.Mock(
+                return_value={'disks': {'sda':
+                                            {'name': 'sda',
+                                             'size': '200127266816',
+                                             'disk': u'pci-0000:01:00.0',
+                                             'removable': u''}},
+                              'cpu': {'real': 1, 'spec_1': {},
+                                      'total': 1}})
+        id = '4b6970c5-ef1d-4599-a1d7-70175a888e6d'
+        registry.get_roles_detail = mock.Mock(return_value={})
+        registry.get_clusters_detail = mock.Mock(return_value={})
+        registry.get_discover_hosts_detail = mock.Mock(return_value={})
+        registry.update_host_metadata = mock.Mock(return_value=host_meta)
+        result = self.controller.update_host(req, id, host_meta)
+        self.assertEqual(host_meta, result['host_meta'])
+>>>>>>> a4d5455... if hwm host lost some network interface , then the host pxe discover fail.
 
 
 class TestGetClusterNetworkInfo(test.TestCase):
