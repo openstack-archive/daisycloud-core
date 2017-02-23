@@ -670,7 +670,8 @@ class TestSqlalchemyApi(test.TestCase):
         session = api.get_session()
         distribution_ip1 = api.according_to_cidr_distribution_ip(
             cluster_id, network_plane_name, session)
-        self.assertEqual('112.18.1.2', distribution_ip1)
+        # gateway = '112.18.1.2'
+        self.assertEqual('112.18.1.3', distribution_ip1)
 
     def test_get_network_ip_range(self):
         network_values = {
@@ -815,3 +816,71 @@ class TestSqlalchemyApi(test.TestCase):
         ret = api.host_interfaces_get_all(self.req.context)
         self.assertEqual(ret[0]["host_id"], host_id)
         api.host_destroy(self.req.context, host_id)
+
+    def test_according_to_cidr_distribution_ip_without_cidr(self):
+        ip_ranges = [{'start': '112.18.1.2', 'end': '112.18.1.5', }, ]
+        network_values = {
+            'cluster_id': '737adb89-ee6f-4642-8196-9ee6926fbe50',
+            'cidr': '112.18.1.2/25',
+                    'gateway': '112.18.1.1',
+                    'ip_ranges': str(ip_ranges),
+                    'name': 'physnet1',
+                    'segmentation_type': 'vxlan',
+                    'physnet_name': 'physnet_enp2s0',
+                    'type': 'default',
+                    'network_type': 'DATAPLANE',
+        }
+        network_info = api.network_add(self.req.context, network_values)
+        network_id = network_info.__dict__['id']
+
+        cluster_id = '737adb89-ee6f-4642-8196-9ee6926fbe50'
+        network_plane_name = 'physnet1'
+        session = api.get_session()
+        distribution_ip1 = api.according_to_cidr_distribution_ip(
+            cluster_id, network_plane_name, session)
+        self.assertEqual('112.18.1.2', distribution_ip1)
+
+    def test_according_to_cidr_distribution_ip_with_wrong_cidr(self):
+        ip_ranges = [{'start': '112.18.1.2', 'end': '112.18.1.5', }, ]
+        network_values = {
+            'cluster_id': '737adb89-ee6f-4642-8196-9ee6926fbe50',
+            'cidr': '112.18.1.2/25',
+                    'gateway': '112.18.1.1',
+                    'ip_ranges': str(ip_ranges),
+                    'name': 'physnet1',
+                    'segmentation_type': 'vxlan',
+                    'physnet_name': 'physnet_enp2s0',
+                    'type': 'default',
+                    'network_type': 'DATAPLANE',
+        }
+        network_info = api.network_add(self.req.context, network_values)
+        network_id = network_info.__dict__['id']
+
+        cluster_id = '737adb89-ee6f-4642-8196-9ee6926fbe50'
+        network_plane_name = 'physnet1'
+        session = api.get_session()
+        distribution_ip1 = api.according_to_cidr_distribution_ip(
+            cluster_id, network_plane_name, session)
+        self.assertEqual('112.18.1.2', distribution_ip1)
+
+    def test_according_to_cidr_distribution_ip_from_net_cidr(self):
+        network_values = {
+            'cluster_id': '737adb89-ee6f-4642-8196-9ee6926fbe50',
+            'cidr': '112.18.1.2/25',
+                    'gateway': '112.18.1.1',
+                    'name': 'physnet1',
+                    'segmentation_type': 'vxlan',
+                    'physnet_name': 'physnet_enp2s0',
+                    'type': 'default',
+                    'network_type': 'DATAPLANE',
+        }
+        network_info = api.network_add(self.req.context, network_values)
+        network_id = network_info.__dict__['id']
+
+        cluster_id = '737adb89-ee6f-4642-8196-9ee6926fbe50'
+        network_plane_name = 'physnet1'
+        session = api.get_session()
+        distribution_ip1 = api.according_to_cidr_distribution_ip(
+            cluster_id, network_plane_name, session)
+        self.assertEqual('112.18.1.2', distribution_ip1)
+
