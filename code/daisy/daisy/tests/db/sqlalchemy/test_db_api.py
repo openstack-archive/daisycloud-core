@@ -670,7 +670,8 @@ class TestSqlalchemyApi(test.TestCase):
         session = api.get_session()
         distribution_ip1 = api.according_to_cidr_distribution_ip(
             cluster_id, network_plane_name, session)
-        self.assertEqual('112.18.1.2', distribution_ip1)
+        # gateway = '112.18.1.2'
+        self.assertEqual('112.18.1.3', distribution_ip1)
 
     def test_get_network_ip_range(self):
         network_values = {
@@ -815,3 +816,128 @@ class TestSqlalchemyApi(test.TestCase):
         ret = api.host_interfaces_get_all(self.req.context)
         self.assertEqual(ret[0]["host_id"], host_id)
         api.host_destroy(self.req.context, host_id)
+
+    def test_according_to_cidr_distribution_ip_without_cidr(self):
+        ip_ranges = [{'start': '112.18.1.2', 'end': '112.18.1.5', }, ]
+        network_values = {
+            'cluster_id': '737adb89-ee6f-4642-8196-9ee6926fbe50',
+            'cidr': '112.18.1.2/25',
+                    'gateway': '112.18.1.1',
+                    'ip_ranges': str(ip_ranges),
+                    'name': 'physnet1',
+                    'segmentation_type': 'vxlan',
+                    'physnet_name': 'physnet_enp2s0',
+                    'type': 'default',
+                    'network_type': 'DATAPLANE',
+        }
+        network_info = api.network_add(self.req.context, network_values)
+        network_id = network_info.__dict__['id']
+
+        cluster_id = '737adb89-ee6f-4642-8196-9ee6926fbe50'
+        network_plane_name = 'physnet1'
+        session = api.get_session()
+        distribution_ip1 = api.according_to_cidr_distribution_ip(
+            cluster_id, network_plane_name, session)
+        self.assertEqual('112.18.1.2', distribution_ip1)
+
+    def test_according_to_cidr_distribution_ip_without_ip(self):
+        network_values = {
+            'cluster_id': '737adb89-ee6f-4642-8196-9ee6926fbe50',
+            'cidr': None,
+            'gateway': None,
+            'ip_ranges': None,
+            'name': 'physnet1',
+                    'segmentation_type': 'vxlan',
+                    'physnet_name': 'physnet_enp2s0',
+                    'type': 'default',
+                    'network_type': 'DATAPLANE',
+        }
+        network_info = api.network_add(self.req.context, network_values)
+        network_id = network_info.__dict__['id']
+
+        cluster_id = '737adb89-ee6f-4642-8196-9ee6926fbe50'
+        network_plane_name = 'physnet1'
+        session = api.get_session()
+        self.assertRaises(exception.Forbidden,
+                          api.according_to_cidr_distribution_ip, cluster_id,
+                          network_plane_name, session)
+
+    def test_according_to_cidr_distribution_ip_from_net_cidr(self):
+        network_values = {
+            'cluster_id': '737adb89-ee6f-4642-8196-9ee6926fbe50',
+            'cidr': '112.18.1.2/25',
+                    'gateway': '112.18.1.1',
+                    'name': 'physnet1',
+                    'segmentation_type': 'vxlan',
+                    'physnet_name': 'physnet_enp2s0',
+                    'type': 'default',
+                    'network_type': 'DATAPLANE',
+        }
+        network_info = api.network_add(self.req.context, network_values)
+        network_id = network_info.__dict__['id']
+
+        cluster_id = '737adb89-ee6f-4642-8196-9ee6926fbe50'
+        network_plane_name = 'physnet1'
+        session = api.get_session()
+        distribution_ip1 = api.according_to_cidr_distribution_ip(
+            cluster_id, network_plane_name, session)
+        self.assertEqual('112.18.1.2', distribution_ip1)
+
+    def test_according_to_cidr_distribution_ip_from_range_cidr(self):
+        ip_ranges = [
+            {'start': None,
+             'cidr': '112.18.1.1/24',
+                     'end': None,
+                     'gateway': '112.18.1.2'
+             }, ]
+        network_values = {
+            'cluster_id': '737adb89-ee6f-4642-8196-9ee6926fbe50',
+            'cidr': '112.18.1.2/25',
+                    'gateway': '112.18.1.1',
+                    'ip_ranges': str(ip_ranges),
+                    'name': 'physnet1',
+                    'segmentation_type': 'vxlan',
+                    'physnet_name': 'physnet_enp2s0',
+                    'type': 'default',
+                    'network_type': 'DATAPLANE',
+        }
+        network_info = api.network_add(self.req.context, network_values)
+        network_id = network_info.__dict__['id']
+
+        cluster_id = '737adb89-ee6f-4642-8196-9ee6926fbe50'
+        network_plane_name = 'physnet1'
+        session = api.get_session()
+        distribution_ip1 = api.according_to_cidr_distribution_ip(
+            cluster_id, network_plane_name, session)
+        self.assertEqual('112.18.1.1', distribution_ip1)
+
+    def test_check_ip_ranges(self):
+        ip_ranges = ('12.1.1.10', '12.1.1.15', '12.1.1.1/24', '12.1.1.1')
+        check_result = api.check_ip_ranges(ip_ranges, [])
+        self.assertEqual('12.1.1.10', check_result[1])
+
+    def test_sort_ip_ranges_with_cidr(self):
+        ip_ranges = \
+            [('12.1.1.10', '12.1.1.10', '12.1.1.1/24', '12.1.1.1'),
+             ('16.168.1.100', '16.168.1.100', '16.168.1.10/24', '16.168.1.1'),
+             ('17.168.1.10', '17.168.1.10', '17.168.1.1/24', '17.168.1.1'),
+             ('5.5.5.5', '5.5.5.5', '5.5.5.1/24', '5.5.5.1')]
+        sorted_ip_ranges = api.sort_ip_ranges_with_cidr(ip_ranges)
+        # print 'sorted_ip_ranges:', sorted_ip_ranges
+        self.assertEqual(('5.5.5.5', '5.5.5.5', '5.5.5.1/24', '5.5.5.1'),
+                         sorted_ip_ranges[0])
+        self.assertEqual(('12.1.1.10', '12.1.1.10', '12.1.1.1/24', '12.1.1.1'),
+                         sorted_ip_ranges[1])
+
+    def test_sort_ip_ranges_with_cidr_no_startip(self):
+        ip_ranges = \
+            [('12.1.1.10', '12.1.1.10', '12.1.1.1/24', '12.1.1.1'),
+             ('16.168.1.100', '16.168.1.100', '16.168.1.10/24', '16.168.1.1'),
+             (None, None, '17.168.1.1/24', '17.168.1.1'),
+             ('5.5.5.5', '5.5.5.5', '5.5.5.1/24', '5.5.5.1')]
+        sorted_ip_ranges = api.sort_ip_ranges_with_cidr(ip_ranges)
+        # print 'sorted_ip_ranges:', sorted_ip_ranges
+        self.assertEqual(('5.5.5.5', '5.5.5.5', '5.5.5.1/24', '5.5.5.1'),
+                         sorted_ip_ranges[0])
+        self.assertEqual(('12.1.1.10', '12.1.1.10', '12.1.1.1/24', '12.1.1.1'),
+                         sorted_ip_ranges[1])
