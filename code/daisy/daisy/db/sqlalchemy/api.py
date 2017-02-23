@@ -337,9 +337,12 @@ def check_ip_exist(cluster_id, network_plane_name,
 
 
 def check_ip_ranges(ip_ranges_one,available_ip_list):
-    ip_range = copy.deepcopy(ip_ranges_one.values())
-    ip_ranges_end = ip_range[1]
-    ip_ranges_start = ip_range[0]
+    # ip_range = copy.deepcopy(ip_ranges_one.values())
+    ip_ranges_end = ip_ranges_one[1]
+    ip_ranges_start = ip_ranges_one[0]
+    ip_range_gw = ip_ranges_one[3]
+    if ip_range_gw:
+        available_ip_list.append(ip_range_gw)
     inter_num = ip_into_int(ip_ranges_start)
     ip_ranges_end_inter = ip_into_int(ip_ranges_end)
     while True:
@@ -385,17 +388,23 @@ def compare_same_cidr_ip(x, y):
 
 def sort_ip_ranges_with_cidr(ip_ranges, net_cidr=None):
     '''
-    ip_ranges=[('12.18.1.5', '12.18.1.6', '12.18.1.1/24', '12.18.1.5'),
+    ip_ranges=[(start,end,cidr,gateway),
+            ('12.18.1.5', '12.18.1.6', '12.18.1.1/24', '12.18.1.5'),
             ('12.18.1.15', '12.18.1.16', '12.18.1.1/24', '12.18.1.5'),
             ('13.18.1.5', '13.18.1.5', '13.18.1.1/24', '13.18.1.5'),
             ('2.1.1.12', '2.1.1.12', '2.1.1.1/24', '2.1.1.1'),
             ('2.1.1.17', '2.1.1.32', '2.1.1.1/24', '2.1.1.1'),
-            ('9.18.1.1', '9.18.1.2', '9.18.1.1/24', '9.18.1.1')]
+            ('9.18.1.1', '9.18.1.2', '9.18.1.1/24', '9.18.1.1'),
+            ('', '', '9.8.1.1/24', '9.8.1.1'),
+            ('9.18.1.1', '9.18.1.2', '', ''),]
     '''
     tmp_ip_ranges = copy.deepcopy(ip_ranges)
     convert_ip_ranges=[]
     for ip_range in tmp_ip_ranges:
-        int_start_ip = ip_into_int(ip_range[0])
+        if ip_range[0]:
+            int_start_ip = ip_into_int(ip_range[0])
+        else:
+            int_start_ip = 0
         cidr = ip_range[2]
         if cidr and cidr != 'None':
             cidr_ip = cidr.split('/')[0]
@@ -418,8 +427,8 @@ def according_to_cidr_distribution_ip(cluster_id, network_plane_name,
     ip_ranges_cidr = []
     distribution_ip = ""
 
-    sql_network_plane_info = "select networks.id,networks.cidr,\
-            networks.network_type,networks.segmentation_type from networks \
+    sql_network_plane_info = "select networks.id,cidr,network_type,\
+                             segmentation_type,gateway from networks \
                              where networks.name='" + network_plane_name + \
                              "' and networks.cluster_id='" + cluster_id + \
                              "' and networks.deleted=0"
@@ -429,6 +438,7 @@ def according_to_cidr_distribution_ip(cluster_id, network_plane_name,
     network_cidr = query_network_plane_info.values()[1]
     network_type = query_network_plane_info.values()[2]
     segmentation_type = query_network_plane_info.values()[3]
+    network_gw = query_network_plane_info.values()[4]
     if network_type not in ['EXTERNAL']:
         if network_type == 'DATAPLANE' and segmentation_type == 'vlan':
             return distribution_ip
@@ -436,42 +446,60 @@ def according_to_cidr_distribution_ip(cluster_id, network_plane_name,
             cluster_id, network_plane_name, session, exclude_ips)
         sql_ip_ranges = "select ip_ranges.start,end,cidr,gateway from \
                          ip_ranges where network_id='" + network_id + \
-                        "' and ip_ranges.deleted=0 and start"
+                        "' and ip_ranges.deleted=0"
         query_ip_ranges = session.execute(sql_ip_ranges).fetchall()
         LOG.info('query_ip_ranges: %s ' % query_ip_ranges)
 
-        #query_ip_ranges = sorted(query_ip_ranges, cmp=compare_same_cidr_ip)
-        LOG.info('sorted query_ip_ranges: %s ' % query_ip_ranges)
+        used_cidrs = []
+        all_full_ip_ranges = []
         if query_ip_ranges:
-            query_ip_ranges = \
-                sort_ip_ranges_with_cidr(query_ip_ranges, network_cidr)
-            for ip_ranges_one in query_ip_ranges:
-                check_ip_exist_list = \
-                    check_ip_ranges(ip_ranges_one, available_ip_list)
-                if check_ip_exist_list[0]:
-                    distribution_ip = check_ip_exist_list[1]
-                    return distribution_ip
-            msg = "Error:The IP address assigned by \
-                  ip ranges is already insufficient."
-            LOG.error(msg)
-            raise exception.Forbidden(msg)
-        else:
-            ip_ranges_cidr = cidr_convert_ip_ranges(network_cidr)
-            ip_min_inter = ip_into_int(ip_ranges_cidr[0])
-            ip_max_inter = ip_into_int(ip_ranges_cidr[1])
-            while True:
-                distribution_ip = inter_into_ip(ip_min_inter + 1)
-                if distribution_ip not in available_ip_list:
-                    distribution_ip_inter = ip_into_int(distribution_ip)
-                    if distribution_ip_inter < ip_max_inter:
-                        break
+            for ip_range in query_ip_ranges:
+                tmp_full_ip_ranges = []
+                if ip_range[0] and not ip_range[2]:
+                    # with start_ip, without ip_range_cidr
+                    if is_in_cidr_range(ip_range[0], network_cidr):
+                        tmp_full_ip_ranges = \
+                            [ip_range[0], ip_range[1], network_cidr, '']
+                        used_cidrs.append(network_cidr)
                     else:
-                        msg = "Error:The IP address assigned by \
-                              CIDR is already insufficient."
+                        msg = 'Ip range: %s maybe invalid data.' % ip_range 
                         LOG.error(msg)
-                        raise exception.Forbidden(msg)
-                else:
-                    ip_min_inter = ip_min_inter + 1
+                elif ip_range[0] and ip_range[2]:
+                    # with start_ip and ip_range_cidr
+                    tmp_full_ip_ranges = \
+                        [ip_range[0], ip_range[1], ip_range[2], ip_range[3]]
+                    used_cidrs.append(ip_range[2])
+                elif not ip_range[0] and ip_range[2]:
+                    # without start_ip, with ip_range_cidr
+                    tmp_cidr_ranges = cidr_convert_ip_ranges(ip_range[2])
+                    tmp_full_ip_ranges = [tmp_cidr_ranges[0],
+                        tmp_cidr_ranges[1], ip_range[2], ip_range[3]]
+                    used_cidrs.append(ip_range[2])
+                all_full_ip_ranges.append(tmp_full_ip_ranges)
+        if network_cidr and network_cidr not in used_cidrs:
+            tmp_gw = ''
+            if network_type == 'DATAPLANE':
+                tmp_gw = network_gw
+            tmp_cidr_ranges = cidr_convert_ip_ranges(network_cidr)
+            tmp_full_ip_ranges = [tmp_cidr_ranges[0], tmp_cidr_ranges[1],
+                                    network_cidr, tmp_gw]
+            used_cidrs.append(network_cidr)
+            all_full_ip_ranges.append(tmp_full_ip_ranges)
+        LOG.info("network_type: %s, all_full_ip_ranges: %s" % (network_type,
+                                                        all_full_ip_ranges))
+        query_ip_ranges = \
+            sort_ip_ranges_with_cidr(all_full_ip_ranges, network_cidr)
+
+        for ip_ranges_one in query_ip_ranges:
+            check_ip_exist_list = \
+                check_ip_ranges(ip_ranges_one, available_ip_list)
+            if check_ip_exist_list[0]:
+                distribution_ip = check_ip_exist_list[1]
+                return distribution_ip
+        msg = "Error:The IP address assigned by \
+              ip ranges is already insufficient."
+        LOG.error(msg)
+        raise exception.Forbidden(msg)
     return distribution_ip
 
 
@@ -4319,7 +4347,7 @@ def get_network_ip_range(context,  network_id):
     with session.begin():
         sql_ip_ranges="select ip_ranges.start,end,cidr,gateway from ip_ranges \
             where ip_ranges.network_id='"+network_id+"' and \
-            ip_ranges.deleted=0 and start order by ip_ranges.start"
+            ip_ranges.deleted=0;"
         ip_ranges = session.execute(sql_ip_ranges).fetchall()
         #ip_ranges_sorted = sorted(ip_ranges, cmp=compare_same_cidr_ip)
         ip_ranges_sorted=sort_ip_ranges_with_cidr(ip_ranges)
