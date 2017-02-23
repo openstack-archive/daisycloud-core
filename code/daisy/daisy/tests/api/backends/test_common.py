@@ -3,6 +3,7 @@ from daisy.api.backends import common
 from daisy import test
 import webob
 from daisy.context import RequestContext
+from daisy.common import exception
 
 
 class DottableDict(dict):
@@ -90,6 +91,27 @@ class TestCommon(test.TestCase):
         use_share_disk = common.if_used_shared_storage(req, '123')
         self.assertEqual(use_share_disk, False)
 
+    @mock.patch('daisy.registry.client.v1.api.'
+                'update_role_host_metadata')
+    @mock.patch('daisy.registry.client.v1.api.get_role_host_metadata')
+    @mock.patch('daisy.registry.client.v1.api.get_roles_detail')
+    def test_set_role_status_and_progress_with_host_id(
+            self, mock_get_roles, mock_get_role_host, mock_update_role_host):
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True, user='fake user',
+                                     tenant='fake tenant')
+        host_id = '2'
+        cluster_id = '1'
+        opera = 'install'
+        status = {}
+        backend_name = 'tecs'
+        mock_get_roles.return_value = [{'id': '1',
+                                        'deployment_backend': 'tecs'}]
+        mock_get_role_host.return_value = [{'host_id': '1'}]
+        common.set_role_status_and_progress(req, cluster_id, opera, status,
+                                            backend_name, host_id)
+        self.assertFalse(mock_update_role_host.called)
+
     @mock.patch('daisy.registry.client.v1.api.update_host_metadata')
     def test_update_db_host_status(self, mock_do_update_host):
         def mock_update_host(*args, **kwargs):
@@ -175,23 +197,6 @@ class TestCommon(test.TestCase):
         host_info = common.update_db_host_status(req, host_id, host_status)
         self.assertEqual("456", host_info['version_patch_id'])
 
-    @mock.patch('daisy.registry.client.v1.api.'
-                'update_role_host_metadata')
-    @mock.patch('daisy.registry.client.v1.api.get_role_host_metadata')
-    @mock.patch('daisy.registry.client.v1.api.get_roles_detail')
-    def test_set_role_status_and_progress_with_host_id(
-            self, mock_get_roles, mock_get_role_host, mock_update_role_host):
-        req = webob.Request.blank('/')
-        req.context = RequestContext(is_admin=True, user='fake user',
-                                     tenant='fake tenant')
-        host_id = '2'
-        cluster_id = '1'
-        opera = 'install'
-        status = {}
-        backend_name = 'tecs'
-        mock_get_roles.return_value = [{'id': '1',
-                                        'deployment_backend': 'tecs'}]
-        mock_get_role_host.return_value = [{'host_id': '1'}]
-        common.set_role_status_and_progress(req, cluster_id, opera, status,
-                                            backend_name, host_id)
-        self.assertFalse(mock_update_role_host.called)
+    def test_get_local_deployment_ip_with_string(self):
+        self.assertRaises(exception.InvalidIP,
+                          common.get_local_deployment_ip, '192.168.1.5')

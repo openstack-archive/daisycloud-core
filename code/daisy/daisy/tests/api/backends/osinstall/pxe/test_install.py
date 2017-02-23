@@ -3,9 +3,10 @@ import unittest
 import webob
 import exceptions
 import subprocess
-from daisy.api.backends.osinstall.pxe import install as os
+from daisy.api.backends.osinstall.pxe import install
 from daisy.context import RequestContext
 from daisy.common import exception
+import daisy.api.backends.common as daisy_cmn
 from daisy import test
 
 
@@ -61,7 +62,7 @@ class TestOs(unittest.TestCase):
         host_id = ''
         update_file = ''
         update_script = ''
-        os._os_thread_bin(self.req, host_ip, host_id, update_file,
+        install._os_thread_bin(self.req, host_ip, host_id, update_file,
                           update_script)
         log_file = '/var/log/daisy/daisy_update/127.0.0.1_update_os.log'
         all_the_text = open('%s' % log_file).read()
@@ -78,7 +79,7 @@ class TestOs(unittest.TestCase):
             "id": "123456789"
         }
         mock_check_output.return_value = "chassis-1/blade-1"
-        location = os.get_host_location_of_cisco(host_detail)
+        location = install.get_host_location_of_cisco(host_detail)
         self.assertRaises(mock_check_output.called)
         self.assertEqual("1/1", location)
 
@@ -94,7 +95,7 @@ class TestOs(unittest.TestCase):
         mock_check_output.side_effect = exceptions.Exception
         self.assertRaises(mock_check_output.called)
         self.assertRaises(exceptions.Exception,
-                          os.get_host_location_of_cisco,
+                          install.get_host_location_of_cisco,
                           host_detail)
 
     @mock.patch('subprocess.check_output')
@@ -106,7 +107,7 @@ class TestOs(unittest.TestCase):
             "id": "123456789"
         }
         mock_check_output.return_value = "ok"
-        os.set_pxe_start_of_cisco(host_detail)
+        install.set_pxe_start_of_cisco(host_detail)
         self.assertRaises(mock_check_output.called)
 
     @mock.patch('subprocess.check_output')
@@ -120,7 +121,7 @@ class TestOs(unittest.TestCase):
         mock_check_output.side_effect = exceptions.Exception
         self.assertRaises(mock_check_output.called)
         self.assertRaises(exceptions.Exception,
-                          os.set_pxe_start_of_cisco,
+                          install.set_pxe_start_of_cisco,
                           host_detail)
 
     @mock.patch('subprocess.check_output')
@@ -132,7 +133,7 @@ class TestOs(unittest.TestCase):
             "id": "123456789"
         }
         mock_check_output.return_value = "ok"
-        os.set_reboot_of_cisco(host_detail)
+        install.set_reboot_of_cisco(host_detail)
         self.assertRaises(mock_check_output.called)
 
     @mock.patch('subprocess.check_output')
@@ -146,7 +147,7 @@ class TestOs(unittest.TestCase):
         mock_check_output.side_effect = exceptions.Exception
         self.assertRaises(mock_check_output.called)
         self.assertRaises(exceptions.Exception,
-                          os.set_reboot_of_cisco,
+                          install.set_reboot_of_cisco,
                           host_detail)
 
     @mock.patch('subprocess.check_output')
@@ -158,7 +159,7 @@ class TestOs(unittest.TestCase):
             "id": "123456789"
         }
         mock_check_output.return_value = "ok"
-        os.set_disk_start_of_cisco(host_detail)
+        install.set_disk_start_of_cisco(host_detail)
         self.assertRaises(mock_check_output.called)
 
     @mock.patch('subprocess.check_output')
@@ -172,7 +173,7 @@ class TestOs(unittest.TestCase):
         mock_check_output.side_effect = exceptions.Exception
         self.assertRaises(mock_check_output.called)
         self.assertRaises(exceptions.Exception,
-                          os.set_disk_start_of_cisco,
+                          install.set_disk_start_of_cisco,
                           host_detail)
 
 
@@ -227,7 +228,7 @@ class TestInstall(test.TestCase):
         mock_log.side_effect = self._log_handler
         mock_update_host.side_effect = update_host_meta
         mock_set_role.side_effect = set_role
-        os.OSInstall(req, cluster_id)._begin_install_os(hosts_detail,
+        install.OSInstall(req, cluster_id)._begin_install_os(hosts_detail,
                                                         cluster_id)
         self.assertTrue(mock_set_role.called)
 
@@ -246,5 +247,82 @@ class TestInstall(test.TestCase):
         mock_subprocess.side_effect = subprocess_return
         self.assertRaises(
             exception.NotFound,
-            os.OSInstall(req, cluster_id)._install_os_for_baremetal,
+            install.OSInstall(req, cluster_id)._install_os_for_baremetal,
             host_detail)
+
+    @mock.patch('daisy.api.backends.common.update_db_host_status')
+    def test_upgrade_no_local_ip(self, mock_update_db_host):
+        req = webob.Request.blank('/')
+        cluster_id = "123"
+        version_id = "1"
+        version_patch_id = "12"
+        update_script = "test.txt"
+        update_file = "test"
+        hosts_list = ['123', '345']
+        update_object = "redhat"
+        daisy_cmn.get_cluster_networks_detail = mock.Mock(return_value={})
+        daisy_cmn.get_host_detail = mock.Mock(return_value={})
+        daisy_cmn.get_host_network_ip = mock.Mock(return_value="1.1.1.1")
+        daisy_cmn.check_ping_hosts = mock.Mock(return_value={})
+        daisy_cmn.get_local_deployment_ip = mock.Mock(return_value="")
+        mock_update_db_host.return_value = 'ok'
+        install.upgrade_os = mock.Mock(return_value={})
+        install.upgrade(self, req, cluster_id, version_id, version_patch_id,
+                        update_file, update_script, hosts_list, update_object)
+        self.assertTrue(mock_update_db_host.called)
+
+    @mock.patch('daisy.api.backends.common.update_db_host_status')
+    def test_upgrade_has_local_ip(self, mock_update_db_host):
+        req = webob.Request.blank('/')
+        cluster_id = "123"
+        version_id = "1"
+        version_patch_id = "12"
+        update_script = "test.txt"
+        update_file = "test"
+        hosts_list = ['123', '345']
+        update_object = "redhat"
+        daisy_cmn.get_cluster_networks_detail = mock.Mock(return_value={})
+        daisy_cmn.get_host_detail = mock.Mock(return_value={})
+        daisy_cmn.get_host_network_ip = mock.Mock(return_value="1.1.1.1")
+        daisy_cmn.check_ping_hosts = mock.Mock(return_value={})
+        daisy_cmn.get_local_deployment_ip = mock.Mock(return_value="1.1.1.1")
+        mock_update_db_host.return_value = 'ok'
+        install.upgrade_os = mock.Mock(return_value={})
+        install.upgrade(self, req, cluster_id, version_id, version_patch_id,
+                        update_file, update_script, hosts_list, update_object)
+        self.assertFalse(mock_update_db_host.called)
+
+    @mock.patch("daisy.api.backends.common.subprocess_call")
+    @mock.patch("subprocess.check_output")
+    @mock.patch('daisy.api.backends.common.update_db_host_status')
+    @mock.patch('daisy.api.backends.common.check_reboot_ping')
+    def test_os_thread_bin_nomal(self, mock_do_reboot_ping,
+                                 mock_do_update_db_status,
+                                 mock_check_output, mock_subprocess_call):
+        def mock_reboot_ping():
+            return
+
+        def mock_update_db_status(req, host_id, host_meta):
+            return
+
+        mock_do_reboot_ping.side_effect = mock_reboot_ping
+        mock_do_update_db_status.side_effect = mock_update_db_status
+        mock_subprocess_call.return_value = None
+        cmd = 'mkdir -p /var/log/daisy/daisy_update/'
+        subprocesscall(cmd)
+        cmd1 = "touch /var/log/daisy/daisy_update/10.43.177.1_update" \
+               "_os.log"
+        subprocesscall(cmd1)
+        host_ip = "10.43.177.1"
+        host_meta = {'id': '123', 'root_pwd': 'ossdbg1'}
+        log_file = '/var/log/daisy/daisy_update/%s_update_os.log' \
+                   % host_ip
+        update_file = "test.txt"
+        update_object = "vplat"
+        vpatch_id = ""
+        exec_result = 'upgrade successfully'
+        mock_check_output.return_value = exec_result
+        install._os_thread_bin(self.req, host_ip, host_meta['id'], update_file,
+                               update_object)
+        self.assertEqual(6, mock_subprocess_call.call_count)
+        self.assertEqual(1, mock_check_output.call_count)
