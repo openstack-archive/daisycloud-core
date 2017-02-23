@@ -760,6 +760,10 @@ def update_db_host_status(req, host_id, host_status, version_id=None):
 
 
 def get_local_deployment_ip(tecs_deployment_ips):
+    if not isinstance(tecs_deployment_ips, list):
+        msg = "%s must be converted to list" % tecs_deployment_ips
+        LOG.error(msg)
+        raise exception.InvalidIP(msg)
     (status, output) = commands.getstatusoutput('ifconfig')
     netcard_pattern = re.compile('\S*: ')
     ip_str = '([0-9]{1,3}\.){3}[0-9]{1,3}'
