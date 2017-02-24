@@ -1,0 +1,8 @@
+Code-Review+2: zhouya <zhou.ya@zte.com.cn>
+Workflow+1: zhouya <zhou.ya@zte.com.cn>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Fri, 24 Feb 2017 09:02:33 +0000
+Reviewed-on: https://review.openstack.org/437785
+Project: openstack/daisycloud-core
+Branch: refs/heads/stable/mitaka
