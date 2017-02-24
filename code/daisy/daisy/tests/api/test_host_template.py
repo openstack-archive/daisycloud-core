@@ -169,3 +169,56 @@ class TestHostTemplate(test.TestCase):
         actual = {
             'host_template': host_detail}
         self.assertEqual(actual, ret)
+
+    @mock.patch("daisy.api.v1.controller.BaseController."
+                "get_host_meta_or_404")
+    @mock.patch("daisy.registry.client.v1.api.get_host_metadata")
+    @mock.patch("daisy.registry.client.v1.api.host_template_lists_metadata")
+    @mock.patch("daisy.registry.client.v1.api.get_clusters_detail")
+    @mock.patch("daisy.api.v1.host_template.Controller._judge_ssh_host")
+    @mock.patch("daisy.registry.client.v1.api.update_host_metadata")
+    def test_template_to_host_with_ssh(self, mock_do_update_host_metadata,
+                              mock_do_judge_ssh_host,
+                              mock_do_get_clusters_detail,
+                              mock_do_host_template_list,
+                              mock_do_get_host_meta,
+                              mock_do_get_host_meta_or_404):
+
+        def mock_get_host_meta_or_404(*args, **kwargs):
+            return host_detail
+
+        def mock_get_host_meta(*args, **kwargs):
+            return host_detail
+
+        def mock_host_template_lists(*args, **kwargs):
+            return [{'hosts': json.dumps([host_detail])}]
+
+        def mock_get_clusters_detail(*args, **kwargs):
+            return [{
+                "id": "93ca3165-1a82-4c4a-914f-65279827e46e",
+                "name": "test"}]
+
+        def mock_judge_ssh_host(*args, **kwargs):
+            return True
+
+        def mock_update_host_metadata(*args, **kwargs):
+            return host_detail
+
+        mock_do_update_host_metadata.side_effect = mock_update_host_metadata
+        mock_do_judge_ssh_host.side_effect = mock_judge_ssh_host
+        mock_do_get_clusters_detail.side_effect = mock_get_clusters_detail
+        mock_do_host_template_list.side_effect = mock_host_template_lists
+        mock_do_get_host_meta.side_effect = mock_get_host_meta
+        mock_do_get_host_meta_or_404.side_effect = mock_get_host_meta_or_404
+
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True,
+                                     user='fake user',
+                                     tenant='fake tenant')
+        host_template = {'host_template_name': 'test',
+                         'cluster_name': "11",
+                         'host_id': "123"}
+        ret = self.controller.template_to_host(req, host_template)
+        actual = {
+            'host_template': host_detail}
+        self.assertEqual(actual, ret)
