@@ -1473,12 +1473,36 @@ class Controller(controller.BaseController):
                     1024 * 1024)
                 boot_partition_m = 400
                 redundant_partiton_m = 600
-                free_root_disk_storage_size_m = root_disk_storage_size_m - \
-                    boot_partition_m - redundant_partiton_m
+                if host_meta.get('role', None):
+                    host_role_names = eval(host_meta['role'])
+                elif orig_host_meta.get('role', None):
+                    host_role_names = orig_host_meta['role']
+                else:
+                    host_role_names = []
+                if 'CONTROLLER_HA' in host_role_names:
+                    params = self._get_query_params(req)
+
+                    role_list = registry.get_roles_detail(
+                        req.context, **params)
+                    ctrle_ha_role_info = [role for role in role_list if
+                                          role['name'] == 'CONTROLLER_HA' and
+                                          role['type'] == 'default']
+                    docker_vg_size_m = ctrle_ha_role_info[0].get(
+                        ctrle_ha_role_info[0]['docker_vg_size'], 104448)
+                    free_root_disk_storage_size_m = \
+                        root_disk_storage_size_m - \
+                        boot_partition_m - redundant_partiton_m - \
+                        docker_vg_size_m
+                else:
+                    free_root_disk_storage_size_m = \
+                        root_disk_storage_size_m - boot_partition_m - \
+                        redundant_partiton_m
                 if (root_lv_size / 4) * 4 > free_root_disk_storage_size_m:
-                    msg = "root_lv_size of %s is larger " \
-                          "than the free_root_disk_storage_size." % \
-                          orig_host_meta['id']
+                    msg = (_("root_lv_size of %s is larger than the  free "
+                             "root disk storage_size.the free"
+                             " stroage is %s M " %
+                             (orig_host_meta['id'],
+                              free_root_disk_storage_size_m)))
                     LOG.error(msg)
                     raise HTTPForbidden(explanation=msg,
                                         request=req,
@@ -1575,12 +1599,15 @@ class Controller(controller.BaseController):
                     db_lv_size = 0
                     nova_lv_size = 0
                     glance_lv_size = 0
+                    docker_vg_size = 0
                     for role_of_host in roles_of_host:
                         if role_of_host['name'] == 'CONTROLLER_HA':
                             if role_of_host.get('glance_lv_size', None):
                                 glance_lv_size = role_of_host['glance_lv_size']
                             if role_of_host.get('db_lv_size', None):
                                 db_lv_size = role_of_host['db_lv_size']
+                            if role_of_host.get('docker_vg_size', None):
+                                docker_vg_size = role_of_host['docker_vg_size']
                         if role_of_host['name'] == 'COMPUTER':
                             nova_lv_size = role_of_host['nova_lv_size']
                     free_disk_storage_size_m = disk_storage_size_m - \
@@ -1588,7 +1615,7 @@ class Controller(controller.BaseController):
                         redundant_partiton_m - \
                         (root_lv_size / 4) * 4 - (glance_lv_size / 4) * 4 - \
                         (nova_lv_size / 4) * 4 - \
-                        (db_lv_size / 4) * 4
+                        (db_lv_size / 4) * 4 - (docker_vg_size / 4) * 4
                 else:
                     free_disk_storage_size_m = disk_storage_size_m - \
                         boot_partition_m - redundant_partiton_m - \
