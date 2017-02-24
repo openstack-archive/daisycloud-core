@@ -422,12 +422,11 @@ class Controller(controller.BaseController):
             msg = "cluster name is null"
             raise HTTPNotFound(explanation=msg)
         if host_template.get('host_id', None):
-            self.get_host_meta_or_404(req, host_template['host_id'])
+            host_id = host_template['host_id']
+            orig_host_meta = self.get_host_meta_or_404(req, host_id)
         else:
             msg = "host id which need to template instantiate can't be null"
             raise HTTPBadRequest(explanation=msg)
-        host_id = host_template['host_id']
-        orig_host_meta = registry.get_host_metadata(req.context, host_id)
         path = os.path.join(os.path.abspath(os.path.dirname(
             os.path.realpath(__file__))), 'ext')
         for root, dirs, names in os.walk(path):
@@ -492,6 +491,9 @@ class Controller(controller.BaseController):
                 req,
                 host_template_used['cluster'],
                 host_id)
+            # ssh host add cluster and assigned network,must get new host data.
+            orig_host_meta = registry.get_host_metadata(req.context, host_id)
+
         else:
             if not host_template_used.get("root_disk", None):
                 raise HTTPBadRequest(
