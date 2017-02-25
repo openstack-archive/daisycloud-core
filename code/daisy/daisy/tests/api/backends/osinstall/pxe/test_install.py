@@ -75,17 +75,20 @@ class TestOsInstall(test.TestCase):
                             mock_do_check_output, mock_do_db_host_status):
         cmd = 'mkdir -p /var/log/daisy/daisy_update/'
         subprocesscall(cmd)
-        mock_do_check_output.return_value = 'upgrade OS successfully'
+        mock_do_check_output.return_value = 'OS upgraded successfully'
         mock_subprocess_call.return_value = ''
         host_ip = '127.0.0.1'
-        host_id = ''
+        host_meta = {'id': '123', 'root_pwd': 'ossdbg1'}
         update_file = ''
-        update_script = ''
-        install._os_thread_bin(self.req, host_ip, host_id, update_file,
-                               update_script)
+        update_object = "vplat"
+        vpatch_id = '1'
+        install._exec_upgrade = mock.Mock(
+            return_value='OS upgraded successfully')
+        install._os_thread_bin(self.req, host_ip, host_meta, update_file,
+                               vpatch_id, update_object)
         log_file = '/var/log/daisy/daisy_update/127.0.0.1_update_os.log'
         all_the_text = open('%s' % log_file).read()
-        self.assertIn('upgrade OS successfully', all_the_text)
+        self.assertIn('OS upgraded successfully', all_the_text)
         cmd = 'rm -rf /var/log/daisy'
         subprocesscall(cmd)
 
@@ -183,13 +186,13 @@ class TestOsInstall(test.TestCase):
                               False)._install_os_for_baremetal,
             host_detail)
 
+    @mock.patch('daisy.api.backends.common.get_local_deployment_ip')
     @mock.patch('daisy.api.backends.common.update_db_host_status')
-    def test_upgrade_no_local_ip(self, mock_update_db_host):
+    def test_upgrade_no_local_ip(self, mock_update_db_host, mock_local_ip):
         req = webob.Request.blank('/')
         cluster_id = "123"
         version_id = "1"
         version_patch_id = "12"
-        update_script = "test.txt"
         update_file = "test"
         hosts_list = ['123', '345']
         update_object = "redhat"
@@ -197,20 +200,20 @@ class TestOsInstall(test.TestCase):
         daisy_cmn.get_host_detail = mock.Mock(return_value={})
         daisy_cmn.get_host_network_ip = mock.Mock(return_value="1.1.1.1")
         daisy_cmn.check_ping_hosts = mock.Mock(return_value={})
-        daisy_cmn.get_local_deployment_ip = mock.Mock(return_value="")
+        mock_local_ip.return_value = ''
         mock_update_db_host.return_value = 'ok'
         install.upgrade_os = mock.Mock(return_value={})
         install.upgrade(self, req, cluster_id, version_id, version_patch_id,
-                        update_file, update_script, hosts_list, update_object)
+                        update_file, hosts_list, update_object)
         self.assertTrue(mock_update_db_host.called)
 
+    @mock.patch('daisy.api.backends.common.get_local_deployment_ip')
     @mock.patch('daisy.api.backends.common.update_db_host_status')
-    def test_upgrade_has_local_ip(self, mock_update_db_host):
+    def test_upgrade_has_local_ip(self, mock_update_db_host, mock_local_ip):
         req = webob.Request.blank('/')
         cluster_id = "123"
         version_id = "1"
         version_patch_id = "12"
-        update_script = "test.txt"
         update_file = "test"
         hosts_list = ['123', '345']
         update_object = "redhat"
@@ -218,11 +221,11 @@ class TestOsInstall(test.TestCase):
         daisy_cmn.get_host_detail = mock.Mock(return_value={})
         daisy_cmn.get_host_network_ip = mock.Mock(return_value="1.1.1.1")
         daisy_cmn.check_ping_hosts = mock.Mock(return_value={})
-        daisy_cmn.get_local_deployment_ip = mock.Mock(return_value="1.1.1.1")
+        mock_local_ip.return_value = '1.1.1.1'
         mock_update_db_host.return_value = 'ok'
         install.upgrade_os = mock.Mock(return_value={})
         install.upgrade(self, req, cluster_id, version_id, version_patch_id,
-                        update_file, update_script, hosts_list, update_object)
+                        update_file, hosts_list, update_object)
         self.assertFalse(mock_update_db_host.called)
 
     @mock.patch("daisy.api.backends.common.subprocess_call")
@@ -255,7 +258,6 @@ class TestOsInstall(test.TestCase):
         vpatch_id = ""
         exec_result = 'upgrade successfully'
         mock_check_output.return_value = exec_result
-        install._os_thread_bin(self.req, host_ip, host_meta['id'], update_file,
-                               update_object)
-        self.assertEqual(6, mock_subprocess_call.call_count)
-        self.assertEqual(1, mock_check_output.call_count)
+        install._os_thread_bin(self.req, host_ip, host_meta, update_file,
+                               vpatch_id, update_object)
+        self.assertEqual(5, mock_subprocess_call.call_count)
