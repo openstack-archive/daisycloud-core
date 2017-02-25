@@ -462,27 +462,17 @@ class Controller(controller.BaseController):
                 update_thread = Thread(target=backend_driver.upgrade,
                                        args=(req, cluster_id,
                                              install_meta['version_id'],
+                                             install_meta.get('version_patch_id',
+                                                          None),
                                              update_file, hosts))
                 update_thread.start()
 
         else:
-            if install_meta['update_object'] != "vplat":
-                if not install_meta.get('update_script', None):
-                    msg = "upgrade script is null"
-                    raise HTTPBadRequest(explanation=msg,
-                                         request=req,
-                                         content_type="text/plain")
-            else:
-                install_meta['update_script'] = "tfg_upgrade.sh"
-
-            os_handle = get_os_handle()
             update_thread = Thread(target=os_handle.upgrade,
                                    args=(self, req,
                                          cluster_id,
                                          install_meta.get('version_id', None),
                                          install_meta.get('version_patch_id',
-                                                          None),
-                                         install_meta.get('update_script',
                                                           None),
                                          update_file,
                                          hosts,
