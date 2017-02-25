@@ -1,0 +1,8 @@
+Code-Review+2: Zhijiang Hu <hu.zhijiang@zte.com.cn>
+Workflow+1: Zhijiang Hu <hu.zhijiang@zte.com.cn>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Sat, 25 Feb 2017 10:24:30 +0000
+Reviewed-on: https://review.openstack.org/438167
+Project: openstack/daisycloud-core
+Branch: refs/heads/stable/mitaka
