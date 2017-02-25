@@ -1030,45 +1030,51 @@ class OSInstall():
         return (hosts_detail, role_hosts_ids)
 
 
-def _os_thread_bin(req, host_ip, host_id, update_file, update_script):
+def _os_thread_bin(req, host_ip, node_meta, update_file, vpatch_id,
+                   update_object):
+    password = node_meta['root_pwd']
+    host_id = node_meta['id']
     host_meta = {}
-    password = "ossdbg1"
     LOG.info(_("Begin upgrade os for host %s." % (host_ip)))
-    cmd = 'mkdir -p /var/log/daisy/daisy_update/'
+    update_folder = "/var/log/daisy/daisy_update/"
+    cmd = '[ -d %s ] || mkdir -p %s' % (update_folder, update_folder)
     daisy_cmn.subprocess_call(cmd)
 
-    var_log_path = "/var/log/daisy/daisy_update/%s_update_os.log" % host_ip
+    var_log_path = "%s%s_update_os.log" \
+                   % (update_folder, host_ip)
     with open(var_log_path, "w+") as fp:
         cmd = '/var/lib/daisy/trustme.sh %s %s' % (host_ip, password)
         daisy_cmn.subprocess_call(cmd, fp)
-        cmd = 'clush -S -w %s "mkdir -p /home/daisy_update/"' % (host_ip,)
+        cmd = 'clush -S -w %s "mkdir -p /home/daisy_update/"' % host_ip
         daisy_cmn.subprocess_call(cmd, fp)
-        cmd = 'clush -S -b -w %s  "rm -rf /home/daisy_update/*"' % (host_ip,)
+        cmd = 'clush -S -b -w %s  "rm -rf /home/daisy_update/*"' \
+              % (host_ip,)
         daisy_cmn.subprocess_call(cmd, fp)
-        cmd = 'clush -S -w %s -c /var/lib/daisy/versionfile/os/%s\
-                 /var/lib/daisy/os/%s \
-                 --dest=/home/daisy_update' % (
-            host_ip, update_file, update_script,)
-        daisy_cmn.subprocess_call(cmd, fp)
-        cmd = 'clush -S -w %s "chmod 777 /home/daisy_update/*"' % (host_ip,)
+        if update_object == "vplat" and not vpatch_id:
+            cmd = 'clush -S -w %s -c /var/lib/daisy/versionfile/os/%s ' \
+                  '/var/lib/daisy/os/tfg_upgrade.sh ' \
+                  '--dest=/home/daisy_update' % (host_ip, update_file,)
+        else:
+            cmd = 'clush -S -w %s -c /var/lib/daisy/versionfile/os/%s ' \
+                  '--dest=/home/daisy_update' % (host_ip, update_file,)
         daisy_cmn.subprocess_call(cmd, fp)
         host_meta['os_progress'] = 30
         host_meta['os_status'] = host_os_status['UPDATING']
         host_meta['messages'] = "OS upgrading,copy file successfully"
         daisy_cmn.update_db_host_status(req, host_id, host_meta)
         try:
-            exc_result = subprocess.check_output(
-                'clush -S -w %s "cd /home/daisy_update/ && ./%s"' % (
-                    host_ip, update_script),
-                shell=True, stderr=subprocess.STDOUT)
+            exc_result = _exec_upgrade(host_ip, vpatch_id, update_file,
+                                       update_object, fp)
         except subprocess.CalledProcessError as e:
             if e.returncode == 255 and "reboot" in e.output.strip():
                 host_meta['os_progress'] = 100
                 host_meta['os_status'] = host_os_status['ACTIVE']
-                host_meta['messages'] = "upgrade OS successfully,os reboot"
+                host_meta['messages'] = "OS upgraded successfully, reboot"
+                if not vpatch_id:
+                    host_meta['version_patch_id'] = ""
                 daisy_cmn.update_db_host_status(req, host_id, host_meta)
-                LOG.info(
-                    _("Update os for %s successfully,os reboot!" % host_ip))
+                LOG.info(_("OS upgraded for %s successfully,system "
+                           "reboot!" % host_ip))
                 daisy_cmn.check_reboot_ping(host_ip)
             else:
                 host_meta['os_progress'] = 0
@@ -1076,22 +1082,46 @@ def _os_thread_bin(req, host_ip, host_id, update_file, update_script):
                 host_meta[
                     'messages'] = \
                     e.output.strip()[-400:-30].replace('\n', ' ')
-                LOG.error(_("Update OS for %s failed!" % host_ip))
+                LOG.error(_("Upgrade OS for %s failed!" % host_ip))
                 daisy_cmn.update_db_host_status(req, host_id, host_meta)
             fp.write(e.output.strip())
         else:
             host_meta['os_progress'] = 100
             host_meta['os_status'] = host_os_status['ACTIVE']
             host_meta['messages'] = "OS upgraded successfully"
+            if not vpatch_id:
+                host_meta['version_patch_id'] = ""
             daisy_cmn.update_db_host_status(req, host_id, host_meta)
             LOG.info(_("Upgrade OS for %s successfully!" % host_ip))
             fp.write(exc_result)
 
 
+def _exec_upgrade(host_ip, vpatch_id, update_file, update_object, fp):
+    exc_result = ""
+    if update_object == "vplat" and not vpatch_id:
+        exc_result = subprocess.check_output(
+            'clush -S -w %s "cd /home/daisy_update/ && chmod +x *.sh '
+            '&& ./tfg_upgrade.sh"' % host_ip, shell=True,
+            stderr=subprocess.STDOUT)
+    else:
+        if update_file.endswith(".tar.gz"):
+            folder = update_file[0:-7]
+            cmd = 'clush -S -w %s "cd /home/daisy_update/ && ' \
+                  'tar zxvf %s"' % (host_ip, update_file)
+            daisy_cmn.subprocess_call(cmd, fp)
+            exc_result = subprocess.check_output(
+                'clush -S -u 1200 -t 60 -w %s '
+                '"cd /home/daisy_update/%s && chmod +x *.sh && ./*.sh"'
+                '' % (host_ip, folder), shell=True, stderr=subprocess.STDOUT)
+    return exc_result
+
+
 # this will be raise raise all the exceptions of the thread to log file
-def os_thread_bin(req, host_ip, host_id, update_file, update_script):
+def os_thread_bin(req, host_ip, host_meta, update_file, vpatch_id,
+                  update_object):
     try:
-        _os_thread_bin(req, host_ip, host_id, update_file, update_script)
+        _os_thread_bin(req, host_ip, host_meta, update_file, vpatch_id,
+                       update_object)
     except Exception as e:
         LOG.exception(e.message)
         raise exception.ThreadBinException(e.message)
@@ -1101,9 +1131,9 @@ def _get_host_os_version(host_ip, host_pwd='ossdbg1'):
     version = ""
     tfg_version_file = '/usr/sbin/tfg_showversion'
     try:
-        subprocess.check_output("sshpass -p %s ssh -o StrictHostKeyChecking=no"
-                                " %s test -f %s" % (host_pwd, host_ip,
-                                                    tfg_version_file),
+        subprocess.check_output("sshpass -p %s ssh -o "
+                                "StrictHostKeyChecking=no %s test -f %s"
+                                % (host_pwd, host_ip, tfg_version_file),
                                 shell=True, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError:
         LOG.info(_("Host %s os version is TFG" % host_ip))
@@ -1111,19 +1141,21 @@ def _get_host_os_version(host_ip, host_pwd='ossdbg1'):
     try:
         process =\
             subprocess.Popen(["sshpass", "-p", "%s" % host_pwd, "ssh",
-                              "-o StrictHostKeyChecking=no", "%s" % host_ip,
-                              'tfg_showversion'], shell=False,
+                              "-o StrictHostKeyChecking=no", "%s" %
+                              host_ip, 'tfg_showversion'], shell=False,
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         version = process.stdout.read().strip('\n')
     except subprocess.CalledProcessError:
-        msg = _("Get host %s os version by subprocess failed!" % host_ip)
+        msg = _("Get host %s os version by subprocess failed!"
+                % host_ip)
         raise exception.SubprocessCmdFailed(message=msg)
 
     if version:
         LOG.info(_("Host %s os version is %s" % (host_ip, version)))
         return version
     else:
-        msg = _("Get host %s os version by tfg_showversion failed!" % host_ip)
+        msg = _("Get host %s os version by tfg_showversion failed!"
+                % host_ip)
         LOG.error(msg)
         raise exception.Invalid(message=msg)
 
@@ -1159,7 +1191,7 @@ def _cmp_os_version(new_os_file, old_os_version,
 
 
 def upgrade(self, req, cluster_id, version_id, version_patch_id,
-            update_script, update_file, hosts_list, update_object):
+            update_file, hosts_list, update_object):
     reached_hosts = []
     for host_id in hosts_list:
         cluster_networks = daisy_cmn.get_cluster_networks_detail(
@@ -1170,6 +1202,17 @@ def upgrade(self, req, cluster_id, version_id, version_patch_id,
         if daisy_cmn.get_local_deployment_ip([host_ip]):
             LOG.exception("%s host os upgrade by hand" % host_ip)
             continue
+        if update_object == "vplat" and not version_patch_id:
+            target_host_os = _get_host_os_version(
+                host_ip, host_meta['root_pwd'])
+            if _cmp_os_version(update_file, target_host_os, host_ip) == -1:
+                LOG.warn(
+                    _("new os version is lower than or equal to "
+                        "host %s, don't need to upgrade!" % host_ip))
+                host_meta['messages'] = "New os version is lower than" \
+                                        " or equal to host %s." % host_ip
+                daisy_cmn.update_db_host_status(req, host_id, host_meta)
+                continue
         host_set = set()
         host_set.add(host_ip)
         unreached_hosts = daisy_cmn.check_ping_hosts(host_set, 5)
@@ -1181,17 +1224,17 @@ def upgrade(self, req, cluster_id, version_id, version_patch_id,
         else:
             daisy_cmn.subprocess_call(
                 'sed -i "/%s/d" /root/.ssh/known_hosts' % host_ip)
-            host_meta['messages'] = "begin to update os"
+            host_meta['messages'] = "begin to upgrade os"
             host_meta['os_progress'] = 0
             host_meta['os_status'] = host_os_status['UPDATING']
             daisy_cmn.update_db_host_status(req, host_id, host_meta)
-        reached_hosts.append({host_id: host_ip})
-    upgrade_os(req, version_id, version_patch_id, update_script,
-               update_file, reached_hosts, update_object)
+        reached_hosts.append({host_ip: host_meta})
+    upgrade_os(req, version_id, version_patch_id, update_file,
+               reached_hosts, update_object)
 
 
-def upgrade_os(req, version_id, version_patch_id, update_script,
-               update_file, hosts_list, update_object):
+def upgrade_os(req, version_id, version_patch_id, update_file,
+               hosts_list, update_object):
     upgrade_hosts = []
     max_parallel_os_upgrade_number = int(CONF.max_parallel_os_upgrade_number)
     while hosts_list:
@@ -1204,25 +1247,17 @@ def upgrade_os(req, version_id, version_patch_id, update_script,
             upgrade_hosts = hosts_list
             hosts_list = []
         for host_info in upgrade_hosts:
-            host_id = host_info.keys()[0]
-            host_ip = host_info.values()[0]
-            host_detail = daisy_cmn.get_host_detail(req, host_id)
-            if update_object == "vplat":
-                target_host_os = _get_host_os_version(
-                    host_ip, host_detail['root_pwd'])
-                if _cmp_os_version(update_file, target_host_os, host_ip) == -1:
-                    LOG.warn(
-                        _("new os version is lower than or equal to "
-                          "host %s, don't need to upgrade!" % host_ip))
-                    continue
+            host_ip = host_info.keys()[0]
+            node_meta = host_info.values()[0]
             host_meta['os_progress'] = 10
             host_meta['os_status'] = host_os_status['UPDATING']
-            host_meta['messages'] = "os updating,begin copy iso"
-            daisy_cmn.update_db_host_status(req, host_id, host_meta)
+            host_meta['messages'] = "OS upgrading,begin copy iso"
+            daisy_cmn.update_db_host_status(req, node_meta['id'], host_meta)
             t = threading.Thread(target=os_thread_bin, args=(req, host_ip,
-                                                             host_id,
+                                                             node_meta,
                                                              update_file,
-                                                             update_script))
+                                                             version_patch_id,
+                                                             update_object))
             t.setDaemon(True)
             t.start()
             threads.append(t)
@@ -1231,24 +1266,21 @@ def upgrade_os(req, version_id, version_patch_id, update_script,
             for t in threads:
                 t.join()
         except:
-            LOG.warn(_("Join update thread %s failed!" % t))
+            LOG.warn(_("Join upgrade thread %s failed!" % t))
         else:
             for host_info in upgrade_hosts:
-                update_failed_flag = False
-                host_id = host_info.keys()[0]
-                host_ip = host_info.values()[0]
-                host = registry.get_host_metadata(req.context, host_id)
-                if host['os_status'] == host_os_status['UPDATE_FAILED'] or\
-                        host['os_status'] == host_os_status['INIT']:
-                    update_failed_flag = True
-                    raise exception.ThreadBinException(
-                        "%s update os failed! %s" % (
-                            host_ip, host['messages']))
-                if not update_failed_flag:
-                    host_meta = {}
+                host = host_info.values()[0]
+                host_meta = {}
+                host_detail = daisy_cmn.get_host_detail(req, host['id'])
+                if host_detail['os_status'] == host_os_status['UPDATING']:
+                    host_meta['os_status'] = \
+                        host_os_status['UPDATE_FAILED']
+                    daisy_cmn.update_db_host_status(req,
+                                                    host['id'], host_meta)
+                if host_detail['os_status'] == host_os_status['ACTIVE']:
                     host_meta['os_progress'] = 100
                     host_meta['os_status'] = host_os_status['ACTIVE']
-                    host_meta['messages'] = "upgrade OS successfully"
-                    daisy_cmn.update_db_host_status(req, host_id, host_meta,
-                                                    version_id,
-                                                    version_patch_id)
+                    host_meta['messages'] = "OS upgraded successfully"
+                    host_meta['version_patch_id'] = version_patch_id
+                    daisy_cmn.update_db_host_status(req, host['id'], host_meta,
+                                                    version_id)
