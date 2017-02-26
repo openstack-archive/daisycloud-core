@@ -991,6 +991,10 @@ class Controller(controller.BaseController):
             host_roles = daisy_cmn.get_roles_of_host(req, orig_host_meta['id'])
             for host_role in host_roles:
                 daisy_cmn.update_role_host(req, host_role['id'], role_info)
+        if orig_host_meta.get('tecs_version_id'):
+            host_meta['tecs_version_id'] = ''
+        if orig_host_meta.get('tecs_patch_id'):
+            host_meta['tecs_patch_id'] = ''
         if 'os_progress' not in host_meta:
             host_meta['os_progress'] = 0
         if 'messages' not in host_meta:

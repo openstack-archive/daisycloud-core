@@ -2209,8 +2209,8 @@ class TestGetClusterNetworkInfo(test.TestCase):
         host_meta = {}
         self.controller._ready_to_discover_host(req, host_meta,
                                                 orig_host_meta)
-        self.assertEqual(None, host_meta.get('tecs_version_id'))
-        self.assertEqual(None, host_meta.get('tecs_patch_id'))
+        self.assertEqual('', host_meta.get('tecs_version_id'))
+        self.assertEqual('', host_meta.get('tecs_patch_id'))
 
     def test_check_add_host_interfaces(self):
         req = webob.Request.blank('/')
