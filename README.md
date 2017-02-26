@@ -10,9 +10,9 @@ http://www.daisycloud.org
 
 ## Code Layout
 
-code/daisy: The core logic code.
-code/daisyclient: The command line interface code. TODO: To be splited out as another project.
-code/horizon: The web interface code. TODO: To be splited out as another project.
+* code/daisy: core logic code.
+* code/daisyclient: command line interface code.
+* code/horizon: web interface code.
 
 ## Build Daisy artifact
 
@@ -20,12 +20,12 @@ code/horizon: The web interface code. TODO: To be splited out as another project
 # yum install -y epel-release
 # yum install -y centos-release-openstack-mitaka
 # cd tools
-# ./daisy-compile-rpm.sh 
-# cd ../make 
+# ./daisy-compile-rpm.sh
+# cd ../make
 # make allrpm
 ```
 
-Then the artifacts will be at target/el7/noarch/, with name such as installdaisy_el7_noarch.bin.
+The artifacts will be at target/el7/noarch/, with name such as installdaisy_el7_noarch.bin.
 
 ## Install Daisy
 
@@ -33,11 +33,11 @@ Then the artifacts will be at target/el7/noarch/, with name such as installdaisy
 # cd target/el7/noarch/
 # ./installdaisy_el7_noarch.bin
 Verifying archive integrity... All good.
-Uncompressing daisy.....................................................................................................................................................................................
+Uncompressing daisy...........................................................
 
-====================================
-    ZTE DAISY Installation Wizard
-====================================
+=================================
+    DAISY Installation Wizard
+=================================
 1. install
 2. upgrade
 3. clean
@@ -50,3 +50,5 @@ Please select an operation: 1
 ## Test Daisy
 
 TODO
+- [ ]: separate daisyclient as another project;
+- [ ]: separate horizon as another project;
