@@ -119,9 +119,10 @@ class Controller(controller.BaseController):
         try:
             registry.delete_cluster_host(req.context, cluster_id, host_id)
             is_ssh_host = daisy_cmn._judge_ssh_host(req, host_id)
+            host_data = {'tecs_version_id': '', 'tecs_patch_id': ''}
             if not is_ssh_host:
-                host_data = {'os_status': 'init'}
-                registry.update_host_metadata(req.context, host_id, host_data)
+                host_data.update({'os_status': 'init'})
+            registry.update_host_metadata(req.context, host_id, host_data)
         except exception.NotFound as e:
             LOG.debug(utils.exception_to_str(e))
             raise webob.exc.HTTPNotFound(explanation=e.msg)
