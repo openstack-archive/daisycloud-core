@@ -6,7 +6,7 @@ import subprocess
 from daisy.api.backends.osinstall.pxe import install
 from daisy.db.sqlalchemy import api
 from daisy.common import exception
-import daisy.api.backends.common as daisy_cmn
+#import daisy.api.backends.common as daisy_cmn
 
 
 def update_host_meta(req):
@@ -183,8 +183,20 @@ class TestOsInstall(test.TestCase):
                               False)._install_os_for_baremetal,
             host_detail)
 
+    @mock.patch("daisy.api.backends.osinstall.pxe.install.upgrade_os")
+    @mock.patch("daisy.api.backends.common.get_cluster_networks_detail")
+    @mock.patch("daisy.api.backends.common.get_host_detail")
+    @mock.patch("daisy.api.backends.common.get_host_network_ip")
+    @mock.patch("daisy.api.backends.common.check_ping_hosts")
+    @mock.patch("daisy.api.backends.common.get_local_deployment_ip")
     @mock.patch('daisy.api.backends.common.update_db_host_status')
-    def test_upgrade_no_local_ip(self, mock_update_db_host):
+    def test_upgrade_no_local_ip(self, mock_update_db_host,
+                                 mock_get_local_deployment_ip,
+                                 mock_check_ping_hosts,
+                                 mock_get_host_network_ip,
+                                 mock_get_host_detail,
+                                 mock_get_cluster_networks_detail,
+                                 mock_upgrade_os):
         req = webob.Request.blank('/')
         cluster_id = "123"
         version_id = "1"
@@ -193,19 +205,37 @@ class TestOsInstall(test.TestCase):
         update_file = "test"
         hosts_list = ['123', '345']
         update_object = "redhat"
-        daisy_cmn.get_cluster_networks_detail = mock.Mock(return_value={})
-        daisy_cmn.get_host_detail = mock.Mock(return_value={})
-        daisy_cmn.get_host_network_ip = mock.Mock(return_value="1.1.1.1")
-        daisy_cmn.check_ping_hosts = mock.Mock(return_value={})
-        daisy_cmn.get_local_deployment_ip = mock.Mock(return_value="")
+        mock_get_cluster_networks_detail.return_value = {}
+        mock_get_host_detail.return_value = {}
+        mock_get_host_network_ip.return_value = "1.1.1.1"
+        mock_check_ping_hosts.return_value = {}
+        mock_get_local_deployment_ip.return_value = ""
+        #daisy_cmn.get_cluster_networks_detail = mock.Mock(return_value={})
+        #daisy_cmn.get_host_detail = mock.Mock(return_value={})
+        #daisy_cmn.get_host_network_ip = mock.Mock(return_value="1.1.1.1")
+        #daisy_cmn.check_ping_hosts = mock.Mock(return_value={})
+        #daisy_cmn.get_local_deployment_ip = mock.Mock(return_value="")
         mock_update_db_host.return_value = 'ok'
-        install.upgrade_os = mock.Mock(return_value={})
+        mock_upgrade_os.return_value = {}
+        #install.upgrade_os = mock.Mock(return_value={})
         install.upgrade(self, req, cluster_id, version_id, version_patch_id,
                         update_file, update_script, hosts_list, update_object)
         self.assertTrue(mock_update_db_host.called)
 
+    @mock.patch("daisy.api.backends.osinstall.pxe.install.upgrade_os")
+    @mock.patch("daisy.api.backends.common.get_cluster_networks_detail")
+    @mock.patch("daisy.api.backends.common.get_host_detail")
+    @mock.patch("daisy.api.backends.common.get_host_network_ip")
+    @mock.patch("daisy.api.backends.common.check_ping_hosts")
+    @mock.patch("daisy.api.backends.common.get_local_deployment_ip")
     @mock.patch('daisy.api.backends.common.update_db_host_status')
-    def test_upgrade_has_local_ip(self, mock_update_db_host):
+    def test_upgrade_has_local_ip(self, mock_update_db_host,
+                                  mock_get_local_deployment_ip,
+                                  mock_check_ping_hosts,
+                                  mock_get_host_network_ip,
+                                  mock_get_host_detail,
+                                  mock_get_cluster_networks_detail,
+                                  mock_upgrade_os):
         req = webob.Request.blank('/')
         cluster_id = "123"
         version_id = "1"
@@ -214,13 +244,19 @@ class TestOsInstall(test.TestCase):
         update_file = "test"
         hosts_list = ['123', '345']
         update_object = "redhat"
-        daisy_cmn.get_cluster_networks_detail = mock.Mock(return_value={})
-        daisy_cmn.get_host_detail = mock.Mock(return_value={})
-        daisy_cmn.get_host_network_ip = mock.Mock(return_value="1.1.1.1")
-        daisy_cmn.check_ping_hosts = mock.Mock(return_value={})
-        daisy_cmn.get_local_deployment_ip = mock.Mock(return_value="1.1.1.1")
+        mock_get_local_deployment_ip.return_value = "1.1.1.1"
+        mock_check_ping_hosts.return_value = {}
+        mock_get_host_network_ip.return_value = "1.1.1.1"
+        mock_get_host_detail.return_value = {}
+        mock_get_cluster_networks_detail.return_value = {}
+        #daisy_cmn.get_cluster_networks_detail = mock.Mock(return_value={})
+        #daisy_cmn.get_host_detail = mock.Mock(return_value={})
+        #daisy_cmn.get_host_network_ip = mock.Mock(return_value="1.1.1.1")
+        #daisy_cmn.check_ping_hosts = mock.Mock(return_value={})
+        #daisy_cmn.get_local_deployment_ip = mock.Mock(return_value="1.1.1.1")
         mock_update_db_host.return_value = 'ok'
-        install.upgrade_os = mock.Mock(return_value={})
+        mock_upgrade_os.return_value = {}
+        #install.upgrade_os = mock.Mock(return_value={})
         install.upgrade(self, req, cluster_id, version_id, version_patch_id,
                         update_file, update_script, hosts_list, update_object)
         self.assertFalse(mock_update_db_host.called)

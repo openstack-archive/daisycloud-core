@@ -5,7 +5,6 @@ import webob
 from daisy.context import RequestContext
 from daisy.common import utils
 from daisy.common import exception
-from daisy.registry.api.v1 import hwms as registry_hwm
 from daisy.registry.api.v1 import hosts as registry_hosts
 from daisy.db.sqlalchemy import models
 from daisy.tests import test_utils
@@ -26,18 +25,27 @@ class TestHost(test.TestCase):
         super(TestHost, self).setUp()
         self.controller = registry_hosts.Controller()
 
-    def test_get_host(self):
+    @mock.patch("daisy.registry.api.v1.hwms.Controller.hwm_list")
+    @mock.patch('daisy.db.sqlalchemy.api.host_get')
+    @mock.patch('daisy.db.sqlalchemy.api.get_host_interface')
+    @mock.patch('daisy.db.sqlalchemy.api.cluster_host_member_find')
+    def test_get_host(self, mock_cluster_host_member_find,
+                      mock_get_host_interface, mock_host_get, mock_hwm_list):
         id = 'd04cfa48-c3ad-477c-b2ac-95bee7582181'
         self.req = webob.Request.blank('/')
         self.req.context = RequestContext(is_admin=True, user='fake user',
                                           tenant='fake tenant')
         self.db_api = daisy.db.get_api()
-        controller = registry_hwm.Controller()
-        controller.hwm_list = mock.Mock(return_value={})
+        mock_hwm_list.return_value = {}
+        #controller = registry_hwm.Controller()
+        #controller.hwm_list = mock.Mock(return_value={})
         host_role_ref = models.Host()
-        self.db_api.host_get = mock.Mock(return_value=host_role_ref)
-        self.db_api.get_host_interface = mock.Mock(return_value={})
-        self.db_api.cluster_host_member_find = mock.Mock(return_value={})
+        mock_cluster_host_member_find.return_value = {}
+        mock_host_get.return_value = host_role_ref
+        mock_get_host_interface.return_value = {}
+        #self.db_api.host_get = mock.Mock(return_value=host_role_ref)
+        #self.db_api.get_host_interface = mock.Mock(return_value={})
+        #self.db_api.cluster_host_member_find = mock.Mock(return_value={})
         utils.get_host_hw_info = mock.Mock(return_value={})
         host = self.controller.get_host(self.req, id)
         self.assertEqual(daisy.db.sqlalchemy.models.Host, type(host['host']))

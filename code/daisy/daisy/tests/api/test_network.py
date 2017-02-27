@@ -1,7 +1,7 @@
 from daisy.api.v1 import networks
 from daisy.common import exception
 from daisy.context import RequestContext
-import daisy.registry.client.v1.api as registry
+#import daisy.registry.client.v1.api as registry
 from daisy import test
 import mock
 from oslo_serialization import jsonutils
@@ -97,12 +97,20 @@ class TestNetworkApi(test.TestCase):
         super(TestNetworkApi, self).setUp()
         self.controller = networks.Controller()
 
+    @mock.patch("daisy.registry.client.v1.api.get_networks_detail")
+    @mock.patch("daisy.registry.client.v1.api.update_network_metadata")
+    @mock.patch("daisy.api.v1.networks.Controller.get_network_meta_or_404")
     @mock.patch('daisy.registry.client.v1.api.'
                 'get_assigned_networks_data_by_network_id')
-    def test_update_network(self, get_assigned_networks_data_by_network_id):
-        self.controller.get_network_meta_or_404 = \
-            mock.Mock(return_value=network_list[0])
-        registry.get_networks_detail = mock.Mock(return_value=network_list)
+    def test_update_network(
+            self, get_assigned_networks_data_by_network_id,
+            mock_get_network_meta_or_404, mock_update_network_metadata,
+            mock_get_networks_detail):
+        mock_get_network_meta_or_404.return_value = network_list[0]
+        #self.controller.get_network_meta_or_404 = \
+        #    mock.Mock(return_value=network_list[0])
+        mock_get_networks_detail.return_value = network_list
+        #registry.get_networks_detail = mock.Mock(return_value=network_list)
         req = webob.Request.blank('/')
         req.context = RequestContext(is_admin=True,
                                      user='fake user',
@@ -110,21 +118,23 @@ class TestNetworkApi(test.TestCase):
         network_id = "123"
         network_meta = {'network_type': 'DATAPLANE',
                         'cluster_id': 'test', 'gateway': '192.168.1.1'}
-        registry.update_network_metadata = mock.Mock(return_value=network_meta)
+        mock_update_network_metadata.return_value = network_meta
         get_assigned_networks_data_by_network_id.return_value = []
         update_network = self.controller.update_network(
             req, network_id, network_meta)
         self.assertEqual(network_meta['network_type'],
                          update_network['network_meta']['network_type'])
 
-    def test_add_network(self):
+    @mock.patch("daisy.registry.client.v1.api.add_network_metadata")
+    def test_add_network(self, mock_add_network_metadata):
         req = webob.Request.blank('/')
         req.context = RequestContext(is_admin=True,
                                      user='fake user',
                                      tenant='fake tenamet')
         network_meta = {'network_type': 'DATAPLANE',
                         'gateway': '192.168.1.1', 'name': 'pysnet1'}
-        registry.add_network_metadata = mock.Mock(return_value=network_meta)
+        mock_add_network_metadata.return_value = network_meta
+        #registry.add_network_metadata = mock.Mock(return_value=network_meta)
         add_network = self.controller.add_network(req, network_meta)
         self.assertEqual(network_meta['network_type'],
                          add_network['network_meta']['network_type'])

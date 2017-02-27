@@ -21,7 +21,10 @@ class TestRegistryNetwork(test.TestCase):
         super(TestRegistryNetwork, self).setUp()
         self.controller = registry_networks.Controller()
 
-    def test_get_assigned_networks_by_network_id(self):
+    @mock.patch('daisy.db.sqlalchemy.api.'
+                'get_assigned_networks_by_network_id')
+    def test_get_assigned_networks_by_network_id(
+            self, mock_get_assigned_networks_by_network_id):
         id = '1'
         self.req = webob.Request.blank('/')
         self.req.context = RequestContext(
@@ -29,8 +32,10 @@ class TestRegistryNetwork(test.TestCase):
             tenant='fake tenant')
         self.db_api = daisy.db.get_api()
         assigned_network_ref = models.AssignedNetworks()
-        self.db_api.get_assigned_networks_by_network_id = \
-            mock.Mock(return_value=assigned_network_ref)
+        mock_get_assigned_networks_by_network_id.return_value = \
+            assigned_network_ref
+        #self.db_api.get_assigned_networks_by_network_id = \
+        #    mock.Mock(return_value=assigned_network_ref)
         assigned_network = \
             self.controller.get_assigned_networks_by_network_id(
                 self.req, id)

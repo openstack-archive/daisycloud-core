@@ -4,7 +4,7 @@ from webob.exc import HTTPBadRequest
 from oslo_serialization import jsonutils
 from daisy.api.v1 import disk_array
 from daisy.context import RequestContext
-import daisy.registry.client.v1.api as registry
+#import daisy.registry.client.v1.api as registry
 from daisy import test
 
 
@@ -91,19 +91,24 @@ class TestDiskArray(test.TestCase):
                                           user='fake user',
                                           tenant='fake tenamet')
 
-    def test_get_cinder_volume_backend_index(self):
+    @mock.patch("daisy.api.v1.disk_array.Controller._get_cluster_roles")
+    @mock.patch("daisy.api.v1.disk_array.Controller._cinder_volume_list")
+    def test_get_cinder_volume_backend_index(
+            self, mock_cinder_volume_list, mock_get_cluster_roles):
         cluster_id = "cluster_id_123"
         roles = [{'id': 'role_id_1'},
                  {'id': 'role_id_2'}]
         cinder_volume_id = '3'
-        self.controller._get_cluster_roles =\
-            mock.Mock(return_value=roles)
+        mock_get_cluster_roles.return_value = roles
+        #self.controller._get_cluster_roles =\
+        #    mock.Mock(return_value=roles)
         cinder_volumes = [{'backend_index': 'KS3200_IPSAN-1',
                            'id': '1'},
                           {'backend_index': 'KS3200_IPSAN-2',
                            'id': '2'}]
-        self.controller._cinder_volume_list =\
-            mock.Mock(return_value=cinder_volumes)
+        mock_cinder_volume_list.return_value = cinder_volumes
+        #self.controller._cinder_volume_list =\
+        #    mock.Mock(return_value=cinder_volumes)
         disk_array_1 = {'volume_driver': 'KS3200_IPSAN'}
         backend_index = self.controller._get_cinder_volume_backend_index(
             self.req, disk_array_1, cluster_id)
@@ -143,20 +148,31 @@ class TestDiskArray(test.TestCase):
         self.assertEqual('bbbb',
                          cinder_volume['disk_meta']['root_pwd'])
 
+    @mock.patch("daisy.registry.client.v1.api.update_cinder_volume_metadata")
+    @mock.patch("daisy.registry.client.v1.api.list_cinder_volume_metadata")
+    @mock.patch("daisy.api.v1.disk_array.Controller."
+                "get_cinder_volume_meta_or_404")
     @mock.patch('daisy.registry.client.v1.api.get_role_metadata')
-    def test_cinder_volume_update_with_resource_pools(self, mock_get_role):
+    def test_cinder_volume_update_with_resource_pools(
+            self, mock_get_role,
+            mock_get_cinder_volume_meta_or_404,
+            mock_list_cinder_volume_metadata,
+            mock_update_cinder_volume_metadata):
         cinder_volume_lists = set_cinder_volume_list()
-        registry.list_cinder_volume_metadata = \
-            mock.Mock(return_value=cinder_volume_lists)
+        mock_list_cinder_volume_metadata.return_value = cinder_volume_lists
+        #registry.list_cinder_volume_metadata = \
+        #    mock.Mock(return_value=cinder_volume_lists)
         cinder_vol_info = returned_cinder_vol_info()
-        self.controller.get_cinder_volume_meta_or_404 = \
-            mock.Mock(return_value=cinder_vol_info)
+        mock_get_cinder_volume_meta_or_404.return_value = cinder_vol_info
+        #self.controller.get_cinder_volume_meta_or_404 = \
+        #    mock.Mock(return_value=cinder_vol_info)
         mock_get_role.return_value = {'cluster_id': '1'}
         disk_meta = {'resource_pools': 'pool3,pool4', 'root_pwd': 'root3'}
         cinder_vol_info['resource_pools'] = disk_meta['resource_pools']
         cinder_vol_info['root_pwd'] = disk_meta['root_pwd']
-        registry.update_cinder_volume_metadata = \
-            mock.Mock(return_value=cinder_vol_info)
+        mock_update_cinder_volume_metadata.return_value = cinder_vol_info
+        #registry.update_cinder_volume_metadata = \
+        #    mock.Mock(return_value=cinder_vol_info)
         cinder_vol_id = '77a3eec6-6cf0-4f84-82a4-e9339d824b3a'
         return_info = self.controller.cinder_volume_update(self.req,
                                                            cinder_vol_id,
