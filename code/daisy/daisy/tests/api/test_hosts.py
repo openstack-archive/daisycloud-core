@@ -4,8 +4,8 @@ from daisy.api.v1 import hosts
 from daisy.context import RequestContext
 import webob
 import json as jsonutils
-import daisy.registry.client.v1.api as registry
-import daisy.api.backends.common as daisy_cmn
+#import daisy.registry.client.v1.api as registry
+#import daisy.api.backends.common as daisy_cmn
 from daisy.common import utils
 from daisy.tests.api import fakes
 from daisy.db.sqlalchemy import api
@@ -1209,8 +1209,14 @@ class TestHostsApiConfig(test.TestCase):
     #                       self.controller._check_os_version, req,
     #                       os_version)
 
+    @mock.patch("daisy.api.v1.hosts.Controller._check_os_version")
+    @mock.patch("daisy.api.v1.hosts.Controller._get_os_version")
+    @mock.patch("daisy.api.v1.hosts.Controller.get_host_meta_or_404")
     @mock.patch('daisy.registry.client.v1.client.RegistryClient.do_request')
-    def test_update_host_with_os_version_id(self, mock_do_request):
+    def test_update_host_with_os_version_id(self, mock_do_request,
+                                            mock_get_host_meta_or_404,
+                                            mock_get_os_version,
+                                            mock_check_os_version):
         host_meta = set_host_meta()
         req = webob.Request.blank('/')
         req.context = RequestContext(is_admin=True,
@@ -1218,18 +1224,28 @@ class TestHostsApiConfig(test.TestCase):
                                      tenant='fake tenant')
         host_meta['os_version'] = '42b34b9e-2ea3-428d-bf34-8cdc4cc3916a'
         id = "4b6970c5-ef1d-4599-a1d7-70175a888e6d"
-        self.controller.get_host_meta_or_404 = mock.Mock(
-            return_value=self.orig_host_meta)
-        self.controller._get_os_version = mock.Mock(
-            return_value="42b34b9e-2ea3-428d-bf34-8cdc4cc3916a")
-        self.controller._check_os_version = mock.Mock(return_value=None)
+        mock_get_host_meta_or_404.return_value = self.orig_host_meta
+        #self.controller.get_host_meta_or_404 = mock.Mock(
+        #    return_value=self.orig_host_meta)
+        mock_get_os_version.return_value = \
+            "42b34b9e-2ea3-428d-bf34-8cdc4cc3916a"
+        #self.controller._get_os_version = mock.Mock(
+        #    return_value="42b34b9e-2ea3-428d-bf34-8cdc4cc3916a")
+        mock_check_os_version.return_value = None
+        #self.controller._check_os_version = mock.Mock(return_value=None)
         mock_do_request.side_effect = self.fake_do_request
         update_host = self.controller.update_host(req, id, host_meta)
         self.assertEqual('42b34b9e-2ea3-428d-bf34-8cdc4cc3916a',
                          update_host['host_meta']['os_version_id'])
 
+    @mock.patch("daisy.api.v1.hosts.Controller._check_os_version")
+    @mock.patch("daisy.api.v1.hosts.Controller._get_os_version")
+    @mock.patch("daisy.api.v1.hosts.Controller.get_host_meta_or_404")
     @mock.patch('daisy.registry.client.v1.client.RegistryClient.do_request')
-    def test_update_host_with_os_version_file(self, mock_do_request):
+    def test_update_host_with_os_version_file(self, mock_do_request,
+                                              mock_get_host_meta_or_404,
+                                              mock_get_os_version,
+                                              mock_check_os_version):
         host_meta = set_host_meta()
         req = webob.Request.blank('/')
         req.context = RequestContext(is_admin=True,
@@ -1237,11 +1253,14 @@ class TestHostsApiConfig(test.TestCase):
                                      tenant='fake tenant')
         host_meta['os_version'] = "/var/lib/daisy/redhat123.iso"
         id = "4b6970c5-ef1d-4599-a1d7-70175a888e6d"
-        self.controller.get_host_meta_or_404 = mock.Mock(
-            return_value=self.orig_host_meta)
-        self.controller._get_os_version = mock.Mock(
-            return_value="/var/lib/daisy/redhat123.iso")
-        self.controller._check_os_version = mock.Mock(return_value=None)
+        mock_get_host_meta_or_404.return_value = self.orig_host_meta
+        #self.controller.get_host_meta_or_404 = mock.Mock(
+        #    return_value=self.orig_host_meta)
+        mock_get_os_version.return_value = "/var/lib/daisy/redhat123.iso"
+        #self.controller._get_os_version = mock.Mock(
+        #    return_value="/var/lib/daisy/redhat123.iso")
+        mock_check_os_version.return_value = None
+        #self.controller._check_os_version = mock.Mock(return_value=None)
         mock_do_request.side_effect = self.fake_do_request
         update_host = self.controller.update_host(req, id, host_meta)
         self.assertEqual('/var/lib/daisy/versionfile/os/redhat123.iso',
@@ -1392,7 +1411,12 @@ class TestHostsApiConfig(test.TestCase):
                           self.controller._check_interface_on_update_host,
                           req, host_meta, orig_host_meta)
 
-    def test_verify_host_cluster_with_no_discover(self):
+    @mock.patch("daisy.api.backends.common.check_discover_state_with_no_hwm")
+    @mock.patch("daisy.registry.client.v1.api.get_host_clusters")
+    @mock.patch("daisy.api.v1.hosts.Controller.get_cluster_meta_or_404")
+    def test_verify_host_cluster_with_no_discover(
+            self, mock_get_cluster_meta_or_404,
+            mock_get_host_clusters, mock_check_discover_state_with_no_hwm):
         req = webob.Request.blank('/')
         req.context = RequestContext(is_admin=True,
                                      user='fake user',
@@ -1411,12 +1435,17 @@ class TestHostsApiConfig(test.TestCase):
             "cluster_id": "66e57b5c-fc4f-4c09-a550-b057ff4f5452",
             "status": "in-cluster",
             "name": "host-1"}]
-        registry.get_host_clusters = mock.Mock(return_value=host_cluster)
-        self.controller.get_cluster_meta_or_404 = \
-            mock.Mock(return_value={"id": "66e57b5c-fc4f"
-                                          "-4c09-a550-b057ff4f5452"})
-        daisy_cmn.check_discover_state_with_no_hwm = \
-            mock.Mock(return_value=check_result(orig_host_meta, ''))
+        mock_get_cluster_meta_or_404.return_value =\
+            {"id": "66e57b5c-fc4f-4c09-a550-b057ff4f5452"}
+        mock_get_host_clusters.return_value = host_cluster
+        mock_check_discover_state_with_no_hwm.return_value = \
+            check_result(orig_host_meta, '')
+        #registry.get_host_clusters = mock.Mock(return_value=host_cluster)
+        #self.controller.get_cluster_meta_or_404 = \
+        #    mock.Mock(return_value={"id": "66e57b5c-fc4f"
+        #                                 "-4c09-a550-b057ff4f5452"})
+        #daisy_cmn.check_discover_state_with_no_hwm = \
+        #    mock.Mock(return_value=check_result(orig_host_meta, ''))
         self.assertRaises(webob.exc.HTTPForbidden,
                           self.controller._verify_host_cluster, req,
                           "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
@@ -1515,13 +1544,15 @@ class TestHostsApiConfig(test.TestCase):
         self.assertEqual({'ipmi_check_result': 'ipmi check failed'},
                          self.controller._host_ipmi_check(host_id, host))
 
+    @mock.patch("daisy.api.v1.hosts.Controller.get_host_meta_or_404")
     @mock.patch('daisy.registry.client.v1.api.update_host_metadata')
     @mock.patch('daisy.registry.client.v1.api.get_roles_detail')
     @mock.patch('daisy.registry.client.v1.api.get_clusters_detail')
     def test_host_update_with_removable_disk(self,
                                              mock_get_clusters,
                                              mock_get_roles,
-                                             mock_update_host):
+                                             mock_update_host,
+                                             mock_get_host_meta_or_404):
         req = webob.Request.blank('/')
         req.context = RequestContext(is_admin=True,
                                      user='fake user',
@@ -1597,7 +1628,8 @@ class TestHostsApiConfig(test.TestCase):
                      'name': 'test'}]
         roles = [{'id': '1'}]
         versions = [{'id': 'fe604c80-b5a0-4454-bbfd-2295ad8f1e5d'}]
-        self.controller.get_host_meta_or_404 = mock.Mock(return_value=host)
+        mock_get_host_meta_or_404.return_value = host
+        #self.controller.get_host_meta_or_404 = mock.Mock(return_value=host)
         mock_get_clusters.return_value = clusters
         mock_get_roles.return_value = roles
         mock_update_host.return_value = host_return
@@ -1838,7 +1870,7 @@ class TestHostsApiConfig(test.TestCase):
         self.assertRaises(webob.exc.HTTPBadRequest,
                           self.controller._check_interface_on_update_host,
                           req, host_meta, orig_host_meta)
-    """
+
     @mock.patch('logging.Logger')
     @mock.patch('daisy.registry.client.v1.api.'
                 'update_discover_host_metadata')
@@ -1884,7 +1916,6 @@ class TestHostsApiConfig(test.TestCase):
         update_discover_host = self.controller.add_discover_host(req,
                                                                  host_meta)
         self.assertEqual('1', update_discover_host['host_meta']['host_id'])
-    """
 
     @mock.patch('daisy.api.v1.hosts.Controller.'
                 '_get_discover_host_filter_by_ip')
@@ -1952,7 +1983,7 @@ class TestHostsApiConfig(test.TestCase):
         mock_log.side_effect = self._log_handler
         add_host_info = self.controller.add_discover_host(req, host_meta)
         self.assertEqual('2', add_host_info['host_meta']['host_id'])
-    """
+
     @mock.patch('logging.Logger')
     @mock.patch('daisy.registry.client.v1.api.'
                 'update_discover_host_metadata')
@@ -1987,9 +2018,14 @@ class TestHostsApiConfig(test.TestCase):
         mock_log.side_effect = self._log_handler
         self.controller.discover_host_bin(req, host_meta)
         self.assertTrue(mock_update_discover_host.called)
-    """
 
-    def test__verify_interface_among_hosts(self):
+    @mock.patch("daisy.registry.client.v1.api.get_hosts_detail")
+    @mock.patch("daisy.registry.client.v1.api.get_host_metadata")
+    @mock.patch("daisy.api.v1.hosts.Controller.get_host")
+    @mock.patch("daisy.api.v1.hosts.Controller._verify_interface_in_same_host")
+    def test__verify_interface_among_hosts(
+            self, mock_verify_interface_in_same_host, mock_get_host,
+            mock_get_host_metadata, mock_get_hosts_detail):
         host_meta = {
             'cluster': '1',
             'dmi_uuid': '03000200-0400-0500-0006-000700080009',
@@ -2013,31 +2049,49 @@ class TestHostsApiConfig(test.TestCase):
         req.context = RequestContext(is_admin=True,
                                      user='fake user',
                                      tenant='fake tenamet')
-        self.controller._verify_interface_in_same_host = \
-            mock.Mock(return_value={})
-        registry.get_hosts_detail = \
-            mock.Mock(return_value=[self.orig_host_meta])
-        registry.get_host_metadata = \
-            mock.Mock(return_value=self.orig_host_meta)
-        self.controller.get_host = \
-            mock.Mock(return_value={'host_meta': self.orig_host_meta})
+        mock_verify_interface_in_same_host.return_value = {}
+        mock_get_host.return_value = {'host_meta': self.orig_host_meta}
+        mock_get_host_metadata.return_value = self.orig_host_meta
+        mock_get_hosts_detail.return_value = [self.orig_host_meta]
+        #self.controller._verify_interface_in_same_host = \
+        #    mock.Mock(return_value={})
+        #registry.get_hosts_detail = \
+        #    mock.Mock(return_value=[self.orig_host_meta])
+        #registry.get_host_metadata = \
+        #    mock.Mock(return_value=self.orig_host_meta)
+        #self.controller.get_host = \
+        #    mock.Mock(return_value={'host_meta': self.orig_host_meta})
         id = ""
         os_status = ""
         (id, status) = self.controller._verify_interface_among_hosts(
             req, host_meta)
         self.assertEqual("4b6970c5-ef1d-4599-a1d7-70175a888e6d", id)
 
-    def test_add_host_with_same_host(self):
+    @mock.patch("daisy.api.v1.hosts.Controller._check_add_host_interfaces")
+    def test_add_host_with_same_host(self, mock_check_add_host_interfaces):
         req = webob.Request.blank('/')
         req.context = RequestContext(is_admin=True,
                                      user='fake user',
                                      tenant='fake tenamet')
-        self.controller._check_add_host_interfaces = \
-            mock.Mock(return_value="samehost")
+        mock_check_add_host_interfaces.return_value = "samehost"
+        #self.controller._check_add_host_interfaces = \
+        #    mock.Mock(return_value="samehost")
         result = self.controller.add_host(req, self.host_meta)
         self.assertEqual('samehost', result)
 
-    def test_update_host_with_same_host(self):
+    @mock.patch("daisy.registry.client.v1.api.update_host_metadata")
+    @mock.patch("daisy.registry.client.v1.api.get_discover_hosts_detail")
+    @mock.patch("daisy.registry.client.v1.api.get_clusters_detail")
+    @mock.patch("daisy.registry.client.v1.api.get_roles_detail")
+    @mock.patch("daisy.api.v1.hosts.Controller._verify_host_cluster")
+    @mock.patch("daisy.api.v1.hosts.Controller."
+                "_check_interface_on_update_host")
+    @mock.patch("daisy.api.v1.hosts.Controller.get_host_meta_or_404")
+    def test_update_host_with_same_host(
+            self, mock_get_host_meta_or_404,
+            mock_check_interface_on_update_host, mock_verify_host_cluster,
+            mock_get_roles_detail, mock_get_clusters_detail,
+            mock_get_discover_hosts_detail, mock_update_host_metadata):
         host_meta = {
             'id': '4b6970c5-ef1d-4599-a1d7-70175a888e6d',
             'cluster': '1',
@@ -2075,22 +2129,31 @@ class TestHostsApiConfig(test.TestCase):
         req.context = RequestContext(is_admin=True,
                                      user='fake user',
                                      tenant='fake tenamet')
-        self.controller.get_host_meta_or_404 = mock.Mock(
-            return_value=self.orig_host_meta)
-        self.controller._check_interface_on_update_host = mock.Mock(
-            return_value=['4c:09:b4:b2:80:8c', '00:24:21:74:8a:56'])
-        self.controller._verify_host_cluster = mock.Mock(return_value={})
+        mock_get_host_meta_or_404.return_value = self.orig_host_meta
+        mock_check_interface_on_update_host.return_value = \
+            ['4c:09:b4:b2:80:8c', '00:24:21:74:8a:56']
+        mock_verify_host_cluster.return_value = {}
+        #self.controller.get_host_meta_or_404 = mock.Mock(
+        #    return_value=self.orig_host_meta)
+        #self.controller._check_interface_on_update_host = mock.Mock(
+        #    return_value=['4c:09:b4:b2:80:8c', '00:24:21:74:8a:56'])
+        #self.controller._verify_host_cluster = mock.Mock(return_value={})
         hw_info = {'disks': {'sda': {'name': 'sda',
                                      'size': '200127266816',
                                      'disk': u'pci-0000:01:00.0',
                                      'removable': u''}},
                    'cpu': {'real': 1, 'spec_1': {}, 'total': 1}}
+        #mock_get_host_hw_info.return_value = hw_info
         utils.get_host_hw_info = mock.Mock(return_value=hw_info)
         id = '4b6970c5-ef1d-4599-a1d7-70175a888e6d'
-        registry.get_roles_detail = mock.Mock(return_value={})
-        registry.get_clusters_detail = mock.Mock(return_value={})
-        registry.get_discover_hosts_detail = mock.Mock(return_value={})
-        registry.update_host_metadata = mock.Mock(return_value=host_meta)
+        mock_get_roles_detail.return_value = {}
+        mock_get_clusters_detail.return_value = {}
+        mock_get_discover_hosts_detail.return_value = {}
+        mock_update_host_metadata.return_value = host_meta
+        #registry.get_roles_detail = mock.Mock(return_value={})
+        #registry.get_clusters_detail = mock.Mock(return_value={})
+        #registry.get_discover_hosts_detail = mock.Mock(return_value={})
+        #registry.update_host_metadata = mock.Mock(return_value=host_meta)
         result = self.controller.update_host(req, id, host_meta)
         self.assertEqual(host_meta, result['host_meta'])
 
@@ -2209,8 +2272,8 @@ class TestGetClusterNetworkInfo(test.TestCase):
         host_meta = {}
         self.controller._ready_to_discover_host(req, host_meta,
                                                 orig_host_meta)
-        self.assertEqual('', host_meta.get('tecs_version_id'))
-        self.assertEqual('', host_meta.get('tecs_patch_id'))
+        self.assertEqual(None, host_meta.get('tecs_version_id'))
+        self.assertEqual(None, host_meta.get('tecs_patch_id'))
 
     def test_check_add_host_interfaces(self):
         req = webob.Request.blank('/')
@@ -2357,7 +2420,12 @@ class TestGetClusterNetworkInfo(test.TestCase):
                           "840b92ab-7e79-4a7d-be0a-5e735e0a836e",
                           orig_host_meta, host_meta)
 
-    def test_verify_host_cluster_with_in_cluster(self):
+    @mock.patch("daisy.api.v1.hosts.Controller.get_cluster_meta_or_404")
+    @mock.patch("daisy.api.backends.common.check_discover_state_with_hwm")
+    @mock.patch("daisy.registry.client.v1.api.get_host_clusters")
+    def test_verify_host_cluster_with_in_cluster(
+            self, mock_get_host_clusters,
+            mock_check_discover_state_with_hwm, mock_get_cluster_meta_or_404):
         req = webob.Request.blank('/')
         req.context = RequestContext(is_admin=True,
                                      user='fake user',
@@ -2376,14 +2444,19 @@ class TestGetClusterNetworkInfo(test.TestCase):
             "cluster_id": "66e57b5c-fc4f-4c09-a550-b057ff4f5453",
             "status": "in-cluster",
             "name": "host-1"}]
-        registry.get_host_clusters = \
-            mock.Mock(return_value=host_cluster)
-        self.controller.get_cluster_meta_or_404 = \
-            mock.Mock(return_value={"id": "66e57b5c-fc4f-"
-                                          "4c09-a550-b057ff4f5452"})
-        daisy_cmn.check_discover_state_with_hwm = \
-            mock.Mock(return_value=check_result(host_meta,
-                                                'SSH:DISCOVERY_SUCCESSFUL'))
+        mock_get_host_clusters.return_value = host_cluster
+        #registry.get_host_clusters = \
+        #    mock.Mock(return_value=host_cluster)
+        mock_get_cluster_meta_or_404.return_value = \
+            {"id": "66e57b5c-fc4f-4c09-a550-b057ff4f5452"}
+        #self.controller.get_cluster_meta_or_404 = \
+        #    mock.Mock(return_value={"id": "66e57b5c-fc4f-"
+        #                                  "4c09-a550-b057ff4f5452"})
+        mock_check_discover_state_with_hwm.return_value = \
+            check_result(host_meta, 'SSH:DISCOVERY_SUCCESSFUL')
+        #daisy_cmn.check_discover_state_with_hwm = \
+        #   mock.Mock(return_value=check_result(host_meta,
+        #                                       'SSH:DISCOVERY_SUCCESSFUL'))
         self.assertRaises(webob.exc.HTTPForbidden,
                           self.controller._verify_host_cluster, req,
                           "840b92ab-7e79-4a7d-be0a-5e735e0a836e",

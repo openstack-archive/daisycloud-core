@@ -735,8 +735,9 @@ class TestSqlalchemyApi(test.TestCase):
             api._network_update(self.req.context, update_info, network_id)
         self.assertEqual(update_info['cidr'], update_networks['cidr'])
 
+    @mock.patch("oslo_db.sqlalchemy.session.Query.all")
     @mock.patch('daisy.db.sqlalchemy.api.get_session')
-    def test_version_get_all(self, mock_do_sesison):
+    def test_version_get_all(self, mock_do_sesison, mock_qry_all):
         def mock_sesison(*args, **kwargs):
             return FakeSession()
         version_values = {'id': '1', 'status': 'used'}
@@ -757,7 +758,8 @@ class TestSqlalchemyApi(test.TestCase):
                 return {'id': self.id, 'status': self.status}
 
         user = User(id='1', status='used')
-        Query.all = mock.Mock(return_value=[user])
+        mock_qry_all.return_value = [user]
+        #Query.all = mock.Mock(return_value=[user])
         session.query = mock.Mock(return_value=version_values)
         versions = api.version_get_all(self.req.context,
                                        filters=filters_value,
