@@ -473,7 +473,7 @@ class TestInstall(test.TestCase):
         cmd_end2 = 'rm -rf /home/kolla_install/docker/all.yml'
         subprocesscall(cmd_end2)
         self.assertEqual('3.0.2', kolla_config['Version'])
-
+    """
     @mock.patch('daisy.api.backends.kolla.install._get_local_ip')
     @mock.patch('daisy.api.common.config_network_new')
     @mock.patch('daisy.registry.client.v1.client.RegistryClient.do_request')
@@ -540,3 +540,4 @@ class TestInstall(test.TestCase):
         self.assertIn('okokok', all_the_text)
         cmd = 'rm -rf /var/log/daisy'
         subprocesscall(cmd)
+    """
