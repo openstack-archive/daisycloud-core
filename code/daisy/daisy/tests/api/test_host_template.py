@@ -5,7 +5,7 @@ from daisy.context import RequestContext
 # import daisy.registry.client.v1.api as registry
 from daisy import test
 from daisy.api.v1 import host_template
-import daisy.api.backends.common as daisy_cmn
+#import daisy.api.backends.common as daisy_cmn
 # from webob.exc import HTTPNotFound
 # from webob.exc import HTTPForbidden
 
@@ -171,6 +171,8 @@ class TestHostTemplate(test.TestCase):
             'host_template': host_detail}
         self.assertEqual(actual, ret)
 
+    @mock.patch("daisy.api.backends.common."
+                "add_ssh_host_to_cluster_and_assigned_network")
     @mock.patch("daisy.api.v1.controller.BaseController."
                 "get_host_meta_or_404")
     @mock.patch("daisy.registry.client.v1.api.get_host_metadata")
@@ -178,12 +180,11 @@ class TestHostTemplate(test.TestCase):
     @mock.patch("daisy.registry.client.v1.api.get_clusters_detail")
     @mock.patch("daisy.api.v1.host_template.Controller._judge_ssh_host")
     @mock.patch("daisy.registry.client.v1.api.update_host_metadata")
-    def test_template_to_host_with_ssh(self, mock_do_update_host_metadata,
-                                       mock_do_judge_ssh_host,
-                                       mock_do_get_clusters_detail,
-                                       mock_do_host_template_list,
-                                       mock_do_get_host_meta,
-                                       mock_do_get_host_meta_or_404):
+    def test_template_to_host_with_ssh(
+            self, mock_do_update_host_metadata, mock_do_judge_ssh_host,
+            mock_do_get_clusters_detail, mock_do_host_template_list,
+            mock_do_get_host_meta, mock_do_get_host_meta_or_404,
+            mock_add_ssh_host_to_cluster_and_assigned_network):
 
         def mock_get_host_meta_or_404(*args, **kwargs):
             return host_detail
@@ -211,8 +212,9 @@ class TestHostTemplate(test.TestCase):
         mock_do_host_template_list.side_effect = mock_host_template_lists
         mock_do_get_host_meta.side_effect = mock_get_host_meta
         mock_do_get_host_meta_or_404.side_effect = mock_get_host_meta_or_404
-        daisy_cmn.add_ssh_host_to_cluster_and_assigned_network = \
-            mock.Mock(return_value={})
+        mock_add_ssh_host_to_cluster_and_assigned_network.return_value = {}
+        #daisy_cmn.add_ssh_host_to_cluster_and_assigned_network = \
+        #    mock.Mock(return_value={})
         req = webob.Request.blank('/')
         req.context = RequestContext(is_admin=True,
                                      user='fake user',
