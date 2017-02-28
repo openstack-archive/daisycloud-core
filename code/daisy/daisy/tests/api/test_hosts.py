@@ -6,7 +6,6 @@ import webob
 import json as jsonutils
 #import daisy.registry.client.v1.api as registry
 #import daisy.api.backends.common as daisy_cmn
-from daisy.common import utils
 from daisy.tests.api import fakes
 from daisy.db.sqlalchemy import api
 
@@ -2115,15 +2114,16 @@ class TestHostsApiConfig(test.TestCase):
                 "'type': 'ether'}, {'name': 'enp3s1', "
                 "'mac': '00:23:cd:96:53:97', 'pci': '0000:03:02.1', "
                 "'type': 'ether'}]",
-            'disks': """{u'sda':
-            {u'name': u'sda',
-            u'extra': [u'scsi-3500003956831a6d8',
-            u'wwn-0x500003956831a6d8'],
-            u'removable': u'',
-            u'model': u'',
-            u'disk': u'pci-0000:01:00.0-sas-'
-            u'0x500003956831a6da-lun-0',
-            u'size': u' 200127266816 bytes'}}"""
+            'disks':
+                "{u'sda': {u'name': u'sda',"
+                "u'extra': [u'scsi-3500003956831a6d8',"
+                "u'wwn-0x500003956831a6d8'],"
+                "u'removable': u'',"
+                "u'model': u'',"
+                "u'disk': u'pci-0000:01:00.0-sas-'"
+                "u'0x500003956831a6da-lun-0',"
+                "u'size': u' 200127266816 bytes'}}",
+            'cpu': "{'real': 1, 'spec_1': {}, 'total': 1}"
         }
         req = webob.Request.blank('/')
         req.context = RequestContext(is_admin=True,
@@ -2138,13 +2138,13 @@ class TestHostsApiConfig(test.TestCase):
         #self.controller._check_interface_on_update_host = mock.Mock(
         #    return_value=['4c:09:b4:b2:80:8c', '00:24:21:74:8a:56'])
         #self.controller._verify_host_cluster = mock.Mock(return_value={})
-        hw_info = {'disks': {'sda': {'name': 'sda',
-                                     'size': '200127266816',
-                                     'disk': u'pci-0000:01:00.0',
-                                     'removable': u''}},
-                   'cpu': {'real': 1, 'spec_1': {}, 'total': 1}}
+        #hw_info = {'disks': {'sda': {'name': 'sda',
+        #                             'size': '200127266816',
+        #                             'disk': u'pci-0000:01:00.0',
+        #                             'removable': u''}},
+        #           'cpu': {'real': 1, 'spec_1': {}, 'total': 1}}
         #mock_get_host_hw_info.return_value = hw_info
-        utils.get_host_hw_info = mock.Mock(return_value=hw_info)
+        #utils.get_host_hw_info = mock.Mock(return_value=hw_info)
         id = '4b6970c5-ef1d-4599-a1d7-70175a888e6d'
         mock_get_roles_detail.return_value = {}
         mock_get_clusters_detail.return_value = {}
