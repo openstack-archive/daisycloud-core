@@ -191,6 +191,44 @@ class Controller(controller.BaseController):
         return {'version_patch_meta': version_patch_meta}
 
     @utils.mutating
+    def add_host_patch_history(self, req, version_patch_meta):
+        """
+        Returns metadata about an patch history in the HTTP headers of the
+        response object
+
+        :param req: The WSGI/Webob Request object
+        :param id: The opaque version patch identifier
+
+        """
+        self._enforce(req, 'add_host_patch_history')
+        patch_history_meta = \
+            registry.add_host_patch_history_metadata(req.context,
+                                                     version_patch_meta)
+        return {'patch_history_meta': patch_history_meta}
+
+    @utils.mutating
+    def list_host_patch_history(self, req):
+        """
+        Returns metadata about an patch history in the HTTP headers of the
+        response object
+
+        :param req: The WSGI/Webob Request object
+        :param id: The opaque version patch identifier
+
+        :raises HTTPNotFound if version patch metadata is not available to user
+        """
+        self._enforce(req, 'get_host_patch_history')
+        params = self._get_query_params(req)
+        try:
+            patch_history_meta = registry.list_host_patch_history_metadata(
+                req.context, **params)
+        except Exception:
+            msg = "host patch history list error"
+            LOG.error(msg)
+            raise HTTPBadRequest(explanation=msg, request=req)
+        return dict(patch_history_meta=patch_history_meta)
+
+    @utils.mutating
     def update_version_patch(self, req, id, version_patch_meta):
         """
         Updates an existing version patch with the registry.
@@ -257,6 +295,9 @@ class VersionPatchDeserializer(wsgi.JSONRequestDeserializer):
     def add_version_patch(self, request):
         return self._deserialize(request)
 
+    def add_host_patch_history(self, request):
+        return self._deserialize(request)
+
     def update_version_patch(self, request):
         return self._deserialize(request)
 
@@ -274,6 +315,13 @@ class VersionPatchserializer(wsgi.JSONResponseSerializer):
         response.body = self.to_json(dict(version_patch=version_patch_meta))
         return response
 
+    def add_host_patch_history(self, response, result):
+        version_patch_meta = result['patch_history_meta']
+        response.status = 201
+        response.headers['Content-Type'] = 'application/json'
+        response.body = self.to_json(dict(patch_history=version_patch_meta))
+        return response
+
     def delete_version_patch(self, response, result):
         version_patch_meta = result['version_patch_meta']
         response.status = 201
@@ -286,6 +334,13 @@ class VersionPatchserializer(wsgi.JSONResponseSerializer):
         response.status = 201
         response.headers['Content-Type'] = 'application/json'
         response.body = self.to_json(dict(version_patch=version_patch_meta))
+        return response
+
+    def list_host_patch_history(self, response, result):
+        history_meta = result['patch_history_meta']
+        response.status = 201
+        response.headers['Content-Type'] = 'application/json'
+        response.body = self.to_json(dict(patch_history=history_meta))
         return response
 
 

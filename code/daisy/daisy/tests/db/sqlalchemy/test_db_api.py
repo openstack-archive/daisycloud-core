@@ -759,7 +759,6 @@ class TestSqlalchemyApi(test.TestCase):
 
         user = User(id='1', status='used')
         mock_qry_all.return_value = [user]
-        #Query.all = mock.Mock(return_value=[user])
         session.query = mock.Mock(return_value=version_values)
         versions = api.version_get_all(self.req.context,
                                        filters=filters_value,
@@ -767,6 +766,57 @@ class TestSqlalchemyApi(test.TestCase):
                                        sort_key=sort_key_value,
                                        sort_dir=sort_dir_value)
         self.assertEqual(version_values['id'], versions[0]['id'])
+
+    @mock.patch("oslo_db.sqlalchemy.session.Query.all")
+    @mock.patch('daisy.db.sqlalchemy.api.get_session')
+    @mock.patch('daisy.db.sqlalchemy.api._version_get')
+    def test_list_host_patch_history(self, mock_version_get,
+                                     mock_do_sesison,
+                                     mock_qry_all):
+        def mock_sesison(*args, **kwargs):
+            return FakeSession()
+        class User(object):
+            def __init__(self, version_id, name):
+                self.version_id = version_id
+                self.name = name
+            def to_dict(self):
+                return {'version_id': self.version_id}
+
+        filters_value = {
+            'deleted': False,
+            'host_id': u'a0ed9c30-afd3-4bba'}
+        limit_value = 25
+        sort_key_value = ['created_at']
+        sort_dir_value = ['desc']
+        mock_do_sesison.side_effect = mock_sesison
+        user = User(version_id='1', name='test')
+        mock_qry_all.return_value = [user]
+        mock_version_get.return_value = user
+        history = api.list_host_patch_history(self.req.context,
+                                              filters=filters_value,
+                                              limit=limit_value,
+                                              sort_key=sort_key_value,
+                                              sort_dir=sort_dir_value)
+        self.assertEqual('1', history[0]['version_id'])
+
+    @mock.patch("oslo_db.sqlalchemy.session.Query.one")
+    @mock.patch('daisy.db.sqlalchemy.api.get_session')
+    def test__patch_history_get(self, mock_do_sesison, mock_qry_one):
+        id = "1"
+        def mock_sesison(*args, **kwargs):
+            return FakeSession()
+        mock_qry_one.return_value = {}
+        mock_do_sesison.side_effect = mock_sesison
+        history = api._patch_history_get(self.req.context, id,
+                                         force_show_deleted=True)
+        self.assertEqual({}, history)
+
+    @mock.patch('daisy.db.sqlalchemy.api._patch_history_get')
+    def test_patch_history_get(self, mock_patch_get):
+        mock_patch_get.return_value = '1'
+        history = api._patch_history_get(self.req.context, id,
+                                         force_show_deleted=True)
+        self.assertEqual('1', history)
 
     def test_get_host_interface_vf_info(self):
         self.assertRaises(exception.NotFound,

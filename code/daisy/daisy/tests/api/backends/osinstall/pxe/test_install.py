@@ -409,6 +409,29 @@ class TestOsInstall(test.TestCase):
         install.upgrade_os(req, version_id, version_patch_id, update_file,
                            hosts_list, update_object)
 
+    @mock.patch('daisy.api.backends.common.update_db_host_status')
+    @mock.patch("daisy.api.backends.common.get_host_detail")
+    @mock.patch('daisy.api.backends.osinstall.pxe.install.'
+                'os_thread_bin')
+    @mock.patch('daisy.registry.client.v1.api.add_host_patch_history_metadata')
+    def test_upgrade_os_patch_active(self, mock_patch_history, mock_os_thread_in,
+                               mock_get_host_detail, mock_do_update_db_status):
+        req = webob.Request.blank('/')
+        req.context = RequestContext(is_admin=True, user='fake user',
+                                     tenant='fake tenant')
+        version_id = "1"
+        version_patch_id = "123"
+        update_file = "test"
+        hosts_list = [{'10.43.177.1': {'id': "1"}}]
+        update_object = "vplat"
+        mock_do_update_db_status.return_value = {}
+        mock_patch_history.return_value = {}
+        mock_get_host_detail.return_value = {'os_status': 'active'}
+        mock_os_thread_in.return_value = {}
+        install.upgrade_os(req, version_id, version_patch_id, update_file,
+                           hosts_list, update_object)
+        self.assertEqual(1, mock_patch_history.call_count)
+
     @mock.patch('subprocess.check_output')
     def test_exec_upgrade_with_vplat(self, mock_check_output):
         host_ip = '127.0.0.1'

@@ -42,7 +42,8 @@ DISPLAY_FIELDS_IN_INDEX = ['id', 'name', 'size',
                            'version_id', 'container_format',
                            'checksum']
 
-SUPPORTED_FILTERS = ['name', 'status', 'version_id',
+SUPPORTED_FILTERS = ['name', 'status', 'version_id', 'host_id',
+                     'patch_name', 'version_name', 'version_id',
                      'changes-since', 'protected', 'type']
 
 SUPPORTED_SORT_KEYS = ('name', 'status', 'version_id', 'disk_format',
@@ -178,6 +179,26 @@ class Controller(object):
         if deleted is None:
             return None
         return strutils.bool_from_string(deleted)
+
+    def _list_patch_history(self, context, filters, **params):
+        """Get patch history, wrapping in exception if necessary."""
+        try:
+            return self.db_api.list_host_patch_history(context,
+                                                       filters=filters,
+                                                       **params)
+        except exception.NotFound:
+            LOG.warn(_LW("Invalid marker patch history %(id)s could not be "
+                         "found.") % {'id': params.get('marker')})
+            msg = _("Invalid marker. Host could not be found.")
+            raise exc.HTTPBadRequest(explanation=msg)
+        except exception.Forbidden:
+            LOG.warn(_LW("Access denied to patch history %(id)s but returning "
+                         "'not found'") % {'id': params.get('marker')})
+            msg = _("Invalid marker. Host could not be found.")
+            raise exc.HTTPBadRequest(explanation=msg)
+        except Exception:
+            LOG.exception(_LE("Unable to get patch history"))
+            raise
 
     @utils.mutating
     def add_version_patch(self, req, body):
@@ -335,6 +356,46 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to update version patch %s")
                           % version_patch_id)
+            raise
+
+    @utils.mutating
+    def list_patch_history(self, req):
+        """Return data about the given patch_history."""
+        params = self._get_query_params(req)
+        patch_history = self._list_patch_history(req.context, **params)
+        return dict(patch_history=patch_history)
+
+    @utils.mutating
+    def add_host_patch_history(self, req, body):
+        """Registers a new version with the registry.
+
+        :param req: wsgi Request object
+        :param body: Dictionary of information about the version
+
+        :retval Returns the newly-created version information as a mapping,
+                which will include the newly-created version's internal id
+                in the 'id' field
+        """
+
+        patch_history_meta = body["patch_history"]
+        try:
+            patch_history = self.db_api.add_host_patch_history(
+                req.context, patch_history_meta)
+            version_data = dict(patch_history=patch_history)
+            return version_data
+        except exception.Duplicate:
+            msg = (_("patch history with identifier %s already exists!") %
+                   version_data['patch_name'])
+            LOG.warn(msg)
+            return exc.HTTPConflict(msg)
+        except exception.Invalid as e:
+            msg = (_("Failed to add patch history metadata. "
+                     "Got error: %s") % utils.exception_to_str(e))
+            LOG.error(msg)
+            return exc.HTTPBadRequest(msg)
+        except Exception:
+            LOG.exception(_LE("Unable to create patch history %s"),
+                          version_data['name'])
             raise
 
 
