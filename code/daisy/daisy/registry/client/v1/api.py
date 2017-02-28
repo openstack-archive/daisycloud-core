@@ -719,6 +719,16 @@ def add_version_patch_metadata(context, version_patch_meta):
     return c.add_version_patch(version_patch_meta)
 
 
+def add_host_patch_history_metadata(context, patch_history_meta):
+    c = get_registry_client(context)
+    return c.add_host_patch_history(patch_history_meta)
+
+
+def list_host_patch_history_metadata(context, **kwargs):
+    c = get_registry_client(context)
+    return c.list_host_patch_history(**kwargs)
+
+
 def delete_version_patch_metadata(context, version_patch_id):
     LOG.debug("Deleting version metadata %s...", version_patch_id)
     c = get_registry_client(context)

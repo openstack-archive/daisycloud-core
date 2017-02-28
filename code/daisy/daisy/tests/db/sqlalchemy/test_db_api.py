@@ -3,6 +3,7 @@ from daisy.context import RequestContext
 from daisy.db.sqlalchemy import api
 from daisy import test
 from daisy.tests import test_utils
+from daisy.db.sqlalchemy import models
 import mock
 from oslo_db.sqlalchemy import session
 from oslo_db.sqlalchemy.session import Query
@@ -759,7 +760,6 @@ class TestSqlalchemyApi(test.TestCase):
 
         user = User(id='1', status='used')
         mock_qry_all.return_value = [user]
-        #Query.all = mock.Mock(return_value=[user])
         session.query = mock.Mock(return_value=version_values)
         versions = api.version_get_all(self.req.context,
                                        filters=filters_value,
@@ -767,6 +767,110 @@ class TestSqlalchemyApi(test.TestCase):
                                        sort_key=sort_key_value,
                                        sort_dir=sort_dir_value)
         self.assertEqual(version_values['id'], versions[0]['id'])
+
+    @mock.patch("oslo_db.sqlalchemy.session.Query.all")
+    @mock.patch('daisy.db.sqlalchemy.api.get_session')
+    @mock.patch('daisy.db.sqlalchemy.api._version_get')
+    def test_list_host_patch_history(self, mock_version_get,
+                                     mock_do_sesison,
+                                     mock_qry_all):
+        def mock_sesison(*args, **kwargs):
+            return FakeSession()
+
+        class User(object):
+            def __init__(self, version_id, name):
+                self.version_id = version_id
+                self.name = name
+
+            def to_dict(self):
+                return {'version_id': self.version_id}
+
+        filters_value = {
+            'deleted': False,
+            'host_id': u'a0ed9c30-afd3-4bba'}
+        limit_value = 25
+        sort_key_value = ['created_at']
+        sort_dir_value = ['desc']
+        mock_do_sesison.side_effect = mock_sesison
+        user = User(version_id='1', name='test')
+        mock_qry_all.return_value = [user]
+        mock_version_get.return_value = user
+        history = api.list_host_patch_history(self.req.context,
+                                              filters=filters_value,
+                                              limit=limit_value,
+                                              sort_key=sort_key_value,
+                                              sort_dir=sort_dir_value)
+        self.assertEqual('1', history[0]['version_id'])
+
+    @mock.patch("oslo_db.sqlalchemy.session.Query.one")
+    @mock.patch('daisy.db.sqlalchemy.api.get_session')
+    def test__patch_history_get(self, mock_do_sesison, mock_qry_one):
+        def mock_sesison(*args, **kwargs):
+            return FakeSession()
+
+        id = "1"
+        mock_qry_one.return_value = {}
+        mock_do_sesison.side_effect = mock_sesison
+        history = api._patch_history_get(self.req.context, id,
+                                         force_show_deleted=True)
+        self.assertEqual({}, history)
+
+    @mock.patch('daisy.db.sqlalchemy.api._patch_history_get')
+    def test_patch_history_get(self, mock_patch_get):
+        mock_patch_get.return_value = '1'
+        history = api._patch_history_get(self.req.context, id,
+                                         force_show_deleted=True)
+        self.assertEqual('1', history)
+
+    @mock.patch('daisy.db.sqlalchemy.api.get_session')
+    @mock.patch('daisy.db.sqlalchemy.api._patch_history_get')
+    @mock.patch('daisy.db.sqlalchemy.models.HostPatchHistory.save')
+    @mock.patch('daisy.db.sqlalchemy.models.HostPatchHistory.update')
+    @mock.patch('daisy.db.sqlalchemy.api._update_values')
+    def test_host_patch_history_update_with_id(self, mock_values,
+                                               mock_update,
+                                               mock_save,
+                                               mock_patch_get,
+                                               mock_do_sesison):
+        def mock_sesison(*args, **kwargs):
+            return FakeSession()
+
+        mock_values.return_value = None
+        mock_do_sesison.side_effect = mock_sesison
+        mock_save.return_value = None
+        mock_update.return_value = {'host_id': '2', 'patch_name': '3'}
+        mock_patch_get.return_value = models.HostPatchHistory()
+        patch_history_id = '123'
+        values = {'patch_name': '3', 'host_id': '2'}
+        api._host_patch_history_update(self.req.context,
+                                       values, patch_history_id)
+        self.assertTrue(mock_save.called)
+
+    @mock.patch('daisy.db.sqlalchemy.api.get_session')
+    @mock.patch('daisy.db.sqlalchemy.api._patch_history_get')
+    @mock.patch('daisy.db.sqlalchemy.models.HostPatchHistory.save')
+    def test_host_patch_history_update_with_no_id(self, mock_save,
+                                                  mock_patch_get,
+                                                  mock_do_sesison):
+        def mock_sesison(*args, **kwargs):
+            return FakeSession()
+
+        mock_do_sesison.side_effect = mock_sesison
+        mock_save.return_value = None
+        mock_patch_get.return_value = None
+        patch_history_id = ''
+        values = {'patch_name': 'test2', 'host_id': '123'}
+        api._host_patch_history_update(self.req.context,
+                                       values, patch_history_id)
+        self.assertTrue(mock_save.called)
+
+    @mock.patch('daisy.db.sqlalchemy.api._host_patch_history_update')
+    def test_add_host_patch_history(self, mock_history_update):
+        values = {'patch_name': 'test2', 'host_id': '123'}
+        mock_history_update.return_value = None
+        api.add_host_patch_history(self.req.context,
+                                   values)
+        self.assertTrue(mock_history_update.called)
 
     def test_get_host_interface_vf_info(self):
         self.assertRaises(exception.NotFound,
