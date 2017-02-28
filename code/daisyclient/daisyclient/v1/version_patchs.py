@@ -24,7 +24,8 @@ from daisyclient.common import utils
 from daisyclient.openstack.common.apiclient import base
 
 CREATE_PARAMS = ('id', 'name', 'description', 'version_id',
-                 'size', 'checksum', 'status')
+                 'size', 'checksum', 'status', 'host_id',
+                 'patch_name', 'type')
 
 
 DEFAULT_PAGE_SIZE = 200
@@ -53,6 +54,16 @@ class VersionPatch(base.Resource):
 
 class VersionPatchManager(base.ManagerWithFind):
     resource_class = VersionPatch
+
+    def _list(self, url, response_key, obj_class=None, body=None):
+        resp, body = self.client.get(url)
+
+        if obj_class is None:
+            obj_class = self.resource_class
+
+        data = body[response_key]
+        return ([obj_class(self, res, loaded=True) for res in data if res],
+                resp)
 
     def _version_meta_from_headers(self, headers):
         meta = {'properties': {}}
@@ -200,3 +211,91 @@ class VersionPatchManager(base.ManagerWithFind):
 
     def list(self, **kwargs):
         return
+
+    def list_host_patch_history(self, **kwargs):
+        absolute_limit = kwargs.get('limit')
+        page_size = kwargs.get('page_size', DEFAULT_PAGE_SIZE)
+
+        def paginate(qp, return_request_id=None):
+            for param, value in six.iteritems(qp):
+                if isinstance(value, six.string_types):
+                    # Note(flaper87) Url encoding should
+                    # be moved inside http utils, at least
+                    # shouldn't be here.
+                    #
+                    # Making sure all params are str before
+                    # trying to encode them
+                    qp[param] = encodeutils.safe_decode(value)
+
+            url = '/v1/patch_history/list?%s' % urlparse.urlencode(qp)
+            patchs_history, resp = self._list(url, "patch_history")
+
+            if return_request_id is not None:
+                return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
+
+            for patch_history in patchs_history:
+                yield patch_history
+
+        return_request_id = kwargs.get('return_req_id', None)
+
+        params = self._build_params(kwargs)
+
+        seen = 0
+        while True:
+            seen_last_page = 0
+            filtered = 0
+            for template_func in paginate(params, return_request_id):
+                last_template_func = template_func.id
+
+                if (absolute_limit is not None and
+                        seen + seen_last_page >= absolute_limit):
+                    # Note(kragniz): we've seen enough images
+                    return
+                else:
+                    seen_last_page += 1
+                    yield template_func
+
+            seen += seen_last_page
+
+            if seen_last_page + filtered == 0:
+                # Note(kragniz): we didn't get any hosts in the last page
+                return
+
+            if absolute_limit is not None and seen >= absolute_limit:
+                # Note(kragniz): reached the limit of hosts to return
+                return
+
+            if page_size and seen_last_page + filtered < page_size:
+                # Note(kragniz): we've reached the last page of the hosts
+                return
+
+            # Note(kragniz): there are more hosts to come
+            params['marker'] = last_template_func
+            seen_last_page = 0
+
+    def add_host_patch_history(self, **kwargs):
+        """Add a version
+        TODO(bcwaldon): document accepted params
+        """
+        fields = {}
+        for field in kwargs:
+            if field in CREATE_PARAMS:
+                fields[field] = kwargs[field]
+            elif field == 'return_req_id':
+                continue
+            else:
+                msg = 'create() got an unexpected keyword argument \'%s\''
+                raise TypeError(msg % field)
+
+        hdrs = self._version_meta_to_headers(fields)
+
+        resp, body = self.client.post('/v1/patch_history',
+                                      headers=None,
+                                      data=hdrs)
+        return_request_id = kwargs.get('return_req_id', None)
+        if return_request_id is not None:
+            return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
+
+        return VersionPatch(self, self._format_version_meta_for_user(
+            body['patch_history']))
+

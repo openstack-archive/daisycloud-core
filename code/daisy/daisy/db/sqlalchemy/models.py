@@ -764,6 +764,17 @@ class ConfigService(BASE, DaisyBase):
                         nullable=False)
 
 
+class HostPatchHistory(BASE, DaisyBase):
+
+    """Represents an component config in the datastore."""
+    __tablename__ = 'host_patch_history'
+    __table_args__ = (Index('ix_host_patch_history_deleted', 'deleted'),)
+
+    host_id = Column(String(36),nullable=False)
+    type = Column(String(30),nullable=False)
+    version_id = Column(String(36),nullable=False)
+    patch_name = Column(String(255),nullable=False)
+
 def register_models(engine):
     """Create database tables for all models with the given engine."""
     models = (Hwm, Host, DiscoverHost, Cluster, ClusterHost, Template,
@@ -774,7 +785,8 @@ def register_models(engine):
               Subnet, FloatIpRange, DnsNameservers, Router, ServiceDisk,
               CinderVolume, OpticalSwitch, Version, VersionPatch,
               TemplateConfig, TemplateFunc, TemplateFuncConfigs,
-              TemplateService, ConfigService, NeutronBackend)
+              TemplateService, ConfigService, NeutronBackend,
+			  HostPatchHistory)
     for model in models:
         model.metadata.create_all(engine)
 
@@ -789,6 +801,7 @@ def unregister_models(engine):
               Subnet, FloatIpRange, DnsNameservers, Router, ServiceDisk,
               CinderVolume, OpticalSwitch, Version, VersionPatch,
               TemplateConfig, TemplateFunc, TemplateFuncConfigs,
-              TemplateService, ConfigService, NeutronBackend)
+              TemplateService, ConfigService, NeutronBackend,
+			  HostPatchHistory)
     for model in models:
         model.metadata.drop_all(engine)
