@@ -2574,6 +2574,60 @@ def do_version_patch_add(dc, args):
     _daisy_show(version)
 
 
+@utils.arg('--host-id', metavar='<HOST_ID>',
+           help='name of version.')
+@utils.arg('--version-id', metavar='<VERSION>',
+           help='version id')
+@utils.arg('--type', metavar='<TYPE>',
+           help='type is tecs,vplat.....')
+@utils.arg('--patch-name', metavar='<PATCH>',
+           help='patch name')
+def do_host_patch_history_add(dc, args):
+    """Add a host patch history."""
+
+    fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
+
+    # Filter out values we can't use
+    CREATE_PARAMS = daisyclient.v1.version_patchs.CREATE_PARAMS
+    fields = dict(filter(lambda x: x[0] in CREATE_PARAMS, fields.items()))
+    patch_history = dc.version_patchs.add_host_patch_history(**fields)
+    _daisy_show(patch_history)
+
+
+@utils.arg('--host-id', metavar='<HOST>',
+           help='Filter patch history with host id.')
+@utils.arg('--type', metavar='<type>',
+           help='Filter by type.')
+@utils.arg('--version-id', metavar='<version>',
+           help='Filter by version number.')
+@utils.arg('--page-size', metavar='<SIZE>', default=None, type=int,
+           help='Number to request in each paginated request.')
+@utils.arg('--sort-key', default='name',
+           choices=daisyclient.v1.versions.SORT_KEY_VALUES,
+           help='Sort version list by specified field.')
+@utils.arg('--sort-dir', default='asc',
+           choices=daisyclient.v1.versions.SORT_DIR_VALUES,
+           help='Sort version list in specified direction.')
+def do_patch_history_list(dc, args):
+    """List hosts you can access."""
+    filter_keys = ['host_id', 'type', 'version_id']
+    filter_items = [(key, getattr(args, key)) for key in filter_keys]
+    filters = dict([item for item in filter_items if item[1] is not None])
+
+    kwargs = {'filters': filters}
+    if args.page_size is not None:
+        kwargs['page_size'] = args.page_size
+
+    kwargs['sort_key'] = args.sort_key
+    kwargs['sort_dir'] = args.sort_dir
+
+    versions = dc.version_patchs.list_host_patch_history(**kwargs)
+
+    columns = ['ID', 'HOST_ID', 'TYPE', 'VERSION_ID','VERSION_NAME', 'PATCH_NAME']
+
+    utils.print_list(versions, columns)
+
+
 @utils.arg('id', metavar='<ID>',
            help='ID of version patch.')
 @utils.arg('--name', metavar='<NAME>',

@@ -547,6 +547,14 @@ def init(mapper):
                    controller=version_patch_resource,
                    action='get_version_patch',
                    conditions={'method': ['GET']})
+    mapper.connect("/patch_history",
+                   controller=version_patch_resource,
+                   action='add_host_patch_history',
+                   conditions={'method': ['POST']})
+    mapper.connect("/patch_history/list",
+                   controller=version_patch_resource,
+                   action='list_patch_history',
+                   conditions={'method': ['GET']})
 
     template_configs_resource = template_configs.create_resource()
     mapper.connect("/import_template_configs",
