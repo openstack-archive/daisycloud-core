@@ -5898,6 +5898,121 @@ def _version_patch_update(context, values, version_patch_id):
 
     return version_patch_get(context, version_patch_ref.id)
 
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def add_host_patch_history(context, values):
+    """add version to daisy."""
+    return _host_patch_history_update(context, values, None)
+
+def _host_patch_history_update(context, values, patch_history_id):
+    """update or add patch history to daisy."""
+    values = values.copy()
+    session = get_session()
+    with session.begin():
+        if patch_history_id:
+            patch_history_ref = _patch_history_get(context, patch_history_id,
+                                                   session=session)
+        else:
+            patch_history_ref = models.HostPatchHistory()
+
+        if patch_history_id:
+            # Don't drop created_at if we're passing it in...
+            _drop_protected_attrs(models.HostPatchHistory, values)
+            # NOTE(iccha-sethi): updated_at must be explicitly set in case
+            #                   only ImageProperty table was modifited
+            values['updated_at'] = timeutils.utcnow()
+
+        if patch_history_id:
+            if values.get('id', None): del values['id']
+            patch_history_ref.update(values)
+            _update_values(patch_history_ref, values)
+            try:
+                patch_history_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("version patch ID %s already exists!"
+                                          % values['id'])
+        else:
+            patch_history_ref.update(values)
+            _update_values(patch_history_ref, values)
+            try:
+                patch_history_ref.save(session=session)
+            except db_exception.DBDuplicateEntry:
+                raise exception.Duplicate("version patch ID %s already exists!"
+                                          % values['id'])
+    return patch_history_get(context, patch_history_ref.id)
+
+def _patch_history_get(context, id, session=None,
+                       force_show_deleted=False):
+    """Get an patch history or raise if it does not exist."""
+
+    session = session or get_session()
+    try:
+        query = session.query(models.HostPatchHistory).filter_by(
+            id=id)
+
+        # filter out deleted images if context disallows it
+        if not force_show_deleted and not context.can_see_deleted:
+            query = query.filter_by(deleted=False)
+        patch_history = query.one()
+        return patch_history
+    except sa_orm.exc.NoResultFound:
+        msg = "No patch history patch found with ID %s" % id
+        LOG.debug(msg)
+        raise exception.NotFound(msg)
+
+
+def patch_history_get(context, id, session=None,
+                      force_show_deleted=False):
+    patch_history = _patch_history_get(context, id,
+                                       session=session,
+                                       force_show_deleted=force_show_deleted)
+    return patch_history
+
+def list_host_patch_history(context, filters=None, marker=None, limit=None,
+                            sort_key=None, sort_dir=None):
+    sort_key = ['created_at'] if not sort_key else sort_key
+
+    default_sort_dir = 'desc'
+
+    if not sort_dir:
+        sort_dir = [default_sort_dir] * len(sort_key)
+    elif len(sort_dir) == 1:
+        default_sort_dir = sort_dir[0]
+        sort_dir *= len(sort_key)
+
+    filters = filters or {}
+
+    showing_deleted = False
+    for key in ['created_at', 'id']:
+        if key not in sort_key:
+            sort_key.append(key)
+            sort_dir.append(default_sort_dir)
+
+    session = get_session()
+    query = session.query(models.HostPatchHistory).filter_by(deleted=showing_deleted)
+    if 'host_id' in filters and 'version_id' in filters:
+        host_id = filters.pop('host_id')
+        version_id = filters.pop('version_id')
+        query = session.query(models.HostPatchHistory).\
+            filter_by(deleted=False).filter_by(host_id=host_id).\
+            filter_by(version_id=version_id)
+    if 'host_id' in filters:
+        host_id = filters.pop('host_id')
+        query = session.query(models.HostPatchHistory).\
+            filter_by(deleted=False).filter_by(host_id=host_id)
+    if 'type' in filters:
+        type = filters.pop('type')
+        query = session.query(models.HostPatchHistory).\
+            filter_by(deleted=False).filter_by(type=type)
+    patchs = []
+    for patch_history in query.all():
+        patch = patch_history.to_dict()
+        version_ref = _version_get(context, patch['version_id'])
+        if version_ref:
+            patch['version_name'] = version_ref.name
+        patchs.append(patch)
+    return patchs
+
 def _version_patch_get(context, version_patch_id, session=None,
                        force_show_deleted=False):
     """Get an version patch or raise if it does not exist."""
@@ -5990,8 +6105,13 @@ def version_patch_get_all(context, filters=None, marker=None, limit=None,
     version_patchs = []
     for version_patch in query.all():
         version_dict = version_patch.to_dict()
-        version_sql = "select * from hosts where (hosts.version_patch_id ='"\
-            + version_dict['id'] + "' and hosts.deleted=0)"
+        version_sql = "select * from hosts, host_patch_history where" \
+                      " (hosts.version_patch_id ='" + version_dict['id'] +\
+                      "' and hosts.deleted=0) or (hosts.id =" \
+                      "host_patch_history.host_id and " \
+                      "host_patch_history.patch_name='" + \
+                      version_dict['name'] +"' and hosts.deleted=0 and " \
+                                            "host_patch_history.deleted=0)"
         hosts_number = session.execute(version_sql).fetchone()
         if hosts_number:
             version_dict['status'] = "used"
