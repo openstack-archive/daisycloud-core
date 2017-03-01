@@ -1387,16 +1387,7 @@ class Controller(controller.BaseController):
                             interfaces if interface.get('mac')]
             if orig_mac_list:
                 orig_min_mac = min(orig_mac_list)
-            if new_mac_list:
-                new_min_mac = min(new_mac_list)
-            if orig_mac_list and new_mac_list and \
-                    (min(new_min_mac, orig_min_mac) != orig_min_mac):
-                orig_host_meta['disks'] = host_meta.get('disks')
-                orig_host_meta['memory'] = host_meta.get('memory')
-                orig_host_meta['devices'] = host_meta.get('devices')
-                orig_host_meta['pci'] = host_meta.get('pci')
-                orig_host_meta['system'] = host_meta.get('system')
-                orig_host_meta['cpu'] = host_meta.get('cpu')
+ 
         self._verify_host_cluster(req, id, orig_host_meta, host_meta)
         if ('resource_type' in host_meta and
                 host_meta['resource_type'] not in self.support_resource_type):
