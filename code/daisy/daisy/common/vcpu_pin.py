@@ -365,7 +365,10 @@ def allocate_clc_cpus(host_detail):
         host_hw_info[f] = host_obj.get(f)
 
     host_id = host_detail.get('id')
-    clc_pci_list = utils.get_clc_pci_info(host_hw_info['pci'].values())
+    hw_pci = host_hw_info['pci']
+    if not isinstance(hw_pci, dict):
+        hw_pci = eval(hw_pci)
+    clc_pci_list = utils.get_clc_pci_info(hw_pci.values())
     if not clc_pci_list:
         return pci_cpu_sets
     else:
