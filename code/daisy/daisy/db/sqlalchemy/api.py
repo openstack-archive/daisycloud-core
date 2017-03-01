@@ -3315,49 +3315,78 @@ def host_get_all(context, filters=None, marker=None, limit=None,
         query = session.query(models.Host).filter_by(deleted=showing_deleted).filter_by(status=status)
     elif 'cluster_id' in filters and 'status' not in filters:
         cluster_id = filters.pop('cluster_id')
-        sql = "select hosts.*  from hosts ,cluster_hosts where hosts.deleted=0 and hosts.status='in-cluster' and cluster_hosts.cluster_id ='"+cluster_id +"' and cluster_hosts.host_id=hosts.id and cluster_hosts.deleted=0"
-        query = session.execute(sql).fetchall()
         hosts = []
-        for host in query:
-            host_dict = dict(host.items())
+        query = session.query(models.Host)
+        query = query.filter(models.Host.status=="in-cluster")
+        query = query.filter(models.Host.deleted==0)
+        query = query.filter(models.ClusterHost.cluster_id==cluster_id)
+        query = query.filter(models.ClusterHost.host_id==models.Host.id)
+        query = query.filter(models.ClusterHost.deleted==0)        
+        for host in query.all():
+            host_dict = host.to_dict()
             hosts.append(host_dict)
-        sql = "select hosts.*,cluster_hosts.cluster_id as cluster_id," \
-            "host_roles.progress as role_progress,host_roles.status as role_status," \
-            "host_roles.messages as role_messages from cluster_hosts ,hosts,roles,host_roles \
-              where hosts.deleted=0 and cluster_hosts.cluster_id ='"+cluster_id +"' and cluster_hosts.deleted=0 \
-              and roles.deleted=0 and roles.cluster_id='" + cluster_id+ "'\
-              and cluster_hosts.host_id=hosts.id \
-              and host_roles.role_id = roles.id \
-              and host_roles.host_id = hosts.id and host_roles.deleted=0 group by hosts.id"
-        query = session.execute(sql).fetchall()
-        for host in query:
-            host_dict = dict(host.items())
+
+        query = session.query(models.Host, 
+            models.ClusterHost.cluster_id.label("cluster_id"), 
+            models.HostRole.progress.label("role_progress"),
+            models.HostRole.status.label("role_status"),
+            models.HostRole.messages.label("role_messages"))
+        query = query.filter(models.Host.deleted==0)
+        query = query.filter(models.ClusterHost.cluster_id==cluster_id)
+        query = query.filter(models.ClusterHost.host_id==models.Host.id)
+        query = query.filter(models.ClusterHost.deleted==0)
+        query = query.filter(models.HostRole.host_id==models.Host.id)
+        query = query.filter(models.HostRole.role_id==models.Role.id)
+        query = query.filter(models.HostRole.deleted==0)
+        query = query.filter(models.Role.cluster_id==cluster_id)
+        query = query.filter(models.Role.deleted==0)
+        query = query.group_by(models.Host.id)
+        for host, cluster_id, role_progress, role_status, role_messages in query.all():
+            host_dict = host.to_dict()
+            host_dict["cluster_id"] = cluster_id
+            host_dict["role_progress"] = role_progress
+            host_dict["role_status"] = role_status
+            host_dict["role_messages"] = role_messages
             hosts.append(host_dict)
         return hosts
     elif 'cluster_id' in filters and 'status' in filters:
         status = filters.pop('status')
         cluster_id = filters.pop('cluster_id')
         if status == 'in-cluster':
-            sql = "select hosts.* from hosts ,cluster_hosts where hosts.deleted=0 and hosts.status='in-cluster' and cluster_hosts.cluster_id ='"+cluster_id +"' and cluster_hosts.host_id=hosts.id and cluster_hosts.deleted=0"
-            query = session.execute(sql).fetchall()
             hosts = []
-            for host in query:
-                host_dict = dict(host.items())
+            query = session.query(models.Host)
+            query = query.filter(models.Host.status=="in-cluster")
+            query = query.filter(models.Host.deleted==0)
+            query = query.filter(models.ClusterHost.cluster_id==cluster_id)
+            query = query.filter(models.ClusterHost.host_id==models.Host.id)
+            query = query.filter(models.ClusterHost.deleted==0)
+            for host in query.all():
+                host_dict = host.to_dict()
                 hosts.append(host_dict)
             return hosts
         if status == 'with-role':
-            sql = "select hosts.*,cluster_hosts.cluster_id as cluster_id," \
-            "host_roles.progress as role_progress,host_roles.status as role_status," \
-            "host_roles.messages as role_messages from cluster_hosts ,hosts,roles,host_roles \
-              where hosts.deleted=0 and cluster_hosts.cluster_id ='"+cluster_id +"' and cluster_hosts.deleted=0 \
-              and roles.deleted=0 and roles.cluster_id='" + cluster_id+ "'\
-              and cluster_hosts.host_id=hosts.id \
-              and host_roles.role_id = roles.id \
-              and host_roles.host_id = hosts.id and host_roles.deleted=0 group by hosts.id"
-            query = session.execute(sql).fetchall()
             hosts = []
-            for host in query:
-                host_dict = dict(host.items())
+            query = session.query(models.Host,
+                models.ClusterHost.cluster_id.label("cluster_id"),
+                models.HostRole.progress.label("role_progress"),
+                models.HostRole.status.label("role_status"),
+                models.HostRole.messages.label("role_messages"))
+            query = query.filter(models.Host.deleted==0)
+            query = query.filter(models.ClusterHost.cluster_id==cluster_id)
+            query = query.filter(models.ClusterHost.host_id==models.Host.id)
+            query = query.filter(models.ClusterHost.deleted==0)
+            query = query.filter(models.HostRole.host_id==models.Host.id)
+            query = query.filter(models.HostRole.role_id==models.Role.id)
+            query = query.filter(models.HostRole.deleted==0)
+            query = query.filter(models.Role.cluster_id==cluster_id)
+            query = query.filter(models.Role.deleted==0)
+            query = query.group_by(models.Host.id)
+            for host, cluster_id, role_progress, role_status, role_messages in query.all():
+                host_dict = host.to_dict()
+                host_dict["cluster_id"] = cluster_id
+                host_dict["role_progress"] = role_progress
+                host_dict["role_status"] = role_status
+                host_dict["role_messages"] = role_messages
                 hosts.append(host_dict)
             return hosts
     elif 'name' in filters:
