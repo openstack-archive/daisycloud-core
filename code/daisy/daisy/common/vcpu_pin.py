@@ -364,6 +364,11 @@ def allocate_clc_cpus(host_detail):
     for f in host_hw_info:
         host_hw_info[f] = host_obj.get(f)
 
+    for ironic_keyword in ['cpu', 'system', 'memory','pci', 'disks', 'devices', 'interfaces']:
+        if host_hw_info.get(ironic_keyword):
+            if isinstance(host_hw_info.get(ironic_keyword), unicode):
+                host_hw_info[ironic_keyword] = eval(host_hw_info.get(ironic_keyword))
+
     host_id = host_detail.get('id')
     clc_pci_list = utils.get_clc_pci_info(host_hw_info['pci'].values())
     if not clc_pci_list:
