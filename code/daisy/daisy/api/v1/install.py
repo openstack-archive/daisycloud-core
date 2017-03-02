@@ -418,6 +418,7 @@ class Controller(controller.BaseController):
         """
         upgrade cluster.
         """
+        os_handle = get_os_handle()
         self._enforce(req, 'update_cluster')
         self._raise_404_if_cluster_deleted(req, cluster_id)
         if not install_meta.get('version_id', None):
