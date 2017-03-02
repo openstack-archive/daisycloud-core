@@ -50,8 +50,7 @@ def update_inventory_file(file_path, filename, node_name, host_name,
     fp.close()
     index_of_label = lines.index('[%s]\n' % node_name)
     lines.insert(index_of_label + num_of_host,
-                 '%s       ansible_connection=%s\n' %
-                 (host_name, connection_type))
+                 '%s\n' % host_name)
     s = ''.join(lines)
     fp = file('%s/kolla/ansible/inventory/%s' % (file_path, filename), 'w')
     fp.write(s)
