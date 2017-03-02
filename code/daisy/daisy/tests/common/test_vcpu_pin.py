@@ -244,3 +244,28 @@ class TestVcpuPin(test.TestCase):
         os_cpus = vcpu_pin.allocate_os_cpus(roles_name,
                                             pci_cpusets, dvs_cpusets)
         self.assertEqual(set(os_cpus), set([]))
+
+    def test_allocate_cpus(self):
+        except_host_cpu_sets = {'suggest_dvs_high_cpuset': '',
+                     'pci_high_cpuset': '',
+                     'suggest_dvs_cpus': '',
+                     'suggest_os_cpus': ''}
+        host_detail = {u'cpu': {"numa_node0": "0-9,20-29",
+                                "numa_node1": "10-19,30-39"},
+                       u'devices': {"0000:ff:09.3": {"0000:ff:09.3": "-1"},
+                                    "0000:ff:09.2": {"0000:ff:09.2": "-1"}},
+                       u'disks': u'{"mpathd": {"name": "mpathd", '
+                                 u' "size": " 107374182400 bytes"}}',
+                       u'interfaces': [],
+                       u'memory': u'{"total": " 263650268 kB", '
+                                  u'"phy_memory_1": {"devices_15": {"frequency": " 2133 MHz", '
+                                  u'"type": " <OUT OF SPEC>", "size": " 16384 MB"}}}',
+                       u'pci': u'{"ff:0c.4": '
+                               u'"ff:0c.4 System peripheral: Intel Corporation '
+                               u'Haswell-E Unicast Registers (rev 02)"}',
+                       u'role': [u'CONTROLLER_LB', u'CONTROLLER_HA', u'COMPUTER'],
+                       u'system': u'{"product": "EC600G3", "manufacturer": "ZTE"}'
+        }
+
+        host_cpu_sets = vcpu_pin.allocate_cpus(host_detail)
+        self.assertEqual(host_cpu_sets, except_host_cpu_sets)
