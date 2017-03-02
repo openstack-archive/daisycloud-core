@@ -419,6 +419,14 @@ def allocate_cpus(host_detail):
                      'pci_high_cpuset': '',
                      'suggest_dvs_cpus': '',
                      'suggest_os_cpus': ''}
+
+    host_hw_info = {'system': '', 'memory': '',
+                    'cpu': '', 'disks': '', 
+                    'pci': '', 'devices': ''}
+    for f in host_hw_info:
+        if not isinstance(host_detail[f], dict):
+            host_detail[f] = eval(host_detail[f])
+    
     dvs_cpusets = allocate_dvs_cpus(host_detail)
     pci_cpusets = allocate_clc_cpus(host_detail)
 
