@@ -32,6 +32,7 @@ from daisy.registry.api.v1 import networks
 from daisy.registry.api.v1 import template
 from daisy.registry.api.v1 import hwms
 from daisy.registry.api.v1 import versions
+from daisy.registry.api.v1 import version_patchs
 from daisy.registry.api.v1 import disk_array
 from daisy.registry.api.v1 import template_configs
 from daisy.registry.api.v1 import template_funcs
@@ -1427,6 +1428,31 @@ class RegistryClient(BaseClient):
         res = self.do_request("GET", "/version_patchs/%s" % version_patch_id)
         data = jsonutils.loads(res.read())['version_patch']
         return data
+
+    def add_host_patch_history(self, patch_history_metadata):
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        if 'patch_history' not in patch_history_metadata:
+            patch_history_metadata = dict(patch_history=patch_history_metadata)
+
+        body = jsonutils.dumps(patch_history_metadata)
+
+        res = self.do_request(
+            "POST",
+            "/patch_history",
+            body=body,
+            headers=headers)
+        data = jsonutils.loads(res.read())
+        return data['patch_history']
+
+    def list_host_patch_history(self, **kwargs):
+        """Return a list of version patch associations from Registry."""
+        params = self._extract_params(kwargs, version_patchs.SUPPORTED_PARAMS)
+        res = self.do_request("GET", "/patch_history/list", params=params)
+        version_list = jsonutils.loads(res.read())['patch_history']
+        return version_list
 
     def get_template_config(self, template_config_id):
         """Return a list of template config associations from Registry."""
