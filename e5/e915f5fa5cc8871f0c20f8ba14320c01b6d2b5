@@ -1,0 +1,8 @@
+Code-Review+2: zhouya <zhou.ya@zte.com.cn>
+Workflow+1: Zhijiang Hu <hu.zhijiang@zte.com.cn>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Fri, 03 Mar 2017 06:15:35 +0000
+Reviewed-on: https://review.openstack.org/440165
+Project: openstack/daisycloud-core
+Branch: refs/heads/master
