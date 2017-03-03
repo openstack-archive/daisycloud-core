@@ -1273,6 +1273,7 @@ def upgrade_os(req, version_id, version_patch_id, update_file,
                 if host_detail['os_status'] == host_os_status['UPDATING']:
                     host_meta['os_status'] = \
                         host_os_status['UPDATE_FAILED']
+                    host_meta['messages'] = "OS upgraded failed"
                     daisy_cmn.update_db_host_status(req,
                                                     host['id'], host_meta)
                 if host_detail['os_status'] == host_os_status['ACTIVE']:
