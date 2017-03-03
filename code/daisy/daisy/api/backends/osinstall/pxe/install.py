@@ -1269,3 +1269,10 @@ def upgrade_os(req, version_id, version_patch_id, update_file,
                     host_meta['version_patch_id'] = version_patch_id
                     daisy_cmn.update_db_host_status(req, host['id'], host_meta,
                                                     version_id)
+                    if version_patch_id:
+                        patch_meta = {'host_id': host['id'],
+                                      'patch_name': update_file,
+                                      'version_id': version_id,
+                                      'type': update_object}
+                        registry.add_host_patch_history_metadata(
+                            req.context, patch_meta)
