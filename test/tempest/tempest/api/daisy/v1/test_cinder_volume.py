@@ -20,14 +20,14 @@ class DaisyCinderVolumeTest(base.BaseDaisyTest):
                              'pools': 'pool1,pool2',
                              'user_name': 'rooot',
                              'user_pwd': 'pwd',
-                             'volume_driver': 'KS3200_FCSAN',
+                             'volume_driver': 'ZTE_FCSAN',
                              'volume_type': 'KISP-1'}]}
 
         cls.cinder_volume_update_meta = {'management_ips': '10.43.177.3',
                                          'pools': 'pool3',
                                          'user_name': 'rooot',
                                          'user_pwd': 'pwd',
-                                         'volume_driver': 'KS3200_FCSAN',
+                                         'volume_driver': 'ZTE_FCSAN',
                                          'volume_type': 'KISP-1'}
 
         cls.cluster_meta = \
@@ -201,7 +201,7 @@ class DaisyCinderVolumeTest(base.BaseDaisyTest):
                                  **self.cinder_volume_add_meta)
         del self.cinder_volume_add_meta['role_id']
         self.cinder_volume_add_meta['disk_array'][0]['volume_driver'] = \
-            'KS3200_FCSAN'
+            'ZTE_FCSAN'
 
     def test_update_cinder_volume(self):
         self.private_network_add()
@@ -235,7 +235,7 @@ class DaisyCinderVolumeTest(base.BaseDaisyTest):
                                      'pools': 'pool1,pool2',
                                      'user_name': 'rooot',
                                      'user_pwd': 'pwd',
-                                     'volume_driver': 'KS3200_FCSAN',
+                                     'volume_driver': 'ZTE_FCSAN',
                                      'volume_type': 'KISP-1'}]}
         cinder_volume_add_meta1['role_id'] = role.id
         cinder_volume_info1 = self.add_cinder_volume(
@@ -300,8 +300,8 @@ class DaisyCinderVolumeTest(base.BaseDaisyTest):
 
         cinder_volume_detail_info = self.get_cinder_volume_detail(
             cinder_volume_info.id)
-        self.assertEqual("10.43.177.1,10.43.177.2",
-                         cinder_volume_detail_info.management_ips,
+        self.assertEqual("ZTE_FCSAN",
+                         cinder_volume_detail_info.volume_driver,
                          "test_get_cinder_volume_detail failed")
         self.delete_cinder_volume(cinder_volume_info.id)
 

@@ -1976,7 +1976,7 @@ def _paraser_disk_array(disk_array):
 
 @utils.arg('disk_array', metavar='<management_ips=ip1_ip2,data_ips=ip3_ip4,'
            'pools=pool1_pool2,user_name=user_name,user_pwd=user_pwd,'
-           'volume_driver=KS3200_FCSAN,volume_type=KISP-1>',
+           'volume_driver=ZTE_FCSAN,volume_type=KISP-1>',
            nargs='+',
            help='management_ips: management interfaces ip of Disk Array\
                 device, separate by "_";\
@@ -1986,7 +1986,7 @@ def _paraser_disk_array(disk_array):
                 pools: pools name which are configed in Disk Array device;\
                 user_name: user name to login Disk Array device;\
                 user_pwd: user password to login Disk Array device;\
-                volume_driver: supports "KS3200_FCSAN", "KS3200_IPSAN"\
+                volume_driver: supports "ZTE_FCSAN", "ZTE_IPSAN"\
                 and "FUJITSU_ETERNUS" according by Disk Array device type,\
                 separate by "_";\
                 volume_type: maybe same in two backends.')
@@ -2042,7 +2042,7 @@ def do_cinder_volume_delete(dc, args):
 @utils.arg('--pools', metavar='<POOLS>',
            help='pools name which are configed in Disk Array device')
 @utils.arg('--volume-driver', metavar='<VOLUME_DRIVER>',
-           help='supports "KS3200_FCSAN", "KS3200_IPSAN" and "FUJITSU_ETERNUS"\
+           help='supports "ZTE_FCSAN", "ZTE_IPSAN" and "FUJITSU_ETERNUS"\
             according by Disk Array device type, separate by ","')
 @utils.arg('--volume-type', metavar='<VOLUME_TYPE>',
            help='it maybe same in two backends, supprot "" and ""')

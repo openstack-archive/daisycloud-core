@@ -60,7 +60,7 @@ CINDER_VOLUME_BACKEND_PARAMS = ('management_ips', 'data_ips', 'pools',
 OPTICAL_SWITCH_PARAMS = ('user_name', 'user_pwd', 'switch_ip',
                          'switch_port', 'fc_driver',
                          'fc_zoneing_policy', 'role_id')
-CINDER_VOLUME_BACKEND_DRIVER = ['KS3200_IPSAN', 'KS3200_FCSAN',
+CINDER_VOLUME_BACKEND_DRIVER = ['ZTE_IPSAN', 'ZTE_FCSAN',
                                 'FUJITSU_ETERNUS', 'HP3PAR_FCSAN',
                                 'FUJITSU_FCSAN', 'MacroSAN_FCSAN',
                                 'NETAPP_FCSAN']
