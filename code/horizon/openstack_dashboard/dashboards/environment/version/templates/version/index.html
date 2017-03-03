@@ -67,7 +67,7 @@
             return;
 
         var file_paths = document.getElementById("version_file").files;
-        // 获取前台的版本信息
+
         var params = {
             "file_type": $("#file_type").val(),
             "file_name": file_paths[0].name,
@@ -86,7 +86,7 @@
     $(function(){
         $("#file_type").change(function(){
             if ($("#patch_version").attr('checked') == 'checked'){
-                // 获取所有系统版本信息
+
                 var url = "/dashboard/environment/version/get_appointed_system_versions/";
                 do_post(url, JSON.stringify({'file_type': $("#file_type").val()}), update_correspond_file_option);
             }
@@ -107,7 +107,7 @@
                 $(".form-local-file").addClass("hide");
                 $(".form-server-file").removeClass("hide");
 
-                // 获取服务端文件信息
+
                 var params = {
                     "file_type": $("#file_type").val()
                 }
@@ -119,7 +119,7 @@
         $(".version_type").on("click", function(){
             if ($("#patch_version").attr('checked') == 'checked') {
                 $(".form-correspond-file").removeClass("hide");
-                // 获取所有系统版本信息
+
                 var url = "/dashboard/environment/version/get_appointed_system_versions/";
                 do_post(url, JSON.stringify({'file_type': $("#file_type").val()}), update_correspond_file_option);
             }
@@ -204,7 +204,7 @@
                             <input type="radio" id="patch_version" name="version_type" class="version_type" value="patch" >{% trans "Patch version" %}
                         </label>
         </div>
-      </div>  
+      </div>
                 <div class="form-group input-sm form-correspond-file hide">
                     <label class="control-label col-sm-5">{% trans 'Corresponding system version' %}:</label>
                     <div class="col-sm-2">
