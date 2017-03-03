@@ -596,6 +596,14 @@ class API(wsgi.Router):
                        controller=version_patchs_resource,
                        action='update_version_patch',
                        conditions={'method': ['PUT']})
+        mapper.connect("/patch_history",
+                       controller=version_patchs_resource,
+                       action='add_host_patch_history',
+                       conditions={'method': ['POST']})
+        mapper.connect("/patch_history/list",
+                       controller=version_patchs_resource,
+                       action='list_host_patch_history',
+                       conditions={'method': ['GET']})
 
         template_configs_resource = template_configs.create_resource()
         mapper.connect("/template_configs/import_template_config",
