@@ -321,3 +321,23 @@ def config_network_new(ssh_host_info, backend, json_file=None):
 
 def config_network(ssh_host_info, json_file=None):
     config_network_new(ssh_host_info, 'tecs', json_file)
+
+
+# need trust me first
+def parallel_execute_network_script(host_ip_list, json_file=None):
+    remote_dir = '/home/'
+    daisy_script_name = 'daisy.py'
+    linux_action_name = 'linux_action.sh'
+    daisy_path = '/var/lib/daisy/tecs/'
+    scp_files = [daisy_path + daisy_script_name,
+                 daisy_path + linux_action_name]
+    clush.copy(host_ip_list, scp_files, remote_dir)
+    cmd1 = 'cd %s; chmod +x %s %s' % (remote_dir, daisy_script_name,
+                                      linux_action_name)
+    if json_file:
+        cmd2 = 'cd %s; python %s %s' % (remote_dir, daisy_script_name,
+                                        json_file)
+    else:
+        cmd2 = 'cd %s; python %s' % (remote_dir, daisy_script_name)
+    clush.run(host_ip_list, [cmd1, cmd2])
+    clush.run(host_ip_list, ['systemctl restart network'], allow_fail=True)

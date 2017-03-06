@@ -38,6 +38,7 @@ from daisy import i18n
 from daisy import notifier
 import daisy.registry.client.v1.api as registry
 from daisy.registry.api.v1 import template
+from oslo_utils import importutils
 
 import daisy.api.backends.common as daisy_cmn
 

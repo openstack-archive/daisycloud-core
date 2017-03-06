@@ -337,3 +337,31 @@ class TestApiCommon(test.TestCase):
         network_meta[svlan_end] = value_end-1
         result = common.valid_network_range(self.req, network_meta)
         self.assertEqual(result, None)
+
+    @mock.patch('daisy.api.configset.clush.run')
+    @mock.patch('daisy.api.configset.clush.copy')
+    def test_parallel_execute_network_script(self, mock_clush_copy,
+                                             mock_clush_run):
+        def mock_do_clush_run(hosts, cmds, **kwargs):
+            val.extend(cmds)
+
+        val = []
+        mock_clush_copy.return_value = None
+        mock_clush_run.side_effect = mock_do_clush_run
+        common.parallel_execute_network_script(['127.0.0.1', '127.0.0.2'])
+        self.assertEqual('cd /home/; python daisy.py', val[1])
+
+    @mock.patch('daisy.api.configset.clush.run')
+    @mock.patch('daisy.api.configset.clush.copy')
+    def test_parallel_execute_network_script_with_json(self,
+                                                       mock_clush_copy,
+                                                       mock_clush_run):
+        def mock_do_clush_run(hosts, cmds, **kwargs):
+            val.extend(cmds)
+
+        val = []
+        mock_clush_copy.return_value = None
+        mock_clush_run.side_effect = mock_do_clush_run
+        common.parallel_execute_network_script(['127.0.0.1', '127.0.0.2'],
+                                               'test.json')
+        self.assertEqual('cd /home/; python daisy.py test.json', val[1])
