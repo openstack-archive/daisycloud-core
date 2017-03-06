@@ -169,6 +169,7 @@ def get_cluster_kolla_config(req, cluster_id):
     dat_macname_list = []
     ext_macname_list = []
     sto_macname_list = []
+    vlans_id = {}
     openstack_version = '3.0.0'
     docker_namespace = 'kolla'
     host_name_ip = {}
@@ -197,9 +198,13 @@ def get_cluster_kolla_config(req, cluster_id):
                             kolla_openstack_version = line.strip()
                             openstack_version = kolla_openstack_version.split(
                                 ": ")[1]
+    LOG.info(_("openstack version is %s" % openstack_version))
     docker_registry_ip = _get_local_ip()
     docker_registry = docker_registry_ip + ':4000'
+    LOG.info(_("get cluster network detail..."))
     cluster_networks = daisy_cmn.get_cluster_networks_detail(req, cluster_id)
+    for network in cluster_networks:
+        vlans_id.update({network.get('network_type'): network.get('vlan_id')})
     all_roles = kolla_cmn.get_roles_detail(req)
     roles = [role for role in all_roles if
              (role['cluster_id'] == cluster_id and
@@ -242,6 +247,7 @@ def get_cluster_kolla_config(req, cluster_id):
             kolla_config.update({'Controller_ips': controller_ip_list})
             kolla_config.update({'Network_ips': controller_ip_list})
             kolla_config.update({'Storage_ips': controller_ip_list})
+            kolla_config.update({'vlans_id': vlans_id})
         if role['name'] == 'COMPUTER':
             role_hosts = kolla_cmn.get_hosts_of_role(req, role['id'])
             for role_host in role_hosts:
@@ -340,6 +346,60 @@ def _get_hosts_id_by_mgnt_ips(req, cluster_id, ips):
     return hosts_id_needed
 
 
+def _thread_bin(req, host, root_passwd, fp, host_name_ip_list,
+                host_prepare_file, docker_registry_ip, role_id_list):
+    host_ip = host['mgtip']
+    cmd = '/var/lib/daisy/trustme.sh %s %s' % \
+          (host_ip, root_passwd)
+    daisy_cmn.subprocess_call(cmd, fp)
+    config_nodes_hosts(host_name_ip_list, host_ip)
+    cmd = 'ssh -o StrictHostKeyChecking=no %s \
+          "if [ ! -d %s ];then mkdir %s;fi" ' % \
+          (host_ip, host_prepare_file, host_prepare_file)
+    daisy_cmn.subprocess_call(cmd, fp)
+    cmd = "scp -o ConnectTimeout=10 \
+           /var/lib/daisy/kolla/prepare.sh \
+           root@%s:%s" % (host_ip, host_prepare_file)
+    daisy_cmn.subprocess_call(cmd, fp)
+    cmd = 'ssh -o StrictHostKeyChecking=no %s \
+          chmod u+x %s/prepare.sh' % \
+          (host_ip, host_prepare_file)
+    daisy_cmn.subprocess_call(cmd, fp)
+    try:
+        exc_result = subprocess.check_output(
+            'ssh -o StrictHostKeyChecking='
+            'no %s %s/prepare.sh %s' %
+            (host_ip, host_prepare_file, docker_registry_ip),
+            shell=True, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        message = "Prepare install failed!"
+        update_host_progress_to_db(req, role_id_list, host,
+                                   kolla_state['INSTALL_FAILED'],
+                                   message)
+        LOG.info(_("prepare for %s failed!" % host_ip))
+        fp.write(e.output.strip())
+        exit()
+    else:
+        LOG.info(_("prepare for %s successfully!" % host_ip))
+        fp.write(exc_result)
+        message = "Preparing for installation successful!"
+        update_host_progress_to_db(self.req, role_id_list, host,
+                                   kolla_state['INSTALLING'],
+                                   message, 10)
+
+
+def thread_bin(req, host, root_passwd, fp, host_name_ip_list,
+               host_prepare_file, docker_registry_ip, role_id_list):
+    try:
+        _thread_bin(req, host, root_passwd, fp, host_name_ip_list,
+                    host_prepare_file, docker_registry_ip, role_id_list)
+    except Exception as e:
+        message = "Prepare for installation failed!"
+        update_host_progress_to_db(req, role_id_list, host,
+                                   kolla_state['INSTALL_FAILED'],
+                                   message)
+
+
 class KOLLAInstallTask(Thread):
     """
     Class for kolla install openstack.
@@ -409,7 +469,9 @@ class KOLLAInstallTask(Thread):
                 ssh_host_info = {'ip': mgnt_ip, 'root_pwd': root_passwd}
                 api_cmn.config_network_new(ssh_host_info, 'kolla')
         time.sleep(20)
+        LOG.info(_("begin to generate kolla config file ..."))
         generate_kolla_config_file(self.cluster_id, kolla_config)
+        LOG.info(_("generate kolla config file in /etc/kolla/ dir..."))
         (role_id_list, host_id_list, hosts_list) = \
             kolla_cmn.get_roles_and_hosts_list(self.req, self.cluster_id)
         self.message = "Begin install"
@@ -418,52 +480,35 @@ class KOLLAInstallTask(Thread):
                                        self.message, 0)
         docker_registry_ip = _get_local_ip()
         with open(self.log_file, "w+") as fp:
+            threads = []
             for host in hosts_list:
-                host_ip = host['mgtip']
-                cmd = '/var/lib/daisy/trustme.sh %s %s' % \
-                      (host_ip, root_passwd)
-                daisy_cmn.subprocess_call(cmd, fp)
-                config_nodes_hosts(host_name_ip_list, host_ip)
-                cmd = 'ssh -o StrictHostKeyChecking=no %s \
-                      "if [ ! -d %s ];then mkdir %s;fi" ' % \
-                      (host_ip, self.host_prepare_file, self.host_prepare_file)
-                daisy_cmn.subprocess_call(cmd, fp)
-                cmd = "scp -o ConnectTimeout=10 \
-                       /var/lib/daisy/kolla/prepare.sh \
-                       root@%s:%s" % (host_ip, self.host_prepare_file)
-                daisy_cmn.subprocess_call(cmd, fp)
-                cmd = 'ssh -o StrictHostKeyChecking=no %s \
-                      chmod u+x %s/prepare.sh' % \
-                      (host_ip, self.host_prepare_file)
-                daisy_cmn.subprocess_call(cmd, fp)
-                try:
-                    exc_result = subprocess.check_output(
-                        'ssh -o StrictHostKeyChecking='
-                        'no %s %s/prepare.sh %s' %
-                        (host_ip, self.host_prepare_file, docker_registry_ip),
-                        shell=True, stderr=subprocess.STDOUT)
-                except subprocess.CalledProcessError as e:
-                    self.message = "Prepare install failed!"
-                    update_host_progress_to_db(self.req, role_id_list, host,
-                                               kolla_state['INSTALL_FAILED'],
-                                               self.message)
-                    LOG.info(_("prepare for %s failed!" % host_ip))
-                    fp.write(e.output.strip())
-                    exit()
-                else:
-                    LOG.info(_("prepare for %s successfully!" % host_ip))
-                    fp.write(exc_result)
-                    self.message = "Preparing for installation successful!"
-                    update_host_progress_to_db(self.req, role_id_list, host,
-                                               kolla_state['INSTALLING'],
-                                               self.message, 10)
+                t = threading.Thread(target=thread_bin,
+                                     args=(self.req, host, root_passwd, fp,
+                                           host_name_ip_list,
+                                           self.host_prepare_file,
+                                           docker_registry_ip, role_id_list))
+                t.setDaemon(True)
+                t.start()
+                threads.append(t)
             try:
+                LOG.info(_("prepare kolla installation threads have started, "
+                           "please waiting...."))
+                for t in threads:
+                    t.join()
+            except:
+                LOG.error("join kolla prepare installation "
+                          "thread %s failed!" % t)
+
+            try:
+                LOG.info(_("begin to kolla-ansible "
+                           "prechecks for all nodes..."))
                 exc_result = subprocess.check_output(
                     'cd %s/kolla && ./tools/kolla-ansible prechecks -i '
                     '%s/kolla/ansible/inventory/multinode' %
                     (self.kolla_file, self.kolla_file),
                     shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as e:
+                LOG.error("kolla-ansible preckecks failed!")
                 self.message = "kolla-ansible preckecks failed!"
                 update_all_host_progress_to_db(self.req, role_id_list,
                                                host_id_list,
@@ -480,6 +525,7 @@ class KOLLAInstallTask(Thread):
                                                host_id_list,
                                                kolla_state['INSTALLING'],
                                                self.message, 20)
+            LOG.info(_("kolla-ansible begin to deploy openstack ..."))
             cmd = subprocess.Popen(
                 'cd %s/kolla && ./tools/kolla-ansible deploy -i '
                 '%s/kolla/ansible/inventory/multinode' %
@@ -502,7 +548,7 @@ class KOLLAInstallTask(Thread):
                         host_id_list,
                         kolla_state['INSTALL_FAILED'],
                         self.message)
-                    LOG.info(_("kolla-ansible deploy failed!"))
+                    LOG.error("kolla-ansible deploy failed!")
                     exit()
                 else:
                     self.progress = _calc_progress(self.log_file)
@@ -517,6 +563,7 @@ class KOLLAInstallTask(Thread):
                                                    self.message, self.progress)
                 execute_times += 1
             try:
+                LOG.info(_("kolla-ansible post-deploy for each node..."))
                 exc_result = subprocess.check_output(
                     'cd %s/kolla && ./tools/kolla-ansible post-deploy -i '
                     '%s/kolla/ansible/inventory/multinode' %
@@ -528,7 +575,7 @@ class KOLLAInstallTask(Thread):
                                                host_id_list,
                                                kolla_state['INSTALL_FAILED'],
                                                self.message)
-                LOG.info(_("kolla-ansible post-deploy failed!"))
+                LOG.error("kolla-ansible post-deploy failed!")
                 fp.write(e.output.strip())
                 exit()
             else:
