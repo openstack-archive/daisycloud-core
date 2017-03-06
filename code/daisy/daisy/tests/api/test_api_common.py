@@ -337,3 +337,76 @@ class TestApiCommon(test.TestCase):
         network_meta[svlan_end] = value_end-1
         result = common.valid_network_range(self.req, network_meta)
         self.assertEqual(result, None)
+
+    @mock.patch('subprocess.check_output')
+    @mock.patch('daisy.api.configset.clush.run')
+    def test_copy_without_reverse(self, mock_do_run, mock_do_check_output):
+        def mock_check_output(scrip, stderr, shell):
+            cmd.append(scrip)
+
+        cmd = []
+        mock_do_run.return_value = None
+        mock_do_check_output.side_effect = mock_check_output
+        clush.copy(['127.0.0.1', '127.0.0.2'], ['test.py'], '/home')
+        self.assertIn(
+            'clush -S -w 127.0.0.1,127.0.0.2 --copy test.py --dest /home/',
+            cmd)
+
+    @mock.patch('subprocess.check_output')
+    @mock.patch('daisy.api.configset.clush.run')
+    def test_copy_with_reverse(self, mock_do_run, mock_do_check_output):
+        def mock_check_output(scrip, stderr, shell):
+            cmd.append(scrip)
+
+        cmd = []
+        mock_do_run.return_value = None
+        mock_do_check_output.side_effect = mock_check_output
+        clush.copy(['127.0.0.1', '127.0.0.2'], ['test.py'], '/home', True)
+        self.assertIn(
+            'clush -S -w 127.0.0.1,127.0.0.2 --rcopy test.py --dest /home/',
+            cmd)
+
+    @mock.patch('subprocess.check_output')
+    @mock.patch('daisy.api.configset.clush.run')
+    def test_copy_with_exec(self, mock_do_run, mock_do_check_output):
+        def mock_check_output(*args, **kwargs):
+            e = subprocess.CalledProcessError(1, 'test')
+            e.output = 'test error'
+            raise e
+
+        mock_do_run.return_value = None
+        mock_do_check_output.side_effect = mock_check_output
+        self.assertRaises(webob.exc.HTTPBadRequest,
+                          clush.copy,
+                          ['127.0.0.1', '127.0.0.2'], ['test.py'], '/home')
+
+    @mock.patch('subprocess.check_output')
+    def test_run(self, mock_do_check_output):
+        def mock_check_output(scrip, stderr, shell):
+            cmd.append(scrip)
+
+        cmd = []
+        mock_do_check_output.side_effect = mock_check_output
+        clush.run(['127.0.0.1', '127.0.0.2'], ['test'])
+        self.assertIn('clush -S -w 127.0.0.1,127.0.0.2 "test"', cmd)
+
+    @mock.patch('subprocess.check_output')
+    def test_run_no_allow_fail(self, mock_do_check_output):
+        def mock_check_output(*args, **kwargs):
+            e = subprocess.CalledProcessError(1, 'test')
+            e.output = 'test error'
+            raise e
+
+        mock_do_check_output.side_effect = mock_check_output
+        clush.run(['127.0.0.1', '127.0.0.2'], ['test'], True)
+
+    @mock.patch('subprocess.check_output')
+    def test_run_allow_fail(self, mock_do_check_output):
+        def mock_check_output(*args, **kwargs):
+            e = subprocess.CalledProcessError(1, 'test')
+            e.output = 'test error'
+            raise e
+
+        mock_do_check_output.side_effect = mock_check_output
+        self.assertRaises(webob.exc.HTTPBadRequest,
+                          clush.run, ['127.0.0.1', '127.0.0.2'], ['test'])
