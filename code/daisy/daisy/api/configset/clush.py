@@ -60,6 +60,46 @@ def copy_file_and_run_cmd(host, files, commands):
     LOG.info('Execute successfully')
 
 
+# need trust me first
+def run(host_list, cmd_list, allow_fail=False):
+    """
+    host_list: [ip1, ip2],
+    cmd_list: [cmd1, cmd2]
+    allow_fail: True or False, whether allowed raise exception if failed.
+    """
+    cmd = 'clush -S -w %s "%s"' % (','.join(host_list), ';'.join(cmd_list))
+    try:
+        LOG.info('Executing script: \n%s' % cmd)
+        subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+    except subprocess.CalledProcessError, e:
+        msg = ("<<<Failed:\n%s\n>>>" % e.output.strip())
+        if not allow_fail:
+            LOG.error(msg)
+            raise HTTPBadRequest(msg)
+
+
+# need trust me first
+def copy(host_list, source_list, dest, reverse=False):
+    """
+    host_list: [ip1, ip2, ...],
+    source_list: [file1_path, file2_path, ...]
+    dest: destination directory.
+    reverse: True represents copy remote file to local, and False is opposite.
+    """
+    dest = path.join(dest, '')
+    run(host_list, ['test -d %s || mkdir -p %s' % (dest, dest)])
+    option = 'rcopy' if reverse else 'copy'
+    cmd = 'clush -S -w %s --%s %s --dest %s' % (','.join(host_list), option,
+                                                ' '.join(source_list), dest)
+    try:
+        LOG.info('Executing script: \n%s' % cmd)
+        subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+    except subprocess.CalledProcessError, e:
+        msg = ("<<<Failed:\n%s\n>>>" % e.output.strip())
+        LOG.error(msg)
+        raise HTTPBadRequest(msg)
+
+
 class config_clushshell():
 
     """ Class for clush backend."""
