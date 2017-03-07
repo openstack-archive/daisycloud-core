@@ -650,18 +650,6 @@ class Controller(controller.BaseController):
                     add_network_meta = registry.add_network_metadata(
                         req.context, template_content_network)
 
-            path = os.path.join(os.path.abspath(os.path.dirname(
-                os.path.realpath(__file__))), 'ext')
-            for root, dirs, names in os.walk(path):
-                filename = 'router.py'
-                if filename in names:
-                    ext_name = root.split(path)[1].strip('/')
-                    ext_func = "%s.api.hosts" % ext_name
-                    extension = importutils.import_module(
-                        'daisy.api.v1.ext.%s' % ext_func)
-                    if 'modify_cluster_about_hwm' in dir(extension):
-                        extension.modify_cluster_about_hwm(req, cluster_id)
-
             params = {'filters': {'cluster_id': cluster_id}}
             roles = registry.get_roles_detail(req.context, **params)
             template_content_roles = template_content['roles']
@@ -690,6 +678,19 @@ class Controller(controller.BaseController):
             self._import_services_disk_to_db(req,
                                              template_content['services_disk'],
                                              roles)
+
+            # add extension content for cluster_template
+            path = os.path.join(os.path.abspath(os.path.dirname(
+                os.path.realpath(__file__))), 'ext')
+            for root, dirs, names in os.walk(path):
+                filename = 'router.py'
+                if filename in names:
+                    ext_name = root.split(path)[1].strip('/')
+                    ext_func = "%s.api.hosts" % ext_name
+                    extension = importutils.import_module(
+                        'daisy.api.v1.ext.%s' % ext_func)
+                    if 'import_template_to_db_ext' in dir(extension):
+                        extension.import_template_to_db_ext(req, cluster_id)
 
         except exception.Invalid as e:
             raise HTTPBadRequest(explanation=e.msg, request=req)
