@@ -19,11 +19,21 @@ import yaml
 import random
 import string
 import uuid
+from oslo_log import log as logging
+from daisy import i18n
 from Crypto.PublicKey import RSA
+
+
+LOG = logging.getLogger(__name__)
+_ = i18n._
+_LE = i18n._LE
+_LI = i18n._LI
+_LW = i18n._LW
 
 
 # generate kolla's ansible inventory multinode file
 def clean_inventory_file(file_path, filename):
+    LOG.info(_("begin to clean inventory file for kolla"))
     fp = open('%s/kolla/ansible/inventory/%s' % (file_path, filename))
     txt = fp.read()
     fp.close()
@@ -43,6 +53,7 @@ def clean_inventory_file(file_path, filename):
 
 def update_inventory_file(file_path, filename, node_name, host_name,
                           num_of_host, connection_type):
+    LOG.info(_("begin to update inventory file for kolla..."))
     fp = file('%s/kolla/ansible/inventory/%s' % (file_path, filename))
     lines = []
     for line in fp:
@@ -58,6 +69,7 @@ def update_inventory_file(file_path, filename, node_name, host_name,
 
 
 def add_role_to_inventory(file_path, config_data):
+    LOG.info(_("add role to inventory file..."))
     clean_inventory_file(file_path, 'multinode')
     host_sequence = 1
     for control_ip in config_data['Controller_ips']:
@@ -92,16 +104,32 @@ def add_role_to_inventory(file_path, config_data):
 
 # generate kolla's globals.yml file
 def update_globals_yml(config_data):
-    Version = config_data['Version']
-    Namespace = config_data['Namespace']
-    VIP = config_data['VIP']
-    IntIfMac = config_data['IntIfMac']
-    ExtIfMac = config_data['ExtIfMac']
-    TulIfMac = config_data['TulIfMac']
-    PubIfMac = config_data['PubIfMac']
-    StoIfMac = config_data['StoIfMac']
-    local_ip = config_data['LocalIP']
-    # kolla_yml = yaml.load(file('/etc/kolla/globals.yml'))
+    LOG.info(_("begin to update kolla's globals.yml file..."))
+    Version = config_data['Version'].encode()
+    Namespace = config_data['Namespace'].encode()
+    VIP = config_data['VIP'].encode()
+    local_ip = config_data['LocalIP'].encode()
+    IntIfMac = config_data['IntIfMac'].encode()
+    if config_data['vlans_id'].get('MANAGEMENT'):
+        IntIfMac = IntIfMac + '.' + \
+            config_data['vlans_id'].get('MANAGEMENT').encode()
+    ExtIfMac = config_data['ExtIfMac'].encode()
+    if config_data['vlans_id'].get('EXTERNAL'):
+        ExtIfMac = ExtIfMac + '.' + \
+            config_data['vlans_id'].get('EXTERNAL').encode()
+    TulIfMac = config_data['TulIfMac'].encode()
+    if config_data['vlans_id'].get('DATAPLANE'):
+        TulIfMac = TulIfMac + '.' + \
+            config_data['vlans_id'].get('DATAPLANE').encode()
+    PubIfMac = config_data['PubIfMac'].encode()
+    if config_data['vlans_id'].get('PUBLICAPI'):
+        PubIfMac = PubIfMac + '.' + \
+            config_data['vlans_id'].get('PUBLICAPI').encode()
+    StoIfMac = config_data['StoIfMac'].encode()
+    if config_data['vlans_id'].get('STORAGE'):
+        StoIfMac = StoIfMac + '.' + \
+            config_data['vlans_id'].get('STORAGE').encode()
+
     kolla_yml = {'openstack_release': '3.0.0',
                  'docker_registry': '127.0.0.1:4000',
                  'docker_namespace': 'kollaglue',
@@ -112,15 +140,15 @@ def update_globals_yml(config_data):
                  'kolla_external_vip_interface': 'eth0',
                  'neutron_external_interface': 'eth1'
                  }
-    kolla_yml['openstack_release'] = Version.encode()
-    kolla_yml['docker_registry'] = local_ip.encode()
-    kolla_yml['docker_namespace'] = Namespace.encode()
-    kolla_yml['kolla_internal_vip_address'] = VIP.encode()
-    kolla_yml['network_interface'] = IntIfMac.encode()
-    kolla_yml['tunnel_interface'] = TulIfMac.encode()
-    kolla_yml['neutron_external_interface'] = ExtIfMac.encode()
-    kolla_yml['kolla_external_vip_interface'] = PubIfMac.encode()
-    kolla_yml['storage_interface'] = StoIfMac.encode()
+    kolla_yml['openstack_release'] = Version
+    kolla_yml['docker_registry'] = local_ip
+    kolla_yml['docker_namespace'] = Namespace
+    kolla_yml['kolla_internal_vip_address'] = VIP
+    kolla_yml['network_interface'] = IntIfMac
+    kolla_yml['tunnel_interface'] = TulIfMac
+    kolla_yml['neutron_external_interface'] = ExtIfMac
+    kolla_yml['kolla_external_vip_interface'] = PubIfMac
+    kolla_yml['storage_interface'] = StoIfMac
     yaml.dump(kolla_yml, file('/etc/kolla/globals.yml', 'w'),
               default_flow_style=False)
 
@@ -134,6 +162,7 @@ def generate_RSA(bits=2048):
 
 
 def update_password_yml():
+    LOG.info(_("begin to update kolla's passwd.yml file..."))
     # These keys should be random uuids
     uuid_keys = ['ceph_cluster_fsid', 'rbd_secret_uuid']
 
