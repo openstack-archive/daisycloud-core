@@ -34,6 +34,8 @@ from daisyclient.v1.disk_array import DiskArrayManager
 from daisyclient.v1.template import TemplateManager
 from daisyclient.v1.backup_restore import BackupRestoreManager
 from daisyclient.v1.backend_types import BackendTypesManager
+from daisyclient.v1.versions import VersionManager
+from daisyclient.v1.version_patchs import VersionPatchManager
 from daisyclient.v1.deploy_server import DeployServerManager
 
 
@@ -71,4 +73,6 @@ class Client(object):
         self.template = TemplateManager(self.http_client)
         self.backup_restore = BackupRestoreManager(self.http_client)
         self.backend_types = BackendTypesManager(self.http_client)
+        self.versions = VersionManager(self.http_client)
+        self.version_patchs = VersionPatchManager(self.http_client)
         self.deploy_server = DeployServerManager(self.http_client)
