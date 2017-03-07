@@ -590,9 +590,10 @@ class Controller(controller.BaseController):
                                           orig_network_meta['network_type'])
         if dataplane_type == 'DATAPLANE':
             orig_segment_type = orig_network_meta.get('segmentation_type')
-            self._is_dataplane_in_use(req.context,
-                                      network_meta, network_id,
-                                      orig_segment_type)
+            if network_meta.get('segmentation_type'):
+                self._is_dataplane_in_use(req.context,
+                                          network_meta, network_id,
+                                          orig_segment_type)
 
         if network_meta.get('ip_ranges', None) and \
                 eval(network_meta['ip_ranges']):
