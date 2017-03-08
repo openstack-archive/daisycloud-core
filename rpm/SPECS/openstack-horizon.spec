@@ -13,7 +13,7 @@ Summary:    Django application for talking to Openstack
 Group:      Development/Libraries
 # Code in horizon/horizon/utils taken from django which is BSD
 License:    ASL 2.0 and BSD
-URL:        http://horizon.openstack.org/
+URL:        https://docs.openstack.org/developer/horizon
 Source0:    http://launchpad.net/%{service}/%{release_name}/%{version}/+download/%{service}-%{upstream_version}.tar.gz
 
 Patch0001: 0001-disable-debug-move-web-root.patch
