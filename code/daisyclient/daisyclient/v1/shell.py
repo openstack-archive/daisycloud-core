@@ -1620,10 +1620,8 @@ def do_network_detail(gc, args):
            help='Version of TECS.')
 @utils.arg('--deployment-interface', metavar='<DEPLOYMNET>',
            help='Network interface construction of PXE server(eg:eth0).')
-@utils.arg('--skip-pxe-ipmi', metavar='<SKIP>',
-           help='skip pxe and ipmi(eg:true).')
-@utils.arg('--pxe-only', metavar='<PXE>',
-           help='build pxe of os(eg:true).')
+@utils.arg('--vm-stage', metavar='<SKIP>',
+           help='vm stage of install os(ef:pxe/install).')
 def do_install(dc, args):
     """Install TECS."""
     fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
