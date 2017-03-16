@@ -2,6 +2,7 @@
 #   Copyright ZTE
 #   Daisy Tools Dashboard
 #
+import os
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.translation import ugettext_lazy as _
@@ -108,6 +109,22 @@ class HostsTable(tables.DataTable):
 
 def get_version_path():
     return getattr(settings, 'DAISY_VER_PATH', "/var/lib/daisy/kolla/")
+
+
+def get_version_files():
+    ver_path = get_version_path()
+    ver_files = []
+    ver_file_format = ['.iso']
+    try:
+        items = os.listdir(ver_path)
+        for item in items:
+            full_path = os.path.join(ver_path, item)
+            if os.path.isfile(full_path) \
+                    and os.path.splitext(full_path)[1] in ver_file_format:
+                ver_files.append(item)
+    except Exception, e:
+        ver_files = []
+    return ver_files
 
 
 def get_format_memory_size(str_memory):
@@ -222,6 +239,7 @@ class IndexView(tables.DataTableView):
         context["current_cluster"] = \
             self.get_current_cluster(context['clusters'],
                                      context["cluster_id"])
+        context['version_files'] = get_version_files()
         return context
 
 

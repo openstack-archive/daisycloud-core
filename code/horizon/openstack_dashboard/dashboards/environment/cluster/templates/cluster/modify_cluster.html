@@ -67,16 +67,16 @@
             'role_info': role_info,
             'net_plane_info': net_plane_info
         }
-        if(params['role_info']['ha']['db_disk_location'] == "share_cluster" && params['role_info']['ha']["db1_lun"] == params['role_info']['ha']["db2_lun"] )
-        {
-            horizon.alert('error', '{% trans "lun1 and lun2 does not equal." %}');
-            return false;            
-        }
-        else
-        {
+        //if(params['role_info']['ha']['db_disk_location'] == "share_cluster" && params['role_info']['ha']["db1_lun"] == params['role_info']['ha']["db2_lun"] )
+        //{
+        //    horizon.alert('error', '{% trans "lun1 and lun2 does not equal." %}');
+        //    return false;            
+        //}
+        //else
+        //{
             var url = "/dashboard/environment/cluster/" + cluster_id + "/modify_submit/";
             do_post(url, JSON.stringify(params), GoToIndexPage);
-        }
+        //}
     }
 
     function judge_cluster_auto_scale(cluster_list){
@@ -139,7 +139,10 @@
     }
     
     function modify_cluster_dialog_init(){
+        {% if target_systems != "os" %}
         $(".form-auto-scale").removeClass('hide');
+        {% endif %}
+        //$(".form-auto-scale").removeClass('hide');
 
         var cluster_info = {
             "cluster_id": $("#cluster_id").val()};
@@ -192,6 +195,16 @@
     function cluster_baseinfo_init(cluster_list){
         if (cluster_list.length == 0)
             return;
+        var target_system_list = new Array();
+        target_system_list = cluster_list[0].target_systems.split("+");
+        for(var i=0; i<target_system_list.length; i++)
+        {
+            $("#target_system_" + target_system_list[i]).attr("checked", true);
+        }
+        if (cluster_list[0].target_systems == "os")
+            $(".form-default-kolla").addClass("hide");
+        else
+            $("#default_kolla").val(cluster_list[0].kolla_version_id);
 
         $("#cluster_id").val(cluster_list[0].id);
         $("#cluster_name").val(cluster_list[0].name);
@@ -496,7 +509,8 @@
         if (role_info["vip"] != null)
             $("#zenic_ctl_float_ip").val(role_info["vip"]);
     }
-    
+
+
     $(function(){
         modify_cluster_dialog_init();
     });

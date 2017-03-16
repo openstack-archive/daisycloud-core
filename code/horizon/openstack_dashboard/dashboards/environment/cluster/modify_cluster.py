@@ -18,6 +18,8 @@ from openstack_dashboard.dashboards.environment.cluster import net_plane \
 from openstack_dashboard.dashboards.environment.cluster import role \
     as cluster_role
 from openstack_dashboard.dashboards.environment.deploy import deploy_rule_lib
+from openstack_dashboard.dashboards.environment.version import views \
+    as version_views
 
 import logging
 LOG = logging.getLogger(__name__)
@@ -40,6 +42,16 @@ class ModifyView(views.HorizonTemplateView):
         context['clusters'] = self.get_clusters()
         context["roles"] = cluster_role.\
             get_role_list(self.request, self.kwargs["cluster_id"])
+        backend_types = api.daisy.backend_types_get(self.request)
+        backend_types_dict = backend_types.to_dict()
+        if len(backend_types_dict['default_backend_types']) == 0:
+            context['hide_templates'] = True
+            context['target_system_list'] = []
+        else:
+            context['target_system_list'] = \
+                backend_types_dict['default_backend_types'].split(',')
+        context['tecs_version_list'] = \
+            version_views.get_kolla_version_list(self.request)
         return context
 
     def get_success_url(self):
@@ -62,6 +74,8 @@ def GetCluster(request):
         "gre_id_end": cluster_info.networking_parameters["gre_id_range"][1],
         "auto_scale": cluster_info.auto_scale,
         "use_dns": cluster_info.use_dns,
+        "target_systems": cluster_info.target_systems,
+        "kolla_version_id": cluster_info.tecs_version_id,
         "description": cluster_info.description})
 
     return HttpResponse(json.dumps(ret_cluster_list),

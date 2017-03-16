@@ -529,8 +529,6 @@ class UpdateVersionForm(forms.SelfHandlingForm):
         ("centos 7.0", "centos 7.0"),
         ("windows", "windows"),
         ("vplat", "vplat"),
-        ("tecs", "tecs"),
-        ("zenic", "zenic"),
         ("kolla", "kolla"),
         ("unknown", _("unknown"))]
     VERSION_TYPE_CHOICES = [
@@ -686,7 +684,7 @@ def get_kolla_version_list(request):
     version_lists = [c for c in versions]
     version_lists.reverse()
     for version in version_lists:
-        tecs_version_list.append({
+        kolla_version_list.append({
             "version_id": version.id,
             "version_name": version.name
         })
