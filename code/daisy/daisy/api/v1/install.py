@@ -335,38 +335,60 @@ class Controller(controller.BaseController):
             os_handle = get_os_handle()
             os_handle.pxe_server_build(req, install_meta)
             return {"status": "pxe is installed"}
+
         cluster_id = install_meta['cluster_id']
-        skip_pxe_ipmi = None
-        if install_meta.get('skip_pxe_ipmi'):
-            skip_pxe_ipmi = install_meta['skip_pxe_ipmi']
-        if 'pxe_only' in install_meta:
-            os_handle = get_os_handle()
-            pxe_build = os_handle.OSInstall(req, cluster_id, skip_pxe_ipmi)
-            pxe_build._pxe_os_server_build(req)
-            return {"status": "pxe is installed"}
-        self._enforce(req, 'install_cluster')
-        self._raise_404_if_cluster_deleted(req, cluster_id)
-        self.valid_used_networks(req, cluster_id)
 
-        daisy_cmn.set_role_status_and_progress(
-            req, cluster_id, 'install',
-            {'messages': 'Waiting for TECS installation', 'progress': '0'},
-            'tecs')
+        skip_pxe = None
+        if install_meta.get('skip_pxe'):
+            skip_pxe = install_meta['skip_pxe']
 
-        #through the global variables, to determine whether the re installation
-        if not daisy_cmn.in_cluster_list(cluster_id):
-            LOG.info(_("daisy_cmn.cluster_install_entry_list "
+        skip_ipmi = None
+        if install_meta.get('skip_ipmi'):
+            skip_ipmi = install_meta['skip_ipmi']
+
+        skip_install = None
+        if install_meta.get('skip_install'):
+            skip_install = install_meta['skip_install']
+
+        os_handle = get_os_handle()
+        install = os_handle.OSInstall(req, cluster_id, skip_ipmi) # Remember skip_ipmi to let daisy do not
+                                                                    # reset host after OS installed.
+        if skip_pxe != True:
+            install.prepare_for_os_install_over_pxe(req) #TODO
+            retmsg = {"status": "pxe was installed"}
+
+        if skip_ipmi != True:
+            install.do_ipmi_reset(req) # TODO
+            retmsg = {"status": "ipmi was issued"}
+
+        if skip_install != True:
+            install.wait_until_os_installed(req) #TODO
+
+            self._enforce(req, 'install_cluster')
+            self._raise_404_if_cluster_deleted(req, cluster_id)
+            self.valid_used_networks(req, cluster_id)
+
+            daisy_cmn.set_role_status_and_progress(
+                req, cluster_id, 'install',
+                {'messages': 'Waiting for TECS installation', 'progress': '0'},
+                'tecs')
+
+            #through the global variables, to determine whether the re installation
+            if not daisy_cmn.in_cluster_list(cluster_id):
+                LOG.info(_("daisy_cmn.cluster_install_entry_list "
                      "append %s" % cluster_id))
-            daisy_cmn.cluster_list_add(cluster_id)
-            # if have hosts need to install os,
-            # TECS installataion executed in InstallTask
-            os_install_obj = InstallTask(req, cluster_id, skip_pxe_ipmi)
-            os_install_thread = Thread(target=os_install_obj.run)
-            os_install_thread.start()
-            return {"status": "begin install"}
-        else:
-            LOG.warn(_("the cluster %s is installing" % cluster_id))
-            return {"status": "Cluster %s is already installing" % cluster_id}
+                daisy_cmn.cluster_list_add(cluster_id)
+                # if have hosts need to install os,
+                # TECS installataion executed in InstallTask
+                os_install_obj = InstallTask(req, cluster_id, skip_pxe_ipmi)
+                os_install_thread = Thread(target=os_install_obj.run)
+                os_install_thread.start()
+                retmsg = {"status": "begin install"}
+            else:
+                LOG.warn(_("the cluster %s is installing" % cluster_id))
+                retmsg = {"status": "Cluster %s is already installing" % cluster_id}
+
+        return retmsg
 
     def _get_uninstall_hosts(self, req, install_meta):
         uninstall_hosts = []
