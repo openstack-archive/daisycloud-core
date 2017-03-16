@@ -103,10 +103,10 @@ class InstallTask(object):
     """
     """ Definition for install states."""
 
-    def __init__(self, req, cluster_id, skip_pxe_ipmi):
+    def __init__(self, req, cluster_id, do_ipmi):
         self.req = req
         self.cluster_id = cluster_id
-        self.skip_pxe_ipmi = skip_pxe_ipmi
+        self.do_ipmi = do_ipmi
 
     def _backends_install(self):
         backends = get_deployment_backends(
@@ -183,7 +183,7 @@ class InstallTask(object):
         recycle_number = 0
         while order_hosts_need_os:
             os_install = os_handle.OSInstall(
-                self.req, self.cluster_id, self.skip_pxe_ipmi)
+                self.req, self.cluster_id, self.do_ipmi)
             # all os will be installed batch by batch with
             # max_parallel_os_number which was set in daisy-api.conf
             (order_hosts_need_os, role_hosts_need_os) = os_install.install_os(
@@ -336,37 +336,47 @@ class Controller(controller.BaseController):
             os_handle.pxe_server_build(req, install_meta)
             return {"status": "pxe is installed"}
         cluster_id = install_meta['cluster_id']
-        skip_pxe_ipmi = None
-        if install_meta.get('skip_pxe_ipmi'):
-            skip_pxe_ipmi = install_meta['skip_pxe_ipmi']
-        if 'pxe_only' in install_meta:
-            os_handle = get_os_handle()
-            pxe_build = os_handle.OSInstall(req, cluster_id, skip_pxe_ipmi)
-            pxe_build._pxe_os_server_build(req)
-            return {"status": "pxe is installed"}
-        self._enforce(req, 'install_cluster')
-        self._raise_404_if_cluster_deleted(req, cluster_id)
-        self.valid_used_networks(req, cluster_id)
+        do_pxe = True
+        do_ipmi = True
+        do_install = True
+        if install_meta.get('vm_stage') and install_meta['vm_stage'] == "pxe":
+            do_pxe = True
+            do_ipmi = False
+            do_install = False
+        elif install_meta.get('vm_stage') and install_meta['vm_stage'] == "install":
+            do_pxe = False
+            do_ipmi = False
+            do_install = True
+        os_handle = get_os_handle()
+        install = os_handle.OSInstall(req, cluster_id, do_ipmi)
+        if do_pxe == True:
+            install._pxe_os_server_build(req)
+            retmsg = {"status": "pxe was installed"}
+        if do_install == True:
+            self._enforce(req, 'install_cluster')
+            self._raise_404_if_cluster_deleted(req, cluster_id)
+            self.valid_used_networks(req, cluster_id)
 
-        daisy_cmn.set_role_status_and_progress(
-            req, cluster_id, 'install',
-            {'messages': 'Waiting for TECS installation', 'progress': '0'},
-            'tecs')
+            daisy_cmn.set_role_status_and_progress(
+                req, cluster_id, 'install',
+                {'messages': 'Waiting for TECS installation', 'progress': '0'},
+                'tecs')
 
-        #through the global variables, to determine whether the re installation
-        if not daisy_cmn.in_cluster_list(cluster_id):
-            LOG.info(_("daisy_cmn.cluster_install_entry_list "
-                     "append %s" % cluster_id))
-            daisy_cmn.cluster_list_add(cluster_id)
-            # if have hosts need to install os,
-            # TECS installataion executed in InstallTask
-            os_install_obj = InstallTask(req, cluster_id, skip_pxe_ipmi)
-            os_install_thread = Thread(target=os_install_obj.run)
-            os_install_thread.start()
-            return {"status": "begin install"}
-        else:
-            LOG.warn(_("the cluster %s is installing" % cluster_id))
-            return {"status": "Cluster %s is already installing" % cluster_id}
+            #through the global variables, to determine whether the re installation
+            if not daisy_cmn.in_cluster_list(cluster_id):
+                LOG.info(_("daisy_cmn.cluster_install_entry_list "
+                         "append %s" % cluster_id))
+                daisy_cmn.cluster_list_add(cluster_id)
+                # if have hosts need to install os,
+                # TECS installataion executed in InstallTask
+                os_install_obj = InstallTask(req, cluster_id, do_ipmi)
+                os_install_thread = Thread(target=os_install_obj.run)
+                os_install_thread.start()
+                retmsg = {"status": "begin install"}
+            else:
+                LOG.warn(_("the cluster %s is installing" % cluster_id))
+                retmsg = {"status": "Cluster %s is already installing" % cluster_id}
+        return retmsg        
 
     def _get_uninstall_hosts(self, req, install_meta):
         uninstall_hosts = []

@@ -489,10 +489,10 @@ class OSInstall():
     """
     """ Definition for install states."""
 
-    def __init__(self, req, cluster_id, skip_pxe_ipmi):
+    def __init__(self, req, cluster_id, do_ipmi):
         self.req = req
         self.cluster_id = cluster_id
-        self.skip_pxe_ipmi = skip_pxe_ipmi
+        self.do_ipmi = do_ipmi
         # 5s
         self.time_step = 5
         # 30 min
@@ -787,14 +787,11 @@ class OSInstall():
                            'messages': 'Preparing for OS installation'}
             daisy_cmn.update_db_host_status(self.req, host_detail['id'],
                                             host_status)
-        if self.skip_pxe_ipmi and self.skip_pxe_ipmi == 'true':
-            return
-        else:
+        if self.do_ipmi == True:
             for host_detail in hosts_detail:
                 try:
                     ipmi_result_flag = self._set_boot_pxe(host_detail)
                     if host_detail.get('hwm_id') or ipmi_result_flag:
-                        self._install_os_for_baremetal(host_detail)
                         self._set_power_reset(host_detail, ipmi_result_flag)
                 except Exception as e:
                     LOG.error(e.message)

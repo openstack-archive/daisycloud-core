@@ -23,7 +23,7 @@ from daisyclient.openstack.common.apiclient import base
 # from daisy.queue_process import exec_cmd
 
 CREATE_PARAMS = ('cluster_id', 'version_id',
-                 'deployment_interface', 'skip_pxe_ipmi', 'pxe_only')
+                 'deployment_interface', 'vm_stage')
 OS_REQ_ID_HDR = 'x-openstack-request-id'
 
 
