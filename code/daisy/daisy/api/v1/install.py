@@ -436,10 +436,13 @@ class Controller(controller.BaseController):
                                  request=req,
                                  content_type="text/plain")
         if not install_meta.get('hosts', None):
-            msg = "upgrade hosts is null!"
-            raise HTTPBadRequest(explanation=msg,
-                                 request=req,
-                                 content_type="text/plain")
+            if install_meta['update_object'] == "kolla":
+                hosts = []
+            else:
+                msg = "upgrade hosts is null!"
+                raise HTTPBadRequest(explanation=msg,
+                                     request=req,
+                                     content_type="text/plain")
         else:
             hosts = eval(install_meta['hosts'])
         update_file = ""
