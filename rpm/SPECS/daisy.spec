@@ -184,6 +184,7 @@ install -d -m 755 %{buildroot}%{_localstatedir}/log/daisy
 mkdir -p %{buildroot}/var/lib/daisy
 cp -Rf ../kolla %{buildroot}/var/lib/daisy
 cp -Rf ../trustme.sh %{buildroot}/var/lib/daisy
+cp -Rf ../versionfile %{buildroot}/var/lib/daisy
 
 %pre
 id daisy
@@ -264,6 +265,8 @@ fi
 %dir %attr(0777, all, all) /var/lib/daisy/kolla/
 %attr(0755, daisy, daisy) /var/lib/daisy/kolla/*
 %attr(0755, daisy, daisy) /var/lib/daisy/trustme.sh
+%dir %attr(0777, daisy, daisy) /var/lib/daisy/versionfile/
+%attr(0777, daisy, daisy) /var/lib/daisy/versionfile/*
 
 %files -n python-daisy
 %doc README.rst
