@@ -21,6 +21,7 @@ import subprocess
 from daisy import i18n
 from daisy.api.backends import driver
 import daisy.api.backends.kolla.install as instl
+import daisy.api.backends.kolla.upgrade as upgrd
 import daisy.api.backends.common as daisy_cmn
 
 
@@ -48,6 +49,20 @@ class API(driver.DeploymentDriver):
         LOG.info(_("No host need to install os, begin install \
                      kolla for cluster %s." % cluster_id))
         kolla_install_task = instl.KOLLAInstallTask(req, cluster_id)
+        kolla_install_task.start()
+
+    def upgrade(self, req, cluster_id, version_id, vpatch_id, update_file, hosts):
+        """
+        update openstack to a cluster.
+
+        :param req: The WSGI/Webob Request object
+
+        :raises HTTPBadRequest if x-install-cluster is missing
+        """
+        LOG.info(
+            _("Begin to update OpenStack nodes, please waiting...."))
+        
+        kolla_install_task = upgrd.KOLLAUpgradeTask(req, cluster_id, version_id, update_file)
         kolla_install_task.start()
 
     def update_progress_to_db(self, req, update_info, discover_host_meta):

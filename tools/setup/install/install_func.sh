@@ -62,7 +62,6 @@ function ip_to_cidr()
 function kolla_install
 {
   write_install_log "Begin install kolla depends..."
-  catalog_url="http://127.0.0.1:4000/v2/_catalog"
   check_installed "docker-engine"
   if [[ "$has_installed" == "yes" ]];then
       echo "docker-engine has been already installed"
@@ -97,22 +96,20 @@ function kolla_install
   imagebranch="newton"
   imageversion="latest"
   imageserver="http://120.24.17.215"
-  imagedir="/home/kolla_install/docker/"
+  imagedir="/var/lib/daisy/versionfile/kolla"
   imagename="kolla-image-$imagebranch-$imageversion.tgz"
+  sourcedir="/home/kolla_install/"
 
   write_install_log "Begin copy images..."
+  cd $imagedir
   if [ -f "$imagedir/$imagename" ];then
       echo "$imagename already exist!"
-      cd $imagedir
       tar mzxvf $imagename
   else
-      mkdir -p $imagedir
-      cd $imagedir
       wget "$imageserver/$imagename"
       tar mzxvf $imagename
   fi
  
-  sourcedir="/home/kolla_install/"
   sourceversion=$(cat $imagedir/registry-*.version | head -1)
 
   write_install_log "Begin clone kolla... $sourceversion"
@@ -129,18 +126,15 @@ function kolla_install
   cp -r /home/kolla_install/kolla/etc/kolla /etc
 
   # TODO: (huzhj)Use latest registry server from upstream
-  catalog=`curl $catalog_url |grep repositories`
-  if [ -z $catalog ];then
-      if [ -f "/home/kolla_install/docker/registry-server.tar" ];then
-          echo "registry-server.tar already exist!"
-      else
-          cd /home/kolla_install/docker
-          wget "http://daisycloud.org/static/files/registry-server.tar"
-      fi
-      cd /home/kolla_install/docker
-      docker load < ./registry-server.tar
-      docker run -d -p 4000:5000 --restart=always -e REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/tmp/registry -v /home/kolla_install/docker/tmp/registry:/tmp/registry  --name registry registry:2
+  cd $imagedir
+  if [ -f "$imagedir/registry-server.tar" ];then
+      echo "registry-server.tar already exist!"
+  else
+      wget "http://daisycloud.org/static/files/registry-server.tar"
   fi
+  docker load < ./registry-server.tar
+  rm -rf $imagedir/tmp
+  rm -rf $imagedir/registry-*.version
 }
 #rm daisy yum config file
 function delete_unused_repo_file
