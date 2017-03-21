@@ -23,7 +23,7 @@ from daisyclient.openstack.common.apiclient import base
 
 CREATE_SERVICE_DISK_PARAMS = ('service', 'data_ips', 'size',
                               'disk_location', 'role_id', 'lun',
-                              'protocol_type')
+                              'protocol_type', 'partition')
 CREATE_CINDER_BACKEND_PARAMS = ('disk_array', 'role_id')
 CREATE_CINDER_BACKEND_INTER_PARAMS = ('management_ips', 'data_ips',
                                       'pools', 'volume_driver',
