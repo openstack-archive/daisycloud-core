@@ -198,7 +198,7 @@ def get_cluster_kolla_config(req, cluster_id):
                             version_flag = True
                             kolla_openstack_version = line.strip()
                             openstack_version = kolla_openstack_version.split(
-                                ": ")[1]
+                                ": ")[1].strip('\"')
     LOG.info(_("openstack version is %s" % openstack_version))
     docker_registry_ip = _get_local_ip()
     docker_registry = docker_registry_ip + ':4000'
@@ -279,12 +279,15 @@ def get_cluster_kolla_config(req, cluster_id):
     return (kolla_config, mgt_ip_list, host_name_ip_list)
 
 
-def generate_kolla_config_file(cluster_id, kolla_config):
+def generate_kolla_config_file(req, cluster_id, kolla_config):
     LOG.info(_("generate kolla config..."))
     if kolla_config:
         config.update_globals_yml(kolla_config)
         config.update_password_yml()
         config.add_role_to_inventory(kolla_file, kolla_config)
+        config.enable_cinder_backend(req,
+                                     self.cluster_id,
+                                     kolla_config)
 
 
 def config_nodes_hosts(host_name_ip_list, host_ip):
@@ -486,7 +489,7 @@ class KOLLAInstallTask(Thread):
                 api_cmn.config_network_new(ssh_host_info, 'kolla')
         time.sleep(20)
         LOG.info(_("begin to generate kolla config file ..."))
-        generate_kolla_config_file(self.cluster_id, kolla_config)
+        generate_kolla_config_file(self.req, self.cluster_id, kolla_config)
         LOG.info(_("generate kolla config file in /etc/kolla/ dir..."))
         (role_id_list, host_id_list, hosts_list) = \
             kolla_cmn.get_roles_and_hosts_list(self.req, self.cluster_id)
