@@ -383,7 +383,7 @@ def _thread_bin(req, host, root_passwd, fp, host_name_ip_list,
         LOG.info(_("prepare for %s successfully!" % host_ip))
         fp.write(exc_result)
         message = "Preparing for installation successful!"
-        update_host_progress_to_db(self.req, role_id_list, host,
+        update_host_progress_to_db(req, role_id_list, host,
                                    kolla_state['INSTALLING'],
                                    message, 10)
 
@@ -472,6 +472,7 @@ class KOLLAInstallTask(Thread):
         LOG.info(_("begin to generate kolla config file ..."))
         generate_kolla_config_file(self.cluster_id, kolla_config)
         LOG.info(_("generate kolla config file in /etc/kolla/ dir..."))
+        config.enable_ceph_backend(self.req, self.cluster_id, kolla_config)
         (role_id_list, host_id_list, hosts_list) = \
             kolla_cmn.get_roles_and_hosts_list(self.req, self.cluster_id)
         self.message = "Begin install"

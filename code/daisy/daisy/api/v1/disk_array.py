@@ -48,9 +48,9 @@ SUPPORTED_PARAMS = daisy.api.v1.SUPPORTED_PARAMS
 SUPPORTED_FILTERS = daisy.api.v1.SUPPORTED_FILTERS
 ACTIVE_IMMUTABLE = daisy.api.v1.ACTIVE_IMMUTABLE
 SERVICE_DISK_SERVICE = ('db', 'glance', 'db_backup', 'mongodb', 'nova',
-                        'provider')
+                        'provider', 'cinder')
 DISK_LOCATION = ('local', 'share', 'share_cluster')
-PROTOCOL_TYPE = ('FIBER', 'ISCSI', 'CEPH')
+PROTOCOL_TYPE = ('FIBER', 'ISCSI', 'CEPH', 'LVM')
 FC_DRIVER = ('brocade', 'cisco')
 FC_ZONEING_POLICY = ('initiator-target', 'initiator')
 CINDER_VOLUME_BACKEND_PARAMS = ('management_ips', 'data_ips', 'pools',
