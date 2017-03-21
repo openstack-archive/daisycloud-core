@@ -279,12 +279,15 @@ def get_cluster_kolla_config(req, cluster_id):
     return (kolla_config, mgt_ip_list, host_name_ip_list)
 
 
-def generate_kolla_config_file(cluster_id, kolla_config):
+def generate_kolla_config_file(req, cluster_id, kolla_config):
     LOG.info(_("generate kolla config..."))
     if kolla_config:
         config.update_globals_yml(kolla_config)
         config.update_password_yml()
         config.add_role_to_inventory(kolla_file, kolla_config)
+        config.enable_cinder_backend(req,
+                                     self.cluster_id,
+                                     kolla_config)
 
 
 def config_nodes_hosts(host_name_ip_list, host_ip):
@@ -448,12 +451,14 @@ class KOLLAInstallTask(Thread):
 
     def _run(self):
         # check and get version
-        cluster_data = registry.get_cluster_metadata(self.req.context, self.cluster_id)
+        cluster_data = registry.get_cluster_metadata(self.req.context,
+                                                     self.cluster_id)
         if cluster_data.get('tecs_version_id', None):
             vid = cluster_data['tecs_version_id']
             version_info = registry.get_version_metadata(self.req.context, vid)
             kolla_version_pkg_file = \
-                kolla_cmn.check_and_get_kolla_version(daisy_kolla_ver_path, version_info['name'])
+                kolla_cmn.check_and_get_kolla_version(daisy_kolla_ver_path,
+                                                      version_info['name'])
         else:
             kolla_version_pkg_file =\
                 kolla_cmn.check_and_get_tecs_version(daisy_kolla_ver_path)
@@ -486,7 +491,7 @@ class KOLLAInstallTask(Thread):
                 api_cmn.config_network_new(ssh_host_info, 'kolla')
         time.sleep(20)
         LOG.info(_("begin to generate kolla config file ..."))
-        generate_kolla_config_file(self.cluster_id, kolla_config)
+        generate_kolla_config_file(self.req, self.cluster_id, kolla_config)
         LOG.info(_("generate kolla config file in /etc/kolla/ dir..."))
         (role_id_list, host_id_list, hosts_list) = \
             kolla_cmn.get_roles_and_hosts_list(self.req, self.cluster_id)
@@ -607,5 +612,6 @@ class KOLLAInstallTask(Thread):
                                       kolla_state['ACTIVE'], 100)
                 for host_id in host_id_list:
                     daisy_cmn.update_db_host_status(
-                        self.req, host_id, {'tecs_version_id': cluster_data['tecs_version_id'],
-                                            'tecs_patch_id': ''})
+                        self.req, host_id,
+                        {'tecs_version_id': cluster_data['tecs_version_id'],
+                         'tecs_patch_id': ''})

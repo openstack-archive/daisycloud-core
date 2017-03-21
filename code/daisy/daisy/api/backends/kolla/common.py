@@ -287,10 +287,10 @@ def check_and_get_kolla_version(daisy_kolla_pkg_path, file_name=None):
     kolla_version_pkg_file = ""
     if file_name:
         get_kolla_version_pkg = "ls %s| grep %s$" % (daisy_kolla_pkg_path,
-                                                    file_name)
+                                                     file_name)
     else:
         get_kolla_version_pkg = "ls %s| grep ^kolla.*\.tgz$"\
-                               % daisy_kolla_pkg_path
+                                % daisy_kolla_pkg_path
     obj = subprocess.Popen(get_kolla_version_pkg,
                            shell=True,
                            stdout=subprocess.PIPE,
@@ -319,4 +319,3 @@ def version_load(kolla_version_pkg_file, fp):
         'docker run -d -p 4000:5000 --restart=always \
         -e REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/tmp/registry \
         -v %s:/tmp/registry  --name registry registry:2' % registry_file, fp)
-
