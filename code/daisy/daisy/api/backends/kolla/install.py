@@ -488,6 +488,7 @@ class KOLLAInstallTask(Thread):
         LOG.info(_("begin to generate kolla config file ..."))
         generate_kolla_config_file(self.cluster_id, kolla_config)
         LOG.info(_("generate kolla config file in /etc/kolla/ dir..."))
+        config.enable_ceph_backend(self.req, self.cluster_id, kolla_config)
         (role_id_list, host_id_list, hosts_list) = \
             kolla_cmn.get_roles_and_hosts_list(self.req, self.cluster_id)
         self.message = "Begin install"
