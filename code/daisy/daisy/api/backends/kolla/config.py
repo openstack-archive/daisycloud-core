@@ -19,9 +19,12 @@ import yaml
 import random
 import string
 import uuid
+import subprocess
 from oslo_log import log as logging
 from daisy import i18n
 from Crypto.PublicKey import RSA
+import daisy.registry.client.v1.api as registry
+import daisy.api.backends.common as daisy_cmn
 
 
 LOG = logging.getLogger(__name__)
@@ -100,6 +103,113 @@ def add_role_to_inventory(file_path, config_data):
         update_inventory_file(file_path, 'multinode', 'storage',
                               storage_ip.encode(), host_sequence, 'ssh')
         host_sequence = host_sequence + 1
+
+
+def update_kolla_globals_yml(date):
+    with open('/etc/kolla/globals.yml', 'r') as f:
+        kolla_config = yaml.load(f.read())
+        kolla_config.update(date)
+        f.close()
+    with open('/etc/kolla/globals.yml', 'w') as f:
+        f.write(yaml.dump(kolla_config, default_flow_style=False))
+        f.close()
+
+
+def _del_general_params(param):
+    del param['created_at']
+    del param['updated_at']
+    del param['deleted']
+    del param['deleted_at']
+    del param['id']
+
+
+def _get_services_disk(req, role):
+    params = {'filters': {'role_id': role['id']}}
+    services_disk = registry.list_service_disk_metadata(
+        req.context, **params)
+    for service_disk in services_disk:
+        if service_disk.get('role_id', None):
+            service_disk['role_id'] = role['name']
+        _del_general_params(service_disk)
+    return services_disk
+
+
+def config_lvm_for_cinder(config_data):
+    lvm_config = {'enable_cinder': 'yes',
+                  'enable_cinder_backend_lvm': 'yes',
+                  'cinder_volume_group': 'cinder-volumes'}
+    update_kolla_globals_yml(lvm_config)
+    storage_ip_list = config_data.get('Storage_ips')
+    if len(storage_ip_list) == 1:
+        LOG.info(_("this is all in one environment \
+                    to enable ceph backend"))
+        storage_ip = storage_ip_list[0]
+        fp = '/var/log/daisy/api.log'
+        cmd = 'ssh -o StrictHostKeyChecking=no %s \
+              "dd if=/dev/zero of=/var/lib/cinder_data.img\
+               bs=1G count=20" ' % \
+              (storage_ip)
+        daisy_cmn.subprocess_call(cmd, fp)
+        cmd = 'ssh -o StrictHostKeyChecking=no %s \
+              "losetup --find --show /var/lib/cinder_data.img"' % \
+              (storage_ip)
+        obj = subprocess.Popen(cmd,
+                               stdout=subprocess.PIPE,
+                               shell=True)
+        dev_name = obj.stdout.read().decode('utf8')
+        cmd = 'ssh -o StrictHostKeyChecking=no %s \
+              "pvcreate %s" ' % \
+              (storage_ip, dev_name)
+        daisy_cmn.subprocess_call(cmd, fp)
+        cmd = 'ssh -o StrictHostKeyChecking=no %s \
+              "vgcreate cinder-volumes %s" ' % \
+              (storage_ip, dev_name)
+        daisy_cmn.subprocess_call(cmd, fp)
+        LOG.info(_("execute all four commands on \
+                    storage node %s ok!" % storage_ip))
+
+
+def config_ceph_for_cinder(config_data, disk):
+    ceph_config = {'enable_cinder': 'yes',
+                   'enable_ceph': 'yes'}
+    update_kolla_globals_yml(ceph_config)
+    disk_name = disk.get('partition', None)
+    storage_ip_list = config_data.get('Storage_ips')
+    if len(storage_ip_list) > 2:
+        LOG.info(_("this is CEPH backend environment \
+                    with %s nodes" % len(storage_ip_list)))
+        for storage_ip in storage_ip_list:
+            fp = '/var/log/daisy/api.log'
+            cmd = 'ssh -o StrictHostKeyChecking=no %s \
+                  "parted %s -s -- mklabel gpt mkpart\
+                   KOLLA_CEPH_OSD_BOOTSTRAP 1 -1" ' % \
+                  (storage_ip, disk_name)
+            daisy_cmn.subprocess_call(cmd, fp)
+            exc_result = subprocess.check_output(
+                'ssh -o StrictHostKeyChecking=no %s \
+                "parted %s print" ' % (storage_ip, disk_name),
+                shell=True, stderr=subprocess.STDOUT)
+            LOG.info(_("parted label is %s" % exc_result))
+            LOG.info(_("execute labeled command successfully\
+                        on %s node" % storage_ip))
+
+
+def enable_cinder_backend(req, cluster_id, config_data):
+    service_disks = []
+    params = {'filters': {'cluster_id': cluster_id}}
+    roles = registry.get_roles_detail(req.context, **params)
+    for role in roles:
+        if role['name'] == 'CONTROLLER_LB':
+            service_disk = _get_services_disk(req, role)
+            service_disks += service_disk
+    for disk in service_disks:
+        if disk.get('service', None) == 'cinder' and\
+                disk.get('protocol_type', None) == 'LVM':
+            config_lvm_for_cinder(config_data)
+
+        elif disk.get('service', None) == 'cinder' and\
+                disk.get('protocol_type', None) == 'CEPH':
+            config_ceph_for_cinder(config_data, disk)
 
 
 # generate kolla's globals.yml file
