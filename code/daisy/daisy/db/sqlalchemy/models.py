@@ -647,6 +647,7 @@ class ServiceDisk(BASE, DaisyBase):
     data_ips = Column(String(255))
     size = Column(Integer())
     protocol_type = Column(String(36))
+    partition = Column(String(255))
 
 
 class CinderVolume(BASE, DaisyBase):

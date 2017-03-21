@@ -1832,6 +1832,8 @@ def do_discover_host(gc, args):
            help='mark which volume is used for glance sharing disk.')
 @utils.arg('--protocol-type', metavar='<PROTOCOL_TYPE>',
            help='protocol type of share disks')
+@utils.arg('--partition', metavar='<PARTITION>',
+           help='partition name of local disks')
 def do_service_disk_add(dc, args):
     """ config services share disk. """
 

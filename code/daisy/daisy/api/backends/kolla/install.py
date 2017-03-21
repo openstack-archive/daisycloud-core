@@ -383,7 +383,7 @@ def _thread_bin(req, host, root_passwd, fp, host_name_ip_list,
         LOG.info(_("prepare for %s successfully!" % host_ip))
         fp.write(exc_result)
         message = "Preparing for installation successful!"
-        update_host_progress_to_db(self.req, role_id_list, host,
+        update_host_progress_to_db(req, role_id_list, host,
                                    kolla_state['INSTALLING'],
                                    message, 10)
 

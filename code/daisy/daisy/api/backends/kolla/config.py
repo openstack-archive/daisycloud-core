@@ -138,7 +138,8 @@ def update_globals_yml(config_data):
                  'tunnel_interface': 'eth0',
                  'storage_interface': 'eth0',
                  'kolla_external_vip_interface': 'eth0',
-                 'neutron_external_interface': 'eth1'
+                 'neutron_external_interface': 'eth1',
+                 'enable_cinder': "yes"
                  }
     kolla_yml['openstack_release'] = Version
     kolla_yml['docker_registry'] = local_ip
