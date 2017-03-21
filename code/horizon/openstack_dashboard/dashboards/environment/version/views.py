@@ -28,15 +28,11 @@ LOG = logging.getLogger(__name__)
 
 
 def get_version_path(file_type=None):
-    if file_type and file_type == "zenic":
-        return getattr(settings, 'DAISY_ZENIC_VER_PATH',
-                       "/var/lib/daisy/versionfile/zenic/")
-    if file_type and file_type in ['redhat 6.5', 'redhat 7.0', 'suse',
-                                   'centos 7.0', 'windows', 'vplat']:
+    if file_type and file_type == "Centos7":
         return getattr(settings, 'DAISY_OS_VER_PATH',
                        "/var/lib/daisy/versionfile/os/")
-    return getattr(settings, 'DAISY_VER_PATH',
-                   "/var/lib/daisy/kolla/")
+    return getattr(settings, 'DAISY_KOLLA_VER_PATH',
+                   "/var/lib/daisy/versionfile/kolla/")
 
 
 def delete_version_file(version_file_name, file_type=None):
@@ -393,7 +389,7 @@ def get_headstrong_server_files(request):
     version_path = get_version_path(data["file_type"])
     file_names = get_version_file_names(request)
 
-    server_file_types = [".bin", ".iso"]
+    server_file_types = [".bin", ".iso", ".tgz"]
     ret_headstrong_files = []
     for item in os.listdir(version_path):
         full_path = os.path.join(version_path, item)
@@ -483,20 +479,6 @@ def get_appointed_system_packages(request):
     return []
 
 
-def get_tecs_version_list(request):
-    tecs_version_list = []
-    versions = api.daisy.version_list(request, filters={"type": "tecs"})
-    version_lists = [c for c in versions]
-    version_lists.reverse()
-    for version in version_lists:
-        tecs_version_list.append({
-            "version_id": version.id,
-            "version_name": version.name
-        })
-
-    return tecs_version_list
-
-
 def check_version_file_exist(request, version_id):
     file_type = ""
     version_name = ""
@@ -523,14 +505,8 @@ def check_version_file_exist(request, version_id):
 class UpdateVersionForm(forms.SelfHandlingForm):
 
     FILE_TYPE_CHOICES = [
-        ("redhat 6.5", "redhat 6.5"),
-        ("redhat 7.0", "redhat 7.0"),
-        ("suse", "suse"),
-        ("centos 7.0", "centos 7.0"),
-        ("windows", "windows"),
-        ("vplat", "vplat"),
-        ("kolla", "kolla"),
-        ("unknown", _("unknown"))]
+        ("Centos7", "Centos7"),
+        ("kolla", "kolla"),]
     VERSION_TYPE_CHOICES = [
         ("system", _("System version")),
         ("patch", _("Patch version"))]
@@ -547,7 +523,7 @@ class UpdateVersionForm(forms.SelfHandlingForm):
                                    required=False)
     new_file_type = forms.ChoiceField(label=_("File type"),
                                       choices=FILE_TYPE_CHOICES,
-                                      initial="redhat 7.0",
+                                      initial="kolla",
                                       required=False)
     new_version_type = forms.ChoiceField(label=_("Version type"),
                                          widget=forms.RadioSelect(),

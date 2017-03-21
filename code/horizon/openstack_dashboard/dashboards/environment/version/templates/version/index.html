@@ -107,7 +107,6 @@
                 $(".form-local-file").addClass("hide");
                 $(".form-server-file").removeClass("hide");
 
-
                 var params = {
                     "file_type": $("#file_type").val()
                 }
@@ -157,14 +156,8 @@
                     <label class="control-label col-sm-5">{% trans 'File type' %}:</label>
                     <div class="col-sm-2">
                         <select class="form-control" id="file_type" name="file_type"/>
-                            <option value="redhat 6.5">{% trans "redhat 6.5" %}</option>
-                            <option value="redhat 7.0" selected="selected">{% trans "redhat 7.0" %}</option>
-                            <option value="suse">{% trans "suse" %}</option>
-                            <option value="centos 7.0">{% trans "centos 7.0" %}</option>
-                            <option value="windows">{% trans "windows" %}</option>
-                            <option value="vplat">{% trans "vplat" %}</option>
+                            <option value="Centos7">{% trans "centos7" %}</option>
                             <option value="kolla">{% trans "kolla" %}</option>
-                            <option value="unknown">{% trans "unknown" %}</option>
                         </select>
         </div>
       </div>
