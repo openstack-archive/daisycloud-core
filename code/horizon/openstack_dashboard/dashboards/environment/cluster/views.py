@@ -7,6 +7,7 @@ import json
 from django.utils.translation import ugettext
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import tables
 from horizon import exceptions
@@ -31,6 +32,7 @@ def get_script_path():
 
 
 def count_deploy_info(request, host_list):
+    backends = get_backend_type_by_role_list(request)
     deploy_data = {
         "success_host_num": 0,
         "on_going_host_num": 0,

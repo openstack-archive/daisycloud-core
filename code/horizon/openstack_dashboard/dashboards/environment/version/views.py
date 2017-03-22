@@ -389,7 +389,7 @@ def get_headstrong_server_files(request):
     version_path = get_version_path(data["file_type"])
     file_names = get_version_file_names(request)
 
-    server_file_types = [".bin", ".iso", "tgz"]
+    server_file_types = [".bin", ".iso", ".tgz"]
     ret_headstrong_files = []
     for item in os.listdir(version_path):
         full_path = os.path.join(version_path, item)
