@@ -2576,6 +2576,12 @@ msgstr "磁盘空间不足，当前剩余: %dM"
 msgid "Disk space is less than 1G"
 msgstr "磁盘空间已不足1G"
 
+msgid "KOLLA file"
+msgstr "KOLLA版本文件"
+
+msgid "Installed Version"
+msgstr "安装的版本"
+
 msgid "Please select corresponding system version file"
 msgstr "请选择对应的系统版本文件"
 
@@ -2662,6 +2668,7 @@ msgstr "没有找到版本。"
 
 msgid "Version file (%s) is inexistent."
 msgstr "版本文件（%s）不存在"
+
 
 #~ msgid "OperatingSystem:"
 #~ msgstr "操作系统："
