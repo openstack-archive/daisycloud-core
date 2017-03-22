@@ -389,7 +389,7 @@ def get_headstrong_server_files(request):
     version_path = get_version_path(data["file_type"])
     file_names = get_version_file_names(request)
 
-    server_file_types = [".bin", ".iso", "tgz"]
+    server_file_types = [".bin", ".iso", ".tgz"]
     ret_headstrong_files = []
     for item in os.listdir(version_path):
         full_path = os.path.join(version_path, item)
@@ -479,24 +479,28 @@ def get_appointed_system_packages(request):
     return []
 
 
-def check_version_file_exist(request, version_id):
+def check_version_file_exist(request, version_id, version_type="system"):
     file_type = ""
     version_name = ""
 
-    version = api.daisy.version_get(request, version_id)
-    if version and version.name:
-        version_name = version.name
-        file_type = version.type
-    else:
+    if version_type == "system":
+        version = api.daisy.version_get(request, version_id)
+        if version and version.name:
+            version_name = version.name
+            file_type = version.type
+    elif version_type == "patch":
         patch = api.daisy.version_patch_get(request, version_id)
         if patch and patch.name:
             version = api.daisy.version_get(request, patch.version_id)
             version_name = patch.name
             file_type = version.type
+    else:
+        message = _("Invalid version type.")
+        raise exceptions.ConfigurationError(message)
+
     if not version_name:
         message = _("Version is not found.")
         raise exceptions.ConfigurationError(message)
-
     if not os.path.exists(get_version_path(file_type) + version_name):
         message = _("Version file is inexistent. %s") % version_name
         raise exceptions.ConfigurationError(message)
