@@ -81,7 +81,7 @@ def set_net_plane(request, cluster_id, nets):
 @csrf_exempt
 def sort_net_planes(net_planes):
     ret_net_planes = []
-    sort_list = ["MANAGEMENT", "PUBLICAPI", "DATAPLANE",
+    sort_list = ["MANAGEMENT", "PUBLICAPI", "DATAPLANE","EXTERNAL",
                  "STORAGE", "VXLAN", "HEARTBEAT"]
     for sort in sort_list:
         for net_plane in net_planes:
@@ -101,7 +101,9 @@ def get_default_net_plane():
         {"network_type": "PUBLICAPI",
          "net_planes": [{"name": "PUBLICAPI", }]},
         {"network_type": "STORAGE",
-         "net_planes": [{"name": "STORAGE", }]}, ]
+         "net_planes": [{"name": "STORAGE", }]},
+        {"network_type": "EXTERNAL",
+         "net_planes": [{"name": "EXTERNAL", }]},]
     for net in networks:
         for net_plane in net["net_planes"]:
             net_plane.update({"cidr": "192.168.1.1/24",
@@ -128,7 +130,9 @@ def add_net_plane_for_add_cluster(request, cluster_id, in_net_planes):
         "STORAGE": ["cidr", "gateway", "ip_ranges",
                     "capability", "vlan_id", "description"],
         "HEARTBEAT": ["cidr", "vlan_id", "ip_ranges", "capability",
-                      "description"]}
+                      "description"],
+        "EXTERNAL": ["cidr", "gateway", "ip_ranges", "vlan_id",
+                     "capability", "description"]}
 
     def get_id_by_name(nets, name):
         for n in nets:
@@ -190,7 +194,7 @@ def delete_net_plane(request, cluster_id):
 @csrf_exempt
 def get_net_plane_list(request, cluster_id):
     ret_net_planes = []
-    filter_net_planes = ["DEPLOYMENT", "EXTERNAL"]
+    filter_net_planes = ["DEPLOYMENT",]
     try:
         network_list = api.daisy.network_list(request, cluster_id)
         show_net_planes = [net.__dict__ for net in network_list
