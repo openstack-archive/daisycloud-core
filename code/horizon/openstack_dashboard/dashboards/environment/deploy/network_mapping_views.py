@@ -183,7 +183,7 @@ class NetworkMappingView(tables.DataTableView):
     def get_net_plane(self):
         network_data = []
         try:
-            filter_net_planes = ["DEPLOYMENT", "EXTERNAL"]
+            filter_net_planes = ["DEPLOYMENT",]
             network_list = api.daisy.network_list(self.request,
                                                   self.kwargs["cluster_id"])
             for network in network_list:
