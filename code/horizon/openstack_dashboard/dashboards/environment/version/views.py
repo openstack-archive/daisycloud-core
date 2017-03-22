@@ -493,10 +493,10 @@ def check_version_file_exist(request, version_id):
             version = api.daisy.version_get(request, patch.version_id)
             version_name = patch.name
             file_type = version.type
+
     if not version_name:
         message = _("Version is not found.")
         raise exceptions.ConfigurationError(message)
-
     if not os.path.exists(get_version_path(file_type) + version_name):
         message = _("Version file is inexistent. %s") % version_name
         raise exceptions.ConfigurationError(message)
