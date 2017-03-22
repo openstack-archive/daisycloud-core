@@ -8,7 +8,7 @@
 
 {% block js %}
     {% include "horizon/_scripts.html" %}
-    <script src="{{ STATIC_URL }}dashboard/bootstrapValidator.js"></script>    
+    <script src="{{ STATIC_URL }}dashboard/bootstrapValidator.js"></script>
     <script type='text/javascript' charset='utf-8'>
 
     function ControlOPButton(tds_host, os_status, role_status){
@@ -32,12 +32,12 @@
                 }
                 var tr_host = $(this).parents("tr");
                 var tds_host = tr_host.children("td");
-                var td_status = tds_host.eq(4);
+                var td_status = tds_host.eq(5);
                 td_status.text(host_data["status"]);
-                var td_progress = tds_host.eq(5);
+                var td_progress = tds_host.eq(6);
                 var progress_bar = td_progress.find(".progress-bar");
                 var bar_classes = progress_bar.attr("class").split(" ");
-                var bar_type = bar_classes[bar_classes.length - 1];                
+                var bar_type = bar_classes[bar_classes.length - 1];
                 progress_bar.removeClass(bar_type).addClass(host_data["bar_type"]);
                 var progress_number = parseInt(host_data["progress"], 10);
                 progress_bar.attr("aria-valuenow", progress_number);
@@ -48,7 +48,7 @@
             }
         });
     }
-   
+
     function UpdateDeployInfoCallBack(data){
         $("#on_going").text(data["on_going_host_num"]);
         $("#success").text(data["success_host_num"]);
@@ -111,28 +111,23 @@
         $(".form-generate-cluster-template").data('bootstrapValidator').resetForm();
         $("#export_cluster_modal").modal('hide');
     }
-    
-    function upgrade_cluster(cluster_id) {
-        title = '{% trans "Confirm to upgrade" %}'
-        body = '{% trans "Are you sure to upgrade this cluster?" %}'
-        action = '{% trans "Upgrade" %}'
-        modal = horizon.modals.create(title, body, action)
-        modal.modal()
-        modal.find('.btn-primary').click(function (evt) {
-            var cluster_info = {
-                "cluster_id": cluster_id
+
+    function upgrade_cluster(){
+        $("#TecsUpgradeModal").modal("toggle");
             }
+
+    function tecs_upgrade_commit(){
+        var cluster_id = $("#cluster_id").val();
 
             function upgrade_callback(){
                 window.location = '/dashboard/environment/cluster/' + cluster_id + '/overview';
             }
 
             var url = "/dashboard/environment/cluster/" + cluster_id +  "/upgrade";
-            do_post(url, JSON.stringify({'cluster_info': cluster_info}), upgrade_callback)
-            modal.modal('hide')
-        });
+        do_post(url, JSON.stringify({'version_id': $("#select_tecs_version").val()}), upgrade_callback)
+        $("#TecsUpgradeModal").modal("toggle");
     }
-    
+
     function uninstall_tecs(cluster_id){
         title = '{% trans "Confirm to uninstall tecs" %}';
         body = '{% trans "Are you sure to uninstall this cluster ?" %}';
@@ -191,7 +186,7 @@
 {% block main %}
     <div class="nav nav-pills pull-right">
             <div class="badge pull-right" style="background-color:#5bc0de;margin:5px;padding:5px;">
-                <span style='margin:3px;'>{% trans 'Deploying' %}</span>                
+                <span style='margin:3px;'>{% trans 'Deploying' %}</span>
                 <span id="on_going">{{data.on_going_host_num}}</span>
             </div>
 
@@ -200,13 +195,13 @@
                 <span id="on_updating">{{data.on_updating_host_num}}</span>
             </div>
 
-            <div class="badge pull-right" style="background-color:#AAB85C;margin:5px;padding:5px;">
+            <div class="badge pull-right {% if target_systems == 'os' %}hide{% endif %}" style="background-color:#AAB85C;margin:5px;padding:5px;">
                 <span style='margin:3px;'>{% trans 'Uninstalling' %}</span>
                 <span id="on_uninstalling">{{data.on_uninstalling_host_num}}</span>
             </div>
 
             <div class="badge pull-right" style="background-color:#5cb85c;margin:5px;padding:5px;">
-                <span style='margin:3px;'>{% trans 'Success' %}</span> 
+                <span style='margin:3px;'>{% trans 'Success' %}</span>
                 <span id="success">{{data.success_host_num}}</span>
             </div>
 
@@ -264,13 +259,48 @@
                 </div>
             </div>
         </div>
-    </div>    
+    </div>
+
+    <div id="TecsUpgradeModal" data-backdrop="static" class="modal in ng-scope" role="dialog" aria-labelledby="TecsUpgradeModalLabel">
+        <div class="modal-dialog" style="width: 500px">
+            <div class="modal-content ui-draggable">
+                <div class="modal-header">
+                    <a href="#" class="close" data-dismiss="modal">×</a>
+                    <h4 class="modal-title">{% trans "Confirm to upgrade" %}</h4>
+                </div>
+                <form class="ng-pristine ng-valid ng-scope">
+                    <div class="modal-body clearfix">
+                        <fieldset>
+                            <div style="clear:both" class="form-group">
+                                <label style="float:left; font-size:12px; text-align:right; height:30px" class="control-label col-sm-4" for="select_tecs_version">{% trans 'KOLLA file' %}</label>
+                                <div style="float:left; width:5%; ">&nbsp;</div>
+                                <div style="float:left;" class="col-sm-6">
+                                    <select class="form-control" id="select_tecs_version" name="select_tecs_version">
+                                        {% for tecs in tecs_version_list %}
+                                        <option value="{{ tecs.version_id }}">{{ tecs.version_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </fieldset>
+                    </div>
+                    <div class="modal-footer" style="background-color: #f1f1f1">
+                        <div class="pull-right">
+                            <input type="submit" class="btn btn-primary" onclick="tecs_upgrade_commit()" value="{% trans 'Start upgrade' %}" />
+                            <input type="button" class="btn btn-default cancel" value="{% trans 'Cancel' %}" />
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
 {% endblock %}
 
 {% block page_header %}
-    <div> 
+    <div>
         <span style="font-weight:bold;">{{current_cluster}}</span>
-        <span> > </span> 
+        <span> > </span>
         {% trans 'Cluster Deploy Info:' %}
 
         <div class="btn-group pull-right" style="margin:6px;">
@@ -283,28 +313,28 @@
                     <span class="glyphicon glyphicon-edit"></span> {% trans 'Modify Cluster' %}
                 </a>
             </li>
-            <li>
-                <a href="#" onclick="upgrade_cluster('{{ cluster_id }}')">
+            <li class="{% if target_systems == 'os' %}hide{% endif %}">
+                <a href="#" onclick="upgrade_cluster()">
                     <span class="glyphicon glyphicon-circle-arrow-up"></span> {% trans 'Upgrade Cluster' %}
-                </a>        
+                </a>
             </li>
             <li>
                 <a href="#" onclick="uninstall_tecs('{{ cluster_id }}')">
                     <span class="glyphicon glyphicon-circle-arrow-down"></span> {% trans 'Uninstall Tecs' %}
-                </a>            
+                </a>
             </li>
             <li>
                 <a href="#" onclick="ShowGenerateClusterTemplateDiag('{{ current_cluster }}')">
                     <span class="glyphicon glyphicon-new-window"></span> {% trans 'Generate Cluster Template' %}
-                </a>            
+                </a>
             </li>
             <li>
                 <a href="#" onclick="deploy_cluster('{{ cluster_id }}')">
                     <span class="glyphicon glyphicon-cloud"></span> {% trans 'Deploy Cluster' %}
-                </a>            
+                </a>
             </li>
           </ul>
-        </div>        
+        </div>
     </div>
 {% endblock %}
 
