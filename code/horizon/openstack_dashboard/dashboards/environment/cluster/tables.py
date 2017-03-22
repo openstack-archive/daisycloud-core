@@ -126,6 +126,12 @@ def get_install_status(host_detail):
     return _(deploy_info.get("i18n", 'unknown'))
 
 
+def get_current_version(host_detail):
+    template_name = 'environment/cluster/current_version.html'
+    context = {"host_current_version": host_detail["host_current_version"]}
+    return template.loader.render_to_string(template_name, context)
+
+
 def get_progress(host):
     dot = "......"
     global dot_count
@@ -165,16 +171,39 @@ class HostsTable(tables.DataTable):
     host_role = tables.Column(cluster_role.get_role_html_detail,
                               verbose_name=_("Roles"))
     manager_ip = tables.Column('host_manager_ip', verbose_name=_('Manager Ip'))
+    host_current_version = tables.Column(get_current_version,
+                                         verbose_name=_('Installed Version'))
     install_status = tables.Column(get_install_status,
                                    verbose_name=_('Status'))
     progress = tables.Column(get_progress,
                              verbose_name=_('progress'))
-    host_os_status = tables.Column('host_os_status',
+    host_os_status = tables.Column('os_status',
                                    verbose_name=_('host_os_status'),
                                    hidden=True)
     host_role_status = tables.Column('host_role_status',
                                      verbose_name=_('host_role_status'),
                                      hidden=True)
+    host_status = tables.Column('host_status',
+                                verbose_name=_('host_status'),
+                                hidden=True)
+
+
+    def __init__(self, request, data=None, needs_form_wrapper=None, **kwargs):
+        super(HostsTable, self).__init__(request,
+                                         data,
+                                         needs_form_wrapper,
+                                         **kwargs)
+        cluster_info = api.daisy.cluster_get(request, kwargs['cluster_id'])
+        setattr(self, "target_systems", cluster_info.target_systems)
+        # set some columns hide
+        hidden_columns = ["host_role"]
+        for column in self.columns.values():
+            if column.__dict__["name"] in hidden_columns:
+                hidden_found = 'hidden' in column.classes
+                if cluster_info.target_systems == "os" and not hidden_found:
+                    column.classes.append('hidden')
+                elif cluster_info.target_systems != "os" and hidden_found:
+                    column.classes.remove('hidden')
 
     def get_object_id(self, datum):
         return datum["host_id"]
