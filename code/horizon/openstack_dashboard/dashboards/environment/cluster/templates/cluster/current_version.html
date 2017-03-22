@@ -1,0 +1,8 @@
+{% load i18n %}
+<div>
+    <dl>
+        {% for version in host_current_version  %}
+        <dd>{{ version }}</dd>
+        {% endfor %}
+    </dl>
+</div>
