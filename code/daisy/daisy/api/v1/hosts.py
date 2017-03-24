@@ -863,6 +863,7 @@ class Controller(controller.BaseController):
     def _verify_interface_in_same_host(self, interfaces, id=None):
         """
         Verify interface in the input host.
+
         :param interface: host interface info
         :return:
         """
@@ -918,6 +919,7 @@ class Controller(controller.BaseController):
     def _verify_interface_among_hosts(self, req, host_meta):
         """
         Verify interface among the hosts in cluster
+
         :param req:
         :param cluster_id:
         :param host_meta:

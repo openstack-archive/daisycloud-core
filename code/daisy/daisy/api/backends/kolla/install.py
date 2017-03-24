@@ -64,6 +64,7 @@ def update_progress_to_db(req, role_id_list,
     """
     Write install progress and status to db, we use global lock object
     'install_mutex' to make sure this function is thread safety.
+
     :param req: http req.
     :param role_id_list: Column neeb be update in role table.
     :param status: install status.

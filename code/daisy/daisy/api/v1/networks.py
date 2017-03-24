@@ -151,6 +151,7 @@ class Controller(controller.BaseController):
     def _ip_into_int(self, ip):
         """
         Switch ip string to decimalism integer..
+
         :param ip: ip string
         :return: decimalism integer
         """
@@ -159,6 +160,7 @@ class Controller(controller.BaseController):
     def _is_in_network_range(self, ip, network):
         """
         Check ip is in range
+
         :param ip: Ip will be checked, like:192.168.1.2.
         :param network: Ip range,like:192.168.0.0/24.
         :return: If ip in range,return True,else return False.
@@ -174,6 +176,7 @@ class Controller(controller.BaseController):
             self, req, network_list, network_meta, is_update=False):
         """
         Network name is match case and uniqueness in cluster.
+
         :param req:
         :param network_list: network plane in cluster
         :param network_meta: network plane need be verified
@@ -430,6 +433,7 @@ class Controller(controller.BaseController):
     def get_all_network(self, req):
         """
         List all network.
+
         :param req:
         :return:
         """

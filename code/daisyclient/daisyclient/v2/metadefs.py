@@ -90,6 +90,7 @@ class NamespaceController(object):
 
     def list(self, **kwargs):
         """Retrieve a listing of Namespace objects
+
         :param page_size: Number of items to request in each paginated request
         :param limit: Use to request a specific page size. Expect a response
                       to a limited request to return between zero and limit

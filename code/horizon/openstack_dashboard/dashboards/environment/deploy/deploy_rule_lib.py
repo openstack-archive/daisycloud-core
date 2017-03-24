@@ -387,6 +387,7 @@ def deploy_rule_func(request, cluster_id):
 def ip_into_int(ip):
     """
     Switch ip string to decimalism integer..
+
     :param ip: ip string
     :return: decimalism integer
     """

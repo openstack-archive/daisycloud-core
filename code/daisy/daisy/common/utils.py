@@ -902,6 +902,7 @@ def valid_cidr(cidr):
 def ip_into_int(ip):
     """
     Switch ip string to decimalism integer..
+
     :param ip: ip string
     :return: decimalism integer
     """
@@ -917,6 +918,7 @@ def int_into_ip(num):
 def is_ip_in_cidr(ip, cidr):
     """
     Check ip is in cidr
+
     :param ip: Ip will be checked, like:192.168.1.2.
     :param cidr: Ip range,like:192.168.0.0/24.
     :return: If ip in cidr, return True, else return False.
@@ -935,8 +937,9 @@ def is_ip_in_cidr(ip, cidr):
 def is_ip_in_ranges(ip, ip_ranges):
     """
     Check ip is in range
-    : ip: Ip will be checked, like:192.168.1.2.
-    : ip_ranges : Ip ranges, like:
+
+    :param ip: Ip will be checked, like:192.168.1.2.
+    :param ip_ranges: Ip ranges, like:
                     [{'start':'192.168.0.10', 'end':'192.168.0.20'}
                     {'start':'192.168.0.50', 'end':'192.168.0.60'}]
     :return: If ip in ip_ranges, return True, else return False.

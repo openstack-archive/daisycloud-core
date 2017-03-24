@@ -607,6 +607,7 @@ def sort_interfaces_by_pci(networks, host_detail):
     user the pci of first memeber nic.This function is fix bug for
     the name length of ovs virtual port, because if the name length large than
     15 characters, the port will create failed.
+
     :param interfaces: interfaces info of the host
     :return:
     """
@@ -729,6 +730,7 @@ def get_ctl_ha_nodes_min_mac(req, cluster_id):
 def update_db_host_status(req, host_id, host_status, version_id=None):
     """
     Update host status and intallation progress to db.
+
     :return:
     """
     try:

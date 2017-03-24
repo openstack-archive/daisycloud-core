@@ -131,6 +131,7 @@ class InstallTask(object):
     def _run(self):
         """
         Exectue os installation with sync mode.
+
         :return:
         """
         # get hosts config which need to install OS

@@ -86,7 +86,7 @@ def get_tenant_network(creds_provider, compute_networks_client):
            neutron and nova-network cases. If this is not an admin network
            client, set_network_kwargs might fail in case fixed_network_name
            is the network to be used, and it's not visible to the tenant
-    :return a dict with 'id' and 'name' of the network
+    :return: a dict with 'id' and 'name' of the network
     """
     caller = misc_utils.find_test_caller()
     fixed_network_name = CONF.compute.fixed_network_name

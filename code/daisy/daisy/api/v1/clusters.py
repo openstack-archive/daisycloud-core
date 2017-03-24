@@ -72,6 +72,7 @@ class Controller(controller.BaseController):
     def check_params(f):
         """
         Cluster add and update operation params valid check.
+
         :param f: Function hanle for 'cluster_add' and 'cluster_update'.
         :return: f
         """
@@ -153,6 +154,7 @@ class Controller(controller.BaseController):
             def _ip_into_int(ip):
                 """
                 Switch ip string to decimalism integer..
+
                 :param ip: ip string
                 :return: decimalism integer
                 """
@@ -162,6 +164,7 @@ class Controller(controller.BaseController):
             def _is_in_network_range(ip, network):
                 """
                 Check ip is in range
+
                 :param ip: Ip will be checked, like:192.168.1.2.
                 :param network: Ip range,like:192.168.0.0/24.
                 :return: If ip in range,return True,else return False.
@@ -177,6 +180,7 @@ class Controller(controller.BaseController):
                     values_set, keys_set, valids_set={}):
                 """
                 Check operation params is not null and valid.
+
                 :param values_set: Params set.
                 :param keys_set: Params will be checked.
                 :param valids_set:
@@ -217,6 +221,7 @@ class Controller(controller.BaseController):
             def _check_cluster_add_parameters(req, cluster_meta):
                 """
                 By params set segment,check params is available.
+
                 :param req: http req
                 :param cluster_meta: params set
                 :return:error message

@@ -30,6 +30,7 @@ from six.moves import range
 def urlsafe_encrypt(key, plaintext, blocksize=16):
     """
     Encrypts plaintext. Resulting ciphertext will contain URL-safe characters
+
     :param key: AES secret key
     :param plaintext: Input text to be encrypted
     :param blocksize: Non-zero integer multiple of AES blocksize in bytes (16)
@@ -56,6 +57,7 @@ def urlsafe_encrypt(key, plaintext, blocksize=16):
 def urlsafe_decrypt(key, ciphertext):
     """
     Decrypts URL-safe base64 encoded ciphertext
+
     :param key: AES secret key
     :param ciphertext: The encrypted text to decrypt
 

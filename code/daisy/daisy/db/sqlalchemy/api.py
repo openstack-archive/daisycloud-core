@@ -108,6 +108,7 @@ def _check_host_id(host_id):
     now, we only check its length. The original purpose of this method is
     wrapping the different behaviors between MySql and DB2 when the host id
     length is longer than the defined length in database model.
+
     :param host_id: The id of the host we want to check
     :return: Raise NoFound exception if given host id is invalid
     """
@@ -129,6 +130,7 @@ def _checker_the_ip_or_hostname_valid(ip_str):
 def ip_into_int(ip):
     """
     Switch ip string to decimalism integer..
+
     :param ip: ip string
     :return: decimalism integer
     """
@@ -144,6 +146,7 @@ def inter_into_ip(num):
 def is_in_cidr_range(ip, network):
     """
     Check ip is in range
+
     :param ip: Ip will be checked, like:192.168.1.2.
     :param network: Ip range,like:192.168.0.0/24.
     :return: If ip in range,return True,else return False.
@@ -156,9 +159,10 @@ def is_in_cidr_range(ip, network):
 def is_in_ip_range(ip, ip_range):
     """
     Check ip is in ip range
+
     :param ip: Ip will be checked, like:192.168.1.2.
     :param network: Ip range,like:
-    {u'start': u'192.168.1.20', u'end': u'192.168.1.21'}.
+     {u'start': u'192.168.1.20', u'end': u'192.168.1.21'}.
     :return: If ip in range,return True,else return False.
     """
     if ip_range.get('start') and ip_range.get('end'):
@@ -1411,6 +1415,7 @@ def _check_cluster_id(cluster_id):
     now, we only check its length. The original purpose of this method is
     wrapping the different behaviors between MySql and DB2 when the project id
     length is longer than the defined length in database model.
+
     :param cluster_id: The id of the project we want to check
     :return: Raise NoFound exception if given project id is invalid
     """
@@ -1901,6 +1906,7 @@ def _check_component_id(component_id):
     now, we only check its length. The original purpose of this method is
     wrapping the different behaviors between
     MySql and DB2 when the component id
+
     length is longer than the defined length in database model.
     :param component_id: The id of the component we want to check
     :return: Raise NoFound exception if given component id is invalid
@@ -2323,6 +2329,7 @@ def _check_service_id(service_id):
     now, we only check its length. The original purpose of this method is
     wrapping the different behaviors between MySql and DB2 when the service id
     length is longer than the defined length in database model.
+
     :param service_id: The id of the service we want to check
     :return: Raise NoFound exception if given service id is invalid
     """
@@ -2614,6 +2621,7 @@ def _check_role_id(role_id):
     now, we only check its length. The original purpose of this method is
     wrapping the different behaviors between MySql and DB2 when the role id
     length is longer than the defined length in database model.
+
     :param role_id: The id of the role we want to check
     :return: Raise NoFound exception if given role id is invalid
     """
@@ -3071,6 +3079,7 @@ def _check_role_host_id(role_host_id):
     now, we only check its length. The original purpose of this method is
     wrapping the different behaviors between MySql and DB2 when the role id
     length is longer than the defined length in database model.
+
     :param role_host_id: The id of the role we want to check
     :return: Raise NoFound exception if given role id is invalid
     """
@@ -3623,6 +3632,7 @@ def _check_config_file_id(config_file_id):
     now, we only check its length. The original purpose of this method is
     wrapping the different behaviors between MySql and DB2 when the config_file id
     length is longer than the defined length in database model.
+
     :param config_file_id: The id of the config_file we want to check
     :return: Raise NoFound exception if given config_file id is invalid
     """
@@ -3809,6 +3819,7 @@ def _check_config_set_id(config_set_id):
     now, we only check its length. The original purpose of this method is
     wrapping the different behaviors between MySql and DB2 when the config_set id
     length is longer than the defined length in database model.
+
     :param config_set_id: The id of the config_set we want to check
     :return: Raise NoFound exception if given config_set id is invalid
     """
@@ -4059,6 +4070,7 @@ def _check_config_id(config_id):
     now, we only check its length. The original purpose of this method is
     wrapping the different behaviors between MySql and DB2 when the config id
     length is longer than the defined length in database model.
+
     :param config_id: The id of the config we want to check
     :return: Raise NoFound exception if given config id is invalid
     """
@@ -4475,6 +4487,7 @@ def _check_network_id(network_id):
     now, we only check its length. The original purpose of this method is
     wrapping the different behaviors between MySql and DB2 when the project id
     length is longer than the defined length in database model.
+
     :param network_id: The id of the project we want to check
     :return: Raise NoFound exception if given project id is invalid
     """
@@ -4488,6 +4501,7 @@ def _check_network_id(network_id):
 def update_phyname_of_network(context, network_phyname_set):
     """
     Update phynet_name segment in network table.
+
     :param context: data for context
     :param network_phyname_set: Like {'network_id':pyhnet_name}
     :return:
@@ -4872,6 +4886,7 @@ def _check_service_disk_id(service_disk_id):
     now, we only check its length. The original purpose of this method is
     wrapping the different behaviors between MySql and DB2 when the project id
     length is longer than the defined length in database model.
+
     :param service_disk_id: The id of the project we want to check
     :return: Raise NoFound exception if given project id is invalid
     """
@@ -5027,6 +5042,7 @@ def _check_cinder_volume_id(cinder_volume_id):
     now, we only check its length. The original purpose of this method is
     wrapping the different behaviors between MySql and DB2 when the project id
     length is longer than the defined length in database model.
+
     :param cinder_volume_id: The id of the project we want to check
     :return: Raise NoFound exception if given project id is invalid
     """
@@ -6700,6 +6716,7 @@ def _check_neutron_backend_id(neutron_backend_id):
     now, we only check its length. The original purpose of this method is
     wrapping the different behaviors between MySql and DB2 when the project id
     length is longer than the defined length in database model.
+
     :param neutron_backend_id: The id of the project we want to check
     :return: Raise NoFound exception if given project id is invalid
     """

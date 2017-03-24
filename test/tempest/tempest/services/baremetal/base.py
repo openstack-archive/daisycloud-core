@@ -107,7 +107,7 @@ class BaremetalClient(service_client.ServiceClient):
         Get the list of objects of the specified type.
 
         :param resource: The name of the REST resource, e.g., 'nodes'.
-        "param **kw: Parameters for the request.
+        :param **kw: Parameters for the request.
         :return: A tuple with the server response and deserialized JSON list
                  of objects
 

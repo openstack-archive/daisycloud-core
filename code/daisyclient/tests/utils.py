@@ -186,6 +186,7 @@ def sort_url_by_query_keys(url):
        returns '/v2/tasks?limit=10&sort_dir=asc&sort_key=id'. This is to
        prevent non-deterministic ordering of the query string causing
        problems with unit tests.
+
     :param url: url which will be ordered by query keys
     :returns url: url with ordered query keys
     """

@@ -127,7 +127,7 @@ class AuthProvider(object):
         :param headers: HTTP headers of the request
         :param body: HTTP body in case of POST / PUT
         :param filters: select a base URL out of the catalog
-        :returns a Tuple (url, headers, body)
+        :returns: a Tuple (url, headers, body)
         """
         orig_req = dict(url=url, headers=headers, body=body)
 
