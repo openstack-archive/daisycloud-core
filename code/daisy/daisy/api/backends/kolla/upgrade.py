@@ -18,7 +18,6 @@
 """
 
 import subprocess
-import time
 from oslo_log import log as logging
 from daisy import i18n
 import daisy.api.backends.common as daisy_cmn
@@ -62,11 +61,11 @@ class KOLLAUpgradeTask(Thread):
         self.kolla_file = "/home/kolla_install"
         self.log_file = "/var/log/daisy/kolla_%s_upgrade.log" % self.cluster_id
 
-
     def run(self):
         hosts = registry.get_cluster_hosts(self.req.context, self.cluster_id)
         hosts_id_list = [host['host_id'] for host in hosts]
-        cluster_meta = registry.get_cluster_metadata(self.req.context, self.cluster_id)
+        cluster_meta = registry.get_cluster_metadata(self.req.context,
+                                                     self.cluster_id)
         self.message = "prechecking envirnoment"
         update_all_host_progress_to_db(self.req, hosts_id_list,
                                        {'progress': 0,
@@ -79,7 +78,8 @@ class KOLLAUpgradeTask(Thread):
                 % kolla_cmn.daisy_kolla_path
             update_all_host_progress_to_db(self.req, hosts_id_list,
                                            {'progress': 0,
-                                            'status': kolla_state['UPDATE_FAILED'],
+                                            'status': kolla_state[
+                                                'UPDATE_FAILED'],
                                             'messages': self.message})
             raise exception.NotFound(message=self.message)
         if cluster_meta['tecs_version_id']:
@@ -88,12 +88,20 @@ class KOLLAUpgradeTask(Thread):
             if version_data['name'] == self.update_file:
                 LOG.error(_("kolla version %s is not need to upgrade!"
                             % version_data['name']))
-                self.message = "kolla version %s is not need to upgrade!" % version_data['name']
+                self.message = "kolla version %s is not need to upgrade!" \
+                    % version_data['name']
                 update_all_host_progress_to_db(self.req, hosts_id_list,
                                                {'progress': 0,
-                                                'status': kolla_state['UPDATE_FAILED'],
+                                                'status': kolla_state[
+                                                    'UPDATE_FAILED'],
                                                 'messages': self.message})
                 return
+        kolla_cmn.version_load(kolla_version_pkg_file)
+        update_all_host_progress_to_db(self.req, hosts_id_list,
+                                       {'progress': 10,
+                                        'status': kolla_state[
+                                            'UPDATING'],
+                                        'messages': self.message})
         for host in hosts:
             host_meta = daisy_cmn.get_host_detail(self.req, host["host_id"])
             host_ip = daisy_cmn.get_management_ip(host_meta)
@@ -104,23 +112,20 @@ class KOLLAUpgradeTask(Thread):
             if unreached_hosts:
                 self.message = "hosts %s ping failed" % unreached_hosts
                 update_all_host_progress_to_db(self.req, hosts_id_list,
-                                               {'progress': 0,
-                                                'status': kolla_state['UPDATE_FAILED'],
+                                               {'progress':10,
+                                                'status': kolla_state[
+                                                    'UPDATE_FAILED'],
                                                 'messages': self.message})
                 raise exception.NotFound(message=self.message)
 
         LOG.info(_("precheck envirnoment successfully ..."))
         self.message = "openstack upgrading"
         update_all_host_progress_to_db(self.req, hosts_id_list,
-                                       {'progress': 10,
-                                        'status': kolla_state['UPDATING'],
+                                       {'progress': 20,
+                                        'status': kolla_state[
+                                            'UPDATING'],
                                         'messages': self.message})
         with open(self.log_file, "w+") as fp:
-            kolla_cmn.version_load(kolla_version_pkg_file, fp)
-            update_all_host_progress_to_db(self.req, hosts_id_list,
-                                           {'progress': 20,
-                                            'status': kolla_state['UPDATING'],
-                                            'messages': self.message})
             try:
                 LOG.info(_("begin to kolla-ansible "
                            "upgrade for all nodes..."))
@@ -134,7 +139,8 @@ class KOLLAUpgradeTask(Thread):
                 self.message = "kolla-ansible upgrade failed!"
                 update_all_host_progress_to_db(self.req, hosts_id_list,
                                                {'progress': 20,
-                                                'status': kolla_state['UPDATE_FAILED'],
+                                                'status': kolla_state[
+                                                    'UPDATE_FAILED'],
                                                 'messages': self.message})
                 LOG.info(_("kolla-ansible upgrade failed!"))
                 fp.write(e.output.strip())
@@ -145,7 +151,8 @@ class KOLLAUpgradeTask(Thread):
                 self.message = "openstack upgraded successfully"
                 update_all_host_progress_to_db(self.req, hosts_id_list,
                                                {'progress': 100,
-                                                'status': kolla_state['ACTIVE'],
+                                                'status': kolla_state[
+                                                    'ACTIVE'],
                                                 'messages': self.message})
                 for host_id in hosts_id_list:
                     daisy_cmn.update_db_host_status(
