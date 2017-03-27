@@ -83,7 +83,7 @@ def set_net_plane(request, cluster_id, nets):
 @csrf_exempt
 def sort_net_planes(net_planes):
     ret_net_planes = []
-    sort_list = ["MANAGEMENT", "PUBLICAPI", "DATAPLANE","EXTERNAL",
+    sort_list = ["MANAGEMENT", "PUBLICAPI", "DATAPLANE", "EXTERNAL",
                  "STORAGE", "VXLAN", "HEARTBEAT"]
     for sort in sort_list:
         for net_plane in net_planes:
@@ -105,7 +105,7 @@ def get_default_net_plane():
         {"network_type": "STORAGE",
          "net_planes": [{"name": "STORAGE", }]},
         {"network_type": "EXTERNAL",
-         "net_planes": [{"name": "EXTERNAL", }]},]
+         "net_planes": [{"name": "EXTERNAL", }]}, ]
     for net in networks:
         for net_plane in net["net_planes"]:
             net_plane.update({"cidr": "192.168.1.1/24",
@@ -196,7 +196,7 @@ def delete_net_plane(request, cluster_id):
 @csrf_exempt
 def get_net_plane_list(request, cluster_id):
     ret_net_planes = []
-    filter_net_planes = ["DEPLOYMENT",]
+    filter_net_planes = ["DEPLOYMENT", ]
     try:
         network_list = api.daisy.network_list(request, cluster_id)
         show_net_planes = [net.__dict__ for net in network_list

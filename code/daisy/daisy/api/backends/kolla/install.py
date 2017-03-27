@@ -176,7 +176,7 @@ def get_cluster_kolla_config(req, cluster_id):
     host_name_ip = {}
     host_name_ip_list = []
     version_flag = False
-    version_path = kolla_file + '/docker/'
+    version_path = kolla_cmn.daisy_kolla_ver_path
     for parent, dirnames, filenames in os.walk(version_path):
         for filename in filenames:
             if filename.endswith('.version'):
@@ -448,20 +448,23 @@ class KOLLAInstallTask(Thread):
 
     def _run(self):
         # check and get version
-        cluster_data = registry.get_cluster_metadata(self.req.context, self.cluster_id)
+        cluster_data = registry.get_cluster_metadata(self.req.context,
+                                                     self.cluster_id)
         if cluster_data.get('tecs_version_id', None):
             vid = cluster_data['tecs_version_id']
             version_info = registry.get_version_metadata(self.req.context, vid)
             kolla_version_pkg_file = \
-                kolla_cmn.check_and_get_kolla_version(daisy_kolla_ver_path, version_info['name'])
+                kolla_cmn.check_and_get_kolla_version(daisy_kolla_ver_path,
+                                                      version_info['name'])
         else:
             kolla_version_pkg_file =\
-                kolla_cmn.check_and_get_tecs_version(daisy_kolla_ver_path)
+                kolla_cmn.check_and_get_kolla_version(daisy_kolla_ver_path)
         if not kolla_version_pkg_file:
             self.state = kolla_state['INSTALL_FAILED']
             self.message =\
                 "kolla version file not found in %s" % daisy_kolla_ver_path
             raise exception.NotFound(message=self.message)
+        kolla_cmn.version_load(kolla_version_pkg_file)
         (kolla_config, self.mgt_ip_list, host_name_ip_list) = \
             get_cluster_kolla_config(self.req, self.cluster_id)
         if not self.mgt_ip_list:
@@ -496,7 +499,6 @@ class KOLLAInstallTask(Thread):
                                        self.message, 0)
         docker_registry_ip = _get_local_ip()
         with open(self.log_file, "w+") as fp:
-            kolla_cmn.version_load(kolla_version_pkg_file, fp)
             threads = []
             for host in hosts_list:
                 t = threading.Thread(target=thread_bin,
@@ -607,5 +609,6 @@ class KOLLAInstallTask(Thread):
                                       kolla_state['ACTIVE'], 100)
                 for host_id in host_id_list:
                     daisy_cmn.update_db_host_status(
-                        self.req, host_id, {'tecs_version_id': cluster_data['tecs_version_id'],
-                                            'tecs_patch_id': ''})
+                        self.req, host_id,
+                        {'tecs_version_id': cluster_data['tecs_version_id'],
+                         'tecs_patch_id': ''})

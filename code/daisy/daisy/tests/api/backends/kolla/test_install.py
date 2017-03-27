@@ -434,20 +434,21 @@ class TestInstall(test.TestCase):
             mock_do_get_roles_detail,
             mock_do_get_hosts_of_role, mock_do_get_host_detail,
             mock_do_get_controller_node_cfg, mock_do_get_computer_node_cfg):
-        cmd = 'mkdir -p /home/kolla_install/docker/'
+        daisy_kolla_ver_path = '/var/lib/daisy/versionfile/kolla/'
+        cmd = 'mkdir -p %s' % daisy_kolla_ver_path
         subprocesscall(cmd)
-        cmd1 = 'rm -rf /home/kolla_install/docker/test.version'
+        cmd1 = 'rm -rf %s/test.version' % daisy_kolla_ver_path
         subprocesscall(cmd1)
-        cmd2 = 'touch /home/kolla_install/docker/test.version'
+        cmd2 = 'touch %s/test.version' % daisy_kolla_ver_path
         subprocesscall(cmd2)
-        f1 = open('/home/kolla_install/docker/test.version', 'a')
+        f1 = open('%s/test.version' % daisy_kolla_ver_path, 'a')
         f1.write('tag = 3.0.2')
         f1.close()
-        cmd3 = 'rm -rf /home/kolla_install/docker/all.yml'
+        cmd3 = 'rm -rf %s/all.yml' % daisy_kolla_ver_path
         subprocesscall(cmd3)
-        cmd4 = 'touch /home/kolla_install/docker/all.yml'
+        cmd4 = 'touch %s/all.yml' % daisy_kolla_ver_path
         subprocesscall(cmd4)
-        f2 = open('/home/kolla_install/docker/all.yml', 'a')
+        f2 = open('%s/all.yml' % daisy_kolla_ver_path, 'a')
         f2.write('openstack_release : 3.0.2')
         f2.close()
         mock_do__get_local_ip.return_value = '127.0.0.1'
@@ -468,12 +469,17 @@ class TestInstall(test.TestCase):
             install.get_cluster_kolla_config(
             self.req,
             '8ad27e36-f3e2-48b4-84b8-5b676c6fabde')
-        cmd_end1 = 'rm -rf /home/kolla_install/docker/test.version'
+        cmd_end1 = 'rm -rf %s/test.version' % daisy_kolla_ver_path
         subprocesscall(cmd_end1)
-        cmd_end2 = 'rm -rf /home/kolla_install/docker/all.yml'
+        cmd_end2 = 'rm -rf %s/all.yml' % daisy_kolla_ver_path
         subprocesscall(cmd_end2)
         self.assertEqual('3.0.2', kolla_config['Version'])
 
+    @mock.patch('daisy.api.backends.common.update_db_host_status')
+    @mock.patch("daisy.registry.client.v1.api.get_version_metadata")
+    @mock.patch('daisy.api.backends.kolla.common.version_load')
+    @mock.patch('daisy.api.backends.kolla.common.check_and_get_kolla_version')
+    @mock.patch("daisy.registry.client.v1.api.get_cluster_metadata")
     @mock.patch('daisy.api.backends.kolla.install._get_local_ip')
     @mock.patch('daisy.api.common.config_network_new')
     @mock.patch('daisy.registry.client.v1.client.RegistryClient.do_request')
@@ -501,7 +507,10 @@ class TestInstall(test.TestCase):
             mock_do_get_host_detail, mock_do_get_assigned_network,
             mock_do_update_all_host_progress_to_db, mock_do_config_nodes_hosts,
             mock_do_update_host_progress_to_db, mock_do_update_progress_to_db,
-            mock_do_request, mock_do_config_network_new, mock_do_get_local_ip):
+            mock_do_request, mock_do_config_network_new,
+            mock_do_get_local_ip, mock_do_get_clusters_detail,
+            mock_do_check_and_get_kolla_version, mock_do_version_load,
+            mock_do_get_version_metadata, mock_do_update_db_host_status):
 
         def mock_get_cluster_kolla_config(*args, **kwargs):
             return (kolla_config, mgt_ip_list, host_name_ip_list)
@@ -517,6 +526,13 @@ class TestInstall(test.TestCase):
                 get_result = {'host': host6_meta}
                 res.read.return_value = jsonutils.dumps(get_result)
                 return res
+
+        def mock_get_clusters_detail(*args, **kwargs):
+            return {
+                "id": "93ca3165-1a82-4c4a-914f-65279827e46e",
+                "name": "test",
+                "tecs_version_id": "1111111"}
+
         cmd = 'mkdir -p /var/log/daisy'
         subprocesscall(cmd)
         mock_do_request.side_effect = fake_do_request
@@ -528,6 +544,10 @@ class TestInstall(test.TestCase):
         mock_do_get_host_detail.return_value = host6_meta
         mock_do_get_assigned_network.return_value = assigned_network
         mock_do_get_local_ip.return_value = '127.0.0.1'
+        mock_do_get_clusters_detail.side_effect = mock_get_clusters_detail
+        mock_do_check_and_get_kolla_version.return_value = \
+            "/var/lib/daisy/versionfile/kolla/test_version"
+        mock_do_get_version_metadata.return_value = {"name": "test_version"}
         kolla_config = {}
         mgt_ip_list = ['127.0.0.1']
         host_name_ip_list = [{'localhost': '127.0.0.1'}]
