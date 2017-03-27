@@ -434,20 +434,21 @@ class TestInstall(test.TestCase):
             mock_do_get_roles_detail,
             mock_do_get_hosts_of_role, mock_do_get_host_detail,
             mock_do_get_controller_node_cfg, mock_do_get_computer_node_cfg):
-        cmd = 'mkdir -p /home/kolla_install/docker/'
+        daisy_kolla_ver_path = '/var/lib/daisy/versionfile/kolla/'
+        cmd = 'mkdir -p %s' % daisy_kolla_ver_path
         subprocesscall(cmd)
-        cmd1 = 'rm -rf /home/kolla_install/docker/test.version'
+        cmd1 = 'rm -rf %s/test.version' % daisy_kolla_ver_path
         subprocesscall(cmd1)
-        cmd2 = 'touch /home/kolla_install/docker/test.version'
+        cmd2 = 'touch %s/test.version' % daisy_kolla_ver_path
         subprocesscall(cmd2)
-        f1 = open('/home/kolla_install/docker/test.version', 'a')
+        f1 = open('%s/test.version' % daisy_kolla_ver_path, 'a')
         f1.write('tag = 3.0.2')
         f1.close()
-        cmd3 = 'rm -rf /home/kolla_install/docker/all.yml'
+        cmd3 = 'rm -rf %s/all.yml' % daisy_kolla_ver_path
         subprocesscall(cmd3)
-        cmd4 = 'touch /home/kolla_install/docker/all.yml'
+        cmd4 = 'touch %s/all.yml' % daisy_kolla_ver_path
         subprocesscall(cmd4)
-        f2 = open('/home/kolla_install/docker/all.yml', 'a')
+        f2 = open('%s/all.yml' % daisy_kolla_ver_path, 'a')
         f2.write('openstack_release : 3.0.2')
         f2.close()
         mock_do__get_local_ip.return_value = '127.0.0.1'
@@ -468,9 +469,9 @@ class TestInstall(test.TestCase):
             install.get_cluster_kolla_config(
             self.req,
             '8ad27e36-f3e2-48b4-84b8-5b676c6fabde')
-        cmd_end1 = 'rm -rf /home/kolla_install/docker/test.version'
+        cmd_end1 = 'rm -rf %s/test.version' % daisy_kolla_ver_path
         subprocesscall(cmd_end1)
-        cmd_end2 = 'rm -rf /home/kolla_install/docker/all.yml'
+        cmd_end2 = 'rm -rf %s/all.yml' % daisy_kolla_ver_path
         subprocesscall(cmd_end2)
         self.assertEqual('3.0.2', kolla_config['Version'])
 
