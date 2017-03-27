@@ -176,7 +176,7 @@ def get_cluster_kolla_config(req, cluster_id):
     host_name_ip = {}
     host_name_ip_list = []
     version_flag = False
-    version_path = kolla_file + '/docker/'
+    version_path = kolla_cmn.daisy_kolla_ver_path
     for parent, dirnames, filenames in os.walk(version_path):
         for filename in filenames:
             if filename.endswith('.version'):
@@ -462,6 +462,7 @@ class KOLLAInstallTask(Thread):
             self.message =\
                 "kolla version file not found in %s" % daisy_kolla_ver_path
             raise exception.NotFound(message=self.message)
+        kolla_cmn.version_load(kolla_version_pkg_file)
         (kolla_config, self.mgt_ip_list, host_name_ip_list) = \
             get_cluster_kolla_config(self.req, self.cluster_id)
         if not self.mgt_ip_list:
@@ -496,7 +497,6 @@ class KOLLAInstallTask(Thread):
                                        self.message, 0)
         docker_registry_ip = _get_local_ip()
         with open(self.log_file, "w+") as fp:
-            kolla_cmn.version_load(kolla_version_pkg_file, fp)
             threads = []
             for host in hosts_list:
                 t = threading.Thread(target=thread_bin,
