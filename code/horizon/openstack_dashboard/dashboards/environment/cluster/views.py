@@ -72,8 +72,8 @@ def count_deploy_info(request, host_list):
         if len(i18n_list) > 1:
             status_info = "%s, %s" % (i18n_list[0], i18n_list[1])
 
-        #message = deploy_info.get("role_message", "")
-        #analyze_result = cluster_tables.analyze_role_msg(message)
+        # message = deploy_info.get("role_message", "")
+        # analyze_result = cluster_tables.analyze_role_msg(message)
 
         host = {
             "id": host.id,
@@ -170,7 +170,7 @@ class ClusterView(tables.DataTableView):
             if not hasattr(host, 'role_status'):
                 host.role_status = ""
             backends = host_views.get_backend_type_by_role_list(self.request)
-           
+ 
             host.current_version = []
             if hasattr(host, 'os_version_id') and host.os_version_id:
                 version = api.daisy.version_get(self.request,
@@ -217,6 +217,7 @@ def ClusterDelete(request):
         exceptions.handle(request, "Delete failed!")
         response.status_code = 500
         return response
+
 
     response.status_code = 200
     return response
