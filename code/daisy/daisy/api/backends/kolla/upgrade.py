@@ -94,6 +94,11 @@ class KOLLAUpgradeTask(Thread):
                                                 'status': kolla_state['UPDATE_FAILED'],
                                                 'messages': self.message})
                 return
+        kolla_cmn.version_load(kolla_version_pkg_file)
+        update_all_host_progress_to_db(self.req, hosts_id_list,
+                                       {'progress': 10,
+                                        'status': kolla_state['UPDATING'],
+                                        'messages': self.message})
         for host in hosts:
             host_meta = daisy_cmn.get_host_detail(self.req, host["host_id"])
             host_ip = daisy_cmn.get_management_ip(host_meta)
@@ -104,7 +109,7 @@ class KOLLAUpgradeTask(Thread):
             if unreached_hosts:
                 self.message = "hosts %s ping failed" % unreached_hosts
                 update_all_host_progress_to_db(self.req, hosts_id_list,
-                                               {'progress': 0,
+                                               {'progress':10,
                                                 'status': kolla_state['UPDATE_FAILED'],
                                                 'messages': self.message})
                 raise exception.NotFound(message=self.message)
@@ -112,15 +117,10 @@ class KOLLAUpgradeTask(Thread):
         LOG.info(_("precheck envirnoment successfully ..."))
         self.message = "openstack upgrading"
         update_all_host_progress_to_db(self.req, hosts_id_list,
-                                       {'progress': 10,
+                                       {'progress': 20,
                                         'status': kolla_state['UPDATING'],
                                         'messages': self.message})
         with open(self.log_file, "w+") as fp:
-            kolla_cmn.version_load(kolla_version_pkg_file, fp)
-            update_all_host_progress_to_db(self.req, hosts_id_list,
-                                           {'progress': 20,
-                                            'status': kolla_state['UPDATING'],
-                                            'messages': self.message})
             try:
                 LOG.info(_("begin to kolla-ansible "
                            "upgrade for all nodes..."))

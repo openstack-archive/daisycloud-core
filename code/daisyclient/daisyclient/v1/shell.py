@@ -344,7 +344,7 @@ def do_host_list(gc, args):
     hosts = gc.hosts.list(**kwargs)
 
     columns = ['ID', 'Name', 'Description', 'Resource_type',
-               'Status', 'Os_progress', 'Os_status', 'Discover_state',
+               'Status', 'Os_progress', 'Os_status', 'Discover_state', 'Tecs_version_id',
                'Messages']
 #    if filters.has_key('cluster_id'):
     if 'cluster_id' in filters:
