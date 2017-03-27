@@ -97,17 +97,22 @@ function kolla_install
   imageversion="latest"
   imageserver="http://120.24.17.215"
   imagedir="/var/lib/daisy/versionfile/kolla"
+  imagebakdir="/home/kolla_install/docker/"
   imagename="kolla-image-$imagebranch-$imageversion.tgz"
   sourcedir="/home/kolla_install/"
 
   write_install_log "Begin copy images..."
-  cd $imagedir
-  if [ -f "$imagedir/$imagename" ];then
-      echo "$imagename already exist!"
-  else
-      wget "$imageserver/$imagename"
+  if [ ! -f "$imagedir/$imagename" ];then
+      mkdir -p $imagebakdir
+      cd $imagebakdir
+      if [ -f "$imagebakdir/$imagename" ];then
+          echo "$imagename already exist!"
+      else
+          wget "$imageserver/$imagename"
+      fi
+      cp $imagebakdir/$imagename $imagedir
   fi
-  tar mzxvf $imagename
+  tar mzxvf $imagedir/$imagename
   sourceversion=$(cat $imagedir/registry-*.version | head -1)
 
   write_install_log "Begin clone kolla... $sourceversion"
@@ -124,11 +129,14 @@ function kolla_install
   cp -r /home/kolla_install/kolla/etc/kolla /etc
 
   # TODO: (huzhj)Use latest registry server from upstream
-  cd $imagedir
-  if [ -f "$imagedir/registry-server.tar" ];then
-      echo "registry-server.tar already exist!"
-  else
-      wget "http://daisycloud.org/static/files/registry-server.tar"
+  if [ ! -f "$imagedir/registry-server.tar" ];then
+      cd $imagebakdir
+      if [ -f "$imagebakdir/registry-server.tar" ];then
+          echo "registry-server.tar already exist!"
+      else
+          wget "http://daisycloud.org/static/files/registry-server.tar"
+      fi
+      cp $imagebakdir/registry-server.tar $imagedir
   fi
   docker load < ./registry-server.tar
   rm -rf $imagedir/tmp
