@@ -511,7 +511,7 @@ class UpdateVersionForm(forms.SelfHandlingForm):
 
     FILE_TYPE_CHOICES = [
         ("Centos7", "Centos7"),
-        ("kolla", "kolla"),]
+        ("kolla", "kolla"), ]
     VERSION_TYPE_CHOICES = [
         ("system", _("System version")),
         ("patch", _("Patch version"))]
