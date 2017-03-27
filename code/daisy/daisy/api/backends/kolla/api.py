@@ -51,7 +51,8 @@ class API(driver.DeploymentDriver):
         kolla_install_task = instl.KOLLAInstallTask(req, cluster_id)
         kolla_install_task.start()
 
-    def upgrade(self, req, cluster_id, version_id, vpatch_id, update_file, hosts):
+    def upgrade(self, req, cluster_id, version_id, vpatch_id,
+                update_file, hosts):
         """
         update openstack to a cluster.
 
@@ -62,7 +63,8 @@ class API(driver.DeploymentDriver):
         LOG.info(
             _("Begin to update OpenStack nodes, please waiting...."))
 
-        kolla_install_task = upgrd.KOLLAUpgradeTask(req, cluster_id, version_id, update_file)
+        kolla_install_task = upgrd.KOLLAUpgradeTask(req, cluster_id,
+                                                    version_id, update_file)
         kolla_install_task.start()
 
     def update_progress_to_db(self, req, update_info, discover_host_meta):
