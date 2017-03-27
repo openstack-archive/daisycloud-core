@@ -304,19 +304,19 @@ def check_and_get_kolla_version(daisy_kolla_pkg_path, file_name=None):
     return kolla_version_pkg_file
 
 
-def version_load(kolla_version_pkg_file, fp):
-    tar_for_kolla_version = 'tar mzxvf %s' % kolla_version_pkg_file
+def version_load(kolla_version_pkg_file):
+    tar_for_kolla_version = 'cd %s && tar mzxvf %s' % (daisy_kolla_ver_path, kolla_version_pkg_file)
     subprocess.call(tar_for_kolla_version, shell=True)
     get_container_id = "docker ps -a |grep registry |awk -F ' ' '{printf $1}' "
     container_id = subprocess.check_output(get_container_id, shell=True)
     if container_id:
         stop_container = 'docker stop %s' % container_id
-        daisy_cmn.subprocess_call(stop_container, fp)
+        daisy_cmn.subprocess_call(stop_container)
         remove_container = 'docker rm %s' % container_id
-        daisy_cmn.subprocess_call(remove_container, fp)
+        daisy_cmn.subprocess_call(remove_container)
     registry_file = daisy_kolla_ver_path + "/tmp/registry"
     daisy_cmn.subprocess_call(
         'docker run -d -p 4000:5000 --restart=always \
         -e REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/tmp/registry \
-        -v %s:/tmp/registry  --name registry registry:2' % registry_file, fp)
+        -v %s:/tmp/registry  --name registry registry:2' % registry_file)
 
