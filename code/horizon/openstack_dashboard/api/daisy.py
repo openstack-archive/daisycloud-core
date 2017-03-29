@@ -17,7 +17,8 @@ class Host(base.APIResourceWrapper):
     Preserves the request info so image name can later be retrieved.
     """
     _attrs = ['id', 'name', 'description', 'resource_type', 'status',
-              'os_version_id', 'os_version_file', 'ipmi_user', 'ipmi_passwd',
+              'os_version_id', 'os_version_file', 'tecs_version_id','tecs_version_file',
+              'ipmi_user', 'ipmi_passwd',
               'ipmi_addr', 'os_version', 'role', 'cluster', 'mac',
               'interfaces', 'os_progress', 'messages', 'role_status',
               'os_status', 'role_progress', 'role_messages', 'discover_state']
@@ -126,8 +127,8 @@ def uninstall_cluster(request, cluster_id):
     return daisyclient(request).uninstall.uninstall(cluster_id=cluster_id)
 
 
-def upgrade_cluster(request, cluster_id):
-    return daisyclient(request).update.update(cluster_id=cluster_id)
+def upgrade_cluster(request, cluster_id, **kwargs):
+    return daisyclient(request).update.update(cluster_id=cluster_id, **kwargs)
 
 
 def config_add(request, **kwargs):
