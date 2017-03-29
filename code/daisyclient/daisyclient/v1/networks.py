@@ -309,11 +309,6 @@ class NetworkManager(base.ManagerWithFind):
         for field in kwargs:
             if field in UPDATE_PARAMS:
                 fields[field] = kwargs[field]
-            elif field == 'return_req_id':
-                continue
-            else:
-                msg = 'update() got an unexpected keyword argument \'%s\''
-                raise TypeError(msg % field)
 
         hdrs.update(self._network_meta_to_headers(fields))
         url = '/v1/networks/%s' % base.getid(network)
