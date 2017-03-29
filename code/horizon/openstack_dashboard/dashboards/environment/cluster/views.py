@@ -72,9 +72,6 @@ def count_deploy_info(request, host_list):
         if len(i18n_list) > 1:
             status_info = "%s, %s" % (i18n_list[0], i18n_list[1])
 
-        # message = deploy_info.get("role_message", "")
-        # analyze_result = cluster_tables.analyze_role_msg(message)
-
         host = {
             "id": host.id,
             "progress": deploy_info.get("progress", None),
@@ -182,8 +179,6 @@ class ClusterView(tables.DataTableView):
                                                 host.tecs_version_id)
                 if version:
                     host.current_version.append(version.name)
-            for i in range(2 - len(host.current_version)):
-                host.current_version.append("")
 
             host_status_list.append({
                 "cluster_id": cluster_id,
