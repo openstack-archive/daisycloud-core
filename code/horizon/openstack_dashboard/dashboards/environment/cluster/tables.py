@@ -187,7 +187,6 @@ class HostsTable(tables.DataTable):
                                 verbose_name=_('host_status'),
                                 hidden=True)
 
-
     def __init__(self, request, data=None, needs_form_wrapper=None, **kwargs):
         super(HostsTable, self).__init__(request,
                                          data,
