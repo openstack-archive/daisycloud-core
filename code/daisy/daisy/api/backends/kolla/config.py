@@ -307,7 +307,7 @@ def update_password_yml():
                 continue
             if k in uuid_keys:
                 passwords[k] = str(uuid.uuid4())
-            if k in keystone_admin_password:
+            elif k in keystone_admin_password:
                 passwords[k] = "keystone"
             else:
                 passwords[k] = ''.join([
