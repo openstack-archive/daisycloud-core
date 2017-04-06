@@ -208,7 +208,8 @@ def enable_cinder_backend(req, cluster_id, config_data):
             config_lvm_for_cinder(config_data)
 
         elif disk.get('service', None) == 'cinder' and\
-                disk.get('protocol_type', None) == 'CEPH':
+                disk.get('protocol_type', None) == 'CEPH' and\
+                disk.get('partition') != None:
             config_ceph_for_cinder(config_data, disk)
 
 
@@ -307,7 +308,7 @@ def update_password_yml():
                 continue
             if k in uuid_keys:
                 passwords[k] = str(uuid.uuid4())
-            if k in keystone_admin_password:
+            elif k in keystone_admin_password:
                 passwords[k] = "keystone"
             else:
                 passwords[k] = ''.join([
