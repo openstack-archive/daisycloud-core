@@ -305,9 +305,6 @@ def check_and_get_kolla_version(daisy_kolla_pkg_path, file_name=None):
 
 
 def version_load(kolla_version_pkg_file):
-    tar_for_kolla_version = 'cd %s && tar mzxvf %s' % (daisy_kolla_ver_path,
-                                                       kolla_version_pkg_file)
-    subprocess.call(tar_for_kolla_version, shell=True)
     get_container_id = "docker ps -a |grep registry |awk -F ' ' '{printf $1}' "
     container_id = subprocess.check_output(get_container_id, shell=True)
     if container_id:
@@ -315,6 +312,11 @@ def version_load(kolla_version_pkg_file):
         daisy_cmn.subprocess_call(stop_container)
         remove_container = 'docker rm %s' % container_id
         daisy_cmn.subprocess_call(remove_container)
+    remove_tmp_registry = 'rm -rf %s/tmp' % daisy_kolla_ver_path
+    daisy_cmn.subprocess_call(remove_container)
+    tar_for_kolla_version = 'cd %s && tar mzxvf %s' % (daisy_kolla_ver_path,
+                                                       kolla_version_pkg_file)
+    subprocess.call(tar_for_kolla_version, shell=True)
     registry_file = daisy_kolla_ver_path + "/tmp/registry"
     daisy_cmn.subprocess_call(
         'docker run -d -p 4000:5000 --restart=always \
