@@ -57,6 +57,7 @@ install_mutex = threading.Lock()
 kolla_file = "/home/kolla_install"
 kolla_config_file = "/etc/kolla/globals.yml"
 daisy_kolla_ver_path = kolla_cmn.daisy_kolla_ver_path
+thread_flag = {}
 
 
 def update_progress_to_db(req, role_id_list,
@@ -376,13 +377,10 @@ def _thread_bin(req, host, root_passwd, fp, host_name_ip_list,
             (host_ip, host_prepare_file, docker_registry_ip),
             shell=True, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        message = "Prepare install failed!"
-        update_host_progress_to_db(req, role_id_list, host,
-                                   kolla_state['INSTALL_FAILED'],
-                                   message)
-        LOG.info(_("prepare for %s failed!" % host_ip))
+        message = "exec prepare.sh  in %s failed!" % host_ip
+        LOG.error(message)
         fp.write(e.output.strip())
-        exit()
+        raise exception.InstallException(message)
     else:
         LOG.info(_("prepare for %s successfully!" % host_ip))
         fp.write(exc_result)
@@ -399,9 +397,11 @@ def thread_bin(req, host, root_passwd, fp, host_name_ip_list,
                     host_prepare_file, docker_registry_ip, role_id_list)
     except Exception as e:
         message = "Prepare for installation failed!"
+        LOG.error(message)
         update_host_progress_to_db(req, role_id_list, host,
                                    kolla_state['INSTALL_FAILED'],
                                    message)
+        thread_flag['flag'] = False
 
 
 class KOLLAInstallTask(Thread):
@@ -427,7 +427,6 @@ class KOLLAInstallTask(Thread):
         self.mgt_ip_list = ''
         self.install_log_fp = None
         self.last_line_num = 0
-        self.need_install = False
         self.ping_times = 36
         self.log_file = "/var/log/daisy/kolla_%s_deploy.log" % self.cluster_id
         self.host_prepare_file = "/home/kolla"
@@ -438,16 +437,22 @@ class KOLLAInstallTask(Thread):
             self._run()
         except (exception.InstallException,
                 exception.NotFound,
-                exception.InstallTimeoutException) as e:
-            LOG.exception(e.message)
+                exception.InstallTimeoutException,
+                exception.SubprocessCmdFailed) as e:
+            (role_id_list, host_id_list, hosts_list) = \
+                kolla_cmn.get_roles_and_hosts_list(self.req, self.cluster_id)
+            update_all_host_progress_to_db(self.req, role_id_list,
+                                           host_id_list,
+                                           kolla_state['INSTALL_FAILED'],
+                                           self.message)
+            LOG.error(("kolla deploy openstack failed!"))
         else:
-            if not self.need_install:
-                return
-            self.progress = 100
-            self.state = kolla_state['ACTIVE']
-            self.message = "Kolla install successfully"
             LOG.info(_("install Kolla for cluster %s successfully."
                        % self.cluster_id))
+        finally:
+            if daisy_cmn.in_cluster_list(self.cluster_id):
+                LOG.info("KOLLA install clear install global variables")
+                daisy_cmn.cluster_list_delete(self.cluster_id)
 
     def _run(self):
         # check and get version
@@ -467,7 +472,13 @@ class KOLLAInstallTask(Thread):
             self.message =\
                 "kolla version file not found in %s" % daisy_kolla_ver_path
             raise exception.NotFound(message=self.message)
-        kolla_cmn.version_load(kolla_version_pkg_file)
+        try:
+            LOG.info(_("load kolla registry..."))
+            kolla_cmn.version_load(kolla_version_pkg_file)
+        except exception.SubprocessCmdFailed as e:
+            self.message = "load kolla registry failed!"
+            LOG.error(self.message)
+            raise exception.InstallException(self.message)
         (kolla_config, self.mgt_ip_list, host_name_ip_list) = \
             get_cluster_kolla_config(self.req, self.cluster_id)
         if not self.mgt_ip_list:
@@ -475,9 +486,9 @@ class KOLLAInstallTask(Thread):
             raise exception.ThreadBinException(msg)
         unreached_hosts = _check_ping_hosts(self.mgt_ip_list, self.ping_times)
         if unreached_hosts:
-            self.state = kolla_state['INSTALL_FAILED']
             self.message = "hosts %s ping failed" % unreached_hosts
-            raise exception.NotFound(message=self.message)
+            LOG.error(self.message)
+            raise exception.InstallException(self.message)
         root_passwd = 'ossdbg1'
         for mgnt_ip in self.mgt_ip_list:
             check_hosts_id = _get_hosts_id_by_mgnt_ips(self.req,
@@ -521,6 +532,11 @@ class KOLLAInstallTask(Thread):
                 LOG.error("join kolla prepare installation "
                           "thread %s failed!" % t)
 
+            if thread_flag.get('flag', None) and thread_flag['flag'] == False:
+                self.message = "prepare deploy nodes failed!"
+                LOG.error(self.message)
+                raise exception.InstallException(self.message)
+
             try:
                 LOG.info(_("begin to kolla-ansible "
                            "prechecks for all nodes..."))
@@ -530,15 +546,10 @@ class KOLLAInstallTask(Thread):
                     (self.kolla_file, self.kolla_file),
                     shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as e:
-                LOG.error("kolla-ansible preckecks failed!")
                 self.message = "kolla-ansible preckecks failed!"
-                update_all_host_progress_to_db(self.req, role_id_list,
-                                               host_id_list,
-                                               kolla_state['INSTALL_FAILED'],
-                                               self.message)
-                LOG.info(_("kolla-ansible preckecks failed!"))
+                LOG.error(self.message)
                 fp.write(e.output.strip())
-                exit()
+                raise exception.InstallException(self.message)
             else:
                 LOG.info(_("kolla-ansible preckecks successfully!"))
                 fp.write(exc_result)
@@ -565,17 +576,13 @@ class KOLLAInstallTask(Thread):
                     self.progress = 90
                 elif return_code == 1:
                     self.message = "KOLLA deploy openstack failed"
-                    update_all_host_progress_to_db(
-                        self.req, role_id_list,
-                        host_id_list,
-                        kolla_state['INSTALL_FAILED'],
-                        self.message)
-                    LOG.error("kolla-ansible deploy failed!")
-                    exit()
+                    LOG.error(self.message)
+                    raise exception.InstallException(self.message)
                 else:
                     self.progress = _calc_progress(self.log_file)
                 if execute_times >= 720:
                     self.message = "KOLLA deploy openstack timeout for an hour"
+                    LOG.error(self.message)
                     raise exception.InstallTimeoutException(
                         cluster_id=self.cluster_id)
                 else:
@@ -593,13 +600,9 @@ class KOLLAInstallTask(Thread):
                     shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as e:
                 self.message = "kolla-ansible post-deploy failed!"
-                update_all_host_progress_to_db(self.req, role_id_list,
-                                               host_id_list,
-                                               kolla_state['INSTALL_FAILED'],
-                                               self.message)
-                LOG.error("kolla-ansible post-deploy failed!")
+                LOG.error(self.message)
                 fp.write(e.output.strip())
-                exit()
+                raise exception.InstallException(self.message)
             else:
                 LOG.info(_("kolla-ansible post-deploy successfully!"))
                 fp.write(exc_result)
