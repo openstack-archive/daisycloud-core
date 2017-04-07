@@ -313,7 +313,7 @@ def version_load(kolla_version_pkg_file):
         remove_container = 'docker rm %s' % container_id
         daisy_cmn.subprocess_call(remove_container)
     remove_tmp_registry = 'rm -rf %s/tmp' % daisy_kolla_ver_path
-    daisy_cmn.subprocess_call(remove_container)
+    daisy_cmn.subprocess_call(remove_tmp_registry)
     tar_for_kolla_version = 'cd %s && tar mzxvf %s' % (daisy_kolla_ver_path,
                                                        kolla_version_pkg_file)
     subprocess.call(tar_for_kolla_version, shell=True)
