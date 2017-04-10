@@ -20,6 +20,7 @@ function uninstall_daisy
     remove_rpms_by_yum "python-django-horizon  daisy-dashboard"
     remove_rpms_by_yum "daisy python-daisyclient  python-daisy"
     remove_rpms_by_yum "openstack-ironic-discoverd python-ironic-discoverd"
+    remove_rpms_by_yum "jasmine"
     rpm -e  pxe_server_install
     for i in `ps -elf | grep daisy-api |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $i;done
     for j in `ps -elf | grep daisy-registry |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
