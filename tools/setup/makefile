@@ -50,6 +50,19 @@ bin: binclean binforce
 	chmod +x $(_TECS_TOOLS_PATH)/setup/bin_temp/uninstall/uninstall_func.sh
 	chmod +x $(_TECS_TOOLS_PATH)/setup/bin_temp/upgrade/upgrade_interface.sh
 	chmod +x $(_TECS_TOOLS_PATH)/setup/bin_temp/upgrade/upgrade_func.sh
+
+	$(RM) ./jasmine
+	$(MKDIR) ./jasmine
+	cd ./jasmine && \
+	git clone https://gerrit.opnfv.org/gerrit/daisy && \
+	cd ./daisy/code/jasmine && \
+	# TODO: delete me
+	echo "1.0.4" > .tarball-version
+	./autogen.sh && ./configure && make rpm
+	$(CP) ./jasmine/daisy/code/jasmine/x86_64/jasmine*.rpm $(_TECS_TOOLS_PATH)/setup/bin_temp/
+	$(RM) $(_TECS_TOOLS_PATH)/setup/bin_temp/jasmine-devel*.rpm
+	$(RM) $(_TECS_TOOLS_PATH)/setup/bin_temp/jasmine-debuginfo*.rpm
+
 	if [ -e makefile_patch.sh ]; then ./makefile_patch.sh $(_TECS_TOOLS_PATH) ; fi
 	cd $(_TECS_TOOLS_PATH)/setup; chmod +x ./makeself.sh; ./makeself.sh ./bin_temp $(_TECS_TARGET_PATH)/$(PURE_OS_TYPE)/$(ARCH)/$(VER_PREFIX)_$(BIN_TYPE).$(VER_SUFFIX) tecs ./setup.sh
 	$(RM) $(_TECS_TOOLS_PATH)/setup/bin_temp
