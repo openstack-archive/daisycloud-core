@@ -207,8 +207,8 @@ def enable_cinder_backend(req, cluster_id, config_data):
                 disk.get('protocol_type', None) == 'LVM':
             config_lvm_for_cinder(config_data)
 
-        elif disk.get('service', None) == 'cinder' and\
-                disk.get('protocol_type', None) == 'CEPH' and\
+        elif disk.get('service', None) == 'ceph' and\
+                disk.get('protocol_type', None) == 'RAW' and\
                 disk.get('partition') != None:
             config_ceph_for_cinder(config_data, disk)
 
