@@ -427,7 +427,7 @@ class TestInstall(test.TestCase):
     @mock.patch('daisy.api.backends.kolla.common.get_hosts_of_role')
     @mock.patch('daisy.api.backends.kolla.common.get_roles_detail')
     @mock.patch('daisy.api.backends.common.get_cluster_networks_detail')
-    @mock.patch('daisy.api.backends.kolla.install._get_local_ip')
+    @mock.patch('daisy.api.backends.kolla.common._get_local_ip')
     def test_get_cluster_kolla_config(
             self, mock_do__get_local_ip,
             mock_do_get_cluster_networks_detail,
@@ -478,9 +478,10 @@ class TestInstall(test.TestCase):
     @mock.patch('daisy.api.backends.common.update_db_host_status')
     @mock.patch("daisy.registry.client.v1.api.get_version_metadata")
     @mock.patch('daisy.api.backends.kolla.common.version_load')
+    @mock.patch('daisy.api.backends.kolla.common.version_load_mcast')
     @mock.patch('daisy.api.backends.kolla.common.check_and_get_kolla_version')
     @mock.patch("daisy.registry.client.v1.api.get_cluster_metadata")
-    @mock.patch('daisy.api.backends.kolla.install._get_local_ip')
+    @mock.patch('daisy.api.backends.kolla.common._get_local_ip')
     @mock.patch('daisy.api.common.config_network_new')
     @mock.patch('daisy.registry.client.v1.client.RegistryClient.do_request')
     @mock.patch('daisy.api.backends.kolla.install.update_progress_to_db')
@@ -509,7 +510,8 @@ class TestInstall(test.TestCase):
             mock_do_update_host_progress_to_db, mock_do_update_progress_to_db,
             mock_do_request, mock_do_config_network_new,
             mock_do_get_local_ip, mock_do_get_clusters_detail,
-            mock_do_check_and_get_kolla_version, mock_do_version_load,
+            mock_do_check_and_get_kolla_version,
+            mock_do_version_load_mcast, mock_do_version_load,
             mock_do_get_version_metadata, mock_do_update_db_host_status):
 
         def mock_get_cluster_kolla_config(*args, **kwargs):
@@ -547,6 +549,7 @@ class TestInstall(test.TestCase):
         mock_do_get_clusters_detail.side_effect = mock_get_clusters_detail
         mock_do_check_and_get_kolla_version.return_value = \
             "/var/lib/daisy/versionfile/kolla/test_version"
+        mock_do_version_load_mcast.return_value = -1
         mock_do_get_version_metadata.return_value = {"name": "test_version"}
         kolla_config = {}
         mgt_ip_list = ['127.0.0.1']
