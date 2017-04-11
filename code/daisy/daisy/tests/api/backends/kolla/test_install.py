@@ -427,7 +427,7 @@ class TestInstall(test.TestCase):
     @mock.patch('daisy.api.backends.kolla.common.get_hosts_of_role')
     @mock.patch('daisy.api.backends.kolla.common.get_roles_detail')
     @mock.patch('daisy.api.backends.common.get_cluster_networks_detail')
-    @mock.patch('daisy.api.backends.kolla.install._get_local_ip')
+    @mock.patch('daisy.api.backends.kolla.common._get_local_ip')
     def test_get_cluster_kolla_config(
             self, mock_do__get_local_ip,
             mock_do_get_cluster_networks_detail,
@@ -478,9 +478,10 @@ class TestInstall(test.TestCase):
     @mock.patch('daisy.api.backends.common.update_db_host_status')
     @mock.patch("daisy.registry.client.v1.api.get_version_metadata")
     @mock.patch('daisy.api.backends.kolla.common.version_load')
+    @mock.patch('daisy.api.backends.kolla.common.version_load_mcast')
     @mock.patch('daisy.api.backends.kolla.common.check_and_get_kolla_version')
     @mock.patch("daisy.registry.client.v1.api.get_cluster_metadata")
-    @mock.patch('daisy.api.backends.kolla.install._get_local_ip')
+    @mock.patch('daisy.api.backends.kolla.common._get_local_ip')
     @mock.patch('daisy.api.common.config_network_new')
     @mock.patch('daisy.registry.client.v1.client.RegistryClient.do_request')
     @mock.patch('daisy.api.backends.kolla.install.update_progress_to_db')
