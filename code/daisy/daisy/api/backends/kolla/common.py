@@ -304,7 +304,59 @@ def check_and_get_kolla_version(daisy_kolla_pkg_path, file_name=None):
     return kolla_version_pkg_file
 
 
-def version_load(kolla_version_pkg_file):
+def version_load_remote(kolla_version_pkg_file, host):
+    host_ip = host['mgtip']
+
+    # stop registry server
+    cmd = 'ssh -o StrictHostKeyChecking=no %s \
+          docker stop registry' % host_ip
+    daisy_cmn.subprocess_call(cmd)
+
+    cmd = 'ssh -o StrictHostKeyChecking=no %s \
+          docker rm -f registry' % host_ip
+    daisy_cmn.subprocess_call(cmd)
+
+    # receive image from daisy server
+    cmd = 'ssh -o StrictHostKeyChecking=no %s \
+           jasminec %s %s > %s/%s' % (host_ip,
+                                      host_ip,
+                                      _get_local_ip(),
+                                      daisy_kolla_ver_path,
+                                      kolla_version_pkg_file)
+    daisy_cmn.subprocess_call(cmd)
+
+    # clean up the old version files
+    cmd = 'ssh -o StrictHostKeyChecking=no %s \
+           rm -rf %s/tmp' % (host_ip,
+                             daisy_kolla_ver_path)
+    daisy_cmn.subprocess_call(cmd)
+
+    # install the new version files
+    cmd = 'ssh -o StrictHostKeyChecking=no %s \
+           cd %s && tar mzxvf %s' % (host_ip,
+                                     daisy_kolla_ver_path,
+                                     kolla_version_pkg_file)
+    daisy_cmn.subprocess_call(cmd)
+
+    registry_file = daisy_kolla_ver_path + "/tmp/registry"
+
+    # start registry server again
+    cmd = 'ssh -o StrictHostKeyChecking=no %s \
+           docker run -d -p 4000:5000 --restart=always \
+           -e REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/tmp/registry \
+           -v %s:/tmp/registry  --name registry registry:2' % (host_ip,
+                                                               registry_file)
+    daisy_cmn.subprocess_call(cmd)
+
+
+def _get_local_ip():
+    config = ConfigParser.ConfigParser()
+    config.read(daisy_cmn.daisy_conf_file)
+    local_ip = config.get("DEFAULT", "daisy_management_ip")
+    return local_ip
+
+
+def version_load(hosts_list, kolla_version_pkg_file):
     get_container_id = "docker ps -a |grep registry |awk -F ' ' '{printf $1}' "
     container_id = subprocess.check_output(get_container_id, shell=True)
     if container_id:
@@ -312,13 +364,36 @@ def version_load(kolla_version_pkg_file):
         daisy_cmn.subprocess_call(stop_container)
         remove_container = 'docker rm %s' % container_id
         daisy_cmn.subprocess_call(remove_container)
+
     remove_tmp_registry = 'rm -rf %s/tmp' % daisy_kolla_ver_path
     daisy_cmn.subprocess_call(remove_tmp_registry)
+
     tar_for_kolla_version = 'cd %s && tar mzxvf %s' % (daisy_kolla_ver_path,
                                                        kolla_version_pkg_file)
     subprocess.call(tar_for_kolla_version, shell=True)
+
     registry_file = daisy_kolla_ver_path + "/tmp/registry"
     daisy_cmn.subprocess_call(
         'docker run -d -p 4000:5000 --restart=always \
         -e REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/tmp/registry \
         -v %s:/tmp/registry  --name registry registry:2' % registry_file)
+
+    for host in hosts_list:
+        t = threading.Thread(target=version_load_remote,
+                             args=(kolla_version_pkg_file, host))
+        t.setDaemon(True)
+        t.start()
+        threads.append(t)
+
+    try:
+        LOG.info(_("All jasmine clients started"))
+        # call jasmine server here
+        cmd = 'jasmines %s %d < %s/%s' % (_get_local_ip(), # mgt interface
+                                          len(hosts_list), # number of clients
+                                          daisy_kolla_ver_path,
+                                          kolla_version_pkg_file)
+        daisy_cmn.subprocess_call(cmd)
+        for t in threads:
+            t.join()
+    except:
+        LOG.error("jasmine client thread %s failed!" % t)
