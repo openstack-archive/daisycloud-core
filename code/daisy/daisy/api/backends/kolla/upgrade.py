@@ -96,12 +96,27 @@ class KOLLAUpgradeTask(Thread):
                                                     'UPDATE_FAILED'],
                                                 'messages': self.message})
                 return
-        kolla_cmn.version_load(kolla_version_pkg_file)
+        # TODO: Is the hosts argument right?
+        try:
+            LOG.info(_("load kolla registry..."))
+            kolla_cmn.version_load(kolla_version_pkg_file, hosts)
+        except exception.SubprocessCmdFailed as e:
+            self.message = "load kolla registry failed!"
+            LOG.error(self.message)
+            raise exception.InstallException(self.message)
+
         update_all_host_progress_to_db(self.req, hosts_id_list,
                                        {'progress': 10,
                                         'status': kolla_state[
                                             'UPDATING'],
                                         'messages': self.message})
+
+        res = kolla_cmn.version_load_mcast(kolla_version_pkg_file,
+                                           hosts_list)
+
+        # TODO: re-config docker registry server based upon return value of
+        # kolla_cmn.version_load_mcast
+
         for host in hosts:
             host_meta = daisy_cmn.get_host_detail(self.req, host["host_id"])
             host_ip = daisy_cmn.get_management_ip(host_meta)
