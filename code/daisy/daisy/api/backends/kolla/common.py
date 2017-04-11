@@ -17,6 +17,7 @@
 /install endpoint for zenic API
 """
 import os
+import time
 import subprocess
 import copy
 from oslo_log import log as logging
@@ -304,7 +305,158 @@ def check_and_get_kolla_version(daisy_kolla_pkg_path, file_name=None):
     return kolla_version_pkg_file
 
 
-def version_load(kolla_version_pkg_file):
+def _get_local_ip():
+    config = ConfigParser.ConfigParser()
+    config.read(daisy_cmn.daisy_conf_file)
+    local_ip = config.get("DEFAULT", "daisy_management_ip")
+    return local_ip
+
+
+class MulticastServerTask(object):
+
+    """
+    Class for server side multicast.
+    """
+
+    def __init__(self, kolla_version_pkg_file, host_list):
+        self.kolla_version_pkg_file = kolla_version_pkg_file
+        self.host_list = host_list
+
+    def run(self):
+        try:
+            self._run()
+        except Exception as e:
+            self.res = -1  # failed
+        self.res = 0  # successful
+
+    def _run(self):
+        cmd = 'jasmines %s %d < %s/%s' % (_get_local_ip(),  # mgt interface
+                                          len(self.hosts_list),
+                                          # number of clients
+                                          daisy_kolla_ver_path,
+                                          self.kolla_version_pkg_file)
+        subprocess.check_output(cmd,
+                                shell=True,
+                                stderr=subprocess.STDOUT)
+
+
+class MulticastClientTask(object):
+
+    """
+    Class for client side multicast.
+    """
+
+    def __init__(self, kolla_version_pkg_file, host):
+        self.kolla_version_pkg_file = kolla_version_pkg_file
+        self.host = host
+
+    def run(self):
+        try:
+            self._run()
+        except Exception as e:
+            self.res = -1  # failed
+        self.res = 0  # successful
+
+    def _run(self):
+        host_ip = self.host['mgtip']
+
+        # stop registry server
+        cmd = 'ssh -o StrictHostKeyChecking=no %s \
+              docker stop registry' % host_ip
+        subprocess.check_output(cmd,
+                                shell=True,
+                                stderr=subprocess.STDOUT)
+
+        cmd = 'ssh -o StrictHostKeyChecking=no %s \
+              docker rm -f registry' % host_ip
+        subprocess.check_output(cmd,
+                                shell=True,
+                                stderr=subprocess.STDOUT)
+
+        cmd = 'ssh -o StrictHostKeyChecking=no %s \
+              "if [ ! -d %s ];then mkdir %s;fi" ' % \
+              (host_ip, daisy_kolla_ver_path, daisy_kolla_ver_path)
+        subprocess.check_output(cmd,
+                                shell=True,
+                                stderr=subprocess.STDOUT)
+
+        # receive image from daisy server
+        cmd = 'ssh -o StrictHostKeyChecking=no %s \
+               jasminec %s %s > %s/%s' % (host_ip,
+                                          host_ip,
+                                          _get_local_ip(),
+                                          daisy_kolla_ver_path,
+                                          self.kolla_version_pkg_file)
+        subprocess.check_output(cmd,
+                                shell=True,
+                                stderr=subprocess.STDOUT)
+
+        # clean up the old version files
+        cmd = 'ssh -o StrictHostKeyChecking=no %s \
+               rm -rf %s/tmp' % (host_ip,
+                                 daisy_kolla_ver_path)
+        subprocess.check_output(cmd,
+                                shell=True,
+                                stderr=subprocess.STDOUT)
+
+        # install the new version files
+        cmd = 'ssh -o StrictHostKeyChecking=no %s \
+               cd %s && tar mzxf %s' % (host_ip,
+                                        daisy_kolla_ver_path,
+                                        kolla_version_pkg_file)
+        subprocess.check_output(cmd,
+                                shell=True,
+                                stderr=subprocess.STDOUT)
+
+        registry_file = daisy_kolla_ver_path + "/tmp/registry"
+
+        # start registry server again
+        cmd = 'ssh -o StrictHostKeyChecking=no %s \
+               docker run -d -p 4000:5000 --restart=always \
+               -e REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/tmp/registry \
+               -v %s:/tmp/registry  --name registry registry:2'\
+                % (host_ip, registry_file)
+        subprocess.check_output(cmd,
+                                shell=True,
+                                stderr=subprocess.STDOUT)
+
+
+daisy_conf_mcast_enabled = False
+
+
+def version_load_mcast(kolla_version_pkg_file, hosts_list):
+
+    # TODO: impl. daisy_conf_mcast_enabled
+    if daisy_conf_mcast_enabled != True:
+        return -1
+
+    mcobj = MulticastServerTask(kolla_version_pkg_file, hosts_list)
+    mcobj.t = threading.Thread(target=mcobj.run)
+    mcobj.t.start()
+    mcobjset.append(mcobj)
+
+    time.sleep(5)  # Wait multicast server ready before start clients
+
+    for host in hosts_list:
+        mcobj = MulticastClientTask(kolla_version_pkg_file, host)
+        mcobj.t = threading.Thread(target=mcobj.run)
+        mcobj.t.start()
+        mcobjset.append(mcobj)
+
+    try:
+        LOG.info(_("jasmine server as well as all jasmine clients started"))
+        for mcobj in mcobjset:
+            mcobj.t.join()  # wait server as well as all clients end.
+    except:
+        LOG.error("jasmine client thread %s failed!" % t)
+
+    for mcobj in mcobjset:
+        if mcobj.res != 0:
+            return -1
+    return 0
+
+
+def version_load(kolla_version_pkg_file, hosts_list):
     get_container_id = "docker ps -a |grep registry |awk -F ' ' '{printf $1}' "
     container_id = subprocess.check_output(get_container_id, shell=True)
     if container_id:
@@ -312,11 +464,14 @@ def version_load(kolla_version_pkg_file):
         daisy_cmn.subprocess_call(stop_container)
         remove_container = 'docker rm %s' % container_id
         daisy_cmn.subprocess_call(remove_container)
+
     remove_tmp_registry = 'rm -rf %s/tmp' % daisy_kolla_ver_path
     daisy_cmn.subprocess_call(remove_tmp_registry)
+
     tar_for_kolla_version = 'cd %s && tar mzxvf %s' % (daisy_kolla_ver_path,
                                                        kolla_version_pkg_file)
     subprocess.call(tar_for_kolla_version, shell=True)
+
     registry_file = daisy_kolla_ver_path + "/tmp/registry"
     daisy_cmn.subprocess_call(
         'docker run -d -p 4000:5000 --restart=always \

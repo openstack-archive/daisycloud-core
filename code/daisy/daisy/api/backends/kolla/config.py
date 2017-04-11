@@ -214,7 +214,7 @@ def enable_cinder_backend(req, cluster_id, config_data):
 
 
 # generate kolla's globals.yml file
-def update_globals_yml(config_data):
+def update_globals_yml(config_data, multicast_flag):
     LOG.info(_("begin to update kolla's globals.yml file..."))
     Version = config_data['Version'].encode()
     Namespace = config_data['Namespace'].encode()
@@ -252,7 +252,10 @@ def update_globals_yml(config_data):
                  'neutron_external_interface': 'eth1'
                  }
     kolla_yml['openstack_release'] = Version
-    kolla_yml['docker_registry'] = local_ip
+    if multicast_flag == 0:
+        pass
+    else:
+        kolla_yml['docker_registry'] = local_ip
     kolla_yml['docker_namespace'] = Namespace
     kolla_yml['kolla_internal_vip_address'] = VIP
     kolla_yml['network_interface'] = IntIfMac
