@@ -96,7 +96,8 @@ class KOLLAUpgradeTask(Thread):
                                                     'UPDATE_FAILED'],
                                                 'messages': self.message})
                 return
-        kolla_cmn.version_load(kolla_version_pkg_file)
+        # TODO: Is the hosts argument right?
+        kolla_cmn.version_load(kolla_version_pkg_file, hosts)
         update_all_host_progress_to_db(self.req, hosts_id_list,
                                        {'progress': 10,
                                         'status': kolla_state[

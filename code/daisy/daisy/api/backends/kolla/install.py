@@ -153,13 +153,6 @@ def _check_ping_hosts(ping_ips, max_ping_times):
             return ips
 
 
-def _get_local_ip():
-    config = ConfigParser.ConfigParser()
-    config.read(daisy_cmn.daisy_conf_file)
-    local_ip = config.get("DEFAULT", "daisy_management_ip")
-    return local_ip
-
-
 def get_cluster_kolla_config(req, cluster_id):
     LOG.info(_("get kolla config from database..."))
     mgt_ip_list = set()
@@ -201,7 +194,7 @@ def get_cluster_kolla_config(req, cluster_id):
                             openstack_version = kolla_openstack_version.split(
                                 ": ")[1].strip('\"')
     LOG.info(_("openstack version is %s" % openstack_version))
-    docker_registry_ip = _get_local_ip()
+    docker_registry_ip = kolla_cmn._get_local_ip()
     docker_registry = docker_registry_ip + ':4000'
     LOG.info(_("get cluster network detail..."))
     cluster_networks = daisy_cmn.get_cluster_networks_detail(req, cluster_id)
@@ -357,19 +350,35 @@ def _thread_bin(req, host, root_passwd, fp, host_name_ip_list,
     cmd = '/var/lib/daisy/trustme.sh %s %s' % \
           (host_ip, root_passwd)
     daisy_cmn.subprocess_call(cmd, fp)
+
     config_nodes_hosts(host_name_ip_list, host_ip)
     cmd = 'ssh -o StrictHostKeyChecking=no %s \
           "if [ ! -d %s ];then mkdir %s;fi" ' % \
           (host_ip, host_prepare_file, host_prepare_file)
     daisy_cmn.subprocess_call(cmd, fp)
+
+    # scp jasmine.rpm to the same dir of prepare.sh at target host
+    cmd = "scp -o ConnectTimeout=10 \
+           /var/lib/daisy/tools/jasmine*.rpm \
+           root@%s:%s" % (host_ip, host_prepare_file)
+    daisy_cmn.subprocess_call(cmd, fp)
+
+    # scp registry-server.tar to the same dir of prepare.sh at target host
+    cmd = "scp -o ConnectTimeout=10 \
+           /var/lib/daisy/tools/registry-server.tar \
+           root@%s:%s" % (host_ip, host_prepare_file)
+    daisy_cmn.subprocess_call(cmd, fp)
+
     cmd = "scp -o ConnectTimeout=10 \
            /var/lib/daisy/kolla/prepare.sh \
            root@%s:%s" % (host_ip, host_prepare_file)
     daisy_cmn.subprocess_call(cmd, fp)
+
     cmd = 'ssh -o StrictHostKeyChecking=no %s \
           chmod u+x %s/prepare.sh' % \
           (host_ip, host_prepare_file)
     daisy_cmn.subprocess_call(cmd, fp)
+
     try:
         exc_result = subprocess.check_output(
             'ssh -o StrictHostKeyChecking='
@@ -455,30 +464,9 @@ class KOLLAInstallTask(Thread):
                 daisy_cmn.cluster_list_delete(self.cluster_id)
 
     def _run(self):
-        # check and get version
         cluster_data = registry.get_cluster_metadata(self.req.context,
                                                      self.cluster_id)
-        if cluster_data.get('tecs_version_id', None):
-            vid = cluster_data['tecs_version_id']
-            version_info = registry.get_version_metadata(self.req.context, vid)
-            kolla_version_pkg_file = \
-                kolla_cmn.check_and_get_kolla_version(daisy_kolla_ver_path,
-                                                      version_info['name'])
-        else:
-            kolla_version_pkg_file =\
-                kolla_cmn.check_and_get_kolla_version(daisy_kolla_ver_path)
-        if not kolla_version_pkg_file:
-            self.state = kolla_state['INSTALL_FAILED']
-            self.message =\
-                "kolla version file not found in %s" % daisy_kolla_ver_path
-            raise exception.NotFound(message=self.message)
-        try:
-            LOG.info(_("load kolla registry..."))
-            kolla_cmn.version_load(kolla_version_pkg_file)
-        except exception.SubprocessCmdFailed as e:
-            self.message = "load kolla registry failed!"
-            LOG.error(self.message)
-            raise exception.InstallException(self.message)
+
         (kolla_config, self.mgt_ip_list, host_name_ip_list) = \
             get_cluster_kolla_config(self.req, self.cluster_id)
         if not self.mgt_ip_list:
@@ -489,6 +477,7 @@ class KOLLAInstallTask(Thread):
             self.message = "hosts %s ping failed" % unreached_hosts
             LOG.error(self.message)
             raise exception.InstallException(self.message)
+
         root_passwd = 'ossdbg1'
         for mgnt_ip in self.mgt_ip_list:
             check_hosts_id = _get_hosts_id_by_mgnt_ips(self.req,
@@ -501,17 +490,17 @@ class KOLLAInstallTask(Thread):
                             on %s" % mgnt_ip))
                 ssh_host_info = {'ip': mgnt_ip, 'root_pwd': root_passwd}
                 api_cmn.config_network_new(ssh_host_info, 'kolla')
+
         time.sleep(20)
-        LOG.info(_("begin to generate kolla config file ..."))
-        generate_kolla_config_file(self.req, self.cluster_id, kolla_config)
-        LOG.info(_("generate kolla config file in /etc/kolla/ dir..."))
+
         (role_id_list, host_id_list, hosts_list) = \
             kolla_cmn.get_roles_and_hosts_list(self.req, self.cluster_id)
         self.message = "Begin install"
         update_all_host_progress_to_db(self.req, role_id_list,
                                        host_id_list, kolla_state['INSTALLING'],
                                        self.message, 0)
-        docker_registry_ip = _get_local_ip()
+
+        docker_registry_ip = kolla_cmn._get_local_ip()
         with open(self.log_file, "w+") as fp:
             threads = []
             for host in hosts_list:
@@ -531,6 +520,41 @@ class KOLLAInstallTask(Thread):
             except:
                 LOG.error("join kolla prepare installation "
                           "thread %s failed!" % t)
+
+            # check, load and multicast version
+            if cluster_data.get('tecs_version_id', None):
+                vid = cluster_data['tecs_version_id']
+                version_info = registry.get_version_metadata(self.req.context, vid)
+                kolla_version_pkg_file = \
+                    kolla_cmn.check_and_get_kolla_version(daisy_kolla_ver_path,
+                                                          version_info['name'])
+            else:
+                kolla_version_pkg_file =\
+                    kolla_cmn.check_and_get_kolla_version(daisy_kolla_ver_path)
+            if not kolla_version_pkg_file:
+                self.state = kolla_state['INSTALL_FAILED']
+                self.message =\
+                    "kolla version file not found in %s" % daisy_kolla_ver_path
+                raise exception.NotFound(message=self.message)
+
+            try:
+                LOG.info(_("load kolla registry..."))
+                kolla_cmn.version_load(kolla_version_pkg_file, hosts_list)
+            except exception.SubprocessCmdFailed as e:
+                self.message = "load kolla registry failed!"
+                LOG.error(self.message)
+                raise exception.InstallException(self.message)
+
+            # Multicast done
+            update_all_host_progress_to_db(self.req, role_id_list,
+                                           host_id_list,
+                                           kolla_state['INSTALLING'],
+                                           self.message, 15)
+
+            # always call generate_kolla_config_file after version_load()
+            LOG.info(_("begin to generate kolla config file ..."))
+            generate_kolla_config_file(self.req, self.cluster_id, kolla_config)
+            LOG.info(_("generate kolla config file in /etc/kolla/ dir..."))
 
             if thread_flag.get('flag', None) and thread_flag['flag'] == False:
                 self.message = "prepare deploy nodes failed!"
