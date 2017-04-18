@@ -139,7 +139,7 @@ function kolla_install
       fi
       cp $imagebakdir/registry-server.tar $imagedir
   fi
-  docker load < ./registry-server.tar
+  docker load < $imagedir/registry-server.tar
   rm -rf $imagedir/tmp
   rm -rf $imagedir/registry-*.version
 }
