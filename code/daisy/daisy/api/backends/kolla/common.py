@@ -21,6 +21,7 @@ import time
 import subprocess
 import copy
 import ConfigParser
+import threading
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
 from daisy import i18n
@@ -430,7 +431,7 @@ def version_load_mcast(kolla_version_pkg_file, hosts_list):
     # TODO: impl. daisy_conf_mcast_enabled
     if daisy_conf_mcast_enabled != True:
         return -1
-
+    mcobjset = []
     mcobj = MulticastServerTask(kolla_version_pkg_file, hosts_list)
     mcobj.t = threading.Thread(target=mcobj.run)
     mcobj.t.start()
