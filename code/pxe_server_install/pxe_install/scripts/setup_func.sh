@@ -751,6 +751,7 @@ function custom_default_cfg
     sed -i "s%kernel vmlinuz%kernel ${MACADDR}/vmlinuz%g" ${DEFAULT_CFG}
     sed -i "s%initrd=initrd.img%initrd=${MACADDR}/initrd.img%g" ${DEFAULT_CFG}
     sed -i "s%nfs:.*:.*pxe_kickstart.cfg%nfs:$svrip:${KS_FILE}%g" ${DEFAULT_CFG}
+    sed -i "s/root=\/dev\/null//g" ${DEFAULT_CFG}
 
     pxelog "started custom_default_cfg!\n"
     return 0
