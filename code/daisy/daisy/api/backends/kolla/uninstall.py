@@ -94,8 +94,11 @@ class KOLLAUninstallTask(Thread):
             try:
                 LOG.info(_("begin kolla-ansible destory"))
                 exc_result = subprocess.check_output(
-                    'cd %s/kolla && ./tools/kolla-ansible destory' %
-                    (self.kolla_file),
+                    'cd %s/kolla && ./tools/kolla-ansible destroy '
+                    '--include-images -i '
+                    '%s/kolla/ansible/inventory/multinode '
+                    '--yes-i-really-really-mean-it' %
+                    (self.kolla_file, self.kolla_file),
                     shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as e:
                 LOG.error("kolla-ansible destory failed!")
