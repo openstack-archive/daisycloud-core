@@ -46,6 +46,9 @@ function all_install
 
     rm -rf /root/.my.cnf
     [ "$?" -ne 0 ] && { write_install_log "Error:can not rm of /root/.my.cnf file"; exit 1; }
+    write_install_log "install epel-release rpm"
+    install_rpm_by_yum "epel-release"
+
     write_install_log "install fping rpm"
     install_rpm_by_yum "fping"
 
