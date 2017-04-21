@@ -322,14 +322,14 @@ class MulticastServerTask(object):
 
     def __init__(self, kolla_version_pkg_file, host_list):
         self.kolla_version_pkg_file = kolla_version_pkg_file
-        self.host_list = host_list
+        self.hosts_list = host_list
 
     def run(self):
         try:
             self._run()
+            self.res = 0  # successful
         except Exception as e:
             self.res = -1  # failed
-        self.res = 0  # successful
 
     def _run(self):
         cmd = 'jasmines %s %d < %s/%s' % (_get_local_ip(),  # mgt interface
