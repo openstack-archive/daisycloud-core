@@ -56,6 +56,7 @@ install_mutex = threading.Lock()
 kolla_file = "/home/kolla_install"
 kolla_config_file = "/etc/kolla/globals.yml"
 daisy_kolla_ver_path = kolla_cmn.daisy_kolla_ver_path
+enable_multicast_flag = kolla_cmn.daisy_conf_mcast_enabled
 thread_flag = {}
 
 
@@ -498,8 +499,11 @@ class KOLLAInstallTask(Thread):
         update_all_host_progress_to_db(self.req, role_id_list,
                                        host_id_list, kolla_state['INSTALLING'],
                                        self.message, 0)
-
-        docker_registry_ip = kolla_cmn._get_local_ip()
+        docker_registry_ip = ''
+        if enable_multicast_flag:
+            docker_registry_ip = '127.0.0.1'
+        else:
+            docker_registry_ip = kolla_cmn._get_local_ip()
         with open(self.log_file, "w+") as fp:
             threads = []
             for host in hosts_list:
