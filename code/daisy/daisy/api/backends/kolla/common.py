@@ -322,14 +322,14 @@ class MulticastServerTask(object):
 
     def __init__(self, kolla_version_pkg_file, host_list):
         self.kolla_version_pkg_file = kolla_version_pkg_file
-        self.host_list = host_list
+        self.hosts_list = host_list
 
     def run(self):
         try:
             self._run()
+            self.res = 0  # successful
         except Exception as e:
             self.res = -1  # failed
-        self.res = 0  # successful
 
     def _run(self):
         cmd = 'jasmines %s %d < %s/%s' % (_get_local_ip(),  # mgt interface
@@ -355,22 +355,22 @@ class MulticastClientTask(object):
     def run(self):
         try:
             self._run()
+            self.res = 0  # successful
         except Exception as e:
             self.res = -1  # failed
-        self.res = 0  # successful
 
     def _run(self):
         host_ip = self.host['mgtip']
 
         # stop registry server
         cmd = 'ssh -o StrictHostKeyChecking=no %s \
-              docker stop registry' % host_ip
+              "docker stop registry"' % host_ip
         subprocess.check_output(cmd,
                                 shell=True,
                                 stderr=subprocess.STDOUT)
 
         cmd = 'ssh -o StrictHostKeyChecking=no %s \
-              docker rm -f registry' % host_ip
+              "docker rm -f registry"' % host_ip
         subprocess.check_output(cmd,
                                 shell=True,
                                 stderr=subprocess.STDOUT)
@@ -384,28 +384,28 @@ class MulticastClientTask(object):
 
         # receive image from daisy server
         cmd = 'ssh -o StrictHostKeyChecking=no %s \
-               jasminec %s %s > %s/%s' % (host_ip,
-                                          host_ip,
-                                          _get_local_ip(),
-                                          daisy_kolla_ver_path,
-                                          self.kolla_version_pkg_file)
+               "jasminec %s %s > %s/%s"' % (host_ip,
+                                            host_ip,
+                                            _get_local_ip(),
+                                            daisy_kolla_ver_path,
+                                            self.kolla_version_pkg_file)
         subprocess.check_output(cmd,
                                 shell=True,
                                 stderr=subprocess.STDOUT)
 
         # clean up the old version files
         cmd = 'ssh -o StrictHostKeyChecking=no %s \
-               rm -rf %s/tmp' % (host_ip,
-                                 daisy_kolla_ver_path)
+               "rm -rf %s/tmp"' % (host_ip,
+                                   daisy_kolla_ver_path)
         subprocess.check_output(cmd,
                                 shell=True,
                                 stderr=subprocess.STDOUT)
 
         # install the new version files
         cmd = 'ssh -o StrictHostKeyChecking=no %s \
-               cd %s && tar mzxf %s' % (host_ip,
-                                        daisy_kolla_ver_path,
-                                        kolla_version_pkg_file)
+               "cd %s && tar mzxf %s"' % (host_ip,
+                                          daisy_kolla_ver_path,
+                                          kolla_version_pkg_file)
         subprocess.check_output(cmd,
                                 shell=True,
                                 stderr=subprocess.STDOUT)
@@ -414,9 +414,9 @@ class MulticastClientTask(object):
 
         # start registry server again
         cmd = 'ssh -o StrictHostKeyChecking=no %s \
-               docker run -d -p 4000:5000 --restart=always \
+               "docker run -d -p 4000:5000 --restart=always \
                -e REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/tmp/registry \
-               -v %s:/tmp/registry  --name registry registry:2'\
+               -v %s:/tmp/registry  --name registry registry:2"'\
                 % (host_ip, registry_file)
         subprocess.check_output(cmd,
                                 shell=True,
@@ -450,7 +450,7 @@ def version_load_mcast(kolla_version_pkg_file, hosts_list):
         for mcobj in mcobjset:
             mcobj.t.join()  # wait server as well as all clients end.
     except:
-        LOG.error("jasmine client thread %s failed!" % t)
+        LOG.error("jasmine client thread %s failed!" % mcobj.t)
 
     for mcobj in mcobjset:
         if mcobj.res != 0:
