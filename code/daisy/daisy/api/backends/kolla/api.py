@@ -22,6 +22,7 @@ from daisy import i18n
 from daisy.api.backends import driver
 import daisy.api.backends.kolla.install as instl
 import daisy.api.backends.kolla.upgrade as upgrd
+import daisy.api.backends.kolla.uninstall as uninst
 import daisy.api.backends.common as daisy_cmn
 
 
@@ -65,6 +66,20 @@ class API(driver.DeploymentDriver):
 
         kolla_install_task = upgrd.KOLLAUpgradeTask(req, cluster_id,
                                                     version_id, update_file)
+        kolla_install_task.start()
+
+    def uninstall(self, req, cluster_id, hosts):
+        """
+        Uninstall OpenStack from a cluster.
+
+        :param req: The WSGI/Webob Request object
+
+        :raises HTTPBadRequest if x-install-cluster is missing
+        """
+        LOG.info(
+            _("Begin to uninstall OpenStack, please waiting...."))
+
+        kolla_install_task = uninst.KOLLAUninstallTask(req, cluster_id)
         kolla_install_task.start()
 
     def update_progress_to_db(self, req, update_info, discover_host_meta):
