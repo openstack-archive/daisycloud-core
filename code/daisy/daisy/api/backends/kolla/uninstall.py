@@ -51,12 +51,13 @@ class KOLLAUninstallTask(Thread):
     """
 
     def __init__(self, req, cluster_id):
-        super(KOLLAUpgradeTask, self).__init__()
+        super(KOLLAUninstallTask, self).__init__()
         self.req = req
         self.cluster_id = cluster_id
         self.message = ""
         self.kolla_file = "/home/kolla_install"
-        self.log_file = "/var/log/daisy/kolla_%s_upgrade.log" % self.cluster_id
+        self.log_file = "/var/log/daisy/kolla_%s_uninstall.log" \
+            % self.cluster_id
 
     def run(self):
         hosts = registry.get_cluster_hosts(self.req.context, self.cluster_id)
