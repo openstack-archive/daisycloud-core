@@ -16,7 +16,7 @@
 """
 /uninstall endpoint for Daisy v1 API
 """
-
+import yaml
 import subprocess
 from oslo_log import log as logging
 from daisy import i18n
@@ -45,18 +45,36 @@ def update_all_host_progress_to_db(req, hosts_id_list, role_host_meta={}):
                                            role_host_meta)
 
 
+def delete_loop_of_lvm(hosts_ip_set):
+    for host_ip in hosts_ip_set:
+        LOG.info(_("begin to delete_loop_of_lvm on host %s" % host_ip))
+        cmd = "losetup -a |grep cinder | awk -F ':' '{print $1}'"
+        get_devname = 'ssh -o StrictHostKeyChecking=no %s %s' % (host_ip, cmd)
+        dev_name = subprocess.check_output(get_devname,
+                                           shell=True,
+                                           stderr=subprocess.STDOUT)
+        dev_name = dev_name.strip()
+        delete_dev = 'ssh -o StrictHostKeyChecking=no %s "losetup -d %s"' % (
+            host_ip, dev_name)
+        dev_delete_result = subprocess.check_output(delete_dev,
+                                                    shell=True,
+                                                    stderr=subprocess.STDOUT)
+        LOG.info(_("delete_loop_of_lvm on host %s ok!" % host_ip))
+
+
 class KOLLAUninstallTask(Thread):
     """
     Class for kolla uninstall openstack.
     """
 
     def __init__(self, req, cluster_id):
-        super(KOLLAUpgradeTask, self).__init__()
+        super(KOLLAUninstallTask, self).__init__()
         self.req = req
         self.cluster_id = cluster_id
         self.message = ""
         self.kolla_file = "/home/kolla_install"
-        self.log_file = "/var/log/daisy/kolla_%s_upgrade.log" % self.cluster_id
+        self.log_file = "/var/log/daisy/kolla_%s_uninstall.log" \
+            % self.cluster_id
 
     def run(self):
         hosts = registry.get_cluster_hosts(self.req.context, self.cluster_id)
@@ -66,21 +84,25 @@ class KOLLAUninstallTask(Thread):
                                        {'progress': 0,
                                         'status': kolla_state['UNINSTALLING'],
                                         'messages': self.message})
-
+        hosts_ip_set = set()
         for host in hosts:
             host_meta = daisy_cmn.get_host_detail(self.req, host["host_id"])
             host_ip = daisy_cmn.get_management_ip(host_meta)
-            host_ip_set = set()
-            host_ip_set.add(host_ip)
-            unreached_hosts = daisy_cmn.check_ping_hosts(host_ip_set, 3)
-            if unreached_hosts:
-                self.message = "hosts %s ping failed" % unreached_hosts
-                update_all_host_progress_to_db(self.req, hosts_id_list,
-                                               {'progress': 0,
-                                                'status': kolla_state[
-                                                    'UNINSTALL_FAILED'],
-                                                'messages': self.message})
-                raise exception.NotFound(message=self.message)
+            hosts_ip_set.add(host_ip)
+        unreached_hosts = daisy_cmn.check_ping_hosts(hosts_ip_set, 3)
+        if unreached_hosts:
+            self.message = "hosts %s ping failed" % unreached_hosts
+            update_all_host_progress_to_db(self.req, hosts_id_list,
+                                           {'progress': 0,
+                                            'status': kolla_state[
+                                                'UNINSTALL_FAILED'],
+                                            'messages': self.message})
+            raise exception.NotFound(message=self.message)
+        with open('/etc/kolla/globals.yml', 'r') as f:
+            get_lvm_info = yaml.load(f.read())
+            f.close()
+        if get_lvm_info.get('enable_cinder_backend_lvm') == 'yes':
+            delete_loop_of_lvm(hosts_ip_set)
 
         LOG.info(_("precheck envirnoment successfully ..."))
         self.message = "uninstalling openstack"
