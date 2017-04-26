@@ -342,9 +342,18 @@ class InstallException(DaisyException):
     message = _("Cluster installtation raise exception")
 
 
+class UninstallException(DaisyException):
+    message = _("Cluster uninstalltation raise exception")
+
+
 class InstallTimeoutException(DaisyException):
     message = _(
         "Time out, during install backend to cluster %(cluster_id)s")
+
+
+class UninstallTimeoutException(DaisyException):
+    message = _(
+        "Time out, during uninstall backend to cluster %(cluster_id)s")
 
 
 class TaskNotFound(TaskException, NotFound):
