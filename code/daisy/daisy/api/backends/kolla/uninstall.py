@@ -16,7 +16,8 @@
 """
 /uninstall endpoint for Daisy v1 API
 """
-
+import yaml
+import time
 import subprocess
 from oslo_log import log as logging
 from daisy import i18n
@@ -45,18 +46,68 @@ def update_all_host_progress_to_db(req, hosts_id_list, role_host_meta={}):
                                            role_host_meta)
 
 
+def delete_loop_of_lvm(hosts_ip_set):
+    try:
+        for host_ip in hosts_ip_set:
+            LOG.info(_("begin to delete_loop_of_lvm on host %s" % host_ip))
+            cmd = "losetup -a |grep cinder | awk -F ':' '{print $1}'"
+            get_devname = 'ssh -o StrictHostKeyChecking=no %s %s' % (host_ip,
+                                                                     cmd)
+            dev_name = subprocess.check_output(get_devname,
+                                               shell=True,
+                                               stderr=subprocess.STDOUT)
+            dev_name = dev_name.strip()
+            delete_dev = 'ssh -o StrictHostKeyChecking=no %s "losetup -d %s"' \
+                % (host_ip, dev_name)
+            dev_delete_result = subprocess.check_output(
+                delete_dev,
+                shell=True,
+                stderr=subprocess.STDOUT)
+            LOG.info(_("delete_loop_of_lvm on host %s ok!" % host_ip))
+    except:
+        pass
+
+
+def _calc_uninstall_progress(log_file):
+    progress = 20
+    docker_execute_result = subprocess.call(
+        'cat %s |grep "Copying validate-docker-execute.sh file"' % log_file,
+        shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if docker_execute_result == 0:
+        progress = 30
+    destroy_containers_result = subprocess.call(
+        'cat %s |grep "Destroying all Kolla containers"' % log_file,
+        shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if destroy_containers_result == 0:
+        progress = 40
+    destroy_images_result = subprocess.call(
+        'cat %s |grep "Destroying Kolla images"' % log_file, shell=True,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if destroy_images_result == 0:
+        progress = 60
+    destory_folder_result = subprocess.call(
+        'cat %s |grep " Destroying kolla-cleanup folder"' % log_file,
+        shell=True,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if destory_folder_result == 0:
+        progress = 80
+    return progress
+
+
 class KOLLAUninstallTask(Thread):
     """
     Class for kolla uninstall openstack.
     """
 
     def __init__(self, req, cluster_id):
-        super(KOLLAUpgradeTask, self).__init__()
+        super(KOLLAUninstallTask, self).__init__()
         self.req = req
         self.cluster_id = cluster_id
         self.message = ""
+        self.progress = ''
         self.kolla_file = "/home/kolla_install"
-        self.log_file = "/var/log/daisy/kolla_%s_upgrade.log" % self.cluster_id
+        self.log_file = "/var/log/daisy/kolla_%s_uninstall.log" \
+            % self.cluster_id
 
     def run(self):
         hosts = registry.get_cluster_hosts(self.req.context, self.cluster_id)
@@ -66,21 +117,25 @@ class KOLLAUninstallTask(Thread):
                                        {'progress': 0,
                                         'status': kolla_state['UNINSTALLING'],
                                         'messages': self.message})
-
+        hosts_ip_set = set()
         for host in hosts:
             host_meta = daisy_cmn.get_host_detail(self.req, host["host_id"])
             host_ip = daisy_cmn.get_management_ip(host_meta)
-            host_ip_set = set()
-            host_ip_set.add(host_ip)
-            unreached_hosts = daisy_cmn.check_ping_hosts(host_ip_set, 3)
-            if unreached_hosts:
-                self.message = "hosts %s ping failed" % unreached_hosts
-                update_all_host_progress_to_db(self.req, hosts_id_list,
-                                               {'progress': 0,
-                                                'status': kolla_state[
-                                                    'UNINSTALL_FAILED'],
-                                                'messages': self.message})
-                raise exception.NotFound(message=self.message)
+            hosts_ip_set.add(host_ip)
+        unreached_hosts = daisy_cmn.check_ping_hosts(hosts_ip_set, 3)
+        if unreached_hosts:
+            self.message = "hosts %s ping failed" % unreached_hosts
+            update_all_host_progress_to_db(self.req, hosts_id_list,
+                                           {'progress': 0,
+                                            'status': kolla_state[
+                                                'UNINSTALL_FAILED'],
+                                            'messages': self.message})
+            raise exception.NotFound(message=self.message)
+        with open('/etc/kolla/globals.yml', 'r') as f:
+            get_lvm_info = yaml.load(f.read())
+            f.close()
+        if get_lvm_info.get('enable_cinder_backend_lvm') == 'yes':
+            delete_loop_of_lvm(hosts_ip_set)
 
         LOG.info(_("precheck envirnoment successfully ..."))
         self.message = "uninstalling openstack"
@@ -91,28 +146,44 @@ class KOLLAUninstallTask(Thread):
                                         'messages': self.message})
 
         with open(self.log_file, "w+") as fp:
-            try:
-                LOG.info(_("begin kolla-ansible destory"))
-                exc_result = subprocess.check_output(
-                    'cd %s/kolla && ./tools/kolla-ansible destroy '
-                    '--include-images -i '
-                    '%s/kolla/ansible/inventory/multinode '
-                    '--yes-i-really-really-mean-it' %
-                    (self.kolla_file, self.kolla_file),
-                    shell=True, stderr=subprocess.STDOUT)
-            except subprocess.CalledProcessError as e:
-                LOG.error("kolla-ansible destory failed!")
-                self.message = "kolla-ansible destory failed!"
-                update_all_host_progress_to_db(self.req, hosts_id_list,
-                                               {'progress': 10,
-                                                'status': kolla_state[
-                                                    'UNINSTALL_FAILED'],
-                                                'messages': self.message})
-                fp.write(e.output.strip())
-                exit()
-            else:
+            LOG.info(_("begin kolla-ansible destory"))
+            exc_result = subprocess.Popen(
+                'cd %s/kolla && ./tools/kolla-ansible destroy '
+                '--include-images -i '
+                '%s/kolla/ansible/inventory/multinode '
+                '--yes-i-really-really-mean-it' %
+                (self.kolla_file, self.kolla_file),
+                shell=True, stdout=fp, stderr=fp)
+            self.progress = 20
+            execute_times = 0
+            while True:
+                time.sleep(5)
+                return_code = exc_result.poll()
+                if self.progress == 90:
+                    break
+                elif return_code == 0:
+                    self.progress = 90
+                elif return_code == 1:
+                    self.message = "KOLLA uninstall openstack failed!"
+                    LOG.error(self.message)
+                    raise exception.UninstallException(self.message)
+                else:
+                    self.progress = _calc_uninstall_progress(self.log_file)
+                if execute_times >= 720:
+                    self.message = \
+                        "KOLLA uninstall openstack timeout for an hour"
+                    LOG.error(self.message)
+                    raise exception.UninstallTimeoutException(
+                        cluster_id=self.cluster_id)
+                else:
+                    update_all_host_progress_to_db(self.req, hosts_id_list,
+                                                   {'progress': self.progress,
+                                                    'status': kolla_state[
+                                                        'UNINSTALLING'],
+                                                    'messages': self.message})
+                execute_times += 1
+            if self.progress == 90:
                 LOG.info(_("openstack uninstall successfully"))
-                fp.write(exc_result)
                 self.message = "openstack uninstall successfully"
                 update_all_host_progress_to_db(self.req, hosts_id_list,
                                                {'progress': 100,
