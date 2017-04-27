@@ -97,8 +97,6 @@ from tempest.services.network.json.network_client import NetworkClientJSON
 from tempest.services.object_storage.account_client import AccountClient
 from tempest.services.object_storage.container_client import ContainerClient
 from tempest.services.object_storage.object_client import ObjectClient
-from tempest.services.orchestration.json.orchestration_client import \
-    OrchestrationClient
 from tempest.services.telemetry.json.telemetry_client import \
     TelemetryClientJSON
 from tempest.services.volume.json.admin.volume_hosts_client import \
@@ -212,14 +210,6 @@ class Manager(manager.Manager):
                 build_interval=CONF.image.build_interval,
                 build_timeout=CONF.image.build_timeout,
                 **self.default_params)
-        self.orchestration_client = OrchestrationClient(
-            self.auth_provider,
-            CONF.orchestration.catalog_type,
-            CONF.orchestration.region or CONF.identity.region,
-            endpoint_type=CONF.orchestration.endpoint_type,
-            build_interval=CONF.orchestration.build_interval,
-            build_timeout=CONF.orchestration.build_timeout,
-            **self.default_params)
         self.data_processing_client = DataProcessingClient(
             self.auth_provider,
             CONF.data_processing.catalog_type,
