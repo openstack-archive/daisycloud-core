@@ -1975,7 +1975,7 @@ msgstr "卸载中"
 msgid "Updating"
 msgstr "升级中"
 
-msgid "Confirm to uninstall tecs"
+msgid "Confirm to uninstall openstack"
 msgstr "确认卸载"
 
 msgid "Are you sure to uninstall this cluster ?"
@@ -2137,8 +2137,8 @@ msgstr "未部署"
 msgid "ipmi_addr"
 msgstr "IPMI地址"
 
-msgid "Uninstall Tecs"
-msgstr "卸载TECS"
+msgid "Uninstall Openstack"
+msgstr "卸载集群"
 
 msgid "Upgrade Cluster"
 msgstr "升级集群"
