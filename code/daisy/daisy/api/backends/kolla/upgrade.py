@@ -116,22 +116,21 @@ class KOLLAUpgradeTask(Thread):
 
         # TODO: re-config docker registry server based upon return value of
         # kolla_cmn.version_load_mcast
-
+        hosts_ip_set = set()
         for host in hosts:
             host_meta = daisy_cmn.get_host_detail(self.req, host["host_id"])
             host_ip = daisy_cmn.get_management_ip(host_meta)
-            host_ip_set = set()
-            host_ip_set.add(host_ip)
-            unreached_hosts = daisy_cmn.check_ping_hosts(
-                host_ip_set, 3)
-            if unreached_hosts:
-                self.message = "hosts %s ping failed" % unreached_hosts
-                update_all_host_progress_to_db(self.req, hosts_id_list,
-                                               {'progress': 10,
-                                                'status': kolla_state[
-                                                    'UPDATE_FAILED'],
-                                                'messages': self.message})
-                raise exception.NotFound(message=self.message)
+            hosts_ip_set.add(host_ip)
+        unreached_hosts = daisy_cmn.check_ping_hosts(
+            hosts_ip_set, 3)
+        if unreached_hosts:
+            self.message = "hosts %s ping failed" % unreached_hosts
+            update_all_host_progress_to_db(self.req, hosts_id_list,
+                                           {'progress': 10,
+                                            'status': kolla_state[
+                                                'UPDATE_FAILED'],
+                                            'messages': self.message})
+            raise exception.NotFound(message=self.message)
 
         LOG.info(_("precheck envirnoment successfully ..."))
         self.message = "openstack upgrading"

@@ -113,7 +113,9 @@ function kolla_install
       cp $imagebakdir/$imagename $imagedir
   fi
   cd $imagedir
-  tar mzxvf $imagedir/$imagename
+  write_install_log "Begin unzip kolla-image, please wait."
+  tar mzxf $imagedir/$imagename
+  write_install_log "unzip kolla-image ok!"
   sourceversion=$(cat $imagedir/registry-*.version | head -1)
 
   write_install_log "Begin clone kolla... $sourceversion"
