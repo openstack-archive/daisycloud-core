@@ -609,8 +609,8 @@ class KOLLAInstallTask(Thread):
                     raise exception.InstallException(self.message)
                 else:
                     self.progress = _calc_progress(self.log_file)
-                if execute_times >= 720:
-                    self.message = "KOLLA deploy openstack timeout for an hour"
+                if execute_times >= 1440:
+                    self.message = "KOLLA deploy openstack timeout"
                     LOG.error(self.message)
                     raise exception.InstallTimeoutException(
                         cluster_id=self.cluster_id)
