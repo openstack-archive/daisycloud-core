@@ -441,7 +441,7 @@ def version_load_mcast(kolla_version_pkg_file, hosts_list):
 
     # TODO: impl. daisy_conf_mcast_enabled
     daisy_conf_mcast_enabled = _daisy_conf_mcast_flag()
-    if daisy_conf_mcast_enabled != True:
+    if daisy_conf_mcast_enabled != 'True':
         return -1
     mcobjset = []
     mcobj = MulticastServerTask(kolla_version_pkg_file, hosts_list)
