@@ -985,11 +985,11 @@ def check_vlan_nic_and_join_vlan_network(req, cluster_id,
                     # physical nic name.
                     vlan_id = nic_name_list[len(nic_name_list) - 1]
                     nic_name = interface_info['name'][: -len(vlan_id) - 1]
-                    exclude_networks = ['DATAPLANE', 'EXTERNAL']
+                    exclude_networks = ['EXTERNAL']
                     use_share_disk = if_used_shared_storage(req, cluster_id)
                     if not use_share_disk:
-                        exclude_networks.append('STORAGE')
-
+                        #exclude_networks.append('STORAGE')
+                        pass
                     for network in networks:
                         if network['network_type'] in exclude_networks:
                             continue
@@ -1070,11 +1070,12 @@ def check_bond_or_ether_nic_and_join_network(req,
                                   % host_info_ip
                             LOG.error(msg)
                             raise exception.Forbidden(msg)
-                        exclude_networks = ['DATAPLANE', 'EXTERNAL']
+                        exclude_networks = ['EXTERNAL']
                         use_share_disk = if_used_shared_storage(req,
                                                                 cluster_id)
                         if not use_share_disk:
-                            exclude_networks.append('STORAGE')
+                            #exclude_networks.append('STORAGE')
+                            pass
                         for network in networks:
                             if network['network_type'] in exclude_networks:
                                 continue
