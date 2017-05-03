@@ -25,6 +25,7 @@ import daisy.api.backends.common as daisy_cmn
 import daisy.api.backends.kolla.common as kolla_cmn
 import daisy.registry.client.v1.api as registry
 from threading import Thread
+import threading
 from daisy.common import exception
 
 
@@ -35,6 +36,7 @@ _LI = i18n._LI
 _LW = i18n._LW
 
 kolla_state = kolla_cmn.KOLLA_STATE
+thread_flag = {}
 
 
 def update_all_host_progress_to_db(req, hosts_id_list, role_host_meta={}):
@@ -92,6 +94,48 @@ def _calc_uninstall_progress(log_file):
     if destory_folder_result == 0:
         progress = 80
     return progress
+
+
+def remove_registry(req, hosts_id_list, host_ip, log_file):
+    LOG.info(_("begin to remove docker images on host %s" % host_ip))
+    try:
+        check_docker_container_cmd = \
+            "ssh -o StrictHostKeyChecking=no %s \
+            docker ps |grep registry:2 |awk -F ' ' '{print $2}'" % (host_ip)
+        docker_container_result = \
+            subprocess.check_output(check_docker_container_cmd,
+                                    shell=True,
+                                    stderr=subprocess.STDOUT)
+
+        stop_docker_container_cmd = \
+            'ssh -o StrictHostKeyChecking=no %s \
+            "docker stop registry"' % (host_ip)
+        remove_docker_container_cmd = \
+            'ssh -o StrictHostKeyChecking=no %s \
+            "docker rm registry"' % (host_ip)
+        remove_docker_images_cmd = \
+            'ssh -o StrictHostKeyChecking=no %s \
+            "docker rmi -f registry:2"' % (host_ip)
+
+        if "registry:2" in docker_container_result:
+            daisy_cmn.subprocess_call(stop_docker_container_cmd, log_file)
+            daisy_cmn.subprocess_call(remove_docker_container_cmd, log_file)
+            daisy_cmn.subprocess_call(remove_docker_images_cmd, log_file)
+        else:
+            daisy_cmn.subprocess_call(remove_docker_images_cmd, log_file)
+
+    except Exception as e:
+        message = "remove docker images failed on host %s!" % host_ip
+        LOG.error(message)
+        thread_flag['flag'] = False
+        update_all_host_progress_to_db(req, hosts_id_list,
+                                       {'progress': 90,
+                                        'status': kolla_state[
+                                            'UNINSTALL_FAILED'],
+                                        'messages': message})
+        raise exception.UninstallException(message)
+    else:
+        LOG.info(_("remove docker images on host %s successfully!" % host_ip))
 
 
 class KOLLAUninstallTask(Thread):
@@ -180,32 +224,55 @@ class KOLLAUninstallTask(Thread):
                         update_all_host_progress_to_db(
                             self.req, hosts_id_list,
                             {'progress': self.progress,
-                             'status': kolla_state[
-                                 'UNINSTALLING'],
+                             'status': kolla_state['UNINSTALLING'],
                              'messages': self.message})
                     execute_times += 1
 
                 if self.progress == 90:
-                    LOG.info(_("openstack uninstall successfully"))
-                    self.message = "openstack uninstall successfully"
-                    update_all_host_progress_to_db(self.req, hosts_id_list,
-                                                   {'progress': 100,
-                                                    'status': kolla_state[
-                                                        'INIT'],
-                                                    'messages': self.message})
-                    for host_id in hosts_id_list:
-                        daisy_cmn.update_db_host_status(
-                            self.req, host_id, {'tecs_version_id': '',
-                                                'tecs_patch_id': ''})
+                    threads = []
+                    for host_ip in hosts_ip_set:
+                        t = threading.Thread(target=remove_registry,
+                                             args=(self.req, hosts_id_list,
+                                                   host_ip, fp))
+                        t.setDaemon(True)
+                        t.start()
+                        threads.append(t)
+                    try:
+                        LOG.info(_("remove registry uninstall threads "
+                                   "have started, please waiting...."))
+                        for t in threads:
+                            t.join()
+                    except:
+                        LOG.error("join remove registry uninstall "
+                                  "thread %s failed!" % t)
 
-                    cluster_meta = {}
-                    cluster_meta['tecs_version_id'] = ''
-                    cluster_meta = registry.update_cluster_metadata(
-                        self.req.context, self.cluster_id, cluster_meta)
+                    if thread_flag.get('flag', None) and \
+                            thread_flag['flag'] == False:
+                        self.message = "remove registry uninstall "\
+                                       " threads failed!"
+                        LOG.error(self.message)
+                        raise exception.UninstallException(self.message)
+                    else:
+                        LOG.info(_("openstack uninstall successfully"))
+                        self.message = "openstack uninstall successfully"
+                        update_all_host_progress_to_db(
+                            self.req, hosts_id_list,
+                            {'progress': 100,
+                             'status': kolla_state['INIT'],
+                             'messages': self.message})
+                        for host_id in hosts_id_list:
+                            daisy_cmn.update_db_host_status(
+                                self.req, host_id, {'tecs_version_id': '',
+                                                    'tecs_patch_id': ''})
 
-                    LOG.info(_("openstack uninstalled for "
-                               "cluster %s successfully."
-                               % self.cluster_id))
+                        cluster_meta = {}
+                        cluster_meta['tecs_version_id'] = ''
+                        cluster_meta = registry.update_cluster_metadata(
+                            self.req.context, self.cluster_id, cluster_meta)
+
+                        LOG.info(_("openstack uninstalled for "
+                                   "cluster %s successfully."
+                                   % self.cluster_id))
 
             except subprocess.CalledProcessError as e:
                 LOG.error("kolla-ansible destory failed!")
