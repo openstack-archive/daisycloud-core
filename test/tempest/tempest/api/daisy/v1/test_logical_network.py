@@ -96,8 +96,8 @@ class TecsLogicalNetworkTest(base.BaseDaisyTest):
 
         self.assertRaisesMessage(
             client_exc.HTTPBadRequest,
-            "400 Bad Request: "
-            "Logic_network flat1 is not valid range. (HTTP 400)",
+            "400 Bad Request\n"
+            "Logic_network flat1 is not valid range.\n    (HTTP 400)",
             self.add_cluster, **fake_cluster)
 
     # STC-F-Daisy_Logical_Network-0002
@@ -148,8 +148,8 @@ class TecsLogicalNetworkTest(base.BaseDaisyTest):
                              'routers': fake_router})
         self.assertRaisesMessage(
             client_exc.HTTPBadRequest,
-            "400 Bad Request: Logic network's subnets is all related "
-            "with a router, it's not allowed. (HTTP 400)",
+            "400 Bad Request\nLogic network's subnets is all related "
+            "with a router, it's not allowed.\n    (HTTP 400)",
             self.add_cluster, **fake_cluster)
 
         tmp_fake_router1 = copy.deepcopy(fake_router)
@@ -157,8 +157,8 @@ class TecsLogicalNetworkTest(base.BaseDaisyTest):
         fake_cluster.update({'routers': tmp_fake_router1})
         self.assertRaisesMessage(
             client_exc.HTTPBadRequest,
-            "400 Bad Request: Logic network's subnets is all related with a "
-            "router, it's not allowed. (HTTP 400)",
+            "400 Bad Request\nLogic network's subnets is all related with a "
+            "router, it's not allowed.\n    (HTTP 400)",
             self.add_cluster, **fake_cluster)
 
         tmp_fake_router2 = copy.deepcopy(fake_router)
@@ -166,8 +166,8 @@ class TecsLogicalNetworkTest(base.BaseDaisyTest):
         fake_cluster.update({'routers': tmp_fake_router2})
         self.assertRaisesMessage(
             client_exc.HTTPBadRequest,
-            "400 Bad Request: "
-            "Logic_network test is not valid range. (HTTP 400)",
+            "400 Bad Request\n"
+            "Logic_network test is not valid range.\n    (HTTP 400)",
             self.add_cluster, **fake_cluster)
 
         tmp_fake_router3 = copy.deepcopy(fake_router)
@@ -175,7 +175,7 @@ class TecsLogicalNetworkTest(base.BaseDaisyTest):
         fake_cluster.update({'routers': tmp_fake_router3})
         self.assertRaisesMessage(
             client_exc.HTTPBadRequest,
-            "400 Bad Request: Subnet test is not valid range. (HTTP 400)",
+            "400 Bad Request\nSubnet test is not valid range.\n    (HTTP 400)",
             self.add_cluster, **fake_cluster)
         self.private_network_delete()
 
@@ -194,8 +194,8 @@ class TecsLogicalNetworkTest(base.BaseDaisyTest):
                              'logic_networks': tmp_fake_logical1})
         self.assertRaisesMessage(
             client_exc.HTTPBadRequest,
-            "400 Bad Request: "
-            "Between floating ip range can not be overlap. (HTTP 400)",
+            "400 Bad Request\n"
+            "Between floating ip range can not be overlap.\n    (HTTP 400)",
             self.add_cluster, **fake_cluster)
 
         tmp_fake_logical2 = copy.deepcopy(
@@ -208,7 +208,8 @@ class TecsLogicalNetworkTest(base.BaseDaisyTest):
         fake_cluster.update({'logic_networks': tmp_fake_logical2})
         self.assertRaisesMessage(
             client_exc.HTTPBadRequest,
-            "400 Bad Request: Subnet name segment is repetition. (HTTP 400)",
+            "400 Bad Request\nSubnet name segment is repetition.\n    "
+            "(HTTP 400)",
             self.add_cluster, **fake_cluster)
         self.private_network_delete()
 
