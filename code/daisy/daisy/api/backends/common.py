@@ -1075,6 +1075,7 @@ def check_bond_or_ether_nic_and_join_network(req,
                                                                 cluster_id)
                         if not use_share_disk:
                             exclude_networks.append('STORAGE')
+                            #pass
                         for network in networks:
                             if network['network_type'] in exclude_networks:
                                 continue
