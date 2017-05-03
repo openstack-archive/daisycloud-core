@@ -41,4 +41,5 @@ yum -y install \
   python-lesscpy \
   python-migrate \
   python-pint \
-  python-routes
+  python-routes \
+  gcc
