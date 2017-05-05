@@ -857,6 +857,20 @@ function config_get_node_info
     [ "$?" -ne 0 ] && { write_install_log "Error:config /var/lib/daisy/kolla/getnodeinfo.sh failed"; exit 1;}
 }
 
+function multicast_enhanced
+{
+    sysctl net.core.netdev_max_backlog=65536
+    sysctl net.core.optmem_max=25165824
+    sysctl net.core.rmem_default=25165824
+    sysctl net.core.rmem_max=25165824
+    sysctl net.ipv4.tcp_rmem="20480 12582912 25165824"
+    sysctl net.ipv4.udp_rmem_min=16384
+    sysctl net.core.wmem_default=25165824
+    sysctl net.core.wmem_max=25165824
+    sysctl net.ipv4.tcp_wmem="20480 12582912 25165824"
+    sysctl net.ipv4.udp_wmem_min=16384
+}
+
 _INSTALL_FUNC_FILE="install_func.sh"
 fi
 

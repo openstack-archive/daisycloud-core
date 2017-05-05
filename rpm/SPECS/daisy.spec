@@ -226,6 +226,7 @@ fi
 /var/lib/daisy/trustme.sh
 /var/lib/daisy/kolla/prepare.sh
 /var/lib/daisy/kolla/getnodeinfo.sh
+/var/lib/daisy/kolla/94daisy.conf
 /var/lib/daisy/kolla/daisy.py
 /var/lib/daisy/kolla/linux_action.sh
 /etc/daisy/daisy-api-paste.ini

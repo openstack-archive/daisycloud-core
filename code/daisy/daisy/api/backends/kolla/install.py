@@ -350,6 +350,9 @@ def _thread_bin(req, host, root_passwd, fp, host_name_ip_list,
           (host_ip, root_passwd)
     daisy_cmn.subprocess_call(cmd, fp)
 
+    cmd = 'scp /var/lib/daisy/94daisy.conf %s:/etc/sysctl.d/' % host_ip
+    daisy_cmn.subprocess_call(cmd, fp)
+
     config_nodes_hosts(host_name_ip_list, host_ip)
     cmd = 'ssh -o StrictHostKeyChecking=no %s \
           "if [ ! -d %s ];then mkdir %s;fi" ' % \

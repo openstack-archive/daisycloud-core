@@ -269,6 +269,12 @@ function all_install
 
     config_get_node_info
 
+    multicast_enhanced
+
+    cp /var/lib/daisy/kolla/94daisy.conf /etc/sysctl.d/
+
+    write_install_log "multicast_enhanced has been execute"
+
     write_install_log "Daisy Install Successfull..."
 
     config_file="/home/daisy_install/daisy.conf"
