@@ -144,8 +144,8 @@ class KOLLAUpgradeTask(Thread):
                 LOG.info(_("begin to kolla-ansible "
                            "upgrade for all nodes..."))
                 exc_result = subprocess.check_output(
-                    'cd %s/kolla && ./tools/kolla-ansible upgrade -i '
-                    '%s/kolla/ansible/inventory/multinode' %
+                    'cd %s/kolla-ansible && ./tools/kolla-ansible upgrade -i '
+                    '%s/kolla-ansible/ansible/inventory/multinode' %
                     (self.kolla_file, self.kolla_file),
                     shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as e:

@@ -181,7 +181,7 @@ def get_cluster_kolla_config(req, cluster_id):
                         openstack_version = kolla_openstack_version.split(
                             "= ")[1]
     if version_flag == False:
-        version_path = kolla_file + '/kolla/ansible/group_vars/'
+        version_path = kolla_file + '/kolla-ansible/ansible/group_vars/'
         for parent, dirnames, filenames in os.walk(version_path):
             for filename in filenames:
                 if filename == 'all.yml':
@@ -570,8 +570,8 @@ class KOLLAInstallTask(Thread):
                 LOG.info(_("begin to kolla-ansible "
                            "prechecks for all nodes..."))
                 exc_result = subprocess.check_output(
-                    'cd %s/kolla && ./tools/kolla-ansible prechecks -i '
-                    '%s/kolla/ansible/inventory/multinode' %
+                    'cd %s/kolla-ansible && ./tools/kolla-ansible prechecks '
+                    ' -i %s/kolla-ansible/ansible/inventory/multinode' %
                     (self.kolla_file, self.kolla_file),
                     shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as e:
@@ -589,8 +589,8 @@ class KOLLAInstallTask(Thread):
                                                self.message, 20)
             LOG.info(_("kolla-ansible begin to deploy openstack ..."))
             cmd = subprocess.Popen(
-                'cd %s/kolla && ./tools/kolla-ansible deploy -i '
-                '%s/kolla/ansible/inventory/multinode' %
+                'cd %s/kolla-ansible && ./tools/kolla-ansible deploy -i '
+                '%s/kolla-ansible/ansible/inventory/multinode' %
                 (self.kolla_file, self.kolla_file),
                 shell=True, stdout=fp, stderr=fp)
             self.message = "begin deploy openstack"
@@ -623,8 +623,8 @@ class KOLLAInstallTask(Thread):
             try:
                 LOG.info(_("kolla-ansible post-deploy for each node..."))
                 exc_result = subprocess.check_output(
-                    'cd %s/kolla && ./tools/kolla-ansible post-deploy -i '
-                    '%s/kolla/ansible/inventory/multinode' %
+                    'cd %s/kolla-ansible && ./tools/kolla-ansible post-deploy '
+                    ' -i %s/kolla-ansible/ansible/inventory/multinode' %
                     (self.kolla_file, self.kolla_file),
                     shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as e:
