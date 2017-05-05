@@ -350,6 +350,20 @@ def _thread_bin(req, host, root_passwd, fp, host_name_ip_list,
           (host_ip, root_passwd)
     daisy_cmn.subprocess_call(cmd, fp)
 
+    cmd = 'ssh -o StrictHostKeyChecking=no %s'\
+          'echo -e net.core.netdev_max_backlog=65536\n'\
+          'net.core.optmem_max=25165824\n'\
+          'net.core.rmem_default=25165824\n'\
+          'net.core.rmem_max=25165824\n'\
+          'net.ipv4.tcp_rmem="20480 12582912 25165824"\n'\
+          'net.ipv4.udp_rmem_min=16384\n'\
+          'net.core.wmem_default=25165824\n'\
+          'net.core.wmem_max=25165824\n'\
+          'net.ipv4.tcp_wmem="20480 12582912 25165824"\n'\
+          'net.ipv4.udp_wmem_min=16384 > '\
+          '/etc/sysctl.d/94-daisy.conf' % host_ip
+    daisy_cmn.subprocess_call(cmd, fp)
+
     config_nodes_hosts(host_name_ip_list, host_ip)
     cmd = 'ssh -o StrictHostKeyChecking=no %s \
           "if [ ! -d %s ];then mkdir %s;fi" ' % \

@@ -269,6 +269,21 @@ function all_install
 
     config_get_node_info
 
+    multicast_enhanced
+
+    echo -e net.core.netdev_max_backlog=65536\n\
+    net.core.optmem_max=25165824\n\
+    net.core.rmem_default=25165824\n\
+    net.core.rmem_max=25165824\n\
+    net.ipv4.tcp_rmem="20480 12582912 25165824"\n\
+    net.ipv4.udp_rmem_min=16384\n\
+    net.core.wmem_default=25165824\n\
+    net.core.wmem_max=25165824\n\
+    net.ipv4.tcp_wmem="20480 12582912 25165824"\n\
+    net.ipv4.udp_wmem_min=16384 > /etc/sysctl.d/94-daisy.conf
+
+    write_install_log "multicast_enhanced has been execute"
+
     write_install_log "Daisy Install Successfull..."
 
     config_file="/home/daisy_install/daisy.conf"
