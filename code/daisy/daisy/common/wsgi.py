@@ -37,7 +37,6 @@ from oslo_serialization import jsonutils
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_log import log as logging
-from oslo_log import loggers
 import routes
 import routes.middleware
 import six
@@ -47,6 +46,7 @@ from webob import multidict
 
 from daisy.common import exception
 from daisy.common import utils
+from daisy.common import loggers
 from daisy import i18n
 
 
