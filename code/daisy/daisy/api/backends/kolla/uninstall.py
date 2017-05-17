@@ -191,9 +191,9 @@ class KOLLAUninstallTask(Thread):
             try:
                 LOG.info(_("begin kolla-ansible destory"))
                 exc_result = subprocess.Popen(
-                    'cd %s/kolla && ./tools/kolla-ansible destroy '
+                    'cd %s/kolla-ansible && ./tools/kolla-ansible destroy '
                     '--include-images -i '
-                    '%s/kolla/ansible/inventory/multinode '
+                    '%s/kolla-ansible/ansible/inventory/multinode '
                     '--yes-i-really-really-mean-it' %
                     (self.kolla_file, self.kolla_file),
                     shell=True, stdout=fp, stderr=fp)
