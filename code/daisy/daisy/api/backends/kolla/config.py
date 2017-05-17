@@ -37,7 +37,7 @@ _LW = i18n._LW
 # generate kolla's ansible inventory multinode file
 def clean_inventory_file(file_path, filename):
     LOG.info(_("begin to clean inventory file for kolla"))
-    fp = open('%s/kolla/ansible/inventory/%s' % (file_path, filename))
+    fp = open('%s/kolla-ansible/ansible/inventory/%s' % (file_path, filename))
     txt = fp.read()
     fp.close()
     node_names = ['control', 'network', 'compute', 'monitoring',
@@ -49,7 +49,8 @@ def clean_inventory_file(file_path, filename):
             node_names[next_name_index+1]),
             txt, re.S)
         txt = txt.replace(match.group(1), '\n\n')
-    fp = file('%s/kolla/ansible/inventory/%s' % (file_path, filename), 'w')
+    fp = file('%s/kolla-anbible/ansible/inventory/%s' % (
+        file_path, filename), 'w')
     fp.write(txt)
     fp.close()
 
@@ -57,7 +58,7 @@ def clean_inventory_file(file_path, filename):
 def update_inventory_file(file_path, filename, node_name, host_name,
                           num_of_host, connection_type):
     LOG.info(_("begin to update inventory file for kolla..."))
-    fp = file('%s/kolla/ansible/inventory/%s' % (file_path, filename))
+    fp = file('%s/kolla-ansible/ansible/inventory/%s' % (file_path, filename))
     lines = []
     for line in fp:
         lines.append(line)
@@ -66,7 +67,8 @@ def update_inventory_file(file_path, filename, node_name, host_name,
     lines.insert(index_of_label + num_of_host,
                  '%s\n' % host_name)
     s = ''.join(lines)
-    fp = file('%s/kolla/ansible/inventory/%s' % (file_path, filename), 'w')
+    fp = file('%s/kolla-ansible/ansible/inventory/%s' % (
+        file_path, filename), 'w')
     fp.write(s)
     fp.close()
 
