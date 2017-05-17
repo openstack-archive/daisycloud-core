@@ -81,7 +81,7 @@ function kolla_install
   check_and_install_rpm python2-crypto
   check_and_install_rpm python-gitdb
   check_and_install_rpm GitPython.noarch
-  check_and_install_rpm python-pbr.noarch
+  check_and_install_rpm python2-pbr.noarch
   check_and_install_rpm python2-oslo-config.noarch
   check_and_install_rpm python-six.noarch
   check_and_install_rpm python-beautifulsoup4.noarch
@@ -93,8 +93,8 @@ function kolla_install
       yum install -y https://kojipkgs.fedoraproject.org//packages/python-jinja2/2.8/2.fc23/noarch/python-jinja2-2.8-2.fc23.noarch.rpm
   fi
 
-  imagebranch="newton"
-  imageversion="latest"
+  imagebranch="ocata"
+  imageversion="170420124331"
   imageserver="http://120.24.17.215"
   imagedir="/var/lib/daisy/versionfile/kolla"
   imagebakdir="/home/kolla_install/docker/"
@@ -119,18 +119,19 @@ function kolla_install
   sourceversion=$(cat $imagedir/registry-*.version | head -1)
 
   write_install_log "Begin clone kolla... $sourceversion"
-  if [ -e "$sourcedir/kolla" ];then
-      echo "kolla code already exist!"
+  if [ -e "$sourcedir/kolla-anbible" ];then
+      echo "kolla-anbible code already exist!"
   else
       mkdir -p $sourcedir
       cd $sourcedir
-      git clone https://git.openstack.org/openstack/kolla
+      git clone https://git.openstack.org/openstack/kolla-ansible
   fi
-  cd $sourcedir/kolla
+  cd $sourcedir/kolla-ansible
   git remote update
-  git checkout -f $sourceversion
-  cp -r /home/kolla_install/kolla/etc/kolla /etc
-
+  #git checkout -f $sourceversion
+  #cp -r /home/kolla_install/kolla/etc/kolla /etc
+  git checkout -b stable/ocata remotes/origin/stable/ocata
+  cp -r /home/kolla_install/kolla-ansible/etc/kolla /etc
   # TODO: (huzhj)Use latest registry server from upstream
   if [ ! -f "$imagedir/registry-server.tar" ];then
       cd $imagebakdir
