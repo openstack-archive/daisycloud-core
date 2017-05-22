@@ -1,3 +1,18 @@
+# Copyright 2012 OpenStack Foundation.
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
 import mock
 import webob
 from daisy import test
@@ -437,7 +452,7 @@ class TestInstall(test.TestCase):
         daisy_kolla_ver_path = '/var/lib/daisy/versionfile/kolla/'
         cmd = 'mkdir -p %s' % daisy_kolla_ver_path
         subprocesscall(cmd)
-        cmd1 = 'rm -rf %s/test.version' % daisy_kolla_ver_path
+        cmd1 = 'rm -rf %s/*.version' % daisy_kolla_ver_path
         subprocesscall(cmd1)
         cmd2 = 'touch %s/test.version' % daisy_kolla_ver_path
         subprocesscall(cmd2)
@@ -499,8 +514,10 @@ class TestInstall(test.TestCase):
     @mock.patch('subprocess.Popen.poll')
     @mock.patch('subprocess.check_output')
     @mock.patch('daisy.api.backends.common.subprocess_call')
+    @mock.patch('daisy.api.backends.kolla.install._check_ping_hosts')
     def test__run(
-            self, mock_subprocess_call, mock_do_check_output,
+            self, mock__check_ping_hosts,
+            mock_subprocess_call, mock_do_check_output,
             mock_do_Popen, mock_do_get_cluster_kolla_config,
             mock_do_generate_kolla_config_file, mock_do_get_hosts_of_role,
             mock_do_get_cluster_networks_detail,
@@ -537,6 +554,7 @@ class TestInstall(test.TestCase):
 
         cmd = 'mkdir -p /var/log/daisy'
         subprocesscall(cmd)
+        mock__check_ping_hosts.return_value = []
         mock_do_request.side_effect = fake_do_request
         mock_do_check_output.return_value = 'ok'
         mock_do_Popen.return_value = 0
