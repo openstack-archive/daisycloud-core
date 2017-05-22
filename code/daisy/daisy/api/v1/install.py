@@ -146,7 +146,7 @@ class InstallTask(object):
                 host_detail['status'] != 'with-role']
         else:
             LOG.info(_("No host need to install os, begin to install "
-                       "backends for cluster %s." % self.cluster_id))
+                       "backends for cluster %s.") % self.cluster_id)
             return_value = self._backends_install()
             if self.cluster_id == return_value:
                 if daisy_cmn.in_cluster_list(self.cluster_id):
