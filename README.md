@@ -17,8 +17,6 @@ http://www.daisycloud.org
 ## Build Daisy artifact
 
 ```
-# yum install -y epel-release
-# yum install -y centos-release-openstack-mitaka
 # cd tools
 # ./daisy-compile-rpm.sh
 # cd ../make
