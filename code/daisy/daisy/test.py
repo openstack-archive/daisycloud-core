@@ -58,23 +58,6 @@ class TestingException(Exception):
     pass
 
 
-class DatabaseForDowngradeTest(fixtures.Fixture):
-
-    def __init__(self, db_api, db_migrate, sql_connection,
-                 sqlite_db, sqlite_clean_db):
-        self.sql_connection = sql_connection
-        self.sqlite_db = sqlite_db
-        self.sqlite_clean_db = sqlite_clean_db
-
-        self.engine = db_api.get_engine()
-        self.engine.dispose()
-        conn = self.engine.connect()
-        db_migrate.db_sync()
-
-        # This is for running into db downgrade code
-        db_migrate.db_sync(version=0)
-
-
 class Database(fixtures.Fixture):
 
     def __init__(self, db_api, db_migrate, sql_connection,
@@ -193,11 +176,6 @@ class TestCase(testtools.TestCase):
 
         global _DB_CACHE
         if not _DB_CACHE:
-            DatabaseForDowngradeTest(sqla_api, migration,
-                                     sql_connection='sqlite://',
-                                     sqlite_db='downgradetest',
-                                     sqlite_clean_db='clean.sqlite')
-
             _DB_CACHE = Database(sqla_api, migration,
                                  sql_connection=CONF.database.connection,
                                  sqlite_db=CONF.database.sqlite_db,
