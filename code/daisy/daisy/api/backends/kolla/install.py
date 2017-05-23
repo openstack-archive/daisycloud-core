@@ -557,6 +557,8 @@ class KOLLAInstallTask(Thread):
             # TODO: re-config docker registry server based upon return value of
             # kolla_cmn.version_load_mcast
             LOG.info(_("begin to generate kolla config file ..."))
+            (kolla_config, self.mgt_ip_list, host_name_ip_list) = \
+                get_cluster_kolla_config(self.req, self.cluster_id)
             generate_kolla_config_file(self.req, self.cluster_id,
                                        kolla_config, res)
             LOG.info(_("generate kolla config file in /etc/kolla/ dir..."))
