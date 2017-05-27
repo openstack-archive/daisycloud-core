@@ -16,6 +16,9 @@ systemctl enable ntpd.service
 systemctl stop libvirtd.service
 systemctl disable libvirtd.service
 systemctl start ntpd.service
+systemctl stop NetworkManager
+service network start
+systemctl disable firewalld
 yum -y install ansible
 
 # multicast related
