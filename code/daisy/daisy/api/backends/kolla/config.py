@@ -267,18 +267,21 @@ def update_globals_yml(config_data, multicast_flag):
               default_flow_style=False)
 
 
-# generate kolla's password.yml file
-def generate_RSA(bits=2048):
-    new_key = RSA.generate(bits, os.urandom)
-    private_key = new_key.exportKey("PEM")
-    public_key = new_key.publickey().exportKey("OpenSSH")
-    return private_key, public_key
-
-
 def update_password_yml():
     LOG.info(_("begin to update kolla's passwd.yml file..."))
     cmd = 'python '\
           '/home/kolla_install/kolla-ansible/tools/generate_passwords.py'
     fp = '/var/log/daisy/api.log'
     daisy_cmn.subprocess_call(cmd, fp)
+    # generate the password of horizon
+    keystone_admin_password = ['keystone_admin_password']
+    with open('/etc/kolla/passwords.yml', 'r') as f:
+        passwords = yaml.load(f.read())
+    for k, v in passwords.items():
+        if k in keystone_admin_password:
+            passwords[k] = "keystone"
+    f.close()
+    with open('/etc/kolla/passwords.yml', 'w') as f:
+        f.write(yaml.dump(passwords, default_flow_style=False))
+        f.close()
     LOG.info(_("generate kolla's passwd.yml file ok..."))
