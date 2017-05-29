@@ -240,7 +240,7 @@ def get_cluster_kolla_config(req, cluster_id):
             kolla_config.update({'LocalIP': docker_registry})
             kolla_config.update({'Controller_ips': controller_ip_list})
             kolla_config.update({'Network_ips': controller_ip_list})
-            kolla_config.update({'Storage_ips': controller_ip_list})
+            #kolla_config.update({'Storage_ips': controller_ip_list})
             kolla_config.update({'vlans_id': vlans_id})
         if role['name'] == 'COMPUTER':
             role_hosts = kolla_cmn.get_hosts_of_role(req, role['id'])
@@ -269,6 +269,7 @@ def get_cluster_kolla_config(req, cluster_id):
             kolla_config.update({'TulIfMac': dat_macname})
             kolla_config.update({'ExtIfMac': ext_macname})
     mgt_ip_list = set(controller_ip_list + computer_ip_list)
+    kolla_config.update({'Storage_ips': mgt_ip_list})
     return (kolla_config, mgt_ip_list, host_name_ip_list)
 
 

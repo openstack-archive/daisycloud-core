@@ -16,9 +16,6 @@
 import re
 import os
 import yaml
-import random
-import string
-import uuid
 import subprocess
 from oslo_log import log as logging
 from daisy import i18n
@@ -280,49 +277,8 @@ def generate_RSA(bits=2048):
 
 def update_password_yml():
     LOG.info(_("begin to update kolla's passwd.yml file..."))
-    # These keys should be random uuids
-    uuid_keys = ['ceph_cluster_fsid', 'rbd_secret_uuid']
-
-    # SSH key pair
-    ssh_keys = ['nova_ssh_key']
-
-    # If these keys are None, leave them as None
-    blank_keys = ['docker_registry_password']
-
-    # generate the password of horizon
-    keystone_admin_password = ['keystone_admin_password']
-
-    # length of password
-    length = 40
-
-    with open('/etc/kolla/passwords.yml', 'r') as f:
-        passwords = yaml.load(f.read())
-
-    for k, v in passwords.items():
-        if (k in ssh_keys and
-                (v is None or
-                 v.get('public_key') is None and
-                 v.get('private_key') is None)):
-            private_key, public_key = generate_RSA()
-            passwords[k] = {
-                'private_key': private_key,
-                'public_key': public_key
-            }
-            continue
-        if v is None:
-            if k in blank_keys:
-                continue
-            if k in uuid_keys:
-                passwords[k] = str(uuid.uuid4())
-            elif k in keystone_admin_password:
-                passwords[k] = "keystone"
-            else:
-                passwords[k] = ''.join([
-                    random.SystemRandom().choice(
-                        string.ascii_letters + string.digits)
-                    for n in range(length)
-                ])
-    f.close()
-    with open('/etc/kolla/passwords.yml', 'w') as f:
-        f.write(yaml.dump(passwords, default_flow_style=False))
-        f.close()
+    cmd = 'python '\
+          '/home/kolla_install/kolla-ansible/tools/generate_passwords.py'
+    fp = '/var/log/daisy/api.log'
+    daisy_cmn.subprocess_call(cmd, fp)
+    LOG.info(_("generate kolla's passwd.yml file ok..."))
