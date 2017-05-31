@@ -302,22 +302,22 @@ def config_nodes_hosts(host_name_ip_list, host_ip):
 
 
 def _calc_progress(log_file):
-    progress = 20
+    progress = 40
     mariadb_result = subprocess.call(
         'cat %s |grep "Running MariaDB"' % log_file,
         shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if mariadb_result == 0:
-        progress = 30
+        progress = 50
     keystone_result = subprocess.call(
         'cat %s |grep "Running Keystone"' % log_file,
         shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if keystone_result == 0:
-        progress = 40
+        progress = 60
     nova_result = subprocess.call(
         'cat %s |grep "Running Nova"' % log_file, shell=True,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if nova_result == 0:
-        progress = 60
+        progress = 70
     neutron_result = subprocess.call(
         'cat %s |grep "Running Neutron"' % log_file, shell=True,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -344,12 +344,41 @@ def _get_hosts_id_by_mgnt_ips(req, cluster_id, ips):
     return hosts_id_needed
 
 
-def _thread_bin(req, host, root_passwd, fp, host_name_ip_list,
+def configure_external_interface_vlan(req, cluster_id, host_ip):
+    cluster_networks = daisy_cmn.get_cluster_networks_detail(req, cluster_id)
+    for network in cluster_networks:
+        if 'EXTERNAL' in network.get('network_type') and \
+                network.get('vlan_id') != None:
+            ext_interface = network.get('physnet_name').split("_")[1]
+            cmd1 = 'ssh -o StrictHostKeyChecking=no %s \
+                    "touch /etc/sysconfig/network-scripts/ifcfg-%s.%s"' \
+                    % (host_ip, ext_interface, network.get('vlan_id'))
+            cmd2 = 'echo -e "BOOTPROTO=static\nONBOOT=yes\nDEVICE=%s.%s\n'\
+                   'VLAN=yes" > /etc/sysconfig/network-scripts/ifcfg-%s.%s' \
+                   % (ext_interface, network.get('vlan_id'),
+                      ext_interface, network.get('vlan_id'))
+            cmd3 = "ssh -o StrictHostKeyChecking=no %s '%s'" % (host_ip, cmd2)
+
+            try:
+                exc_cmd1 = subprocess.check_output(cmd1,
+                                                   shell=True,
+                                                   stderr=subprocess.STDOUT)
+                exc_cmd2 = subprocess.check_output(cmd3,
+                                                   shell=True,
+                                                   stderr=subprocess.STDOUT)
+            except subprocess.CalledProcessError as e:
+                message = "config external interface vlan on %s failed!"\
+                          % host_ip
+                LOG.error(message + e)
+                raise exception.InstallException(message)
+            else:
+                LOG.info(_("config external interface vlan on %s successfully!"
+                           % host_ip))
+
+
+def _thread_bin(req, cluster_id, host, root_passwd, fp, host_name_ip_list,
                 host_prepare_file, docker_registry_ip, role_id_list):
     host_ip = host['mgtip']
-    cmd = '/var/lib/daisy/trustme.sh %s %s' % \
-          (host_ip, root_passwd)
-    daisy_cmn.subprocess_call(cmd, fp)
 
     config_nodes_hosts(host_name_ip_list, host_ip)
     cmd = 'ssh -o StrictHostKeyChecking=no %s \
@@ -387,7 +416,7 @@ def _thread_bin(req, host, root_passwd, fp, host_name_ip_list,
             shell=True, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
         message = "exec prepare.sh  in %s failed!" % host_ip
-        LOG.error(message)
+        LOG.error(message + e)
         fp.write(e.output.strip())
         raise exception.InstallException(message)
     else:
@@ -396,17 +425,17 @@ def _thread_bin(req, host, root_passwd, fp, host_name_ip_list,
         message = "Preparing for installation successful!"
         update_host_progress_to_db(req, role_id_list, host,
                                    kolla_state['INSTALLING'],
-                                   message, 10)
+                                   message, 20)
 
 
-def thread_bin(req, host, root_passwd, fp, host_name_ip_list,
+def thread_bin(req, cluster_id, host, root_passwd, fp, host_name_ip_list,
                host_prepare_file, docker_registry_ip, role_id_list):
     try:
-        _thread_bin(req, host, root_passwd, fp, host_name_ip_list,
+        _thread_bin(req, cluster_id, host, root_passwd, fp, host_name_ip_list,
                     host_prepare_file, docker_registry_ip, role_id_list)
     except Exception as e:
         message = "Prepare for installation failed!"
-        LOG.error(message)
+        LOG.error(message + e)
         update_host_progress_to_db(req, role_id_list, host,
                                    kolla_state['INSTALL_FAILED'],
                                    message)
@@ -479,6 +508,7 @@ class KOLLAInstallTask(Thread):
             raise exception.InstallException(self.message)
 
         root_passwd = 'ossdbg1'
+        threads_net = []
         for mgnt_ip in self.mgt_ip_list:
             check_hosts_id = _get_hosts_id_by_mgnt_ips(self.req,
                                                        self.cluster_id,
@@ -486,10 +516,29 @@ class KOLLAInstallTask(Thread):
             is_ssh_host = daisy_cmn._judge_ssh_host(self.req,
                                                     check_hosts_id[0])
             if not is_ssh_host:
-                LOG.info(_("Begin to config network\
-                            on %s" % mgnt_ip))
+                cmd = '/var/lib/daisy/trustme.sh %s %s' % \
+                      (mgnt_ip, root_passwd)
+                daisy_cmn.subprocess_call(cmd)
+                LOG.info(_("Begin to config network on %s" % mgnt_ip))
                 ssh_host_info = {'ip': mgnt_ip, 'root_pwd': root_passwd}
-                api_cmn.config_network_new(ssh_host_info, 'kolla')
+                configure_external_interface_vlan(self.req,
+                                                  self.cluster_id,
+                                                  mgnt_ip)
+
+                t_net = threading.Thread(target=api_cmn.config_network_new,
+                                         args=(ssh_host_info, 'kolla'))
+                t_net.setDaemon(True)
+                t_net.start()
+                threads_net.append(t_net)
+        try:
+            LOG.info(_("config network threads"
+                       " have started, please waiting...."))
+            for t_net in threads_net:
+                t_net.join()
+        except:
+            LOG.error("join config network "
+                      "thread %s failed!" % t_net)
+            #api_cmn.config_network_new(ssh_host_info, 'kolla')
 
         time.sleep(20)
 
@@ -498,15 +547,15 @@ class KOLLAInstallTask(Thread):
         self.message = "Begin install"
         update_all_host_progress_to_db(self.req, role_id_list,
                                        host_id_list, kolla_state['INSTALLING'],
-                                       self.message, 0)
+                                       self.message, 10)
 
         docker_registry_ip = kolla_cmn._get_local_ip()
         with open(self.log_file, "w+") as fp:
             threads = []
             for host in hosts_list:
                 t = threading.Thread(target=thread_bin,
-                                     args=(self.req, host, root_passwd, fp,
-                                           host_name_ip_list,
+                                     args=(self.req, self.cluster_id, host,
+                                           root_passwd, fp, host_name_ip_list,
                                            self.host_prepare_file,
                                            docker_registry_ip, role_id_list))
                 t.setDaemon(True)
@@ -552,7 +601,7 @@ class KOLLAInstallTask(Thread):
             update_all_host_progress_to_db(self.req, role_id_list,
                                            host_id_list,
                                            kolla_state['INSTALLING'],
-                                           self.message, 15)
+                                           self.message, 25)
 
             # always call generate_kolla_config_file after version_load()
             # TODO: re-config docker registry server based upon return value of
@@ -589,7 +638,7 @@ class KOLLAInstallTask(Thread):
                 update_all_host_progress_to_db(self.req, role_id_list,
                                                host_id_list,
                                                kolla_state['INSTALLING'],
-                                               self.message, 20)
+                                               self.message, 30)
             LOG.info(_("kolla-ansible begin to deploy openstack ..."))
             cmd = subprocess.Popen(
                 'cd %s/kolla-ansible && ./tools/kolla-ansible deploy -i '
