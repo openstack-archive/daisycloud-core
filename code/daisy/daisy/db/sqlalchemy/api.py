@@ -439,7 +439,7 @@ def according_to_cidr_distribution_ip(cluster_id, network_plane_name,
     network_type = query_network_plane_info.values()[2]
     segmentation_type = query_network_plane_info.values()[3]
     network_gw = query_network_plane_info.values()[4]
-    if network_type not in ['EXTERNAL']:
+    if network_type not in []:
         if network_type == 'DATAPLANE' and segmentation_type == 'vlan':
             return distribution_ip
         available_ip_list = get_ip_with_equal_cidr(
