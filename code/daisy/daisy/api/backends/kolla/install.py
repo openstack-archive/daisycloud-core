@@ -344,7 +344,37 @@ def _get_hosts_id_by_mgnt_ips(req, cluster_id, ips):
     return hosts_id_needed
 
 
-def _thread_bin(req, host, root_passwd, fp, host_name_ip_list,
+def configure_external_interface_vlan(req, cluster_id, host_ip, fp):
+    cluster_networks = daisy_cmn.get_cluster_networks_detail(req, cluster_id)
+    for network in cluster_networks:
+        #vlans_id.update({network.get('network_type'): network.get('vlan_id')})
+        if 'EXTERNAL' in network.get('network_type') and \
+                network.get('vlan_id') != None:
+            ext_interface = network.get('physnet_name').split("_")[1]
+            cmd1 = 'ssh -o StrictHostKeyChecking=no %s \
+                    "touch /etc/sysconfig/network-scripts/ifcfg-%s.%s"' \
+                % (host_ip, ext_interface, network.get('vlan_id'))
+            cmd2 = 'echo -e "BOOTPROTO=static\n'\
+                   'ONBOOT=yes\nDEVICE=%s.%s\n'\
+                   'VLAN=yes" > '\
+                   '/etc/sysconfig/network-scripts/ifcfg-%s.%s' \
+                   % (ext_interface, network.get('vlan_id'),
+                      ext_interface, network.get('vlan_id'))
+            cmd3 = "ssh -o StrictHostKeyChecking=no %s '%s'" % (host_ip, cmd2)
+            cmd4 = "ssh -o StrictHostKeyChecking=no %s \
+                    systemctl restart network" % host_ip
+            try:
+                daisy_cmn.subprocess_call(cmd1, fp)
+                daisy_cmn.subprocess_call(cmd3, fp)
+                daisy_cmn.subprocess_call(cmd4, fp)
+            except:
+                msg = "something wrong with "\
+                      "config external interface vlan"
+                LOG.error(msg)
+                fp.write(msg)
+
+
+def _thread_bin(req, cluster_id, host, root_passwd, fp, host_name_ip_list,
                 host_prepare_file, docker_registry_ip, role_id_list):
     host_ip = host['mgtip']
     cmd = '/var/lib/daisy/trustme.sh %s %s' % \
@@ -379,6 +409,8 @@ def _thread_bin(req, host, root_passwd, fp, host_name_ip_list,
           (host_ip, host_prepare_file)
     daisy_cmn.subprocess_call(cmd, fp)
 
+    configure_external_interface_vlan(req, cluster_id, host_ip, fp)
+
     try:
         exc_result = subprocess.check_output(
             'ssh -o StrictHostKeyChecking='
@@ -387,7 +419,7 @@ def _thread_bin(req, host, root_passwd, fp, host_name_ip_list,
             shell=True, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
         message = "exec prepare.sh  in %s failed!" % host_ip
-        LOG.error(message)
+        LOG.error(message + e)
         fp.write(e.output.strip())
         raise exception.InstallException(message)
     else:
@@ -399,14 +431,14 @@ def _thread_bin(req, host, root_passwd, fp, host_name_ip_list,
                                    message, 10)
 
 
-def thread_bin(req, host, root_passwd, fp, host_name_ip_list,
+def thread_bin(req, cluster_id, host, root_passwd, fp, host_name_ip_list,
                host_prepare_file, docker_registry_ip, role_id_list):
     try:
-        _thread_bin(req, host, root_passwd, fp, host_name_ip_list,
+        _thread_bin(req, cluster_id, host, root_passwd, fp, host_name_ip_list,
                     host_prepare_file, docker_registry_ip, role_id_list)
     except Exception as e:
         message = "Prepare for installation failed!"
-        LOG.error(message)
+        LOG.error(message + e)
         update_host_progress_to_db(req, role_id_list, host,
                                    kolla_state['INSTALL_FAILED'],
                                    message)
@@ -505,8 +537,8 @@ class KOLLAInstallTask(Thread):
             threads = []
             for host in hosts_list:
                 t = threading.Thread(target=thread_bin,
-                                     args=(self.req, host, root_passwd, fp,
-                                           host_name_ip_list,
+                                     args=(self.req, self.cluster_id, host,
+                                           root_passwd, fp, host_name_ip_list,
                                            self.host_prepare_file,
                                            docker_registry_ip, role_id_list))
                 t.setDaemon(True)
