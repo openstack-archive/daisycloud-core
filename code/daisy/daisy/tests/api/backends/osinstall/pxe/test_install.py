@@ -208,7 +208,7 @@ class TestOsInstall(test.TestCase):
     @mock.patch("daisy.api.backends.common.get_local_deployment_ip")
     @mock.patch('daisy.api.backends.common.update_db_host_status')
     @mock.patch('daisy.api.backends.common.subprocess_call')
-    def test_upgrade_no_local_ip(self, mock_subprocess_call, 
+    def test_upgrade_no_local_ip(self, mock_subprocess_call,
                                  mock_update_db_host,
                                  mock_get_local_deployment_ip,
                                  mock_check_ping_hosts,
