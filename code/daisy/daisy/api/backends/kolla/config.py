@@ -14,12 +14,10 @@
 #    under the License.
 
 import re
-import os
 import yaml
 import subprocess
 from oslo_log import log as logging
 from daisy import i18n
-from Crypto.PublicKey import RSA
 import daisy.registry.client.v1.api as registry
 import daisy.api.backends.common as daisy_cmn
 
