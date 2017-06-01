@@ -72,7 +72,7 @@ def _retry_on_deadlock(exc):
     """Decorator to retry a DB API call if Deadlock was received."""
 
     if isinstance(exc, db_exception.DBDeadlock):
-        LOG.warn(_LW("Deadlock detected. Retrying..."))
+        LOG.warning(_LW("Deadlock detected. Retrying..."))
         return True
     return False
 
@@ -352,7 +352,7 @@ def check_ip_ranges(ip_ranges_one,available_ip_list):
             if inter_tmp > ip_ranges_end_inter:
                 msg = "warning:The IP address assigned \
                         by IP ranges is already insufficient."
-                LOG.warn(msg)
+                LOG.warning(msg)
                 break
             else:
                 return [True, ip_tmp]
@@ -3193,7 +3193,7 @@ def _paginate_query(query, model, limit, sort_keys, marker=None,
     if 'id' not in sort_keys:
         # TODO(justinsb): If this ever gives a false-positive, check
         # the actual primary key, rather than assuming its id
-        LOG.warn(_LW('Id not in sort_keys; is sort_keys unique?'))
+        LOG.warning(_LW('Id not in sort_keys; is sort_keys unique?'))
 
     assert(not (sort_dir and sort_dirs))
 

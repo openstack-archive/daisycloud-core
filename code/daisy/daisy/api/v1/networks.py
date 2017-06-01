@@ -312,7 +312,7 @@ class Controller(controller.BaseController):
                 msg = (
                     _("When ip range was specified, the CIDR parameter "
                       "can not be empty."))
-                LOG.warn(msg)
+                LOG.warning(msg)
                 raise HTTPForbidden(msg)
             else:
                 ip_ranges = eval(network_meta['ip_ranges'])
@@ -325,7 +325,7 @@ class Controller(controller.BaseController):
                             msg = (
                                 _("IP range was not start with 'start:' or "
                                   "end with 'end:'."))
-                            LOG.warn(msg)
+                            LOG.warning(msg)
                             raise HTTPForbidden(msg)
                         ip_start = ip_pair['start']
                         ip_end = ip_pair['end']
@@ -389,14 +389,14 @@ class Controller(controller.BaseController):
         except exception.NotFound as e:
             msg = (_("Failed to find network to delete: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPNotFound(explanation=msg,
                                request=req,
                                content_type="text/plain")
         except exception.Forbidden as e:
             msg = (_("Forbidden to delete network: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPForbidden(explanation=msg,
                                 request=req,
                                 content_type="text/plain")
@@ -404,7 +404,7 @@ class Controller(controller.BaseController):
             msg = (_("Network %(id)s could not be deleted "
                      "because it is in use: "
                      "%(exc)s") % {"id": id, "exc": utils.exception_to_str(e)})
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPConflict(explanation=msg,
                                request=req,
                                content_type="text/plain")
@@ -604,7 +604,7 @@ class Controller(controller.BaseController):
                 msg = (
                     _("When ip range was specified, "
                       "the CIDR parameter can not be empty."))
-                LOG.warn(msg)
+                LOG.warning(msg)
                 raise HTTPForbidden(msg)
             ip_ranges = eval(network_meta['ip_ranges'])
             if dataplane_type != 'DATAPLANE':
@@ -614,7 +614,7 @@ class Controller(controller.BaseController):
                         msg = (
                             _("IP range was not start with 'start:' or "
                               "end with 'end:'."))
-                        LOG.warn(msg)
+                        LOG.warning(msg)
                         raise HTTPForbidden(msg)
                     ip_start = ip_pair['start']
                     ip_end = ip_pair['end']
@@ -637,22 +637,22 @@ class Controller(controller.BaseController):
         except exception.Invalid as e:
             msg = (_("Failed to update network metadata. Got error: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPBadRequest(explanation=msg,
                                  request=req,
                                  content_type="text/plain")
         except exception.NotFound as e:
             msg = (_("Failed to find network to update: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPNotFound(explanation=msg,
                                request=req,
                                content_type="text/plain")
         except exception.Forbidden as e:
-            LOG.warn(e)
+            LOG.warning(e)
             raise HTTPForbidden(e)
         except (exception.Conflict, exception.Duplicate) as e:
-            LOG.warn(utils.exception_to_str(e))
+            LOG.warning(utils.exception_to_str(e))
             raise HTTPConflict(body=_('Network operation conflicts'),
                                request=req,
                                content_type='text/plain')

@@ -365,14 +365,14 @@ class Controller(controller.BaseController):
         except exception.NotFound as e:
             msg = (_("Failed to find service_disk to delete: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPNotFound(explanation=msg,
                                request=req,
                                content_type="text/plain")
         except exception.Forbidden as e:
             msg = (_("Forbidden to delete service_disk: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPForbidden(explanation=msg,
                                 request=req,
                                 content_type="text/plain")
@@ -380,7 +380,7 @@ class Controller(controller.BaseController):
             msg = (_("service_disk %(id)s could not be deleted "
                      "because it is in use: "
                      "%(exc)s") % {"id": id, "exc": utils.exception_to_str(e)})
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPConflict(explanation=msg,
                                request=req,
                                content_type="text/plain")
@@ -398,26 +398,26 @@ class Controller(controller.BaseController):
         except exception.Invalid as e:
             msg = (_("Failed to update role metadata. Got error: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPBadRequest(explanation=msg,
                                  request=req,
                                  content_type="text/plain")
         except exception.NotFound as e:
             msg = (_("Failed to find role to update: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPNotFound(explanation=msg,
                                request=req,
                                content_type="text/plain")
         except exception.Forbidden as e:
             msg = (_("Forbidden to update role: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPForbidden(explanation=msg,
                                 request=req,
                                 content_type="text/plain")
         except (exception.Conflict, exception.Duplicate) as e:
-            LOG.warn(utils.exception_to_str(e))
+            LOG.warning(utils.exception_to_str(e))
             raise HTTPConflict(body=_('Host operation conflicts'),
                                request=req,
                                content_type='text/plain')
@@ -593,14 +593,14 @@ class Controller(controller.BaseController):
         except exception.NotFound as e:
             msg = (_("Failed to find cinder volume to delete: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPNotFound(explanation=msg,
                                request=req,
                                content_type="text/plain")
         except exception.Forbidden as e:
             msg = (_("Forbidden to delete cinder volume: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPForbidden(explanation=msg,
                                 request=req,
                                 content_type="text/plain")
@@ -608,7 +608,7 @@ class Controller(controller.BaseController):
             msg = (_("cindre volume %(id)s could not "
                      "be deleted because it is in use: "
                      "%(exc)s") % {"id": id, "exc": utils.exception_to_str(e)})
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPConflict(explanation=msg,
                                request=req,
                                content_type="text/plain")
@@ -682,26 +682,26 @@ class Controller(controller.BaseController):
             msg = (
                 _("Failed to update cinder_volume metadata. Got error: %s") %
                 utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPBadRequest(explanation=msg,
                                  request=req,
                                  content_type="text/plain")
         except exception.NotFound as e:
             msg = (_("Failed to find cinder_volume to update: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPNotFound(explanation=msg,
                                request=req,
                                content_type="text/plain")
         except exception.Forbidden as e:
             msg = (_("Forbidden to update cinder_volume: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPForbidden(explanation=msg,
                                 request=req,
                                 content_type="text/plain")
         except (exception.Conflict, exception.Duplicate) as e:
-            LOG.warn(utils.exception_to_str(e))
+            LOG.warning(utils.exception_to_str(e))
             raise HTTPConflict(body=_('cinder_volume operation conflicts'),
                                request=req,
                                content_type='text/plain')
@@ -838,21 +838,21 @@ class Controller(controller.BaseController):
             msg = (
                 _("Failed to update optical_switch metadata. "
                   "Got error: %s") % utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPBadRequest(explanation=msg,
                                  request=req,
                                  content_type="text/plain")
         except exception.NotFound as e:
             msg = (_("Failed to find optical_switch to update: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPNotFound(explanation=msg,
                                request=req,
                                content_type="text/plain")
         except exception.Forbidden as e:
             msg = (_("Forbidden to update cinder_volume: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPForbidden(explanation=msg,
                                 request=req,
                                 content_type="text/plain")
@@ -878,14 +878,14 @@ class Controller(controller.BaseController):
         except exception.NotFound as e:
             msg = (_("Failed to find optical switch to delete: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPNotFound(explanation=msg,
                                request=req,
                                content_type="text/plain")
         except exception.Forbidden as e:
             msg = (_("Forbidden to delete optical switch: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPForbidden(explanation=msg,
                                 request=req,
                                 content_type="text/plain")

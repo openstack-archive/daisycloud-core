@@ -132,7 +132,7 @@ class Controller(controller.BaseController):
                           % pxe_server_ip
         (status, output) = commands.getstatusoutput(if_addr_nic_cmd)
         if status:
-            LOG.warn("get_pxe_server_port error %s." % status)
+            LOG.warning("get_pxe_server_port error %s." % status)
             return
         return str(output).split(":")[0].split(".")[0]
 
