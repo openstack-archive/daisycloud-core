@@ -278,7 +278,7 @@ def get_endpoint(service_catalog, service_type='image', endpoint_region=None,
             s_type = service['type']
         except KeyError:
             msg = _('Encountered service with no "type": %s') % s_type
-            LOG.warn(msg)
+            LOG.warning(msg)
             continue
 
         if s_type == service_type:

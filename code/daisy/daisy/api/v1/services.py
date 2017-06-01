@@ -160,14 +160,14 @@ class Controller(controller.BaseController):
         except exception.NotFound as e:
             msg = (_("Failed to find service to delete: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPNotFound(explanation=msg,
                                request=req,
                                content_type="text/plain")
         except exception.Forbidden as e:
             msg = (_("Forbidden to delete service: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPForbidden(explanation=msg,
                                 request=req,
                                 content_type="text/plain")
@@ -175,7 +175,7 @@ class Controller(controller.BaseController):
             msg = (_("service %(id)s could not be deleted "
                      "because it is in use: "
                      "%(exc)s") % {"id": id, "exc": utils.exception_to_str(e)})
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPConflict(explanation=msg,
                                request=req,
                                content_type="text/plain")
@@ -250,26 +250,26 @@ class Controller(controller.BaseController):
         except exception.Invalid as e:
             msg = (_("Failed to update service metadata. Got error: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPBadRequest(explanation=msg,
                                  request=req,
                                  content_type="text/plain")
         except exception.NotFound as e:
             msg = (_("Failed to find service to update: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPNotFound(explanation=msg,
                                request=req,
                                content_type="text/plain")
         except exception.Forbidden as e:
             msg = (_("Forbidden to update service: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPForbidden(explanation=msg,
                                 request=req,
                                 content_type="text/plain")
         except (exception.Conflict, exception.Duplicate) as e:
-            LOG.warn(utils.exception_to_str(e))
+            LOG.warning(utils.exception_to_str(e))
             raise HTTPConflict(body=_('Host operation conflicts'),
                                request=req,
                                content_type='text/plain')

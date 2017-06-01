@@ -1204,7 +1204,7 @@ def upgrade(self, req, cluster_id, version_id, version_patch_id,
             target_host_os = _get_host_os_version(
                 host_ip, host_meta['root_pwd'])
             if _cmp_os_version(update_file, target_host_os, host_ip) == -1:
-                LOG.warn(
+                LOG.warning(
                     _("new os version is lower than or equal to "
                         "host %s, don't need to upgrade!" % host_ip))
                 host_meta['messages'] = "New os version is lower than" \
@@ -1264,7 +1264,7 @@ def upgrade_os(req, version_id, version_patch_id, update_file,
             for t in threads:
                 t.join()
         except:
-            LOG.warn(_("Join upgrade thread %s failed!" % t))
+            LOG.warning(_("Join upgrade thread %s failed!" % t))
         else:
             for host_info in upgrade_hosts:
                 host = host_info.values()[0]

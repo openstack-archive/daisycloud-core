@@ -75,7 +75,7 @@ This package contains Python modules and documentation.
 %files -n python-ironic-discoverd
 %doc README.rst CONTRIBUTING.rst
 %license LICENSE
-%{python_sitelib}/ironic_discoverd*
+%{python2_sitelib}/ironic_discoverd*
 
 
 %description
@@ -141,6 +141,5 @@ This package contains main executable and service files.
 * Thu Oct 16 2014 Dmitry Tantsur <dtantsur@redhat.com> - 0.2.1-1
 - Upstream bugfix release
 
-* Wed Oct 8 2014 Dmitry Tantsur <dtantsur@redhat.com> - 0.2.0-1
-- Initial package build
+* Wed Oct 8 2014 Dmitry Tantsur <dtantsur@redhat.com> - 0.2.0-1- Initial package build
 

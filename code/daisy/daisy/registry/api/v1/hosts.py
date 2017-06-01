@@ -70,12 +70,12 @@ class Controller(object):
             return self.db_api.host_get_all(context, filters=filters,
                                             **params)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. Host %(id)s could not be "
+            LOG.warning(_LW("Invalid marker. Host %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
             msg = _("Invalid marker. Host could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied to host %(id)s but returning "
+            LOG.warning(_LW("Access denied to host %(id)s but returning "
                          "'not found'") % {'id': params.get('marker')})
             msg = _("Invalid marker. Host could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
@@ -89,12 +89,12 @@ class Controller(object):
             return self.db_api.cluster_get_all(context, filters=filters,
                                                **params)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. Cluster %(id)s could not be "
+            LOG.warning(_LW("Invalid marker. Cluster %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
             msg = _("Invalid marker. Cluster could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied to cluster %(id)s but returning "
+            LOG.warning(_LW("Access denied to cluster %(id)s but returning "
                          "'not found'") % {'id': params.get('marker')})
             msg = _("Invalid marker. Cluster could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
@@ -307,7 +307,7 @@ class Controller(object):
             return host_data
         except exception.Duplicate:
             msg = _("node with identifier %s already exists!") % host_id
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to add node metadata. "
@@ -514,12 +514,12 @@ class Controller(object):
                 req.context, filters)
             return host_interfaces
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. template %(id)s could not be "
+            LOG.warning(_LW("Invalid marker. template %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
             msg = _("Invalid marker. template could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied to template %(id)s but returning "
+            LOG.warning(_LW("Access denied to template %(id)s but returning "
                          "'not found'") % {'id': params.get('marker')})
             msg = _("Invalid marker. template could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
@@ -535,14 +535,14 @@ class Controller(object):
                 req.context,
                 interface_id, network_id)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. Assigned_network with interface %("
+            LOG.warning(_LW("Invalid marker. Assigned_network with interface %("
                          "interface_id)s and network %(network_id)s"
                          " could not be found.") % {
                 'interface_id': interface_id, 'network_id': network_id})
             msg = _("Invalid marker.  Assigned_network could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied for assigned_network with interface %("
+            LOG.warning(_LW("Access denied for assigned_network with interface %("
                          "interface_id)s "
                          "and network %(network_id)s") % {
                 'interface_id': interface_id, 'network_id': network_id})
@@ -592,7 +592,7 @@ class Controller(object):
         except exception.Duplicate:
             msg = _("node with identifier %s already exists!") % \
                 discover_host_id
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to add node metadata. "
@@ -646,12 +646,12 @@ class Controller(object):
             nodes = self.db_api.discover_host_get_all(req.context,
                                                       **params)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. Host %(id)s could not be "
+            LOG.warning(_LW("Invalid marker. Host %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
             msg = _("Invalid marker. Host could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied to host %(id)s but returning "
+            LOG.warning(_LW("Access denied to host %(id)s but returning "
                          "'not found'") % {'id': params.get('marker')})
             msg = _("Invalid marker. Host could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
@@ -787,7 +787,7 @@ class Controller(object):
             return cluster_data
         except exception.Duplicate:
             msg = _("cluster with identifier %s already exists!") % cluster_id
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to add cluster metadata. "
@@ -974,7 +974,7 @@ class Controller(object):
         except exception.Duplicate:
             msg = (_("component with identifier %s already exists!")
                    % component_id)
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to add component metadata. "
@@ -1025,12 +1025,12 @@ class Controller(object):
             return self.db_api.component_get_all(context, filters=filters,
                                                  **params)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. Project %(id)s could not be "
+            LOG.warning(_LW("Invalid marker. Project %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
             msg = _("Invalid marker. Project could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied to component %(id)s but returning "
+            LOG.warning(_LW("Access denied to component %(id)s but returning "
                          "'not found'") % {'id': params.get('marker')})
             msg = _("Invalid marker. Project could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
@@ -1168,7 +1168,7 @@ class Controller(object):
             return service_data
         except exception.Duplicate:
             msg = _("service with identifier %s already exists!") % service_id
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to add service metadata. "
@@ -1219,12 +1219,12 @@ class Controller(object):
             return self.db_api.service_get_all(context, filters=filters,
                                                **params)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. Project %(id)s could not be "
+            LOG.warning(_LW("Invalid marker. Project %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
             msg = _("Invalid marker. Project could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied to service %(id)s but returning "
+            LOG.warning(_LW("Access denied to service %(id)s but returning "
                          "'not found'") % {'id': params.get('marker')})
             msg = _("Invalid marker. Project could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
@@ -1362,7 +1362,7 @@ class Controller(object):
             return role_data
         except exception.Duplicate:
             msg = _("role with identifier %s already exists!") % role_id
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to add role metadata. "
@@ -1413,12 +1413,12 @@ class Controller(object):
             return self.db_api.role_get_all(context, filters=filters,
                                             **params)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. Project %(id)s could not be "
+            LOG.warning(_LW("Invalid marker. Project %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
             msg = _("Invalid marker. Project could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied to role %(id)s but returning "
+            LOG.warning(_LW("Access denied to role %(id)s but returning "
                          "'not found'") % {'id': params.get('marker')})
             msg = _("Invalid marker. Project could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)

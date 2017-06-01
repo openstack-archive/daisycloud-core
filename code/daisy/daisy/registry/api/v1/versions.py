@@ -64,12 +64,12 @@ class Controller(object):
                                                filters=filters,
                                                **params)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. version %(id)s could not be "
+            LOG.warning(_LW("Invalid marker. version %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
             msg = _("Invalid marker. version could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied to version %(id)s but returning "
+            LOG.warning(_LW("Access denied to version %(id)s but returning "
                          "'not found'") % {'id': params.get('marker')})
             msg = _("Invalid marker. version could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
@@ -246,7 +246,7 @@ class Controller(object):
         except exception.Duplicate:
             msg = (_("version with identifier %s already exists!") %
                    version_data['name'])
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to add version metadata. "
