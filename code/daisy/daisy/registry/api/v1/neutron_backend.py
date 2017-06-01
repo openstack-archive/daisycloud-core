@@ -211,7 +211,7 @@ class Controller(object):
             return neutron_backend_data
         except exception.Duplicate:
             msg = _("neutron_backend with identifier %s already exists!") % id
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to add neutron_backend metadata. "
@@ -254,7 +254,7 @@ class Controller(object):
             return neutron_backend_data
         except exception.Duplicate:
             msg = _("neutron_backend with identifier %s already exists!") % id
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to update neutron_backend "
@@ -308,14 +308,14 @@ class Controller(object):
             return self.db_api.neutron_backend_list(context, filters=filters,
                                                     **params)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. neutron_backend %(id)s could not be "
-                         "found.") % {'id': params.get('marker')})
+            LOG.warning(_LW("Invalid marker. neutron_backend %(id)s not"
+                            "found.") % {'id': params.get('marker')})
             msg = _("Invalid marker. neutron_backend could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied to neutron_backend "
-                         "%(id)s but returning "
-                         "'not found'") % {'id': params.get('marker')})
+            LOG.warning(_LW("Access denied to neutron_backend "
+                            "%(id)s but returning "
+                            "'not found'") % {'id': params.get('marker')})
             msg = _("Invalid marker. neutron_backend could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except Exception:
