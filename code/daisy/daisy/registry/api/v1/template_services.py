@@ -60,14 +60,14 @@ class Controller(object):
                                                         filters=filters,
                                                         **params)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. template function %(id)s could not "
-                         "be found.") % {'id': params.get('marker')})
+            LOG.warning(_LW("Invalid marker.template function %(id)s not "
+                            "found.") % {'id': params.get('marker')})
             msg = _("Invalid marker. template function could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied to template func %(id)s but"
-                         "returning 'not found'") %
-                     {'id': params.get('marker')})
+            LOG.warning(_LW("Access denied to template func %(id)s but"
+                            "returning 'not found'") %
+                        {'id': params.get('marker')})
             msg = _("Invalid marker. template function could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except Exception:

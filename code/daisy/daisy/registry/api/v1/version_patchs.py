@@ -187,13 +187,13 @@ class Controller(object):
                                                        filters=filters,
                                                        **params)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker patch history %(id)s could not be "
-                         "found.") % {'id': params.get('marker')})
+            LOG.warning(_LW("Invalid marker patch history %(id)s could not be "
+                            "found.") % {'id': params.get('marker')})
             msg = _("Invalid marker. Host could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied to patch history %(id)s but returning "
-                         "'not found'") % {'id': params.get('marker')})
+            LOG.warning(_LW("Access denied patch history %(id)s but returned "
+                            "'not found'") % {'id': params.get('marker')})
             msg = _("Invalid marker. Host could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except Exception:
@@ -234,7 +234,7 @@ class Controller(object):
         except exception.Duplicate:
             msg = (_("version patch with identifier %s"
                      " already exists!") % version_patch_id)
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to add version patch metadata. "
@@ -386,7 +386,7 @@ class Controller(object):
         except exception.Duplicate:
             msg = (_("patch history with identifier %s already exists!") %
                    patch_history_meta['patch_name'])
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to add patch history metadata. "

@@ -51,9 +51,9 @@ def get_network_from_name(name, compute_networks_client):
             else:
                 msg = "Network with name: %s not found" % name
                 if caller:
-                    LOG.warn('(%s) %s' % (caller, msg))
+                    LOG.warning('(%s) %s' % (caller, msg))
                 else:
-                    LOG.warn(msg)
+                    LOG.warning(msg)
                 raise lib_exc.NotFound()
             # To be consistent with network isolation, add name is only
             # label is available
@@ -125,6 +125,6 @@ def set_networks_kwarg(network, kwargs=None):
         if 'id' in network.keys():
             params.update({"networks": [{'uuid': network['id']}]})
         else:
-            LOG.warn('The provided network dict: %s was invalid and did not '
+            LOG.warning('provided network dict: %s was invalid, did not '
                      ' contain an id' % network)
     return params

@@ -245,7 +245,7 @@ class Enforcer(object):
                 try:
                     path = self._get_policy_path(path)
                 except cfg.ConfigFilesNotFoundError:
-                    LOG.warn(_LW("Can not find policy directories %s"), path)
+                    LOG.warning(_LW("Can not find policy directories %s"), path)
                     continue
                 self._walk_through_policy_directory(path,
                                                     self._load_policy_file,
