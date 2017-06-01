@@ -365,7 +365,7 @@ class Controller(controller.BaseController):
             os_install_thread.start()
             return {"status": "begin install"}
         else:
-            LOG.warn(_("the cluster %s is installing" % cluster_id))
+            LOG.warning(_("the cluster %s is installing" % cluster_id))
             return {"status": "Cluster %s is already installing" % cluster_id}
 
     def _get_uninstall_hosts(self, req, install_meta):
