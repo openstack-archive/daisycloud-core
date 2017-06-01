@@ -113,7 +113,7 @@ class API(driver.DeploymentDriver):
                                            discover_host_meta)
                 msg = (_("Do trustme.sh %s failed!" %
                          discover_host_meta['ip']))
-                LOG.warn(_(msg))
+                LOG.warning(_(msg))
                 fp.write(msg)
             elif 'is unreachable' in trustme_result:
                 # when host ip was unreachable
@@ -126,7 +126,7 @@ class API(driver.DeploymentDriver):
                                            discover_host_meta)
                 msg = (_("Do trustme.sh %s failed!" %
                          discover_host_meta['ip']))
-                LOG.warn(_(msg))
+                LOG.warning(_(msg))
         except subprocess.CalledProcessError as e:
             update_info = {}
             update_info['status'] = 'DISCOVERY_FAILED'

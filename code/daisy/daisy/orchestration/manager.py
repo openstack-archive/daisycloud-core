@@ -49,11 +49,11 @@ class OrchestrationManager():
         host_list = [host for host in host_list_generator if hasattr(
             host, "role_status") and host.role_status == "active"]
         if not host_list:
-            LOG.warn("No installed active node in cluster")
+            LOG.warning("No installed active node in cluster")
         host_list = [host for host in host_list
                      if host.discover_mode == "PXE"]
         if not host_list:
-            LOG.warn("No pxe discover successful node in cluster")
+            LOG.warning("No pxe discover successful node in cluster")
         for host in host_list:
             host_info = daisy_client.hosts.get(host.id)
             if hasattr(host_info, "role") and ["COMPUTER"] == host_info.role \
@@ -97,7 +97,7 @@ class OrchestrationManager():
             host_info.virtio_queue_size = active_compute_host.virtio_queue_size
             host_info.dvs_config_type = active_compute_host.dvs_config_type
         else:
-            LOG.warn("No installed active computer node in cluster")
+            LOG.warning("No installed active computer node in cluster")
             return None
 
         if active_compute_host:
@@ -144,19 +144,19 @@ class OrchestrationManager():
             if new_interface_count != compute_interface_count:
                 msg = "%s and new host interface number are different" %\
                       (compute_host.name)
-                LOG.warn(msg)
+                LOG.warning(msg)
                 continue
             if host_info.cpu['total'] != compute_host.cpu['total']:
                 msg = "%s and new host cpu total numbers are different" %\
                       (compute_host.name)
-                LOG.warn(msg)
+                LOG.warning(msg)
                 continue
             compute_numa_cpus = utils.get_numa_node_cpus(
                 (compute_host.cpu or {}))
             if compute_numa_cpus != host_numa_cpus:
                 msg = "%s and new host numa cpus are different" %\
                       compute_host.name
-                LOG.warn(msg)
+                LOG.warning(msg)
                 continue
             active_compu_memory_str = str(compute_host.memory['total'])
             active_compu_memory_size =\
@@ -164,7 +164,7 @@ class OrchestrationManager():
             # host memory can't be lower than the installed host memory size-1G
             if memory_size_b_int < active_compu_memory_size - 1024 * 1024:
                 msg = "new host memory is lower than %s" % compute_host.name
-                LOG.warn(msg)
+                LOG.warning(msg)
                 continue
             is_isomorphic = self._check_interface_isomorphic(
                 new_interfaces, compute_host)
@@ -190,13 +190,13 @@ class OrchestrationManager():
                         and (interface['max_speed'] != max_speed):
                     msg = "%s and new host %s max speed are different" \
                           % (active_host.name, interface['name'])
-                    LOG.warn(msg)
+                    LOG.warning(msg)
                     return False
                 elif (interface['name'] == compute_interface['name']) and\
                         (interface['pci'] != compute_interface['pci']):
                     msg = "%s and new host %s pci are different" \
                           % (active_host.name, interface['name'])
-                    LOG.warn(msg)
+                    LOG.warning(msg)
                     return False
             if not is_isomorphic:
                 return False
