@@ -227,14 +227,14 @@ class Controller(controller.BaseController):
         except exception.NotFound as e:
             msg = (_("Failed to find config to delete: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPNotFound(explanation=msg,
                                request=req,
                                content_type="text/plain")
         except exception.Forbidden as e:
             msg = (_("Forbidden to delete config: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPForbidden(explanation=msg,
                                 request=req,
                                 content_type="text/plain")
@@ -242,7 +242,7 @@ class Controller(controller.BaseController):
             msg = (_("config %(id)s could not be "
                      "deleted because it is in use: "
                      "%(exc)s") % {"id": id, "exc": utils.exception_to_str(e)})
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPConflict(explanation=msg,
                                request=req,
                                content_type="text/plain")

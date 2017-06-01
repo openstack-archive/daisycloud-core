@@ -66,12 +66,12 @@ class Controller(object):
                                                filters=filters,
                                                **params)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. Network %(id)s could not be "
+            LOG.warning(_LW("Invalid marker. Network %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
             msg = _("Invalid marker. Network could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied to network %(id)s but returning "
+            LOG.warning(_LW("Access denied to network %(id)s but returning "
                          "'not found'") % {'id': params.get('marker')})
             msg = _("Invalid marker. Network could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
@@ -274,7 +274,7 @@ class Controller(object):
             return network_data
         except exception.Duplicate:
             msg = _("node with identifier %s already exists!") % network_id
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to add node metadata. "
