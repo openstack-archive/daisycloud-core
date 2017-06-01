@@ -233,7 +233,7 @@ class Controller(object):
             return service_disk_data
         except exception.Duplicate:
             msg = _("node with identifier %s already exists!") % id
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to add node metadata. "
@@ -359,12 +359,12 @@ class Controller(object):
             return self.db_api.service_disk_list(context, filters=filters,
                                                  **params)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. service_disk %(id)s could not be "
+            LOG.warning(_LW("Invalid marker. service_disk %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
             msg = _("Invalid marker. service_disk could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied to service_disk %(id)s but returning "
+            LOG.warning(_LW("Access denied to service_disk %(id)s but returning "
                          "'not found'") % {'id': params.get('marker')})
             msg = _("Invalid marker. service_disk could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
@@ -431,7 +431,7 @@ class Controller(object):
             return cinder_volume_data
         except exception.Duplicate:
             msg = _("cinder_volume with identifier %s already exists!") % id
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to add cinder_volume metadata. "
@@ -565,12 +565,12 @@ class Controller(object):
             return self.db_api.cinder_volume_list(context, filters=filters,
                                                   **params)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. cinder_volume %(id)s could not be "
+            LOG.warning(_LW("Invalid marker. cinder_volume %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
             msg = _("Invalid marker. cinder_volume could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied to cinder_volume %(id)s but returning "
+            LOG.warning(_LW("Access denied to cinder_volume %(id)s but returning "
                          "'not found'") % {'id': params.get('marker')})
             msg = _("Invalid marker. cinder_volume could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
@@ -584,14 +584,14 @@ class Controller(object):
             return self.db_api.optical_switch_list(context, filters=filters,
                                                    **params)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. optical switch %(id)s "
+            LOG.warning(_LW("Invalid marker. optical switch %(id)s "
                          "could not be found.") %
                      {'id': params.get('marker')})
             msg = _("Invalid marker. optical switch "
                     "could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied to optical_switch %(id)s "
+            LOG.warning(_LW("Access denied to optical_switch %(id)s "
                          "but returning 'not found'") %
                      {'id': params.get('marker')})
             msg = _("Invalid marker. optical_switch "

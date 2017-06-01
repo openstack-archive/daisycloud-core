@@ -202,7 +202,7 @@ class Controller(object):
             return hwm_data
         except exception.Duplicate:
             msg = _("hwm with identifier %s already exists!") % id
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to add hwm metadata. "
@@ -242,7 +242,7 @@ class Controller(object):
             return hwm_data
         except exception.Duplicate:
             msg = _("hwm with identifier %s already exists!") % id
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to update hwm metadata.Got error: %s") %
@@ -300,12 +300,12 @@ class Controller(object):
                 req.context, filters=filters, marker=marker, limit=limit,
                 sort_key=sort_key, sort_dir=sort_dir)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. hwm %(id)s could not be "
+            LOG.warning(_LW("Invalid marker. hwm %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
             msg = _("Invalid marker. hwm could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied to hwm %(id)s but returning "
+            LOG.warning(_LW("Access denied to hwm %(id)s but returning "
                          "'not found'") % {'id': params.get('marker')})
             msg = _("Invalid marker. hwm could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
