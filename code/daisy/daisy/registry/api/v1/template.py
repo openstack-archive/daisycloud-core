@@ -207,6 +207,7 @@ class Controller(object):
         if id and not utils.is_uuid_like(id):
             msg = _LI("Rejecting template creation request for "
                       "invalid template "
+
                       "id '%(bad_id)s'") % {'bad_id': id}
             LOG.info(msg)
             msg = _("Invalid template id format")
@@ -223,7 +224,7 @@ class Controller(object):
             return template_data
         except exception.Duplicate:
             msg = _("template with identifier %s already exists!") % id
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to add template metadata. "
@@ -266,7 +267,7 @@ class Controller(object):
         except exception.Duplicate:
             msg = _("template with identifier %s already exists!") % \
                 template_id
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to update template metadata. "
@@ -327,12 +328,12 @@ class Controller(object):
                                                 sort_key=sort_key,
                                                 sort_dir=sort_dir)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. template %(id)s could not be "
+            LOG.warning(_LW("Invalid marker. template %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
             msg = _("Invalid marker. template could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied to template %(id)s but returning "
+            LOG.warning(_LW("Access denied to template %(id)s but returning "
                          "'not found'") % {'id': params.get('marker')})
             msg = _("Invalid marker. template could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
@@ -421,7 +422,7 @@ class Controller(object):
             return template_data
         except exception.Duplicate:
             msg = _("node with identifier %s already exists!") % id
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to add node metadata. "
@@ -468,7 +469,7 @@ class Controller(object):
         except exception.Duplicate:
             msg = _("template with identifier %s already exists!") % \
                 template_id
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to update template metadata. "
@@ -533,12 +534,12 @@ class Controller(object):
                                                      sort_key=sort_key,
                                                      sort_dir=sort_dir)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. template %(id)s could not be "
+            LOG.warning(_LW("Invalid marker. template %(id)s could not be "
                          "found.") % {'id': params.get('marker')})
             msg = _("Invalid marker. template could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied to template %(id)s but returning "
+            LOG.warning(_LW("Access denied to template %(id)s but returning "
                          "'not found'") % {'id': params.get('marker')})
             msg = _("Invalid marker. template could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)

@@ -8,11 +8,10 @@ License:	ASL 2.0
 Group:		System Environment/Base
 URL:		https://pypi.python.org/pypi/ironic-discoverd
 
-Source0:	https://pypi.python.org/packages/source/i/ironic-discoverd/ironic-discoverd-%{version}.tar.gz
-Source1:	openstack-ironic-discoverd.service
-Source2:	openstack-ironic-discoverd-dnsmasq.service
-Source3:	dnsmasq.conf
-Patch0:	0001-default-database-location.patch
+Source0:        https://pypi.python.org/packages/source/i/ironic-discoverd/ironic-discoverd-%{version}.tar.gz
+Source1:        openstack-ironic-discoverd.service
+Source2:        openstack-ironic-discoverd-dnsmasq.service
+Source3:        dnsmasq.conf
 
 BuildArch:	noarch
 BuildRequires:	python-setuptools
@@ -75,7 +74,7 @@ This package contains Python modules and documentation.
 %files -n python-ironic-discoverd
 %doc README.rst CONTRIBUTING.rst
 %license LICENSE
-%{python_sitelib}/ironic_discoverd*
+%{python2_sitelib}/ironic_discoverd*
 
 
 %description
@@ -141,6 +140,5 @@ This package contains main executable and service files.
 * Thu Oct 16 2014 Dmitry Tantsur <dtantsur@redhat.com> - 0.2.1-1
 - Upstream bugfix release
 
-* Wed Oct 8 2014 Dmitry Tantsur <dtantsur@redhat.com> - 0.2.0-1
-- Initial package build
+* Wed Oct 8 2014 Dmitry Tantsur <dtantsur@redhat.com> - 0.2.0-1- Initial package build
 

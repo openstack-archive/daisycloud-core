@@ -76,11 +76,11 @@ class Controller(controller.BaseController):
 # req.context, cluster_id, host_id)
 #       except exception.NotFound:
 #           msg = _("Project with identifier %s not found") % cluster_id
-#           LOG.warn(msg)
+#           LOG.warning(msg)
 #           raise webob.exc.HTTPNotFound(msg)
 #       except exception.Forbidden:
 #           msg = _("Unauthorized project access")
-#           LOG.warn(msg)
+#           LOG.warning(msg)
 #           raise webob.exc.HTTPForbidden(msg)
 #       return dict(members=members)
 
