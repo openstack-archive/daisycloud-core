@@ -193,7 +193,7 @@ class Controller(controller.BaseController):
                     host_disk_size_m = host_disk_size_m + disk_size_m
             host_disk_except_os_disk_lists = host_disk_size_m - os_disk_m - \
                 swap_size_m - boot_partition_m - redundant_partiton_m
-        LOG.warn(
+        LOG.warning(
             '----start----host_disk_except_os_disk_lists: %s -----end--' %
             host_disk_except_os_disk_lists)
         return host_disk_except_os_disk_lists
@@ -203,7 +203,7 @@ class Controller(controller.BaseController):
         paras['db_lv_size'], paras['glance_lv_size'] , paras['disk_size']
         '''
         disk_size = paras.get('disk_size', None)
-        LOG.warn('--------disk_size:----- %s' % disk_size)
+        LOG.warning('--------disk_size:----- %s' % disk_size)
         if disk_size:
             disk_size_m = int(disk_size)
         else:
@@ -337,7 +337,7 @@ class Controller(controller.BaseController):
                 else:
                     argws['nova_lv_size'] = nova_lv_size
                 argws['disk_size'] = host_disk_db_glance_nova_size['disk_size']
-                LOG.warn(
+                LOG.warning(
                     '--------host(%s) check_host_validity argws:----- %s' %
                     (host_id, argws))
                 self._check_host_validity(**argws)
@@ -511,8 +511,8 @@ class Controller(controller.BaseController):
             host_disk_db_glance_nova_size['nova_lv_size'] = max(nova_lv_size)
         else:
             host_disk_db_glance_nova_size['nova_lv_size'] = 0
-        LOG.warn('--------host(%s)disk_db_glance_nova_size:----- %s' %
-                 (host_id, host_disk_db_glance_nova_size))
+        LOG.warning('--------host(%s)disk_db_glance_nova_size:----- %s' %
+                    (host_id, host_disk_db_glance_nova_size))
         return host_disk_db_glance_nova_size
 
     def check_cluster_role_name_repetition(self, req, role_name, cluster_id):
@@ -681,21 +681,21 @@ class Controller(controller.BaseController):
         except exception.NotFound as e:
             msg = (_("Failed to find role to delete: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPNotFound(explanation=msg,
                                request=req,
                                content_type="text/plain")
         except exception.Forbidden as e:
             msg = (_("Forbidden to delete role: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPForbidden(explanation=msg,
                                 request=req,
                                 content_type="text/plain")
         except exception.InUseByStore as e:
             msg = (_("role %(id)s could not be deleted because it is in use: "
                      "%(exc)s") % {"id": id, "exc": utils.exception_to_str(e)})
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPConflict(explanation=msg,
                                request=req,
                                content_type="text/plain")
@@ -878,26 +878,26 @@ class Controller(controller.BaseController):
         except exception.Invalid as e:
             msg = (_("Failed to update role metadata. Got error: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPBadRequest(explanation=msg,
                                  request=req,
                                  content_type="text/plain")
         except exception.NotFound as e:
             msg = (_("Failed to find role to update: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPNotFound(explanation=msg,
                                request=req,
                                content_type="text/plain")
         except exception.Forbidden as e:
             msg = (_("Forbidden to update role: %s") %
                    utils.exception_to_str(e))
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise HTTPForbidden(explanation=msg,
                                 request=req,
                                 content_type="text/plain")
         except (exception.Conflict, exception.Duplicate) as e:
-            LOG.warn(utils.exception_to_str(e))
+            LOG.warning(utils.exception_to_str(e))
             raise HTTPConflict(body=_('Host operation conflicts'),
                                request=req,
                                content_type='text/plain')

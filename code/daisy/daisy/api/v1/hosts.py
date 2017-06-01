@@ -198,7 +198,7 @@ class Controller(controller.BaseController):
         ether_nic_names_list: [name1, name2, ...]
         '''
         for bond_slaves in bond_slaves_lists:
-            LOG.warn('bond_slaves: %s' % bond_slaves)
+            LOG.warning('bond_slaves: %s' % bond_slaves)
             if len(set(bond_slaves)) != 2:
                 LOG.error('set(bond_slaves: %s' % set(bond_slaves))
                 msg = (
@@ -889,7 +889,7 @@ class Controller(controller.BaseController):
                             "The nic name of interface [%s] with same mac,"
                             "please check!" %
                             ",".join(same_mac_list))
-            LOG.warn(msg)
+            LOG.warning(msg)
 
         # 1-----------------------------------------------------------------
         # if interface with same 'pci', raise exception
@@ -1995,7 +1995,7 @@ class Controller(controller.BaseController):
                                                discover_host_meta)
                     msg = (_("Do trustme.sh %s failed!" %
                              discover_host_meta['ip']))
-                    LOG.warn(msg)
+                    LOG.warning(msg)
                     fp.write(msg)
                 else:
                     mac_info = re.search(r'"mac": ([^,\n]*)', exc_result)
@@ -2112,7 +2112,7 @@ class Controller(controller.BaseController):
             for t in threads:
                 t.join()
         except Exception:
-            LOG.warn(_("Join discover host thread %s failed!" % t))
+            LOG.warning(_("Join discover host thread %s failed!" % t))
 
     @utils.mutating
     def discover_host(self, req, host_meta):
@@ -2154,7 +2154,7 @@ class Controller(controller.BaseController):
         :raises HTTPBadRequest if x-host-name is missing
         """
         self._enforce(req, 'add_discover_host')
-        LOG.warn("host_meta: %s" % host_meta)
+        LOG.warning("host_meta: %s" % host_meta)
         if not host_meta.get('ip', None):
             msg = "IP parameter can not be None."
             LOG.error(msg)
@@ -2418,7 +2418,7 @@ class Controller(controller.BaseController):
         :raises HTTPBadRequest if x-host-name is missing
         """
         self._enforce(req, 'add_pxe_host')
-        LOG.warn("host_meta: %s" % host_meta)
+        LOG.warning("host_meta: %s" % host_meta)
         if not host_meta.get('mac'):
             msg = "MAC parameter can not be None."
             LOG.error(msg)

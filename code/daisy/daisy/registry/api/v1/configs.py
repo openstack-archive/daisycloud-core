@@ -62,13 +62,13 @@ class Controller(object):
             return self.db_api.config_get_all(context, filters=filters,
                                               **params)
         except exception.NotFound:
-            LOG.warn(_LW("Invalid marker. Config %(id)s could not be "
-                         "found.") % {'id': params.get('marker')})
+            LOG.warning(_LW("Invalid marker. Config %(id)s could not be "
+                            "found.") % {'id': params.get('marker')})
             msg = _("Invalid marker. Config could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except exception.Forbidden:
-            LOG.warn(_LW("Access denied to config %(id)s but returning "
-                         "'not found'") % {'id': params.get('marker')})
+            LOG.warning(_LW("Access denied to config %(id)s but returning "
+                            "'not found'") % {'id': params.get('marker')})
             msg = _("Invalid marker. config could not be found.")
             raise exc.HTTPBadRequest(explanation=msg)
         except Exception:
@@ -248,7 +248,7 @@ class Controller(object):
             return config_data
         except exception.Duplicate:
             msg = _("config with identifier %s already exists!") % config_id
-            LOG.warn(msg)
+            LOG.warning(msg)
             return exc.HTTPConflict(msg)
         except exception.Invalid as e:
             msg = (_("Failed to add config metadata. "

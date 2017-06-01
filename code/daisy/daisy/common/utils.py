@@ -660,13 +660,13 @@ def validate_key_cert(key_file, cert_file):
         data = str(uuid.uuid4())
         digest = CONF.digest_algorithm
         if digest == 'sha1':
-            LOG.warn('The FIPS (FEDERAL INFORMATION PROCESSING STANDARDS)'
-                     ' state that the SHA-1 is not suitable for'
-                     ' general-purpose digital signature applications (as'
-                     ' specified in FIPS 186-3) that require 112 bits of'
-                     ' security. The default value is sha1 in Kilo for a'
-                     ' smooth upgrade process, and it will be updated'
-                     ' with sha256 in next release(L).')
+            LOG.warning('The FIPS (FEDERAL INFORMATION PROCESSING STANDARDS)'
+                        ' state that the SHA-1 is not suitable for'
+                        ' general-purpose digital signature applications (as'
+                        ' specified in FIPS 186-3) that require 112 bits of'
+                        ' security. The default value is sha1 in Kilo for a'
+                        ' smooth upgrade process, and it will be updated'
+                        ' with sha256 in next release(L).')
         out = crypto.sign(key, data, digest)
         crypto.verify(cert, out, data, digest)
     except crypto.Error as ce:
@@ -888,12 +888,12 @@ def valid_cidr(cidr):
     try:
         netmask_cidr = int(cidr_division[1])
     except ValueError:
-        LOG.warn(netmask_err_msg)
+        LOG.warning(netmask_err_msg)
         raise exc.HTTPBadRequest(explanation=netmask_err_msg)
 
     if (netmask_cidr < 0 and
             netmask_cidr > 32):
-        LOG.warn(netmask_err_msg)
+        LOG.warning(netmask_err_msg)
         raise exc.HTTPBadRequest(explanation=netmask_err_msg)
 
     validate_ip_format(cidr_division[0])

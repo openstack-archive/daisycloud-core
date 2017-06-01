@@ -42,14 +42,14 @@ class Controller(object):
             self.db_api.cluster_get(req.context, cluster_id)
         except exception.NotFound:
             msg = _("Project %(id)s not found") % {'id': cluster_id}
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise webob.exc.HTTPNotFound(msg)
         except exception.Forbidden:
             # If it's private and doesn't belong to them, don't let on
             # that it exists
             msg = _LW("Access denied to cluster %(id)s but returning"
                       " 'not found'") % {'id': cluster_id}
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise webob.exc.HTTPNotFound()
 
         members = self.db_api.cluster_host_member_find(
@@ -70,14 +70,14 @@ class Controller(object):
             self.db_api.cluster_get(req.context, cluster_id)
         except exception.NotFound:
             msg = _("Project %(id)s not found") % {'id': cluster_id}
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise webob.exc.HTTPNotFound(msg)
         except exception.Forbidden:
             # If it's private and doesn't belong to them, don't let on
             # that it exists
             msg = _LW("Access denied to cluster %(id)s but returning"
                       " 'not found'") % {'id': cluster_id}
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise webob.exc.HTTPNotFound()
 
         # Make sure the host exists
@@ -85,14 +85,14 @@ class Controller(object):
             self.db_api.host_get(req.context, host_id)
         except exception.NotFound:
             msg = _("Host %(id)s not found") % {'id': host_id}
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise webob.exc.HTTPNotFound(msg)
         except exception.Forbidden:
             # If it's private and doesn't belong to them, don't let on
             # that it exists
             msg = _LW("Access denied to host %(id)s but returning"
                       " 'not found'") % {'id': host_id}
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise webob.exc.HTTPNotFound()
 
         # Look up an existing membership...
@@ -123,14 +123,14 @@ class Controller(object):
             self.db_api.cluster_get(req.context, cluster_id)
         except exception.NotFound:
             msg = _("Project %(id)s not found") % {'id': cluster_id}
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise webob.exc.HTTPNotFound(msg)
         except exception.Forbidden:
             # If it's private and doesn't belong to them, don't let on
             # that it exists
             msg = _LW("Access denied to cluster %(id)s but returning"
                       " 'not found'") % {'id': cluster_id}
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise webob.exc.HTTPNotFound()
 
         # Make sure the host exists
@@ -138,14 +138,14 @@ class Controller(object):
             self.db_api.host_get(req.context, host_id)
         except exception.NotFound:
             msg = _("Host %(id)s not found") % {'id': host_id}
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise webob.exc.HTTPNotFound(msg)
         except exception.Forbidden:
             # If it's private and doesn't belong to them, don't let on
             # that it exists
             msg = _LW("Access denied to host %(id)s but returning"
                       " 'not found'") % {'id': host_id}
-            LOG.warn(msg)
+            LOG.warning(msg)
             raise webob.exc.HTTPNotFound()
 
         # Look up an existing membership
@@ -185,7 +185,7 @@ class Controller(object):
                 req.context, host_id=host_id)
         except exception.NotFound:
             msg = _LW("Host %(id)s not found") % {'id': host_id}
-            LOG.warn(msg)
+            LOG.warning(msg)
             msg = _("Membership could not be found.")
             raise webob.exc.HTTPBadRequest(explanation=msg)
 
