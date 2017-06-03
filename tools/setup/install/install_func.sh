@@ -124,12 +124,10 @@ function kolla_install
   else
       mkdir -p $sourcedir
       cd $sourcedir
-      git clone https://git.openstack.org/openstack/kolla-ansible
+      git clone https://github.com/huzhijiang/kolla-ansible
   fi
   cd $sourcedir/kolla-ansible
   git remote update
-  #git checkout -f $sourceversion
-  #cp -r /home/kolla_install/kolla/etc/kolla /etc
   git checkout -b stable/ocata remotes/origin/stable/ocata
   cp -r /home/kolla_install/kolla-ansible/etc/kolla /etc
   # TODO: (huzhj)Use latest registry server from upstream
