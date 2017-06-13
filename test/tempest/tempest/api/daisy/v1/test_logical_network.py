@@ -292,8 +292,8 @@ class TecsLogicalNetworkTest(base.BaseDaisyTest):
                                          u'vni_range': [None, None]}
         self.assertEqual(default_networking_parameters,
                          cluster_meta.get('networking_parameters', None))
-        self.assertEqual([], cluster_meta.get('logic_networks', None))
-        self.assertEqual([], cluster_meta.get('routers', None))
+        self.assertEmpty(cluster_meta.get('logic_networks', None))
+        self.assertEmpty(cluster_meta.get('routers', None))
 
         self.delete_cluster(cluster_info.id)
 
