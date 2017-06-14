@@ -83,4 +83,4 @@ class TestUtils(test.TestCase):
 
     def test_is_cidrs_overlapped_false(self):
         cidrs = ['12.1.1.1/24', '13.1.1.1/24', '14.1.1.1/23']
-        self.assertEqual(False, utils.is_cidrs_overlapped(cidrs))
+        self.assertFalse(utils.is_cidrs_overlapped(cidrs))

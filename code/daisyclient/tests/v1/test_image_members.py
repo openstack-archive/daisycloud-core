@@ -67,7 +67,7 @@ class ImageMemberManagerTest(testtools.TestCase):
         self.assertEqual(1, len(members))
         self.assertEqual('1', members[0].member_id)
         self.assertEqual('1', members[0].image_id)
-        self.assertEqual(False, members[0].can_share)
+        self.assertFalse(members[0].can_share)
 
     def test_list_by_member(self):
         resource_class = glanceclient.v1.image_members.ImageMember
@@ -82,7 +82,7 @@ class ImageMemberManagerTest(testtools.TestCase):
         self.assertEqual(expect, self.api.calls)
         self.assertEqual('1', member.member_id)
         self.assertEqual('1', member.image_id)
-        self.assertEqual(False, member.can_share)
+        self.assertFalse(member.can_share)
 
     def test_delete(self):
         self.mgr.delete('1', '1')
