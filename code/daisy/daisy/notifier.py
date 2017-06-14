@@ -42,15 +42,9 @@ CONF.register_opts(notifier_opts)
 
 LOG = logging.getLogger(__name__)
 
-_ALIASES = {
-    'daisy.openstack.common.rpc.impl_kombu': 'rabbit',
-    'daisy.openstack.common.rpc.impl_qpid': 'qpid',
-    'daisy.openstack.common.rpc.impl_zmq': 'zmq',
-}
-
 
 def get_transport():
-    return oslo_messaging.get_transport(CONF, aliases=_ALIASES)
+    return oslo_messaging.get_transport(CONF)
 
 
 class Notifier(object):
