@@ -26,7 +26,7 @@ svlan_end = Column('svlan_end', Integer, default=4094)
 
 
 def upgrade(migrate_engine):
-    print("030 upgrade")
+    print("031 upgrade")
     meta = MetaData()
     meta.bind = migrate_engine
     host_interfaces = Table('host_interfaces', meta, autoload=True)
@@ -41,7 +41,7 @@ def upgrade(migrate_engine):
 
 
 def downgrade(migrate_engine):
-    print("030 downgrade")
+    print("031 downgrade")
     meta = MetaData()
     meta.bind = migrate_engine
     host_interfaces = Table('host_interfaces', meta, autoload=True)
