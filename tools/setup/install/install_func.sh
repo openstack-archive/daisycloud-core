@@ -94,7 +94,7 @@ function kolla_install
   fi
 
   imagebranch="ocata"
-  imageversion="170420124331"
+  imageversion="170621131826"
   imageserver="http://120.24.17.215"
   imagedir="/var/lib/daisy/versionfile/kolla"
   imagebakdir="/home/kolla_install/docker/"

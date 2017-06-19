@@ -24,6 +24,7 @@ import daisy.api.backends.kolla.install as instl
 import daisy.api.backends.kolla.upgrade as upgrd
 import daisy.api.backends.kolla.uninstall as uninst
 import daisy.api.backends.common as daisy_cmn
+import daisy.registry.client.v1.api as registry
 
 
 LOG = logging.getLogger(__name__)
@@ -241,3 +242,36 @@ class API(driver.DeploymentDriver):
               'sed -i "${port_linenumber}c listen_port=\'%s\'" ' \
               '/var/lib/daisy/kolla/getnodeinfo.sh' % (listen_port,)
         daisy_cmn.subprocess_call(cmd)
+
+    def config_neutron_backend(self, req, orig_role_meta, role_meta):
+        if orig_role_meta['role_type'] == "CONTROLLER_LB":
+            neutron_backend_meta_tmp = {}
+            neutron_backend_metas = {}
+            neutron_backend_meta = {}
+            if role_meta.get('neutron_backends_array', None):
+                neutron_backend_metas = list(
+                    eval(role_meta.get('neutron_backends_array')))
+                for neutron_backend_meta_tmp in neutron_backend_metas:
+                    neutron_backend_meta['neutron_backends_type'] =\
+                        neutron_backend_meta_tmp['sdn_controller_type']
+                    neutron_backend_meta['sdn_type'] =\
+                        neutron_backend_meta_tmp['neutron_agent_type']
+                    neutron_backend_meta['port'] =\
+                        neutron_backend_meta_tmp['zenic_port']
+                    neutron_backend_meta['user_name'] =\
+                        neutron_backend_meta_tmp['zenic_user_name']
+                    neutron_backend_meta['user_pwd'] =\
+                        neutron_backend_meta_tmp['zenic_user_password']
+                    neutron_backend_meta['controller_ip'] =\
+                        neutron_backend_meta_tmp['zenic_ip']
+                    neutron_backend_meta['enable_l2_or_l3'] =\
+                        neutron_backend_meta_tmp['enable_l2_or_l3']
+                    neutron_backend_meta['role_id'] = orig_role_meta['id']
+
+                    if neutron_backend_meta:
+                        neutron_backend_meta =\
+                            registry.add_neutron_backend_metadata(
+                                req.context, neutron_backend_meta)
+                    neutron_backend_meta = {}
+                del role_meta['neutron_backends_array']
+        return role_meta
