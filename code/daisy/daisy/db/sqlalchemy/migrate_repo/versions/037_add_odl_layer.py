@@ -13,24 +13,23 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from sqlalchemy import MetaData, Table, Column
-from daisy.db.sqlalchemy.migrate_repo.schema import Integer
+from sqlalchemy import MetaData, Table, Column, String
 
-docker_vg_size = Column('docker_vg_size', Integer(), default=0)
+enable_l2_or_l3 = Column('enable_l2_or_l3', String(255))
 
 
 def upgrade(migrate_engine):
-    print("032 upgrade")
+    print("037 upgrade")
     meta = MetaData()
     meta.bind = migrate_engine
-    roles = Table('roles', meta, autoload=True)
-    roles.create_column(docker_vg_size)
+    neutron_backend = Table('neutron_backend', meta, autoload=True)
+    neutron_backend.create_column(enable_l2_or_l3)
 
 
 def downgrade(migrate_engine):
     # Operations to reverse the above upgrade go here.
-    print("032 downgrade")
+    print("037 downgrade")
     meta = MetaData()
     meta.bind = migrate_engine
-    roles = Table('roles', meta, autoload=True)
-    roles.drop_column(docker_vg_size)
+    roles = Table('neutron_backend', meta, autoload=True)
+    roles.drop_column(enable_l2_or_l3)
