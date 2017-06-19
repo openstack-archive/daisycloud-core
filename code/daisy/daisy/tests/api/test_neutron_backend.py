@@ -28,6 +28,7 @@ def set_neutron_backend_meta():
         u'controller_ip': u'10.43.177.96',
         u'neutron_backends_type': u'sdn',
         u'sdn_type': u'ZENIC',
+        u'enable_l2_or_l3': u'l3',
         u'id': u'3eeeee5b-4ac8-4b19-975c-26d6b32088e5',
         u'port': u'8181',
         u'updated_at': u'2017-01-13T03:07:26.000000',
