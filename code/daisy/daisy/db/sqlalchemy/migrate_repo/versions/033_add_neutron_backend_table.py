@@ -50,6 +50,7 @@ def define_neutron_backend_table(meta):
 
 
 def upgrade(migrate_engine):
+    print("033 upgrade")
     meta = MetaData()
     meta.bind = migrate_engine
     tables = [define_neutron_backend_table(meta), ]
@@ -57,6 +58,7 @@ def upgrade(migrate_engine):
 
 
 def downgrade(migrate_engine):
+    print("033 downgrade")
     meta = MetaData()
     meta.bind = migrate_engine
 
