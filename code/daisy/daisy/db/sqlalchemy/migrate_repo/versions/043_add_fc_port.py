@@ -1,6 +1,3 @@
-# Copyright 2013 OpenStack Foundation
-# All Rights Reserved.
-#
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -13,19 +10,24 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from sqlalchemy import MetaData, Table, Column, String
-
-bond_type = Column('bond_type', String(36))
+from sqlalchemy import Column
+from sqlalchemy import MetaData
+from sqlalchemy import Table
+from daisy.db.sqlalchemy.models import JSONEncodedDict
 
 
 def upgrade(migrate_engine):
-    print("029 upgrade")
+    # Upgrade operations go here. Don't create your own engine; bind
+    # migrate_engine to your metadata
+    print("043 upgrade")
     meta = MetaData()
+    fc_port = Column('fc_port', JSONEncodedDict(), default={})
+
     meta.bind = migrate_engine
-    host_interfaces = Table('host_interfaces', meta, autoload=True)
-    host_interfaces.create_column(bond_type)
+    hosts = Table('hosts', meta, autoload=True)
+    hosts.create_column(fc_port)
 
 
 def downgrade(migrate_engine):
     # Operations to reverse the above upgrade go here.
-    print("029 downgrade")
+    print("043 downgrade")
