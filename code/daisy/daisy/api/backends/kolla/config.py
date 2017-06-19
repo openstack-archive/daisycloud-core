@@ -20,6 +20,7 @@ from oslo_log import log as logging
 from daisy import i18n
 import daisy.registry.client.v1.api as registry
 import daisy.api.backends.common as daisy_cmn
+import daisy.api.backends.kolla.install as instl
 
 
 LOG = logging.getLogger(__name__)
@@ -30,14 +31,12 @@ _LW = i18n._LW
 
 
 # generate kolla's ansible inventory multinode file
-def clean_inventory_file(file_path, filename):
-    LOG.info(_("begin to clean inventory file for kolla"))
+def clean_inventory_file(file_path, filename, node_names):
+    LOG.info(_("clean inventory file %s section for kolla" % node_names))
     fp = open('%s/kolla-ansible/ansible/inventory/%s' % (file_path, filename))
     txt = fp.read()
     fp.close()
-    node_names = ['control', 'network', 'compute', 'monitoring',
-                  'storage', 'baremetal:children']
-    for section_name in node_names[0:5]:
+    for section_name in node_names[0:len(node_names)-1]:
         next_name_index = node_names.index('%s' % section_name)
         match = re.search(r"\[%s\](.*)\[%s\]" % (
             section_name,
@@ -52,7 +51,6 @@ def clean_inventory_file(file_path, filename):
 
 def update_inventory_file(file_path, filename, node_name, host_name,
                           num_of_host, connection_type):
-    LOG.info(_("begin to update inventory file for kolla..."))
     fp = file('%s/kolla-ansible/ansible/inventory/%s' % (file_path, filename))
     lines = []
     for line in fp:
@@ -70,7 +68,9 @@ def update_inventory_file(file_path, filename, node_name, host_name,
 
 def add_role_to_inventory(file_path, config_data):
     LOG.info(_("add role to inventory file..."))
-    clean_inventory_file(file_path, 'multinode')
+    node_names = ['control', 'network', 'compute', 'monitoring',
+                  'storage', 'baremetal:children']
+    clean_inventory_file(file_path, 'multinode', node_names)
     host_sequence = 1
     for control_ip in config_data['Controller_ips']:
         update_inventory_file(file_path, 'multinode', 'control',
@@ -100,6 +100,7 @@ def add_role_to_inventory(file_path, config_data):
         update_inventory_file(file_path, 'multinode', 'storage',
                               storage_ip.encode(), host_sequence, 'ssh')
         host_sequence = host_sequence + 1
+    LOG.info(_("add role to inventory file has finished..."))
 
 
 def update_kolla_globals_yml(date):
@@ -209,6 +210,46 @@ def enable_cinder_backend(req, cluster_id, config_data):
                 disk.get('partition') != None and\
                 disk.get('partition') != '':
             config_ceph_for_cinder(config_data, disk)
+
+
+def enable_neutron_backend(req, cluster_id, kolla_config):
+    params = {'cluster_id': cluster_id}
+    roles = registry.get_roles_detail(req.context, **params)
+    all_neutron_backends = registry.list_neutron_backend_metadata(
+        req.context, **params)
+    for role in roles:
+        for neutron_backend in all_neutron_backends:
+            if role['name'] == 'CONTROLLER_LB' \
+                and neutron_backend[
+                    'neutron_backends_type'] == 'opendaylight' \
+                    and neutron_backend['role_id'] == role['id']:
+                node_names = ['network', 'compute']
+                clean_inventory_file(instl.kolla_file, 'multinode', node_names)
+                host_sequence = 1
+                for odl_ip in kolla_config['Odl_ips']:
+                    update_inventory_file(instl.kolla_file, 'multinode',
+                                          'network', odl_ip.encode(),
+                                          host_sequence, 'ssh')
+                    host_sequence = host_sequence + 1
+                opendaylight_config = {
+                    'enable_opendaylight': "yes",
+                    'neutron_plugin_agent': "opendaylight",
+                    'opendaylight_mechanism_driver': "opendaylight_v2",
+                    'opendaylight_l3_service_plugin': "odl-router_v2",
+                    'enable_opendaylight_l3': "yes",
+                    'enable_opendaylight_qos': "no",
+                    'enable_opendaylight_legacy_netvirt_conntrack': "no",
+                    'opendaylight_features':
+                        "odl-mdsal-apidocs,odl-netvirt-openstack",
+                    'opendaylight_restconf_port': "8087",
+                    'opendaylight_leader_ip_address': ''}
+                opendaylight_config['opendaylight_leader_ip_address'] =\
+                    kolla_config['Odl_ips'].encode()
+                LOG.info(_("opendaylight_leader_ip_address is %s" %
+                         kolla_config['Odl_ips']))
+                if neutron_backend['enable_l2_or_l3'] == 'l2':
+                    opendaylight_config['enable_opendaylight_l3'] = 'no'
+                update_kolla_globals_yml(opendaylight_config)
 
 
 # generate kolla's globals.yml file

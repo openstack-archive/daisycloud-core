@@ -15,17 +15,21 @@
 
 from sqlalchemy import MetaData, Table, Column, String
 
-bond_type = Column('bond_type', String(36))
+meta = MetaData()
+cluster_id = Column('cluster_id', String(36))
 
 
 def upgrade(migrate_engine):
-    print("029 upgrade")
+    print("041 upgrade")
     meta = MetaData()
     meta.bind = migrate_engine
-    host_interfaces = Table('host_interfaces', meta, autoload=True)
-    host_interfaces.create_column(bond_type)
+    tasks = Table('tasks', meta, autoload=True)
+    tasks.create_column(cluster_id)
 
 
 def downgrade(migrate_engine):
-    # Operations to reverse the above upgrade go here.
-    print("029 downgrade")
+    print("041 downgrade")
+    meta = MetaData()
+    meta.bind = migrate_engine
+    tasks = Table('tasks', meta, autoload=True)
+    tasks.drop_column(cluster_id)
