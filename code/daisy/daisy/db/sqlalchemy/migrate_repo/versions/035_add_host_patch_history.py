@@ -45,6 +45,7 @@ def define_host_patch_history_table(meta):
 
 
 def upgrade(migrate_engine):
+  print("035 upgrade")
     meta = MetaData()
     meta.bind = migrate_engine
     tables = [define_host_patch_history_table(meta)]
@@ -52,6 +53,7 @@ def upgrade(migrate_engine):
 
 
 def downgrade(migrate_engine):
+    print("035 downgrade")
     meta = MetaData()
     meta.bind = migrate_engine
     tables = [define_host_patch_history_table(meta)]
