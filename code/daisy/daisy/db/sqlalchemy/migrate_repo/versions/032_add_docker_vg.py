@@ -20,6 +20,7 @@ docker_vg_size = Column('docker_vg_size', Integer(), default=0)
 
 
 def upgrade(migrate_engine):
+    print("032 upgrade")
     meta = MetaData()
     meta.bind = migrate_engine
     roles = Table('roles', meta, autoload=True)
