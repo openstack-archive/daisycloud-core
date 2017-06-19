@@ -20,6 +20,7 @@ tecs_patch_id = Column('tecs_patch_id', String(36))
 
 
 def upgrade(migrate_engine):
+    print("034 upgrade")
     meta = MetaData()
     meta.bind = migrate_engine
     hosts = Table('hosts', meta, autoload=True)
@@ -27,6 +28,7 @@ def upgrade(migrate_engine):
 
 
 def downgrade(migrate_engine):
+    print("034 downgrade")
     meta = MetaData()
     meta.bind = migrate_engine
     hosts = Table('hosts', meta, autoload=True)
