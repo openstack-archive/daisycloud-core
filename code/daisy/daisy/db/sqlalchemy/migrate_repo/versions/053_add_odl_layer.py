@@ -15,17 +15,21 @@
 
 from sqlalchemy import MetaData, Table, Column, String
 
-bond_type = Column('bond_type', String(36))
+enable_l2_or_l3 = Column('enable_l2_or_l3', String(255))
 
 
 def upgrade(migrate_engine):
-    print("029 upgrade")
+    print("037 upgrade")
     meta = MetaData()
     meta.bind = migrate_engine
-    host_interfaces = Table('host_interfaces', meta, autoload=True)
-    host_interfaces.create_column(bond_type)
+    neutron_backend = Table('neutron_backend', meta, autoload=True)
+    neutron_backend.create_column(enable_l2_or_l3)
 
 
 def downgrade(migrate_engine):
     # Operations to reverse the above upgrade go here.
-    print("029 downgrade")
+    print("037 downgrade")
+    meta = MetaData()
+    meta.bind = migrate_engine
+    roles = Table('neutron_backend', meta, autoload=True)
+    roles.drop_column(enable_l2_or_l3)

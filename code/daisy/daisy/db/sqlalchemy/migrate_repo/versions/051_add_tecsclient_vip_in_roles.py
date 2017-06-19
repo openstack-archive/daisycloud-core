@@ -1,7 +1,7 @@
 # Copyright 2013 OpenStack Foundation
 # All Rights Reserved.
 #
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
 #
@@ -15,17 +15,22 @@
 
 from sqlalchemy import MetaData, Table, Column, String
 
-bond_type = Column('bond_type', String(36))
+meta = MetaData()
+tecsclient_vip = Column('tecsclient_vip', String(255))
+provider_mgnt_vip = Column('provider_mgnt_vip', String(255))
 
 
 def upgrade(migrate_engine):
-    print("029 upgrade")
-    meta = MetaData()
+    print("051 upgrade")
     meta.bind = migrate_engine
-    host_interfaces = Table('host_interfaces', meta, autoload=True)
-    host_interfaces.create_column(bond_type)
+    role = Table('roles', meta, autoload=True)
+    role.create_column(tecsclient_vip)
+    role.create_column(provider_mgnt_vip)
 
 
 def downgrade(migrate_engine):
-    # Operations to reverse the above upgrade go here.
-    print("029 downgrade")
+    print("051 downgrade")
+    meta.bind = migrate_engine
+    role = Table('roles', meta, autoload=True)
+    role.drop_column(tecsclient_vip)
+    role.drop_column(provider_mgnt_vip)
