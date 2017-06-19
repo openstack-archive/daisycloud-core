@@ -15,20 +15,21 @@
 
 from sqlalchemy import MetaData, Table, Column, String
 
-cidr = Column('cidr', String(255))
-gateway = Column('gateway', String(255))
+enable_l2_or_l3 = Column('enable_l2_or_l3', String(255))
 
 
 def upgrade(migrate_engine):
-	print("030 upgrade")
+    print("037 upgrade")
     meta = MetaData()
     meta.bind = migrate_engine
-
-    ip_ranges = Table('ip_ranges', meta, autoload=True)
-    ip_ranges.create_column(cidr)
-    ip_ranges.create_column(gateway)
+    neutron_backend = Table('neutron_backend', meta, autoload=True)
+    neutron_backend.create_column(enable_l2_or_l3)
 
 
 def downgrade(migrate_engine):
     # Operations to reverse the above upgrade go here.
-    print("030 downgrade")
+    print("037 downgrade")
+    meta = MetaData()
+    meta.bind = migrate_engine
+    roles = Table('neutron_backend', meta, autoload=True)
+    roles.drop_column(enable_l2_or_l3)

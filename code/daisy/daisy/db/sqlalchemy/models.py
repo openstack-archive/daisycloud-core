@@ -682,6 +682,7 @@ class NeutronBackend(BASE, DaisyBase):
     sdn_type = Column(String(255))
     port = Column(String(255))
     role_id = Column(String(36), ForeignKey('roles.id'), nullable=False)
+    enable_l2_or_l3 = Column(String(255))
 
 
 class OpticalSwitch(BASE, DaisyBase):

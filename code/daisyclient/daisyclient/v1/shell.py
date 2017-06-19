@@ -1035,6 +1035,13 @@ def do_role_detail(gc, args):
         utils.print_list(roles, columns)
 
 
+@utils.arg('--neutron-backend', metavar='<zenic_ip=1.1.1.1,'
+                                        'sdn_controller_type=ZENIC,'
+                                        'zenic_port=8181,'
+                                        'zenic_user_password=ossdbg1,'
+                                        'neutron_agent_type=SDN_Agent,'
+                                        'zenic_user_name=root>',
+           help='neutron-backend of sdn_type')
 @utils.arg('role', metavar='<ROLE>', help='ID of role to modify.')
 @utils.arg('--name', metavar='<NAME>',
            help='Name of role.')
@@ -1089,6 +1096,21 @@ def do_role_detail(gc, args):
 def do_role_update(gc, args):
     """Update a specific role."""
     # Filter out None values
+    neutron_backend_array_list = []
+    neutron_backend_info = {'zenic_ip': '',
+                            'sdn_controller_type': '',
+                            'zenic_port': '',
+                            'zenic_user_password': '',
+                            'neutron_agent_type': '',
+                            'zenic_user_name': ''}
+    if args.neutron_backend:
+        neutron_backend_data = args.neutron_backend.split(",")
+        for neutron_backend in neutron_backend_data:
+            key, value = neutron_backend.split("=", 1)
+            if key in neutron_backend_info:
+                neutron_backend_info[key] = value
+        neutron_backend_array_list.append(neutron_backend_info)
+    args.neutron_backends_array = neutron_backend_array_list
     fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
 
     role_arg = fields.pop('role')
