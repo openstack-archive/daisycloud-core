@@ -240,6 +240,7 @@ def get_cluster_kolla_config(req, cluster_id):
             kolla_config.update({'LocalIP': docker_registry})
             kolla_config.update({'Controller_ips': controller_ip_list})
             kolla_config.update({'Network_ips': controller_ip_list})
+            kolla_config.update({'Odl_ips': controller_ip_list[0]})
             #kolla_config.update({'Storage_ips': controller_ip_list})
             kolla_config.update({'vlans_id': vlans_id})
         if role['name'] == 'COMPUTER':
@@ -282,6 +283,7 @@ def generate_kolla_config_file(req, cluster_id, kolla_config, multicast_flag):
         config.enable_cinder_backend(req,
                                      cluster_id,
                                      kolla_config)
+        config.enable_neutron_backend(req, cluster_id, kolla_config)
 
 
 def config_nodes_hosts(host_name_ip_list, host_ip):
