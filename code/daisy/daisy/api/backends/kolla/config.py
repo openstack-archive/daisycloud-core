@@ -211,6 +211,38 @@ def enable_cinder_backend(req, cluster_id, config_data):
             config_ceph_for_cinder(config_data, disk)
 
 
+def enable_neutron_backend(req, cluster_id, kolla_config):
+    params = {'cluster_id': cluster_id}
+    roles = registry.get_roles_detail(req.context, **params)
+    all_neutron_backends = registry.list_neutron_backend_metadata(
+        req.context, **params)
+    for role in roles:
+        for neutron_backend in all_neutron_backends:
+            if role['name'] == 'CONTROLLER_LB' \
+                and neutron_backend[
+                    'neutron_backends_type'] == 'opendaylight' \
+                    and neutron_backend['role_id'] == role['id']:
+                opendaylight_config = {
+                    'enable_opendaylight': "yes",
+                    'neutron_plugin_agent': "opendaylight",
+                    'opendaylight_mechanism_driver': "opendaylight_v2",
+                    'opendaylight_l3_service_plugin': "odl-router_v2",
+                    'enable_opendaylight_l3': "yes",
+                    'enable_opendaylight_qos': "no",
+                    'enable_opendaylight_legacy_netvirt_conntrack': "no",
+                    'opendaylight_features':
+                        "odl-mdsal-apidocs,odl-netvirt-openstack",
+                    'opendaylight_restconf_port': "8087",
+                    'opendaylight_leader_ip_address': ''}
+                opendaylight_config['opendaylight_leader_ip_address'] =\
+                    kolla_config['Network_ips'][0]
+                LOG.info(_("opendaylight_leader_ip_address is %s" %
+                         kolla_config['Controller_ips'][0]))
+                if neutron_backend['enable_l2_or_l3'] == 'l2':
+                    opendaylight_config['enable_opendaylight_l3'] = 'no'
+                update_kolla_globals_yml(opendaylight_config)
+
+
 # generate kolla's globals.yml file
 def update_globals_yml(config_data, multicast_flag):
     LOG.info(_("begin to update kolla's globals.yml file..."))

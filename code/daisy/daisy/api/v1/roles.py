@@ -23,6 +23,8 @@ from webob.exc import HTTPConflict
 from webob.exc import HTTPForbidden
 from webob.exc import HTTPNotFound
 from webob import Response
+from daisy.api.backends import driver
+import ConfigParser
 
 from daisy.api import policy
 import daisy.api.v1
@@ -55,6 +57,14 @@ SUPPORTED_ROLE = (
     'CHILD_CELL_1_COMPUTER',
     'CONTROLLER_CHILD_CELL_1')
 SUPPORT_DISK_LOCATION = ('local', 'share')
+
+
+def get_backend():
+    config = ConfigParser.ConfigParser()
+    config.read(daisy_cmn.daisy_conf_file)
+    backend = config.get("BACKEND", "default_backend_types")
+    backend = backend.split(",")
+    return backend
 
 
 class Controller(controller.BaseController):
@@ -741,6 +751,8 @@ class Controller(controller.BaseController):
                     neutron_backend_meta_tmp['user_pwd']
                 neutron_backend_meta['zenic_ip'] =\
                     neutron_backend_meta_tmp['controller_ip']
+                neutron_backend_meta['enable_l2_or_l3'] =\
+                    neutron_backend_meta_tmp['enable_l2_or_l3']
                 neutron_backends_list.append(neutron_backend_meta)
                 neutron_backend_meta = {}
         neutron_backends_array['neutron_backends_array'] =\
@@ -830,35 +842,13 @@ class Controller(controller.BaseController):
                     registry.delete_neutron_backend_metadata(
                         req.context,
                         neutron_backend['id'])
-
-        if orig_role_meta['role_type'] == "CONTROLLER_HA":
-            neutron_backend_meta_tmp = {}
-            neutron_backend_metas = {}
-            neutron_backend_meta = {}
-            if role_meta.get('neutron_backends_array', None):
-                neutron_backend_metas = list(
-                    eval(role_meta.get('neutron_backends_array')))
-                for neutron_backend_meta_tmp in neutron_backend_metas:
-                    neutron_backend_meta['neutron_backends_type'] =\
-                        neutron_backend_meta_tmp['sdn_controller_type']
-                    neutron_backend_meta['sdn_type'] =\
-                        neutron_backend_meta_tmp['neutron_agent_type']
-                    neutron_backend_meta['port'] =\
-                        neutron_backend_meta_tmp['zenic_port']
-                    neutron_backend_meta['user_name'] =\
-                        neutron_backend_meta_tmp['zenic_user_name']
-                    neutron_backend_meta['user_pwd'] =\
-                        neutron_backend_meta_tmp['zenic_user_password']
-                    neutron_backend_meta['controller_ip'] =\
-                        neutron_backend_meta_tmp['zenic_ip']
-                    neutron_backend_meta['role_id'] = orig_role_meta['id']
-
-                    if neutron_backend_meta:
-                        neutron_backend_meta =\
-                            registry.add_neutron_backend_metadata(
-                                req.context, neutron_backend_meta)
-                    neutron_backend_meta = {}
-                del role_meta['neutron_backends_array']
+        backends = get_backend()
+        for backend in backends:
+            backend_driver = driver.load_deployment_driver(backend)
+            role_meta = backend_driver.config_neutron_backend(
+                req,
+                orig_role_meta,
+                role_meta)
 
         self._enforce(req, 'modify_image')
         # orig_role_meta = self.get_role_meta_or_404(req, id)
