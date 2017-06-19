@@ -20,6 +20,7 @@ gateway = Column('gateway', String(255))
 
 
 def upgrade(migrate_engine):
+    print("030 upgrade")
     meta = MetaData()
     meta.bind = migrate_engine
 

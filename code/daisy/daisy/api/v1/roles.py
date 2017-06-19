@@ -741,6 +741,8 @@ class Controller(controller.BaseController):
                     neutron_backend_meta_tmp['user_pwd']
                 neutron_backend_meta['zenic_ip'] =\
                     neutron_backend_meta_tmp['controller_ip']
+                neutron_backend_meta['enable_l2_or_l3'] =\
+                    neutron_backend_meta_tmp['enable_l2_or_l3']
                 neutron_backends_list.append(neutron_backend_meta)
                 neutron_backend_meta = {}
         neutron_backends_array['neutron_backends_array'] =\
@@ -831,7 +833,7 @@ class Controller(controller.BaseController):
                         req.context,
                         neutron_backend['id'])
 
-        if orig_role_meta['role_type'] == "CONTROLLER_HA":
+        if orig_role_meta['role_type'] == "CONTROLLER_LB":
             neutron_backend_meta_tmp = {}
             neutron_backend_metas = {}
             neutron_backend_meta = {}
@@ -851,6 +853,8 @@ class Controller(controller.BaseController):
                         neutron_backend_meta_tmp['zenic_user_password']
                     neutron_backend_meta['controller_ip'] =\
                         neutron_backend_meta_tmp['zenic_ip']
+                    neutron_backend_meta['enable_l2_or_l3'] =\
+                        neutron_backend_meta_tmp['enable_l2_or_l3']
                     neutron_backend_meta['role_id'] = orig_role_meta['id']
 
                     if neutron_backend_meta:
