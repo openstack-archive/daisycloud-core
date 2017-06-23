@@ -502,9 +502,9 @@ class ImageManagerTest(testtools.TestCase):
         self.assertEqual(expect, self.api.calls)
         self.assertEqual('1', image.id)
         self.assertEqual('image-1', image.name)
-        self.assertEqual(False, image.is_public)
-        self.assertEqual(False, image.protected)
-        self.assertEqual(False, image.deleted)
+        self.assertFalse(image.is_public)
+        self.assertFalse(image.protected)
+        self.assertFalse(image.deleted)
         self.assertEqual({u'arch': u'x86_64'}, image.properties)
 
     def test_get_int(self):
@@ -513,9 +513,9 @@ class ImageManagerTest(testtools.TestCase):
         self.assertEqual(expect, self.api.calls)
         self.assertEqual('1', image.id)
         self.assertEqual('image-1', image.name)
-        self.assertEqual(False, image.is_public)
-        self.assertEqual(False, image.protected)
-        self.assertEqual(False, image.deleted)
+        self.assertFalse(image.is_public)
+        self.assertFalse(image.protected)
+        self.assertFalse(image.deleted)
         self.assertEqual({u'arch': u'x86_64'}, image.properties)
 
     def test_get_encoding(self):
@@ -628,9 +628,9 @@ class ImageManagerTest(testtools.TestCase):
         self.assertEqual(1024, image.size)
         self.assertEqual(512, image.min_ram)
         self.assertEqual(10, image.min_disk)
-        self.assertEqual(False, image.is_public)
-        self.assertEqual(False, image.protected)
-        self.assertEqual(False, image.deleted)
+        self.assertFalse(image.is_public)
+        self.assertFalse(image.protected)
+        self.assertFalse(image.deleted)
         self.assertEqual({'a': 'b', 'c': 'd'}, image.properties)
 
     def test_create_with_data(self):
