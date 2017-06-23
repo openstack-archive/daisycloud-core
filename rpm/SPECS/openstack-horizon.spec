@@ -314,10 +314,10 @@ mkdir -p %{buildroot}%{_unitdir}/httpd.service.d/
 cp %{SOURCE3} %{buildroot}%{_unitdir}/httpd.service.d/openstack-dashboard.conf
 
 # Copy everything to /usr/share
-mv %{buildroot}%{python_sitelib}/openstack_dashboard \
+mv %{buildroot}%{python2_sitelib}/openstack_dashboard \
    %{buildroot}%{_datadir}/openstack-dashboard
 cp manage.py %{buildroot}%{_datadir}/openstack-dashboard
-rm -rf %{buildroot}%{python_sitelib}/openstack_dashboard
+rm -rf %{buildroot}%{python2_sitelib}/openstack_dashboard
 
 # remove unnecessary .po files
 find %{buildroot} -name django.po -exec rm '{}' \;
@@ -376,22 +376,22 @@ systemctl daemon-reload >/dev/null 2>&1 || :
 %files -f horizon.lang
 %doc README.rst openstack-dashboard-httpd-logging.conf
 %license LICENSE
-%dir %{python_sitelib}/horizon
-%{python_sitelib}/horizon/*.py*
-%{python_sitelib}/horizon/browsers
-%{python_sitelib}/horizon/conf
-%{python_sitelib}/horizon/contrib
-%{python_sitelib}/horizon/forms
-%{python_sitelib}/horizon/management
-%{python_sitelib}/horizon/static
-%{python_sitelib}/horizon/tables
-%{python_sitelib}/horizon/tabs
-%{python_sitelib}/horizon/templates
-%{python_sitelib}/horizon/templatetags
-%{python_sitelib}/horizon/test
-%{python_sitelib}/horizon/utils
-%{python_sitelib}/horizon/workflows
-%{python_sitelib}/*.egg-info
+%dir %{python2_sitelib}/horizon
+%{python2_sitelib}/horizon/*.py*
+%{python2_sitelib}/horizon/browsers
+%{python2_sitelib}/horizon/conf
+%{python2_sitelib}/horizon/contrib
+%{python2_sitelib}/horizon/forms
+%{python2_sitelib}/horizon/management
+%{python2_sitelib}/horizon/static
+%{python2_sitelib}/horizon/tables
+%{python2_sitelib}/horizon/tabs
+%{python2_sitelib}/horizon/templates
+%{python2_sitelib}/horizon/templatetags
+%{python2_sitelib}/horizon/test
+%{python2_sitelib}/horizon/utils
+%{python2_sitelib}/horizon/workflows
+%{python2_sitelib}/*.egg-info
 
 %files -n daisy-dashboard -f dashboard.lang
 %dir %{_datadir}/openstack-dashboard/
