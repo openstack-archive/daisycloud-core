@@ -158,6 +158,7 @@ def get_cluster_kolla_config(req, cluster_id):
     kolla_config = {}
     controller_ip_list = []
     computer_ip_list = []
+    storage_ip_list = []
     mgt_macname_list = []
     pub_macname_list = []
     dat_macname_list = []
@@ -270,7 +271,16 @@ def get_cluster_kolla_config(req, cluster_id):
             kolla_config.update({'TulIfMac': dat_macname})
             kolla_config.update({'ExtIfMac': ext_macname})
     mgt_ip_list = set(controller_ip_list + computer_ip_list)
-    kolla_config.update({'Storage_ips': mgt_ip_list})
+    for ctl_host_ip in controller_ip_list:
+        if len(storage_ip_list) > 2:
+            break
+        storage_ip_list.append(ctl_host_ip)
+    for com_host_ip in computer_ip_list:
+        if com_host_ip not in controller_ip_list:
+            if len(storage_ip_list) > 2:
+                break
+            storage_ip_list.append(com_host_ip)
+    kolla_config.update({'Storage_ips': storage_ip_list})
     return (kolla_config, mgt_ip_list, host_name_ip_list)
 
 
