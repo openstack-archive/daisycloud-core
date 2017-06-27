@@ -117,16 +117,10 @@ function all_install
     ln -s /usr/share/keystone/wsgi-keystone.conf /etc/httpd/conf.d/
     systemctl restart httpd.service
     [ "$?" -ne 0 ] && { write_install_log "Error:systemctl restart httpd.service failed"; exit 1; }
-    systemctl start daisy-api.service
-    [ "$?" -ne 0 ] && { write_install_log "Error:systemctl start daisy-api.service failed"; exit 1; }
-    systemctl start daisy-registry.service
-    [ "$?" -ne 0 ] && { write_install_log "Error:systemctl start daisy-registry.service failed"; exit 1; }
     systemctl start mariadb.service
     [ "$?" -ne 0 ] && { write_install_log "Error:systemctl start mariadb.service failed"; exit 1; }
 
     systemctl enable httpd.service  >> $install_logfile 2>&1
-    systemctl enable daisy-api.service >> $install_logfile 2>&1
-    systemctl enable daisy-registry.service >> $install_logfile 2>&1
     systemctl enable mariadb.service >> $install_logfile 2>&1
 
     mysql_cmd="mysql"
@@ -242,10 +236,16 @@ function all_install
     sed  -i "s/connect_timeout:[[:space:]]*.*/connect_timeout: 360/g" $clustershell_conf
     sed  -i "s/command_timeout:[[:space:]]*.*/command_timeout: 3600/g" $clustershell_conf
 
-    systemctl restart rabbitmq-server.service
-    [ "$?" -ne 0 ] && { write_install_log "Error:systemctl restart rabbitmq-server.service failed"; exit 1; }
+    systemctl start rabbitmq-server.service
+    [ "$?" -ne 0 ] && { write_install_log "Error:systemctl start rabbitmq-server.service failed"; exit 1; }
 
-    systemctl restart openstack-ironic-discoverd.service
+    systemctl start daisy-api.service
+    [ "$?" -ne 0 ] && { write_install_log "Error:systemctl start daisy-api.service failed"; exit 1; }
+
+    systemctl start daisy-registry.service
+    [ "$?" -ne 0 ] && { write_install_log "Error:systemctl start daisy-registry.service failed"; exit 1; }
+
+    systemctl start openstack-ironic-discoverd.service
     [ "$?" -ne 0 ] && { write_install_log "Error:systemctl restart openstack-ironic-discoverd.service failed"; exit 1; }
 
     systemctl start daisy-orchestration.service
@@ -253,7 +253,10 @@ function all_install
 
     systemctl start daisy-auto-backup.service
     [ "$?" -ne 0 ] && { write_install_log "Error:systemctl start daisy-auto-backup.service failed"; exit 1; }
-    
+
+    systemctl enable daisy-api.service >> $install_logfile 2>&1
+    systemctl enable rabbitmq-server.service >> $install_logfile 2>&1
+    systemctl enable daisy-registry.service >> $install_logfile 2>&1
     systemctl enable daisy-orchestration.service >> $install_logfile 2>&1
     systemctl enable daisy-auto-backup.service >> $install_logfile 2>&1
     systemctl enable openstack-ironic-discoverd.service >> $install_logfile 2>&1
