@@ -44,7 +44,7 @@ LOG = logging.getLogger(__name__)
 
 
 def get_transport():
-    return oslo_messaging.get_transport(CONF)
+    return oslo_messaging.get_notification_transport(CONF)
 
 
 class Notifier(object):
