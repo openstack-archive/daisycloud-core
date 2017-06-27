@@ -218,14 +218,14 @@ def enable_neutron_backend(req, cluster_id, kolla_config):
     roles = registry.get_roles_detail(req.context, **params)
     all_neutron_backends = registry.list_neutron_backend_metadata(
         req.context, **params)
+    node_names = ['opendaylight', 'cinder:children']
+    clean_inventory_file(kolla_file, 'multinode', node_names)
     for role in roles:
         for neutron_backend in all_neutron_backends:
             if role['name'] == 'CONTROLLER_LB' \
                 and neutron_backend[
                     'neutron_backends_type'] == 'opendaylight' \
                     and neutron_backend['role_id'] == role['id']:
-                node_names = ['opendaylight', 'cinder:children']
-                clean_inventory_file(kolla_file, 'multinode', node_names)
                 update_inventory_file(kolla_file, 'multinode',
                                       'opendaylight', kolla_config['Odl_ips'],
                                       1, 'ssh')
