@@ -66,7 +66,9 @@ function kolla_install
   if [[ "$has_installed" == "yes" ]];then
       echo "docker-engine has been already installed"
   else
-      curl -sSL https://get.docker.io | bash
+      #curl -sSL https://get.docker.io | bash
+      yum remove -y docker-engine
+      yum install -y https://yum.dockerproject.org/repo/main/centos/7/Packages/docker-engine-17.05.0.ce-1.el7.centos.x86_64.rpm
   fi
   mkdir -p /etc/systemd/system/docker.service.d
   config_path=/etc/systemd/system/docker.service.d/kolla.conf
