@@ -105,7 +105,9 @@ def get_default_net_plane():
         {"network_type": "STORAGE",
          "net_planes": [{"name": "STORAGE", }]},
         {"network_type": "EXTERNAL",
-         "net_planes": [{"name": "EXTERNAL", }]}, ]
+         "net_planes": [{"name": "EXTERNAL", }]},
+        {"network_type": "HEARTBEAT",
+         "net_planes": [{"name": "HEARTBEAT", }]}, ]
     for net in networks:
         for net_plane in net["net_planes"]:
             net_plane.update({"cidr": "192.168.1.1/24",
