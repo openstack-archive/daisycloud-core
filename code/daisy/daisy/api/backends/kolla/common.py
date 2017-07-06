@@ -164,6 +164,8 @@ def get_controller_node_cfg(req, host_detail, cluster_networks):
     host_pub_macname = host_pub_network['name']
     host_sto_network = get_host_interface_by_network(host_detail, 'STORAGE')
     host_sto_macname = host_sto_network['name']
+    host_hbt_network = get_host_interface_by_network(host_detail, 'HEARTBEAT')
+    host_hbt_macname = host_hbt_network['name']
     if not host_mgt_ip:
         msg = "management ip of host %s can't be empty" % host_detail['id']
         raise exception.InvalidNetworkConfig(msg)
@@ -172,6 +174,7 @@ def get_controller_node_cfg(req, host_detail, cluster_networks):
     deploy_node_cfg.update({'mgt_macname': host_mgt_macname})
     deploy_node_cfg.update({'pub_macname': host_pub_macname})
     deploy_node_cfg.update({'sto_macname': host_sto_macname})
+    deploy_node_cfg.update({'hbt_macname': host_hbt_macname})
     deploy_node_cfg.update({'host_name': host_name})
     return deploy_node_cfg
 

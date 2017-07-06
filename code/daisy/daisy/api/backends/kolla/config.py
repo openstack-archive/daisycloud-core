@@ -254,6 +254,17 @@ def enable_neutron_backend(req, cluster_id, kolla_config):
 # generate kolla's globals.yml file
 def update_globals_yml(config_data, multicast_flag):
     LOG.info(_("begin to update kolla's globals.yml file..."))
+    kolla_yml = {'openstack_release': '3.0.0',
+                 'docker_registry': '127.0.0.1:4000',
+                 'docker_namespace': 'kollaglue',
+                 'kolla_internal_vip_address': '10.10.10.254',
+                 'network_interface': 'eth0',
+                 'tunnel_interface': 'eth0',
+                 'storage_interface': 'eth0',
+                 'kolla_external_vip_interface': 'eth0',
+                 'neutron_external_interface': 'eth1',
+                 'keepalived_interface': '{{ network_interface }}'
+                 }
     Version = config_data['Version'].encode()
     Namespace = config_data['Namespace'].encode()
     VIP = config_data['VIP'].encode()
@@ -278,17 +289,12 @@ def update_globals_yml(config_data, multicast_flag):
     if config_data['vlans_id'].get('STORAGE'):
         StoIfMac = StoIfMac + '.' + \
             config_data['vlans_id'].get('STORAGE').encode()
-
-    kolla_yml = {'openstack_release': '3.0.0',
-                 'docker_registry': '127.0.0.1:4000',
-                 'docker_namespace': 'kollaglue',
-                 'kolla_internal_vip_address': '10.10.10.254',
-                 'network_interface': 'eth0',
-                 'tunnel_interface': 'eth0',
-                 'storage_interface': 'eth0',
-                 'kolla_external_vip_interface': 'eth0',
-                 'neutron_external_interface': 'eth1'
-                 }
+    if config_data.get('HbtIfMac') != None:
+        HbtIfMac = config_data['HbtIfMac'].encode()
+        if config_data['vlans_id'].get('HEARTBEAT'):
+            HbtIfMac = HbtIfMac + '.' + \
+                config_data['vlans_id'].get('HEARTBEAT').encode()
+        kolla_yml['keepalived_interface'] = HbtIfMac
     kolla_yml['openstack_release'] = Version
     if multicast_flag == 0:
         pass
@@ -301,6 +307,7 @@ def update_globals_yml(config_data, multicast_flag):
     kolla_yml['neutron_external_interface'] = ExtIfMac
     kolla_yml['kolla_external_vip_interface'] = PubIfMac
     kolla_yml['storage_interface'] = StoIfMac
+
     yaml.dump(kolla_yml, file('/etc/kolla/globals.yml', 'w'),
               default_flow_style=False)
 

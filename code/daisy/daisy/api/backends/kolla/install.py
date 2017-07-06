@@ -164,6 +164,7 @@ def get_cluster_kolla_config(req, cluster_id):
     dat_macname_list = []
     ext_macname_list = []
     sto_macname_list = []
+    hbt_macname_list = []
     vlans_id = {}
     openstack_version = '3.0.0'
     docker_namespace = 'kolla'
@@ -220,9 +221,11 @@ def get_cluster_kolla_config(req, cluster_id):
                 mgt_macname = deploy_host_cfg['mgt_macname']
                 pub_macname = deploy_host_cfg['pub_macname']
                 sto_macname = deploy_host_cfg['sto_macname']
+                hbt_macname = deploy_host_cfg.get('hbt_macname')
                 mgt_macname_list.append(mgt_macname)
                 pub_macname_list.append(pub_macname)
                 sto_macname_list.append(sto_macname)
+                hbt_macname_list.append(hbt_macname)
                 if host_name_ip not in host_name_ip_list:
                     host_name_ip_list.append(host_name_ip)
             if len(set(mgt_macname_list)) != 1 or \
@@ -238,6 +241,7 @@ def get_cluster_kolla_config(req, cluster_id):
             kolla_config.update({'IntIfMac': mgt_macname})
             kolla_config.update({'PubIfMac': pub_macname})
             kolla_config.update({'StoIfMac': sto_macname})
+            kolla_config.update({'HbtIfMac': hbt_macname})
             kolla_config.update({'LocalIP': docker_registry})
             kolla_config.update({'Controller_ips': controller_ip_list})
             kolla_config.update({'Network_ips': controller_ip_list})

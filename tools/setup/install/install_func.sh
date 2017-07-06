@@ -514,6 +514,9 @@ function create_daisy_network
    daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "EXTERNAL" "For external interactive" "EXTERNAL" --cidr "1.0.0.0/8" --type template --capability high >> $install_logfile 2>&1
    [ "$?" -ne 0 ] && { write_install_log "create the network of EXTERNAL failed"; exit 1; }
 
+   daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "HEARTBEAT" "For keepalive interactive" "HEARTBEAT" --cidr "1.0.0.0/8" --type template --capability high >> $install_logfile 2>&1
+   [ "$?" -ne 0 ] && { write_install_log "create the network of HEARTBEAT failed"; exit 1; }
+
     daisy --os-endpoint="http://${public_ip}:$bind_port" network-add "DEPLOYMENT" "For build pxe server" "DEPLOYMENT" --cidr "99.99.1.1/24" --ip "99.99.1.5" --ip-ranges "start":"99.99.1.50","end":"99.99.1.150" --type system >> $install_logfile 2>&1
     [ "$?" -ne 0 ] && { write_install_log "create the network of DEPLOYMENT failed"; exit 1; }
 }
