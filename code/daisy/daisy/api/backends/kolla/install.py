@@ -230,9 +230,11 @@ def get_cluster_kolla_config(req, cluster_id):
                     host_name_ip_list.append(host_name_ip)
             if len(set(mgt_macname_list)) != 1 or \
                     len(set(pub_macname_list)) != 1 or \
-                    len(set(sto_macname_list)) != 1:
+                    len(set(sto_macname_list)) != 1 or \
+                    len(set(hbt_macname_list)) > 1:
                 msg = (_("hosts interface name of public and \
-                         management and storage must be same!"))
+                         management and storage and heartbeat \
+                         must be same!"))
                 LOG.error(msg)
                 raise HTTPForbidden(msg)
             kolla_config.update({'Version': openstack_version})
