@@ -155,6 +155,7 @@ def get_host_network_ip(req, host_detail, cluster_networks, network_type):
 
 
 def get_controller_node_cfg(req, host_detail, cluster_networks):
+    deploy_node_cfg = {}
     host_name = host_detail['name'].split('.')[0]
     host_mgt_network = get_host_interface_by_network(host_detail, 'MANAGEMENT')
     host_mgt_macname = host_mgt_network['name']
@@ -174,7 +175,6 @@ def get_controller_node_cfg(req, host_detail, cluster_networks):
     if not host_mgt_ip:
         msg = "management ip of host %s can't be empty" % host_detail['id']
         raise exception.InvalidNetworkConfig(msg)
-    deploy_node_cfg = {}
     deploy_node_cfg.update({'mgtip': host_mgt_ip})
     deploy_node_cfg.update({'mgt_macname': host_mgt_macname})
     deploy_node_cfg.update({'pub_macname': host_pub_macname})
