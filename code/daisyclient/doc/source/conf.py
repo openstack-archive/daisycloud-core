@@ -12,7 +12,13 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__),
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'oslosphinx']
+extensions = ['sphinx.ext.autodoc', 'openstackdocstheme']
+
+# openstackdocstheme options
+repository_name = 'openstack/daisycloud-core'
+bug_project = 'daisycloud-core'
+bug_tag = ''
+html_last_updated_fmt = '%Y-%m-%d %H:%M'
 
 # autodoc generation is a bit aggressive and a nuisance when doing heavy
 # text edit cycles.
@@ -53,6 +59,7 @@ man_pages = [
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
 # html_theme = 'nature'
+html_theme = 'openstackdocs'
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = '%sdoc' % project
