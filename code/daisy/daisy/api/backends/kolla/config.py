@@ -31,6 +31,12 @@ _LW = i18n._LW
 kolla_file = '/home/kolla_install/'
 
 
+def sort_ipv4(ip_list):
+    ip_list.sort(lambda x, y: cmp(
+        ''.join([i.rjust(3, '0') for i in x.split('.')]),
+        ''.join([i.rjust(3, '0') for i in y.split('.')])))
+
+
 # generate kolla's ansible inventory multinode file
 def clean_inventory_file(file_path, filename, node_names):
     LOG.info(_("clean inventory file %s section for kolla" % node_names))
@@ -72,35 +78,17 @@ def add_role_to_inventory(file_path, config_data):
     node_names = ['control', 'network', 'compute', 'monitoring',
                   'storage', 'baremetal:children']
     clean_inventory_file(file_path, 'multinode', node_names)
-    host_sequence = 1
-    for control_ip in config_data['Controller_ips']:
-        update_inventory_file(file_path, 'multinode', 'control',
-                              control_ip.encode(), host_sequence, 'ssh')
-        host_sequence = host_sequence + 1
-
-    host_sequence = 1
-    for network_ip in config_data['Network_ips']:
-        update_inventory_file(file_path, 'multinode', 'network',
-                              network_ip.encode(), host_sequence, 'ssh')
-        host_sequence = host_sequence + 1
-
-    host_sequence = 1
-    for compute_ip in config_data['Computer_ips']:
-        update_inventory_file(file_path, 'multinode', 'compute',
-                              compute_ip.encode(), host_sequence, 'ssh')
-        host_sequence = host_sequence + 1
-
-    host_sequence = 1
-    for compute_ip in config_data['Computer_ips']:
-        update_inventory_file(file_path, 'multinode', 'monitoring',
-                              compute_ip.encode(), host_sequence, 'ssh')
-        host_sequence = host_sequence + 1
-
-    host_sequence = 1
-    for storage_ip in config_data['Storage_ips']:
-        update_inventory_file(file_path, 'multinode', 'storage',
-                              storage_ip.encode(), host_sequence, 'ssh')
-        host_sequence = host_sequence + 1
+    role_names_list = {'Controller_ips': ['control'],
+                       'Network_ips': ['network'],
+                       'Computer_ips': ['computer', 'monitoring'],
+                       'Storage_ips': ['storage']}
+    for role_ips, role_sections in role_names_list.items():
+        host_sequence = 1
+        for role_section in role_sections:
+            for ips in sort_ipv4(config_data[role_ips]):
+                update_inventory_file(file_path, 'multinode', role_section,
+                                      ips.encode(), host_sequence, 'ssh')
+                host_sequence = host_sequence + 1
     LOG.info(_("add role to inventory file has finished..."))
 
 
