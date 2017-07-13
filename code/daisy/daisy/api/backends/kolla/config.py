@@ -320,11 +320,14 @@ def update_password_yml():
     daisy_cmn.subprocess_call(cmd, fp)
     # generate the password of horizon
     keystone_admin_password = ['keystone_admin_password']
+    opendaylight_password = ['opendaylight_password']
     with open('/etc/kolla/passwords.yml', 'r') as f:
         passwords = yaml.load(f.read())
     for k, v in passwords.items():
         if k in keystone_admin_password:
             passwords[k] = "keystone"
+        if k in opendaylight_password:
+            passwords[k] = 'admin'
     f.close()
     with open('/etc/kolla/passwords.yml', 'w') as f:
         f.write(yaml.dump(passwords, default_flow_style=False))
