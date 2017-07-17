@@ -460,20 +460,20 @@ function custom_ks_hugepages
     local CFG_FILE=$1
     local KS_FILE=$2
 
-    pxelog "starting custom_ks_hugepages!"
+    pxelog "start custom_ks_hugepages"
 
     get_config $CFG_FILE "hugepages"
     pages=$config_answer
-    [[ $pages == "" ]] && pages=0
-    sed -i "s/pagevalue2/${pages}/g" $KS_FILE
+    if [[ $pages != "" ]]; then
+        get_config $CFG_FILE "hugepagesize"
+        sizes=$config_answer
+        [[ $sizes == "" ]] && sizes="1G"
+        [[ $sizes != "1G" && $sizes != "2M" ]] && { pxelog "[error]hugepagesize value error($sizes)" "console"; return 1; }
 
-    get_config $CFG_FILE "hugepagesize"
-    sizes=$config_answer
-    [[ $sizes == "" ]] && sizes="1G"
-    [[ $sizes != "1G" && $sizes != "2M" ]] && { pxelog "[error]hugepagesize value error($sizes)" "console"; return 1; }
-    sed -i "s/pagevalue1/${sizes}/g" $KS_FILE
+        sed -i "s/#bootloader_append_hugepage_place_holder/bootloader --append=\"intel_iommu=on iommu=pt default_hugepagesz=${sizes} hugepagesz=${sizes} hugepages=${pages}\"/g" $KS_FILE
+    fi
 
-    pxelog "started custom_ks_hugepages!\n"
+    pxelog "end custom_ks_hugepages ${sizes}, ${sizes}\n"
 }
 
 function custom_ks_isolcpus
