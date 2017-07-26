@@ -29,10 +29,9 @@ yum -y install \
   python-XStatic-smart-table \
   python-XStatic-Spin \
   python-XStatic-termjs \
-  python2-oslo-sphinx \
+  python2-openstackdocstheme \
   python2-oslo-messaging \
   python2-oslo-concurrency \
-  python2-oslo-sphinx \
   python-devel \
   python-d2to1 \
   python-django-compressor \
