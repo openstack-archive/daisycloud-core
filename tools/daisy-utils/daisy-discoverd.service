@@ -1,0 +1,10 @@
+[Unit]
+Description=Hardware introspection service for OpenStack Ironic
+
+[Service]
+ExecStart=/usr/bin/daisy-discoverd --config-file /etc/daisy-discoverd/discoverd.conf
+User=root
+
+[Install]
+WantedBy=multi-user.target
+Alias=daisy-discoverd.service

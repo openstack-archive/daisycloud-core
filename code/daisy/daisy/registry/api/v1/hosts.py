@@ -365,7 +365,7 @@ class Controller(object):
                     LOG.error(msg)
                     return exc.HTTPBadRequest(msg)
 
-            # TODO delete ironic host by mac
+            # TODO delete discovered host by mac
             return dict(host=deleted_host)
         except exception.ForbiddenPublicImage:
             msg = _LI("Delete denied for public host %(id)s") % {'id': id}

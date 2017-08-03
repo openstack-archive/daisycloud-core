@@ -55,7 +55,6 @@ ACTIVE_IMMUTABLE = daisy.api.v1.ACTIVE_IMMUTABLE
 
 DISCOVER_DEFAULTS = {
     'listen_port': '5050',
-    'ironic_url': 'http://127.0.0.1:6385/v1',
 }
 
 ML2_TYPE = [
@@ -378,7 +377,7 @@ class Controller(controller.BaseController):
             if os_status == "active":
                 msg = _(
                     'The host %s os_status is active,'
-                    'forbidden ironic to add host.') % exist_id
+                    'forbidden daisy-discoverd to add host.') % exist_id
                 LOG.error(msg)
                 raise HTTPBadRequest(explanation=msg)
             host_meta['id'] = exist_id
@@ -640,10 +639,10 @@ class Controller(controller.BaseController):
                                  request=req,
                                  content_type="text/plain")
 
-        for ironic_keyword in ['cpu', 'system', 'memory',
+        for discov_keyword in ['cpu', 'system', 'memory',
                                'pci', 'disks', 'devices']:
-            if host_meta.get(ironic_keyword):
-                host_meta[ironic_keyword] = eval(host_meta.get(ironic_keyword))
+            if host_meta.get(discov_keyword):
+                host_meta[discov_keyword] = eval(host_meta.get(discov_keyword))
 
         host_meta = registry.add_host_metadata(req.context, host_meta)
 
@@ -1898,11 +1897,11 @@ class Controller(controller.BaseController):
                     daisy_cmn.add_ssh_host_to_cluster_and_assigned_network(
                         req, host_meta['cluster'], id)
 
-            for ironic_keyword in ['cpu', 'system', 'memory',
+            for discov_keyword in ['cpu', 'system', 'memory',
                                    'pci', 'disks', 'devices']:
-                if host_meta.get(ironic_keyword):
-                    host_meta[ironic_keyword] = eval(
-                        host_meta.get(ironic_keyword))
+                if host_meta.get(discov_keyword):
+                    host_meta[discov_keyword] = eval(
+                        host_meta.get(discov_keyword))
 
             host_meta = registry.update_host_metadata(req.context, id,
                                                       host_meta)
@@ -1986,7 +1985,7 @@ class Controller(controller.BaseController):
                     % (discover_host_meta['ip'],),
                     shell=True, stderr=subprocess.STDOUT)
                 if 'Failed connect to' in exc_result:
-                    # when openstack-ironic-discoverd.service has problem
+                    # when daisy-discoverd.service has problem
                     update_info = {}
                     update_info['status'] = 'DISCOVERY_FAILED'
                     update_info['message'] = "Do getnodeinfo.sh %s failed!" \
@@ -2130,7 +2129,7 @@ class Controller(controller.BaseController):
                 backend_driver.getnodeinfo_ip(daisy_management_ip)
         config_discoverd = ConfigParser.ConfigParser(
             defaults=DISCOVER_DEFAULTS)
-        config_discoverd.read("/etc/ironic-discoverd/discoverd.conf")
+        config_discoverd.read("/etc/daisy-discoverd/discoverd.conf")
         listen_port = config_discoverd.get("discoverd", "listen_port")
         if listen_port:
             backends = get_backend()
