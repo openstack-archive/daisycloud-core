@@ -80,7 +80,6 @@ DAISY_TEST_SOCKET_FD_STR = 'DAISY_TEST_SOCKET_FD'
 
 DISCOVER_DEFAULTS = {
     'listen_port': '5050',
-    'ironic_url': 'http://127.0.0.1:6385/v1',
 }
 SUPPORT_BACKENDS = ['proton', 'zenic', 'tecs', 'kolla']
 

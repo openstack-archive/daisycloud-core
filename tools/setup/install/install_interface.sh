@@ -11,13 +11,12 @@ cd $_INSTALL_INTERFACE_DIR
 
 daisy_file="/etc/daisy/daisy-registry.conf"
 db_name="daisy"
-ironic_name="ironic"
 keystone_db_name="keystone"
 keystone_admin_token="e93e9abf42f84be48e0996e5bd44f096"
 daisy_install="/var/log/daisy/daisy_install"
 installdatefile=`date -d "today" +"%Y%m%d-%H%M%S"`
 install_logfile=$daisy_install/daisyinstall_$installdatefile.log
-discover_logfile="/var/log/ironic"
+discover_logfile="/var/log/daisy-discoverd"
 #the contents of the output is displayed on the screen and output to the specified file
 function write_install_log
 {
@@ -64,11 +63,11 @@ function all_install
     write_install_log "install python-openstackclient rpm"
     install_rpm_by_yum "python-openstackclient"
 
-    write_install_log "install ironic-discoverd depend rpm"
+    write_install_log "install daisy-discoverd depend rpm"
     install_rpm_by_yum "python-flask"
 
-    write_install_log "install ironic-discoverd rpm"
-    install_rpm_by_daisy_yum "openstack-ironic-discoverd python-ironic-discoverd"
+    write_install_log "install daisy-discoverd rpm"
+    install_rpm_by_daisy_yum "daisy-discoverd python-daisy-discoverd"
 
     write_install_log "install daisy rpm"
     install_rpm_by_yum "daisy"
@@ -228,8 +227,8 @@ function all_install
     config_rabbitmq_env
     config_rabbitmq_config
 
-    #Configure ironic related configuration items
-    config_ironic_discoverd "/etc/ironic-discoverd/discoverd.conf" "$public_ip"
+    #Configure daisy-discoverd related configuration items
+    config_daisy_discoverd "/etc/daisy-discoverd/discoverd.conf" "$public_ip"
 
     #modify clustershell configuration
     clustershell_conf="/etc/clustershell/clush.conf"
@@ -245,8 +244,8 @@ function all_install
     systemctl start daisy-registry.service
     [ "$?" -ne 0 ] && { write_install_log "Error:systemctl start daisy-registry.service failed"; exit 1; }
 
-    systemctl start openstack-ironic-discoverd.service
-    [ "$?" -ne 0 ] && { write_install_log "Error:systemctl restart openstack-ironic-discoverd.service failed"; exit 1; }
+    systemctl start daisy-discoverd.service
+    [ "$?" -ne 0 ] && { write_install_log "Error:systemctl restart daisy-discoverd.service failed"; exit 1; }
 
     systemctl start daisy-orchestration.service
     [ "$?" -ne 0 ] && { write_install_log "Error:systemctl start daisy-orchestration.service failed"; exit 1; }
@@ -259,7 +258,7 @@ function all_install
     systemctl enable daisy-registry.service >> $install_logfile 2>&1
     systemctl enable daisy-orchestration.service >> $install_logfile 2>&1
     systemctl enable daisy-auto-backup.service >> $install_logfile 2>&1
-    systemctl enable openstack-ironic-discoverd.service >> $install_logfile 2>&1
+    systemctl enable daisy-discoverd.service >> $install_logfile 2>&1
 
     #init daisy
     daisy_init_func

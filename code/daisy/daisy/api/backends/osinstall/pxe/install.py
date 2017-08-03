@@ -73,11 +73,11 @@ def build_pxe_server(eth_name, ip_address, build_pxe, net_mask,
     pxe_dict['client_ip_begin'] = client_ip_begin
     pxe_dict['client_ip_end'] = client_ip_end
     LOG.info('pxe_dict=%s' % pxe_dict)
-    with open('/var/log/ironic/pxe.json', 'w') as f:
+    with open('/var/lib/daisy/pxe.json', 'w') as f:
         json.dump(pxe_dict, f, indent=2)
     f.close()
     _PIPE = subprocess.PIPE
-    cmd = "/usr/bin/pxe_server_install /var/log/ironic/pxe.json && \
+    cmd = "/usr/bin/pxe_server_install /var/lib/daisy/pxe.json && \
            chmod 755 /tftpboot -R"
     try:
         obj = subprocess.Popen(cmd, stdin=_PIPE, stdout=_PIPE,
@@ -121,12 +121,12 @@ def set_boot_or_power_state(user, passwd, addr, action):
 
 
 def install_os(**kwargs):
-    json_file = "/var/log/ironic/%s.json" % kwargs['dhcp_mac']
+    json_file = "/var/lib/daisy/%s.json" % kwargs['dhcp_mac']
     with open(json_file, 'w') as f:
         json.dump(kwargs, f, indent=2)
     f.close()
     _PIPE = subprocess.PIPE
-    cmd = "/usr/bin/pxe_os_install /var/log/ironic/%s.json && \
+    cmd = "/usr/bin/pxe_os_install /var/lib/daisy/%s.json && \
            chmod 755 /tftpboot -R && \
            chmod 755 /home/install_share -R" % kwargs['dhcp_mac']
     try:
@@ -515,10 +515,10 @@ class OSInstall():
             rc = set_boot_or_power_state(user, passwd, addr, action)
             if rc == 0:
                 LOG.info(
-                    _("Set %s to '%s' successfully for %s times by ironic" % (
+                    _("Set %s to '%s' successfully for %s times by discov" % (
                         addr, action, count + 1)))
                 host_status = {'messages': "Set %s to '%s' successfully for "
-                                           "%s times by ironic" % (
+                                           "%s times by discov" % (
                                                addr, action, count + 1)}
                 daisy_cmn.update_db_host_status(self.req, host_detail['id'],
                                                 host_status)
@@ -540,10 +540,10 @@ class OSInstall():
             else:
                 count += 1
                 LOG.info(
-                    _("Try setting %s to '%s' failed for %s times by ironic"
+                    _("Try setting %s to '%s' failed for %s times by discov"
                       % (addr, action, count)))
                 host_status = {'messages': "Set %s to '%s' failed for "
-                                           "%s times by ironic" % (
+                                           "%s times by discov" % (
                                                addr, action, count + 1)}
                 daisy_cmn.update_db_host_status(self.req, host_detail['id'],
                                                 host_status)
@@ -734,7 +734,7 @@ class OSInstall():
                            'messages': error}
             daisy_cmn.update_db_host_status(self.req, host_detail['id'],
                                             host_status)
-            msg = "ironic install os return failed for host %s" % \
+            msg = "discov install os return failed for host %s" % \
                   host_detail['id']
             raise exception.OSInstallFailed(message=msg)
 

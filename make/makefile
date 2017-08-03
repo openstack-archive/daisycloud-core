@@ -27,7 +27,7 @@ endif
 
 ifeq (_RELEASE,$(_VERSION_TYPE))
 export _VERSION_TYPE = _RELEASE
-else 
+else
 export _VERSION_TYPE = _DEBUG
 endif
 
@@ -36,21 +36,21 @@ export _CI_SVN_REVISION     = without_svn_revision
 endif
 
 export RPM_ERR=$(_TECS_TARGET_PATH)/rpmErr_$(OS)_$(subst _CPU_,,$(_CPU_TYPE))$(_VERSION_TYPE).txt
-##rpmbuild¹ý³ÌÐÅÏ¢»á±»µ±´í´íÎóÐÅÏ¢Êä³ö£¬Îª·½±ãÒÔºó¼ì²é±àÒë¸æ¾¯ºÍ´íÎó£¬Ä¬ÈÏµ¥¶À³ö´íµ½Ò»¸öÎÄ¼þÖÐ¡£
-##Èç¹ûÏëÈÃrpmbuildµÄ´íÎóÍ¬µ±Ç°´íÎóÊä³öµ½Ò»Æð£¬ÔÚ±àÒëÊ±¶¨ÒåRPM_ERR_OUTPUTÎª¿Õ¡£
-##ÀýÈç make allrpm _OS_TYPE=_CGSL _CPU_TYPE=_CPU_X86_64 _VERSION_TYPE=_RELEASE RPM_ERR_OUTPUT=
-##ÓÉÓÚrpmbuild³ö´í»áÍ£Ö¹±àÒë£¬Òò´ËÕâÀïÖ»±£´æÁË×îºóÒ»´Î´íÎóÐÅÏ¢¡£
+##rpmbuildÂ¹Ã½Â³ÃŒÃÃ…ÃÂ¢Â»Ã¡Â±Â»ÂµÂ±Â´Ã­Â´Ã­ÃŽÃ³ÃÃ…ÃÂ¢ÃŠÃ¤Â³Ã¶Â£Â¬ÃŽÂªÂ·Â½Â±Ã£Ã’Ã”ÂºÃ³Â¼Ã¬Â²Ã©Â±Ã Ã’Ã«Â¸Ã¦Â¾Â¯ÂºÃÂ´Ã­ÃŽÃ³Â£Â¬Ã„Â¬ÃˆÃÂµÂ¥Â¶Ã€Â³Ã¶Â´Ã­ÂµÂ½Ã’Â»Â¸Ã¶ÃŽÃ„Â¼Ã¾Ã–ÃÂ¡Â£
+##ÃˆÃ§Â¹Ã»ÃÃ«ÃˆÃƒrpmbuildÂµÃ„Â´Ã­ÃŽÃ³ÃÂ¬ÂµÂ±Ã‡Â°Â´Ã­ÃŽÃ³ÃŠÃ¤Â³Ã¶ÂµÂ½Ã’Â»Ã†Ã°Â£Â¬Ã”ÃšÂ±Ã Ã’Ã«ÃŠÂ±Â¶Â¨Ã’Ã¥RPM_ERR_OUTPUTÃŽÂªÂ¿Ã•Â¡Â£
+##Ã€Ã½ÃˆÃ§ make allrpm _OS_TYPE=_CGSL _CPU_TYPE=_CPU_X86_64 _VERSION_TYPE=_RELEASE RPM_ERR_OUTPUT=
+##Ã“Ã‰Ã“ÃšrpmbuildÂ³Ã¶Â´Ã­Â»Ã¡ÃÂ£Ã–Â¹Â±Ã Ã’Ã«Â£Â¬Ã’Ã²Â´Ã‹Ã•Ã¢Ã€Ã¯Ã–Â»Â±Â£Â´Ã¦ÃÃ‹Ã—Ã®ÂºÃ³Ã’Â»Â´ÃŽÂ´Ã­ÃŽÃ³ÃÃ…ÃÂ¢Â¡Â£
 export RPM_ERR_OUTPUT= 2>$(RPM_ERR)
 
 include compileoption.mak
 
-.PHONY:help allrpm cleanall 
+.PHONY:help allrpm cleanall
 
 help:
 	$(ECHO) ===============================================================================
 	$(ECHO) make usage:
 	$(ECHO) ===============================================================================
-	$(ECHO) make allrpm  ... generate all rpms and install.bin 
+	$(ECHO) make allrpm  ... generate all rpms and install.bin
 	$(ECHO) ===============================================================================
 	$(ECHO) make rpm  ... generate all rpms
 	$(ECHO) ===============================================================================
@@ -60,7 +60,7 @@ help:
 	$(ECHO) ===============================================================================
 	$(ECHO) make daisyclientrpm  ... generate daisyclient rpms
 	$(ECHO) ===============================================================================
-	$(ECHO) make ironicdiscoverdrpm  ... generate ironicdiscoverd rpms
+	$(ECHO) make daisydiscoverdrpm  ... generate daisydiscoverd rpms
 	$(ECHO) ===============================================================================
 	$(ECHO) make pxe_server_install  ... generate pxe_server_install rpms
 	$(ECHO) ===============================================================================
@@ -73,8 +73,8 @@ help:
 
 export _RPM=all
 
-rpm: 
-	$(MAKE) -C $(_TECS_RPM_PATH)/ all 
+rpm:
+	$(MAKE) -C $(_TECS_RPM_PATH)/ all
 
 buildpkg:
 	$(MAKE) -C $(_TECS_TOOLS_PATH)/setup bin
@@ -87,14 +87,14 @@ allrpm:rpm
 rpmclean:
 	$(MAKE) -C $(_TECS_RPM_PATH)/ clean
 
-daisyrpm: 
-	$(MAKE) -C $(_TECS_RPM_PATH)/ daisy  
+daisyrpm:
+	$(MAKE) -C $(_TECS_RPM_PATH)/ daisy
 
-daisyclientrpm: 
-	$(MAKE) -C $(_TECS_RPM_PATH)/ daisyclient 
+daisyclientrpm:
+	$(MAKE) -C $(_TECS_RPM_PATH)/ daisyclient
 
-ironicdiscoverdrpm: 
-	$(MAKE) -C $(_TECS_RPM_PATH)/ ironic-discoverd  
+daisydiscoverdrpm:
+	$(MAKE) -C $(_TECS_RPM_PATH)/ daisy-discoverd
 
 horizonrpm:
 	$(MAKE) -C $(_TECS_RPM_PATH)/ horizon
@@ -109,4 +109,4 @@ cleanall:rpmclean
 	$(RMDIR)  $(_TECS_TMP_PATH)
 	$(RMDIR)  $(_TECS_TARGET_PATH)
 	@echo "clean all successfully!"
-    
+
