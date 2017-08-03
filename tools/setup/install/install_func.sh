@@ -703,7 +703,7 @@ EOF
     fi
 }
 
-function config_ironic_discoverd
+function config_daisy_discoverd
 {
     local file=$1
     local ip=$2
@@ -718,7 +718,6 @@ function config_ironic_discoverd
     [ ! -e $file ] && { write_install_log "Error:$file is not exist"; exit 1;}
 
     openstack-config --set "$file" discoverd "os_auth_token" "admin"
-    openstack-config --set "$file" discoverd "ironic_url " "http://$ip:6385/v1"
     openstack-config --set "$file" discoverd "manage_firewall " "false"
     openstack-config --set "$file" discoverd "daisy_url " "http://$ip:$bind_port"
 }
@@ -739,7 +738,7 @@ function daisyrc_admin
 
 function config_pxe
 {
-    local config_file="/var/log/ironic/pxe.json"
+    local config_file="/var/lib/daisy/pxe.json"
     if [ ! -e $config_file ];then
         touch $config_file
     fi
@@ -774,7 +773,7 @@ function build_pxe_server
         get_config "$config_file" client_ip_end
         client_ip_end_params=$config_answer
         config_pxe $pxe_bond_name yes $ip_address_params $net_mask_params $client_ip_begin_params $client_ip_end_params
-        /usr/bin/pxe_server_install /var/log/ironic/pxe.json >> $install_logfile 2>&1
+        /usr/bin/pxe_server_install /var/lib/daisy/pxe.json >> $install_logfile 2>&1
         # write dhcp cidr to DEPLOYMENT network of system for daisy
         # to decide which is pxe mac
         if [ "$ip_address_params" -a "$net_mask_params" ];then

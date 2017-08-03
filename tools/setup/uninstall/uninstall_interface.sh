@@ -19,13 +19,13 @@ function uninstall_daisy
     stop_service_all
     remove_rpms_by_yum "python-django-horizon  daisy-dashboard"
     remove_rpms_by_yum "daisy python-daisyclient  python-daisy"
-    remove_rpms_by_yum "openstack-ironic-discoverd python-ironic-discoverd"
+    remove_rpms_by_yum "daisy-discoverd python-daisy-discoverd"
     remove_rpms_by_yum "jasmine"
     rpm -e  pxe_server_install
     for i in `ps -elf | grep daisy-api |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $i;done
     for j in `ps -elf | grep daisy-registry |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
     for j in `ps -elf | grep daisy-orchestration |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
-    for j in `ps -elf | grep ironic-discoverd |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
+    for j in `ps -elf | grep daisy-discoverd |grep -v grep | awk -F ' ' '{print $4}'`;do kill -9 $j;done
     # delect keystone database
     delete_keystone_sql="drop database IF EXISTS keystone"
     write_install_log "delect keystone database in mariadb"
@@ -51,11 +51,12 @@ function uninstall_daisy
         docker rmi $image_id
     fi
     rm -rf /etc/daisy
-    rm -rf /etc/ironic-discoverd
+    rm -rf /etc/daisy-discoverd
     rm -rf /etc/sudoers.d/daisy
     rm -rf /var/lib/daisy
     rm -rf /var/log/daisy
-    rm -rf /var/log/ironic/*
+    rm -rf /var/lib/daisy-discoverd
+    rm -rf /var/log/daisy-discoverd
     rm -rf /root/daisyrc_admin
     echo "Finish clean daisy!"
 }
