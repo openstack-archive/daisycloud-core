@@ -60,7 +60,7 @@ help:
 	$(ECHO) ===============================================================================
 	$(ECHO) make daisyclientrpm  ... generate daisyclient rpms
 	$(ECHO) ===============================================================================
-	$(ECHO) make ironicdiscoverdrpm  ... generate ironicdiscoverd rpms
+	$(ECHO) make daisydiscoverdrpm  ... generate daisydiscoverd rpms
 	$(ECHO) ===============================================================================
 	$(ECHO) make pxe_server_install  ... generate pxe_server_install rpms
 	$(ECHO) ===============================================================================
@@ -93,8 +93,8 @@ daisyrpm:
 daisyclientrpm: 
 	$(MAKE) -C $(_TECS_RPM_PATH)/ daisyclient 
 
-ironicdiscoverdrpm: 
-	$(MAKE) -C $(_TECS_RPM_PATH)/ ironic-discoverd  
+daisydiscoverdrpm: 
+	$(MAKE) -C $(_TECS_RPM_PATH)/ daisy-discoverd  
 
 horizonrpm:
 	$(MAKE) -C $(_TECS_RPM_PATH)/ horizon

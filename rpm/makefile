@@ -17,7 +17,7 @@ rpmforce:
 
 all:clean rpms
 
-rpms:daisy daisyclient ironic-discoverd horizon pxe_server_install
+rpms:daisy daisyclient daisy-discoverd horizon pxe_server_install
 
 clean:rpmforce
 	$(RM) $(_TECS_RPM_PATH)/SOURCES/*
@@ -46,12 +46,12 @@ daisyclient:rpmforce
 	$(RM) $(_TECS_RPM_PATH)/SOURCES/python-$@-$(_VER_DAISYCLIENT_REL)
 	$(RM) $(_TECS_RPM_PATH)/BUILD/python-$@-$(_VER_DAISYCLIENT_REL)
 	
-ironic-discoverd:rpmforce
+daisy-discoverd:rpmforce
 	$(CP) $(_TECS_TOOLS_PATH)/daisy-utils/* $(_TECS_RPM_PATH)/SOURCES
 	$(RM) $(_TECS_RPM_PATH)/SOURCES/$@-$(_VER_IRONICDISCOVERD_REL)
-	$(LN) $(_TECS_CONTRIB_PATH)/ironic/ $(_TECS_RPM_PATH)/SOURCES/$@-$(_VER_IRONICDISCOVERD_REL)
+	$(LN) $(_TECS_CODE_PATH)/daisy-discoverd/ $(_TECS_RPM_PATH)/SOURCES/$@-$(_VER_IRONICDISCOVERD_REL)
 	@cd $(_TECS_RPM_PATH)/SOURCES; $(TARC) $(_TECS_RPM_PATH)/SOURCES/$@-$(_VER_IRONICDISCOVERD_REL).tar.gz --exclude=*.svn $@-$(_VER_IRONICDISCOVERD_REL)/*; cd -
-	$(RPMBUILD) --rmsource $(_TECS_RPM_PATH)/SPECS/openstack-$@.spec
+	$(RPMBUILD) --rmsource $(_TECS_RPM_PATH)/SPECS/$@.spec
 	$(RM) $(_TECS_RPM_PATH)/SOURCES/python-$@-$(_VER_IRONICDISCOVERD_REL)
 	$(RM) $(_TECS_RPM_PATH)/BUILD/python-$@-$(_VER_IRONICDISCOVERD_REL)
 
