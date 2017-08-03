@@ -427,9 +427,7 @@ function stop_service_all
 {
     service_stop  "daisy-api"
     service_stop  "daisy-registry"
-    service_stop  "openstack-ironic-api"
-    service_stop  "openstack-ironic-conductor"
-    service_stop  "openstack-ironic-discoverd"
+    service_stop  "daisy-discoverd"
     service_stop  "openstack-keystone"
     service_stop  "daisy-orchestration"
     service_stop  "daisy-auto-backup"
@@ -442,9 +440,7 @@ function start_service_all
     service_start  "openstack-keystone"
     service_start  "daisy-api"
     service_start  "daisy-registry"
-    service_start  "openstack-ironic-api"
-    service_start  "openstack-ironic-conductor"
-    service_start  "openstack-ironic-discoverd"
+    service_start  "daisy-discoverd"
     service_start  "daisy-orchestration"
     service_start  "daisy-auto-backup"
 }

@@ -146,14 +146,14 @@ def get_format_memory_size(str_memory):
 
 def get_suggest_os_cpus():
     # TO DO
-    # get suggest os cpu core number of host from ironic
+    # get suggest os cpu core number of host from discov
     # the default "1" is minimum mumber,so we choose it
     return "1"
 
 
 def get_suggest_dvs_cpus():
     # TO DO
-    # get suggest dvs cpu core number of host from ironic
+    # get suggest dvs cpu core number of host from discov
     # the default "1" is minimum mumber,so we choose it
     return "1"
 

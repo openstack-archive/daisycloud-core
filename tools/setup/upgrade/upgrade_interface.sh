@@ -1,5 +1,5 @@
 #!/bin/bash
-# 提供和yum安装相关的公共函数和变量
+
 if [ ! "$_UPGRADE_INTERFACE_FILE" ];then
 _UPGRADE_INTERFACE_DIR=`pwd`
 cd $_UPGRADE_INTERFACE_DIR/../common/
@@ -29,14 +29,10 @@ function upgrade_daisy
     write_upgrade_log "wait to stop daisy services..."
     stop_service_all 
 
-    #获取当前所有daisy服务包
     get_daisy_services
     
-    # 升级daisy服务包
     upgrade_rpms_by_yum "$all_daisy_services"
 
-    
-    #同步daisy数据库
     which daisy-manage >> $logfile 2>&1
     if [ "$?" == 0 ];then
         write_upgrade_log  "start daisy-manage db_sync..." 
@@ -44,15 +40,6 @@ function upgrade_daisy
         [ "$?" -ne 0 ] && { write_upgrade_log "Error:daisy-manage db_sync command faild"; exit 1; } 
     fi
 
-    #同步ironic数据库
-    which ironic-dbsync >> $logfile 2>&1
-    if [ "$?" == 0 ];then
-        write_upgrade_log "start ironic-dbsync ..." 
-        ironic-dbsync --config-file /etc/ironic/ironic.conf
-        [ "$?" -ne 0 ] && { write_upgrade_log "Error:ironic-dbsync --config-file /etc/ironic/ironic.conf faild"; exit 1; } 
-    fi
-
-    #同步keystone数据库
     which keystone-manage >> $logfile 2>&1
     if [ "$?" == 0 ];then
         write_upgrade_log  "start keystone-manage db_sync..." 

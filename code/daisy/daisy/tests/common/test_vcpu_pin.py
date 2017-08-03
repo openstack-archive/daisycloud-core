@@ -222,7 +222,7 @@ class TestVcpuPin(test.TestCase):
         dvs_high = list(set(numa_node1) - set([18, 19, 20, 21, 22, 23]))
         dvs_cpusets = {'high': numa_node1, 'low': numa_node0,
                        'dvs': {'dvsc': [20, 21], 'dvsp': [22, 23],
-                               'dvsc': [18, 19]}}
+                               'dvsv': [18, 19]}}
 
         roles_name = ['COMPUTER']
         os_cpus = vcpu_pin.allocate_os_cpus(roles_name,
