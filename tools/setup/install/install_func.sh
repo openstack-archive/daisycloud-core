@@ -144,7 +144,7 @@ function kolla_install
   fi
 
   if [ ! -f "/var/lib/daisy/tools/registry-server.tar" ];then
-      cp $imagedir/registry-server.tar /var/lib/daisy/tools/ # keep jasmine for target hosts
+      cp $imagedir/registry-server.tar /var/lib/daisy/tools/ # keep it for target hosts
   fi
 
   docker load < $imagedir/registry-server.tar

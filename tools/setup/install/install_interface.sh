@@ -87,10 +87,10 @@ function all_install
     write_install_log "install wget rpm"
     install_rpm_by_yum "wget"
 
-    write_install_log "install jasmine"
+    write_install_log "install daisy4nfv-jasmine"
     mkdir -p /var/lib/daisy/tools/
-    cp jasmine*.rpm /var/lib/daisy/tools/ # keep jasmine for target hosts
-    install_rpm_by_daisy_yum "jasmine"
+    cp daisy4nfv-jasmine*.rpm /var/lib/daisy/tools/ # keep it for target hosts
+    install_rpm_by_daisy_yum "daisy4nfv-jasmine"
 
     if [ -f "/etc/zte-docker" ];then
         write_install_log "install pxe_docker_install rpm"
