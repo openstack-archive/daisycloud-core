@@ -14,7 +14,7 @@
 #    under the License.
 
 """
-/install endpoint for tecs API
+install endpoint for daisy API
 """
 import os
 import subprocess
