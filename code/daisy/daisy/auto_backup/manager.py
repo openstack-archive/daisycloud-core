@@ -14,7 +14,7 @@
 #    under the License.
 
 """
-/auto backup for tecs API
+/auto backup for backend API
 """
 import time
 import os
