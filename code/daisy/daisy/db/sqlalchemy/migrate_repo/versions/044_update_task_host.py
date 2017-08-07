@@ -40,7 +40,7 @@ def define_task_host_table(meta):
 
 
 def upgrade(migrate_engine):
-    print("043 upgrade")
+    print("044 upgrade")
     meta = MetaData()
     meta.bind = migrate_engine
     tasks = Table('tasks', meta, autoload=True)
