@@ -596,7 +596,6 @@ class KOLLAInstallTask(Thread):
         except:
             LOG.error("join config network "
                       "thread %s failed!" % t_net)
-            #api_cmn.config_network_new(ssh_host_info, 'kolla')
 
         time.sleep(20)
 

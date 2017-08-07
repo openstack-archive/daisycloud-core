@@ -257,7 +257,7 @@ def update_globals_yml(config_data, multicast_flag):
     Version = config_data['Version'].encode()
     Namespace = config_data['Namespace'].encode()
     VIP = config_data['VIP'].encode()
-    local_ip = config_data['LocalIP'].encode()
+    local_ip = config_data['LocalIP'].encode()  
     IntIfMac = config_data['IntIfMac'].encode()
     if config_data['vlans_id'].get('MANAGEMENT'):
         IntIfMac = IntIfMac + '.' + \
