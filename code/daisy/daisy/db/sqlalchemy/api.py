@@ -2960,7 +2960,7 @@ def role_get_all(context, filters=None, marker=None, limit=None,
     roles = []
     for role in query.all():
         role_dict = role.to_dict()
-        # If uninstalling tecs, we reset the role_progress value to (100 - role_progress)
+        # If uninstalling backend, we reset the role_progress value to (100 - role_progress)
         # for showing data on client. Because role_progress will reduce from 100 to 0 and
         #  role_status will be set to 'init', when uninstalling is finished.
         #  So that installing could be started at next time.

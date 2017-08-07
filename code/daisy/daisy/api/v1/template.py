@@ -294,7 +294,7 @@ class Controller(controller.BaseController):
     @utils.mutating
     def export_db_to_json(self, req, template):
         """
-        Template TECS to a cluster.
+        Template backend to a cluster.
         :param req: The WSGI/Webob Request object
         :raises HTTPBadRequest if x-Template-cluster is missing
         """

@@ -43,7 +43,7 @@ _LW = i18n._LW
 SUPPORTED_PARAMS = daisy.api.v1.SUPPORTED_PARAMS
 SUPPORTED_FILTERS = daisy.api.v1.SUPPORTED_FILTERS
 ACTIVE_IMMUTABLE = daisy.api.v1.ACTIVE_IMMUTABLE
-SUPPORTED_DEPLOYMENT_BACKENDS = ('tecs', 'zenic', 'proton')
+SUPPORTED_DEPLOYMENT_BACKENDS = ('tecs', 'zenic', 'proton', 'kolla')
 SUPPORT_DISK_LOCATION = ('local', 'share')
 
 
