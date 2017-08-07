@@ -675,27 +675,38 @@ class KOLLAInstallTask(Thread):
                 LOG.error(self.message)
                 raise exception.InstallException(self.message)
 
-            try:
-                LOG.info(_("begin to kolla-ansible "
-                           "prechecks for all nodes..."))
-                exc_result = subprocess.check_output(
-                    'cd %s/kolla-ansible && ./tools/kolla-ansible prechecks '
-                    ' -i %s/kolla-ansible/ansible/inventory/multinode' %
-                    (self.kolla_file, self.kolla_file),
-                    shell=True, stderr=subprocess.STDOUT)
-            except subprocess.CalledProcessError as e:
-                self.message = "kolla-ansible preckecks failed!"
-                LOG.error(self.message)
-                fp.write(e.output.strip())
-                raise exception.InstallException(self.message)
-            else:
-                LOG.info(_("kolla-ansible preckecks successfully!"))
-                fp.write(exc_result)
-                self.message = "Precheck for installation successfully!"
-                update_all_host_progress_to_db(self.req, role_id_list,
-                                               host_id_list,
-                                               kolla_state['INSTALLING'],
-                                               self.message, 20)
+            LOG.info(_("kolla-ansible precheck..."))
+            cmd = subprocess.Popen(
+                'cd %s/kolla-ansible && ./tools/kolla-ansible prechecks '
+                ' -i %s/kolla-ansible/ansible/inventory/multinode -vvv' %
+                (self.kolla_file, self.kolla_file),
+                shell=True, stdout=fp, stderr=fp)
+            execute_times = 0
+            while True:
+                time.sleep(5)
+                return_code = cmd.poll()
+                if return_code == 0:
+                    break
+                elif return_code == 1:
+                    self.message = "kolla-ansible preckecks failed!"
+                    LOG.error(self.message)
+                    raise exception.InstallException(self.message)
+                else:
+                    if execute_times >= 1440:
+                        self.message = "kolla-ansible preckecks timeout"
+                        LOG.error(self.message)
+                        raise exception.InstallTimeoutException(
+                            cluster_id=self.cluster_id)
+                execute_times += 1
+
+            self.message = "kolla-ansible preckecks successfully(%d)!" % \
+                (return_code)
+            self.progress = 20
+            update_all_host_progress_to_db(self.req, role_id_list,
+                                           host_id_list,
+                                           kolla_state['INSTALLING'],
+                                           self.message, self.progress)
+
             LOG.info(_("kolla-ansible begin to deploy openstack ..."))
             cmd = subprocess.Popen(
                 'cd %s/kolla-ansible && ./tools/kolla-ansible deploy -i '
@@ -729,6 +740,7 @@ class KOLLAInstallTask(Thread):
                                                    kolla_state['INSTALLING'],
                                                    self.message, self.progress)
                 execute_times += 1
+
             try:
                 LOG.info(_("kolla-ansible post-deploy for each node..."))
                 exc_result = subprocess.check_output(
