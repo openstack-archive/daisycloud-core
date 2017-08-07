@@ -583,7 +583,7 @@ class KOLLAInstallTask(Thread):
                                                   self.cluster_id,
                                                   mgnt_ip)
 
-                t_net = threading.Thread(target=api_cmn.config_network_new,
+                t_net = threading.Thread(target=api_cmn.config_network,
                                          args=(ssh_host_info, 'kolla'))
                 t_net.setDaemon(True)
                 t_net.start()
@@ -596,7 +596,6 @@ class KOLLAInstallTask(Thread):
         except:
             LOG.error("join config network "
                       "thread %s failed!" % t_net)
-            #api_cmn.config_network_new(ssh_host_info, 'kolla')
 
         time.sleep(20)
 

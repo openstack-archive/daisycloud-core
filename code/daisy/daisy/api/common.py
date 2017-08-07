@@ -71,7 +71,8 @@ def _valid_appointed_network_range(req, network_meta,
             value_min = int(value_min)
             value_max = int(value_max)
             if not is_value_in_range(value_min, value_max, check_range):
-                msg = "%s:%d and %s:%d must be in %d~%d and start:%d less than end:%d" \
+                msg = "%s:%d and %s:%d must be in %d~%d " \
+                      "and start:%d less than end:%d" \
                       % (key_start, value_min, key_end, value_max,
                          check_range[0], check_range[1], value_min, value_max)
                 LOG.error(msg)
@@ -291,7 +292,7 @@ def remote_execute_script(ssh_host_info,
         raise exc.HTTPBadRequest(explanation=msg)
 
 
-def config_network_new(ssh_host_info, backend, json_file=None):
+def config_network(ssh_host_info, backend, json_file=None):
     remote_dir = '/home/'
     daisy_script_name = 'daisy.py'
     linux_action_name = 'linux_action.sh'
@@ -317,7 +318,3 @@ def config_network_new(ssh_host_info, backend, json_file=None):
     except Exception:
         msg = "Wait network restart..."
         LOG.info(msg)
-
-
-def config_network(ssh_host_info, json_file=None):
-    config_network_new(ssh_host_info, 'tecs', json_file)
