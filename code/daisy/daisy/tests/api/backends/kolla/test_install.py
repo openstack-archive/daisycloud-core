@@ -497,7 +497,7 @@ class TestInstall(test.TestCase):
     @mock.patch('daisy.api.backends.kolla.common.check_and_get_kolla_version')
     @mock.patch("daisy.registry.client.v1.api.get_cluster_metadata")
     @mock.patch('daisy.api.backends.kolla.common._get_local_ip')
-    @mock.patch('daisy.api.common.config_network_new')
+    @mock.patch('daisy.api.common.config_network')
     @mock.patch('daisy.registry.client.v1.client.RegistryClient.do_request')
     @mock.patch('daisy.api.backends.kolla.install.update_progress_to_db')
     @mock.patch('daisy.api.backends.kolla.install.update_host_progress_to_db')
@@ -525,7 +525,7 @@ class TestInstall(test.TestCase):
             mock_do_get_host_detail, mock_do_get_assigned_network,
             mock_do_update_all_host_progress_to_db, mock_do_config_nodes_hosts,
             mock_do_update_host_progress_to_db, mock_do_update_progress_to_db,
-            mock_do_request, mock_do_config_network_new,
+            mock_do_request, mock_do_config_network,
             mock_do_get_local_ip, mock_do_get_clusters_detail,
             mock_do_check_and_get_kolla_version,
             mock_do_version_load_mcast, mock_do_version_load,
