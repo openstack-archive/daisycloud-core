@@ -87,6 +87,9 @@ function all_install
     write_install_log "install wget rpm"
     install_rpm_by_yum "wget"
 
+    write_install_log "install bc rpm"
+    install_rpm_by_yum "bc"
+
     write_install_log "install daisy4nfv-jasmine"
     mkdir -p /var/lib/daisy/tools/
     cp daisy4nfv-jasmine*.rpm /var/lib/daisy/tools/ # keep it for target hosts
