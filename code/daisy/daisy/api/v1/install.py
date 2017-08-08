@@ -99,7 +99,7 @@ def get_deployment_backends(req, cluster_id, backends_order):
 class InstallTask(object):
 
     """
-    Class for install OS and TECS.
+    Class for install OS and BACKEND.
     """
     """ Definition for install states."""
 
@@ -191,7 +191,7 @@ class InstallTask(object):
             # after a batch of os install over, judge if all
             # role hosts install os completely,
             # if role_hosts_need_os all install(including success and failed),
-            # install TECS immediately
+            # install BACKEND immediately
             recycle_number = recycle_number + 1
             if run_once_flag and \
                     recycle_number == recycle_num_of_hosts_with_role:
@@ -325,7 +325,7 @@ class Controller(controller.BaseController):
     @utils.mutating
     def install_cluster(self, req, install_meta):
         """
-        Install TECS to a cluster.
+        Install BACKEND to a cluster.
 
         :param req: The WSGI/Webob Request object
 
@@ -350,7 +350,7 @@ class Controller(controller.BaseController):
 
         daisy_cmn.set_role_status_and_progress(
             req, cluster_id, 'install',
-            {'messages': 'Waiting for TECS installation', 'progress': '0'},
+            {'messages': 'Waiting for backend installation', 'progress': '0'},
             'tecs')
 
         #through the global variables, to determine whether the re installation
@@ -359,7 +359,7 @@ class Controller(controller.BaseController):
                      "append %s" % cluster_id))
             daisy_cmn.cluster_list_add(cluster_id)
             # if have hosts need to install os,
-            # TECS installataion executed in InstallTask
+            # backend installataion executed in InstallTask
             os_install_obj = InstallTask(req, cluster_id, skip_pxe_ipmi)
             os_install_thread = Thread(target=os_install_obj.run)
             os_install_thread.start()
@@ -381,7 +381,7 @@ class Controller(controller.BaseController):
     @utils.mutating
     def uninstall_cluster(self, req, cluster_id, install_meta):
         """
-        Uninstall TECS to a cluster.
+        Uninstall backend to a cluster.
 
         :param req: The WSGI/Webob Request object
 
@@ -527,7 +527,7 @@ class Controller(controller.BaseController):
     @utils.mutating
     def update_disk_array(self, req, cluster_id):
         """
-        update TECS Disk Array config for a cluster.
+        update backend Disk Array config for a cluster.
 
         :param req: The WSGI/Webob Request object
 

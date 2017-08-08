@@ -44,16 +44,16 @@ def get_default_os_num(host_roles_name):
          'CONTROLLER_HA' in host_roles_name) and
             'COMPUTER' in host_roles_name):
         # host with role of CONTOLLER and COMPUTER,
-        # isolate 4 cpu cores default for OS and TECS
+        # isolate 4 cpu cores default for OS and BACKEND
         os_cpu_num = 4
     elif 'COMPUTER' in host_roles_name:
         # host with role of COMPUTER only,
-        # isolate 2 cpu cores default for OS and TECS
+        # isolate 2 cpu cores default for OS and BACKEND
         os_cpu_num = 2
     elif ('CONTROLLER_LB' in host_roles_name or
           'CONTROLLER_HA' in host_roles_name):
         # host with role of CONTOLLER only,
-        # don't isolate cpu for OS and TECS
+        # don't isolate cpu for OS and BACKEND
         os_cpu_num = 0
     else:
         os_cpu_num = 0
