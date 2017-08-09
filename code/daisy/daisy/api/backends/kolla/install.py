@@ -524,6 +524,8 @@ class KOLLAInstallTask(Thread):
         self.install_log_fp = None
         self.last_line_num = 0
         self.ping_times = 36
+        self.precheck_file = "/var/log/daisy/kolla_%s_precheck.log" %\
+                             self.cluster_id
         self.log_file = "/var/log/daisy/kolla_%s_deploy.log" % self.cluster_id
         self.host_prepare_file = "/home/kolla"
         self.kolla_file = "/home/kolla_install"
@@ -607,7 +609,7 @@ class KOLLAInstallTask(Thread):
                                        self.message, 5)
 
         docker_registry_ip = kolla_cmn._get_local_ip()
-        with open(self.log_file, "w+") as fp:
+        with open(self.precheck_file, "w+") as fp:
             threads = []
             for host in hosts_list:
                 t = threading.Thread(target=thread_bin,
@@ -706,7 +708,7 @@ class KOLLAInstallTask(Thread):
                                            host_id_list,
                                            kolla_state['INSTALLING'],
                                            self.message, self.progress)
-
+        with open(self.log_file, "w+") as fp:
             LOG.info(_("kolla-ansible begin to deploy openstack ..."))
             cmd = subprocess.Popen(
                 'cd %s/kolla-ansible && ./tools/kolla-ansible deploy -i '
