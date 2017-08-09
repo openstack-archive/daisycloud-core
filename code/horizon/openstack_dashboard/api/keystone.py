@@ -108,7 +108,7 @@ def _get_endpoint_url(request, endpoint_type, catalog=None):
         url = base.url_for(request,
                            service_type='identity',
                            endpoint_type=endpoint_type)
-        # LOG.info("service_catalog None url  =%s." % url )
+        # LOG.info("service_catalog None url  =%s.", url )
     else:
         auth_url = getattr(settings, 'OPENSTACK_KEYSTONE_URL')
         url = request.session.get('region_endpoint', auth_url)
@@ -117,7 +117,7 @@ def _get_endpoint_url(request, endpoint_type, catalog=None):
     # in the endpoints this can be removed.
     url = url.rstrip('/')
     url = urlparse.urljoin(url, 'v%s' % VERSIONS.active)
-    # LOG.info("url  =%s." % url)
+    # LOG.info("url  =%s.", url)
     return url
 
 
@@ -144,7 +144,7 @@ def keystoneclient(request, admin=False):
     request/response cycle don't have to be re-authenticated.
     """
     user = request.user
-    # LOG.info("user  = %s." % user)
+    # LOG.info("user  = %s.", user)
     if admin:
         if not policy.check((("identity", "admin_required"),), request):
             raise exceptions.NotAuthorized
@@ -154,7 +154,7 @@ def keystoneclient(request, admin=False):
         endpoint_type = getattr(settings,
                                 'OPENSTACK_ENDPOINT_TYPE',
                                 'internalURL')
-        # LOG.info("else endpoint_type =%s." % endpoint_type)
+        # LOG.info("else endpoint_type =%s.", endpoint_type)
 
     api_version = VERSIONS.get_active_version()
 
@@ -170,7 +170,7 @@ def keystoneclient(request, admin=False):
         endpoint = _get_endpoint_url(request, endpoint_type)
         insecure = getattr(settings, 'OPENSTACK_SSL_NO_VERIFY', False)
         cacert = getattr(settings, 'OPENSTACK_SSL_CACERT', None)
-        LOG.debug("Creating a new keystoneclient connection to %s." % endpoint)
+        LOG.debug("Creating a new keystoneclient connection to %s.", endpoint)
         remote_addr = request.environ.get('REMOTE_ADDR', '')
         conn = api_version['client'].Client(token=user.token.id,
                                             endpoint=endpoint,
@@ -238,7 +238,7 @@ def get_default_domain(request):
             domain = domain_get(request, domain_id)
             domain_name = domain.name
         except Exception:
-            LOG.warning("Unable to retrieve Domain: %s" % domain_id)
+            LOG.warning("Unable to retrieve Domain: %s", domain_id)
     domain = base.APIDictWrapper({"id": domain_id,
                                   "name": domain_name})
     return domain
