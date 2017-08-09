@@ -119,7 +119,7 @@ def _ping_hosts_test(ips):
                              result in ping_result if
                              result and result.split()[2] != 'alive']
     else:
-        msg = "ping failed beaceuse there is invlid ip in %s" % ips
+        msg = "ping failed beaceuse there is invlid ip in %s", ips
         raise exception.InvalidIP(msg)
     return unreachable_hosts
 
@@ -130,7 +130,7 @@ def _check_ping_hosts(ping_ips, max_ping_times):
         return ping_ips
     ping_count = 0
     time_step = 5
-    LOG.info(_("begin ping test for %s" % ','.join(ping_ips)))
+    LOG.info(_("begin ping test for %s", ','.join(ping_ips)))
     while True:
         if ping_count == 0:
             ips = _ping_hosts_test(ping_ips)
@@ -146,9 +146,9 @@ def _check_ping_hosts(ping_ips, max_ping_times):
                 return ips
             time.sleep(time_step)
         else:
-            LOG.info(_("ping host %s success" % ','.join(ping_ips)))
+            LOG.info(_("ping host %s success", ','.join(ping_ips)))
             time.sleep(120)
-            LOG.info(_("120s after ping host %s success" % ','.join(ping_ips)))
+            LOG.info(_("120s after ping host %s success", ','.join(ping_ips)))
             return ips
 
 
@@ -194,7 +194,7 @@ def get_cluster_kolla_config(req, cluster_id):
                             kolla_openstack_version = line.strip()
                             openstack_version = kolla_openstack_version.split(
                                 ": ")[1].strip('\"')
-    LOG.info(_("openstack version is %s" % openstack_version))
+    LOG.info(_("openstack version is %s"), openstack_version)
     docker_registry_ip = kolla_cmn._get_local_ip()
     docker_registry = docker_registry_ip + ':4000'
     LOG.info(_("get cluster network detail..."))
@@ -473,12 +473,12 @@ def _thread_bin(req, cluster_id, host, root_passwd, fp, host_name_ip_list,
             (host_ip, host_prepare_file, docker_registry_ip),
             shell=True, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        message = "exec prepare.sh  in %s failed!" % host_ip
+        message = "exec prepare.sh  in %s failed!", host_ip
         LOG.error(message + e)
         fp.write(e.output.strip())
         raise exception.InstallException(message)
     else:
-        LOG.info(_("prepare for %s successfully!" % host_ip))
+        LOG.info(_("prepare for %s successfully!", host_ip))
         fp.write(exc_result)
         message = "Preparing for installation successful!"
         update_host_progress_to_db(req, role_id_list, host,
@@ -493,7 +493,7 @@ def thread_bin(req, cluster_id, host, root_passwd, fp, host_name_ip_list,
                     host_prepare_file, docker_registry_ip, role_id_list)
     except Exception as e:
         message = "Prepare for installation failed!"
-        LOG.error(message + e)
+        LOG.error(message, e)
         update_host_progress_to_db(req, role_id_list, host,
                                    kolla_state['INSTALL_FAILED'],
                                    message)
@@ -597,7 +597,7 @@ class KOLLAInstallTask(Thread):
                 t_net.join()
         except:
             LOG.error("join config network "
-                      "thread %s failed!" % t_net)
+                      "thread %s failed!", t_net)
 
         time.sleep(20)
 
@@ -627,7 +627,7 @@ class KOLLAInstallTask(Thread):
                     t.join()
             except:
                 LOG.error("join kolla prepare installation "
-                          "thread %s failed!" % t)
+                          "thread %s failed!", t)
 
             # check, load and multicast version
             if cluster_data.get('tecs_version_id', None):
