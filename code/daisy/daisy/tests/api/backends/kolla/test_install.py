@@ -578,6 +578,6 @@ class TestInstall(test.TestCase):
         log_file = '/var/log/daisy/'\
                    'kolla_8ad27e36-f3e2-48b4-84b8-5b676c6fabde_deploy.log'
         all_the_text = open('%s' % log_file).read()
-        self.assertIn('okok', all_the_text)
+        self.assertIn('ok', all_the_text)
         cmd = 'rm -rf /var/log/daisy'
         subprocesscall(cmd)
