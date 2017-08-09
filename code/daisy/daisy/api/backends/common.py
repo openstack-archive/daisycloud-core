@@ -185,7 +185,7 @@ def subprocess_call(command, file=None):
         if file:
             file.write(e.output.strip())
         msg = "execute '%s' failed by subprocess call, "\
-              "error message: %s." % (command, e.output.strip())
+              "error message: %s.", (command, e.output.strip())
         raise exception.SubprocessCmdFailed(message=msg)
 
 
@@ -195,7 +195,7 @@ def check_file_whether_exist(file_name):
                                 stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
         if e.returncode == 1:
-            msg = "%s does not exist" % file_name
+            msg = "%s does not exist", file_name
             LOG.info(msg)
             return False
         else:
@@ -212,7 +212,7 @@ def get_host_detail(req, host_id):
     except exception.Invalid as e:
         raise HTTPBadRequest(explanation=e.msg, request=req)
     except exception.NotFound:
-        msg = "Host with identifier %s not found" % host_id
+        msg = "Host with identifier %s not found", host_id
         LOG.debug(msg)
         raise HTTPNotFound(msg)
     return host_detail
@@ -362,7 +362,7 @@ def _ping_hosts_test(ips):
         )[0] for result in ping_result if result and
             result.split()[2] != 'alive']
     else:
-        msg = "ping failed beaceuse there is invlid ip in %s" % ips
+        msg = "ping failed beaceuse there is invlid ip in %s", ips
         raise exception.InvalidIP(msg)
     return unreachable_hosts
 
@@ -373,7 +373,7 @@ def check_ping_hosts(ping_ips, max_ping_times):
         return ping_ips
     ping_count = 0
     time_step = 5
-    LOG.info(_("begin ping test for %s" % ','.join(ping_ips)))
+    LOG.info(_("begin ping test for %s", ','.join(ping_ips)))
     while True:
         if ping_count == 0:
             ips = _ping_hosts_test(ping_ips)
@@ -383,14 +383,14 @@ def check_ping_hosts(ping_ips, max_ping_times):
         ping_count += 1
         if ips:
             LOG.debug(
-                _("ping host %s for %s times" % (','.join(ips), ping_count)))
+                _("ping host %s for %s times", (','.join(ips), ping_count)))
             if ping_count >= max_ping_times:
-                LOG.info(_("ping host %s timeout for %ss" %
+                LOG.info(_("ping host %s timeout for %ss",
                            (','.join(ips), ping_count * time_step)))
                 return ips
             time.sleep(time_step)
         else:
-            LOG.info(_("ping %s successfully" % ','.join(ping_ips)))
+            LOG.info(_("ping %s successfully", ','.join(ping_ips)))
             return ips
 
 
@@ -463,12 +463,12 @@ def cidr_to_netmask(cidr):
 
 
 def get_rpm_package_by_name(path, rpm_name):
-    cmd = "ls %s | grep ^%s.*\.rpm" % (path, rpm_name)
+    cmd = "ls %s | grep ^%s.*\.rpm", (path, rpm_name)
     try:
         rpm_name = subprocess.check_output(
             cmd, shell=True, stderr=subprocess.STDOUT).split('\n')[0]
     except subprocess.CalledProcessError:
-        msg = _("Get rpm %s failed in %s!" % (rpm_name, path))
+        msg = _("Get rpm %s failed in %s!", (rpm_name, path))
         raise exception.SubprocessCmdFailed(message=msg)
     return rpm_name
 
@@ -520,25 +520,25 @@ def trust_me(host_ips, root_passwd):
         while count < try_times:
             try:
                 trust_me_cmd = "/var/lib/daisy/trustme.sh\
-                        %s %s" % (host_ip, root_passwd)
+                        %s %s", (host_ip, root_passwd)
                 subprocess_call(trust_me_cmd)
             except:
                 count += 1
-                LOG.info("Trying to trust '%s' for %s times" %
+                LOG.info("Trying to trust '%s' for %s times",
                          (host_ip, count))
                 time.sleep(2)
                 if count >= try_times:
                     message = "Setup trust for '%s' failed,"\
-                        "see '/var/log/trustme.log' please" % (host_ip)
+                        "see '/var/log/trustme.log' please", (host_ip)
                     raise exception.TrustMeFailed(message=message)
             else:
-                message = "Setup trust to '%s' successfully" % (host_ip)
+                message = "Setup trust to '%s' successfully", (host_ip)
                 LOG.info(message)
                 break
 
 
 def calc_host_iqn(min_mac):
-    cmd = "echo -n %s |openssl md5" % min_mac
+    cmd = "echo -n %s |openssl md5", min_mac
     obj = subprocess.Popen(cmd,
                            shell=True,
                            stdout=subprocess.PIPE,
@@ -554,7 +554,7 @@ def calc_host_iqn(min_mac):
 def _get_cluster_network(cluster_networks, network_name):
     network = [cn for cn in cluster_networks if cn['name'] == network_name]
     if not network or not network[0]:
-        msg = "network %s is not exist" % (network_name)
+        msg = "network %s is not exist", (network_name)
         raise exception.InvalidNetworkConfig(msg)
     else:
         return network[0]
@@ -571,7 +571,7 @@ def get_host_interface_by_network(host_detail, network_name):
         interface = interface_list[0]
 
     if not interface and 'MANAGEMENT' == network_name:
-        msg = "network %s of host %s is not exist" % (
+        msg = "network %s of host %s is not exist", (
             network_name, host_detail_info['id'])
         raise exception.InvalidNetworkConfig(msg)
 
@@ -586,7 +586,7 @@ def get_host_network_ip(req, host_detail, cluster_networks, network_name):
                 return assigned_network.get('ip')
 
     if not interface_network_ip and 'MANAGEMENT' == network_name:
-        msg = "%s network ip of host %s can't be empty" % (
+        msg = "%s network ip of host %s can't be empty", (
             network_name, host_detail['id'])
         raise exception.InvalidNetworkConfig(msg)
     return interface_network_ip
@@ -679,9 +679,9 @@ def _run_scrip(script, ip=None, password=None):
     script = "\n".join(script)
     _PIPE = subprocess.PIPE
     if ip:
-        cmd = ["sshpass", "-p", "%s" % password,
+        cmd = ["sshpass", "-p", "%s", password,
                "ssh", "-o StrictHostKeyChecking=no",
-               "%s" % ip, "bash -x"]
+               "%s", ip, "bash -x"]
     else:
         cmd = ["bash", "-x"]
     environ = os.environ
@@ -757,7 +757,7 @@ def update_db_host_status(req, host_id, host_status, version_id=None):
 
 def get_local_deployment_ip(tecs_deployment_ips):
     if not isinstance(tecs_deployment_ips, list):
-        msg = "%s must be converted to list" % tecs_deployment_ips
+        msg = "%s must be converted to list", tecs_deployment_ips
         LOG.error(msg)
         raise exception.InvalidIP(msg)
     (status, output) = commands.getstatusoutput('ifconfig')
@@ -969,7 +969,7 @@ def check_vlan_nic_and_join_vlan_network(req, cluster_id,
                     check_ip_if_valid = \
                         _checker_the_ip_or_hostname_valid(host_ip)
                     if not check_ip_if_valid:
-                        msg = "Error:The %s is not the right ip!" % host_ip
+                        msg = "Error:The %s is not the right ip!", host_ip
                         LOG.error(msg)
                         raise HTTPForbidden(explanation=msg)
                     nic_name_list = interface_info['name'].split('.')
@@ -1007,22 +1007,22 @@ def check_vlan_nic_and_join_vlan_network(req, cluster_id,
                                     append({'name': network['name'],
                                             'ip': host_ip})
                                 LOG.info("add the nic %s of the host "
-                                         "%s to assigned_network %s" %
-                                         (interface_info['name'],
+                                         "%s to assigned_network %s",
+                                         interface_info['name'],
                                           host_id,
                                           interface_info
-                                          ['assigned_networks']))
+                                          ['assigned_networks'])
                             elif vlan_id == network['vlan_id'] \
                                     and not ip_in_cidr:
                                 msg = "The vlan of nic %s is the same " \
                                       "as network %s, but the ip of nic " \
-                                      "is not in the cidr range." % \
+                                      "is not in the cidr range.", \
                                       (nic_name, network['name'])
                                 LOG.error(msg)
                                 raise HTTPForbidden(explanation=msg)
                         else:
                             msg = "There is no cidr in network " \
-                                  "%s" % network['name']
+                                  "%s", network['name']
                             LOG.error(msg)
                             raise HTTPForbidden(explanation=msg)
     return father_vlan_list
@@ -1092,15 +1092,15 @@ def check_bond_or_ether_nic_and_join_network(req,
                                                     'ip': host_info_ip})
                                         LOG.info("add the nic %s of the "
                                                  "host %s to "
-                                                 "assigned_network %s" %
-                                                 (nic_name,
+                                                 "assigned_network %s",
+                                                 nic_name,
                                                   host_id,
                                                   interface_info
-                                                  ['assigned_networks']))
+                                                  ['assigned_networks'])
                                     else:
                                         msg = ("the nic %s of ip %s is in "
                                                "the %s cidr range,but the "
-                                               "network vlan id is %s " %
+                                               "network vlan id is %s ",
                                                (nic_name,
                                                 host_info_ip,
                                                 network['name'], vlan_id))
@@ -1108,7 +1108,7 @@ def check_bond_or_ether_nic_and_join_network(req,
                                         raise HTTPForbidden(explanation=msg)
                             else:
                                 msg = "There is no cidr in network " \
-                                      "%s" % network['name']
+                                      "%s", network['name']
                                 LOG.error(msg)
                                 raise HTTPForbidden(explanation=msg)
 
@@ -1120,8 +1120,8 @@ def check_bond_or_ether_nic_and_join_network(req,
                                                           host_id,
                                                           host_meta)
                 LOG.info("add the host %s join the cluster %s and"
-                         " assigned_network successful" %
-                         (host_id, cluster_id))
+                         " assigned_network successful",
+                         host_id, cluster_id)
 
 
 def if_used_shared_storage(req, cluster_id):
