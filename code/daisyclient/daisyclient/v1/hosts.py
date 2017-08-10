@@ -265,11 +265,9 @@ class HostManager(base.ManagerWithFind):
                 msg = 'create() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
 
-        hdrs = self._host_meta_to_headers(fields)
-
         resp, body = self.client.post('/v1/nodes',
                                       headers=None,
-                                      data=hdrs)
+                                      data=fields)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
@@ -289,7 +287,6 @@ class HostManager(base.ManagerWithFind):
 
         TODO(bcwaldon): document accepted params
         """
-        hdrs = {}
         fields = {}
         for field in kwargs:
             if field in UPDATE_PARAMS:
@@ -300,10 +297,9 @@ class HostManager(base.ManagerWithFind):
             #    msg = 'update() got an unexpected keyword argument \'%s\''
             #    raise TypeError(msg % field)
 
-        hdrs.update(self._host_meta_to_headers(fields))
 
         url = '/v1/nodes/%s' % base.getid(host)
-        resp, body = self.client.put(url, headers=None, data=hdrs)
+        resp, body = self.client.put(url, headers=None, data=fields)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
@@ -314,16 +310,14 @@ class HostManager(base.ManagerWithFind):
         """discovery host
         TODO(bcwaldon): document accepted params
         """
-        hdrs = {}
         fields = {}
         for field in kwargs:
             if field in UPDATE_PARAMS:
                 fields[field] = kwargs[field]
             elif field == 'return_req_id':
                 continue
-        hdrs.update(self._host_meta_to_headers(fields))
         url = '/v1/discover_host/'
-        resp, body = self.client.post(url, headers=None, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=fields)
 
         return Host(self, self._format_host_meta_for_user(body))
 
@@ -346,11 +340,10 @@ class HostManager(base.ManagerWithFind):
         if fields.get('hwm_id'):
             params = self.get_min_mac(fields['hwm_id'])
             fields['mac'] = params.get('mac')
-        hdrs = self._host_meta_to_headers(fields)
 
         resp, body = self.client.post('/v1/discover/nodes',
                                       headers=None,
-                                      data=hdrs)
+                                      data=fields)
 
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
@@ -445,7 +438,6 @@ class HostManager(base.ManagerWithFind):
 
         TODO(bcwaldon): document accepted params
         """
-        hdrs = {}
         fields = {}
         for field in kwargs:
             if field in UPDATE_PARAMS:
@@ -456,10 +448,9 @@ class HostManager(base.ManagerWithFind):
             #    msg = 'update() got an unexpected keyword argument \'%s\''
             #    raise TypeError(msg % field)
 
-        hdrs.update(self._host_meta_to_headers(fields))
 
         url = '/v1/discover/nodes/%s' % base.getid(host)
-        resp, body = self.client.put(url, headers=None, data=hdrs)
+        resp, body = self.client.put(url, headers=None, data=fields)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
@@ -478,13 +469,11 @@ class HostManager(base.ManagerWithFind):
         return Host(self, self._format_host_meta_for_user(body['host']))
 
     def host_check(self, **kwargs):
-        hdrs = {}
         fields = {}
         for field in kwargs:
             if field in CHECK_PARAMS:
                 fields[field] = kwargs[field]
             elif field == 'return_req_id':
                 continue
-        hdrs.update(self._host_meta_to_headers(fields))
-        resp, body = self.client.post('/v1/check', headers=None, data=hdrs)
+        resp, body = self.client.post('/v1/check', headers=None, data=fields)
         return Host(self, self._format_host_meta_for_user(body['host']))
