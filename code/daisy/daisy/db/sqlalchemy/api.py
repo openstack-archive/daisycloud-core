@@ -710,10 +710,12 @@ def _host_update(context, values, host_id):
                         delete_assigned_networks(
                             context, host_interface_info.id, session)
                     delete_host_interface(context, host_id, session)
+
                 if isinstance(values['interfaces'], list):
                     orig_keys = values['interfaces']
                 else:
-                    orig_keys = list(eval(values['interfaces']))
+                    orig_keys = list(values['interfaces'])
+
                 for host_interface_info in orig_keys:
                     if (host_interface_info.has_key('assigned_networks') and
                        host_interface_info['assigned_networks']):
@@ -851,7 +853,7 @@ def _host_update(context, values, host_id):
                 host_ref = _modify_os_version(values["os_version"], host_ref)
 
             if values.has_key('interfaces'):
-                orig_keys = list(eval(values['interfaces']))
+                orig_keys = list(values['interfaces'])
                 for network in orig_keys:
                     host_interface_ref = models.HostInterface()
                     host_interfaces_values = network.copy()
