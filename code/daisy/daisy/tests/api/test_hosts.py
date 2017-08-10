@@ -2044,21 +2044,21 @@ class TestHostsApiConfig(test.TestCase):
             'cluster': '1',
             'dmi_uuid': '03000200-0400-0500-0006-000700080009',
             'interfaces':
-                "[{'name': 'enp132s0f2292','ip': '192.168.1.2',"
-                "'mac': '4c:09:b4:b2:80:8c','pci': '0000:03:02.0',"
-                "'assigned_networks': [],"
-                "'host_id': '1','type': 'ether'},"
-                "{'name': 'bond0','bond_type': '',"
-                "'mode': 'active-backup;off',"
-                "'slaves': ['enp2s0', 'enp132s0f2292'],"
-                "'assigned_networks':[{'ip': '192.168.1.5',"
-                "'name': 'PUBLICAPI'}],'host_id': '1','type': 'bond'},"
-                "{'name': 'enp2s0','ip': '10.43.178.21',"
-                "'mac': '00:24:21:74:8a:56','pci': '0000:02:00.0',"
-                "'assigned_networks': [],'host_id': '1',"
-                "'type': 'ether'}, {'name': 'enp3s1', "
-                "'mac': '00:23:cd:96:53:97', 'pci': '0000:03:02.1', "
-                "'type': 'ether'}]"}
+                [{'name': 'enp132s0f2292','ip': '192.168.1.2',
+                  'mac': '4c:09:b4:b2:80:8c','pci': '0000:03:02.0',
+                  'assigned_networks': [],
+                  'host_id': '1','type': 'ether'},
+                 {'name': 'bond0','bond_type': '',
+                  'mode': 'active-backup;off',
+                  'slaves': ['enp2s0', 'enp132s0f2292'],
+                  'assigned_networks':[{'ip': '192.168.1.5',
+                  'name': 'PUBLICAPI'}],'host_id': '1','type': 'bond'},
+                 {'name': 'enp2s0','ip': '10.43.178.21',
+                  'mac': '00:24:21:74:8a:56','pci': '0000:02:00.0',
+                  'assigned_networks': [],'host_id': '1',
+                  'type': 'ether'}, {'name': 'enp3s1',
+                  'mac': '00:23:cd:96:53:97', 'pci': '0000:03:02.1',
+                  'type': 'ether'}]}
         req = webob.Request.blank('/')
         req.context = RequestContext(is_admin=True,
                                      user='fake user',
@@ -2508,6 +2508,6 @@ class TestGetClusterNetworkInfo(test.TestCase):
         ret = self.controller._get_interface_by_name(name, None)
         self.assertIsNone(ret)
 
-        intfaces = "[{'name': 'eth1'}]"
-        ret = self.controller._get_interface_by_name(name, intfaces)
+        interfaces = [{'name': 'eth1'}]
+        ret = self.controller._get_interface_by_name(name, interfaces)
         self.assertIsNone(ret)
