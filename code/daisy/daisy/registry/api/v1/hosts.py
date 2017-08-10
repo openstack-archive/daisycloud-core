@@ -479,7 +479,7 @@ class Controller(object):
 
     @utils.mutating
     def get_host_interface(self, req, body):
-        orig_interfaces = list(eval(body['interfaces']))
+        orig_interfaces = list(body['interfaces'])
         for orig_interface in orig_interfaces:
             host_interface = self.db_api.get_host_interface_mac(
                 req.context, orig_interface['mac'])
