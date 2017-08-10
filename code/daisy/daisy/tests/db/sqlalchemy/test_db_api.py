@@ -559,20 +559,22 @@ class TestSqlalchemyApi(test.TestCase):
     def test_host_destroy(self):
         host_id = u'9692370d-7378-4ef8-9e21-1afe5cd1564a'
         discover_host_id = u'9692370d-7378-4ef8-9e21-1afe5cd15644'
+
         host_meta = {
             u'name': u'host-192-168-1-102',
             u'description': u'default',
             u'discover_mode': u'SSH',
             u'dmi_uuid': u'574775DC-0000-1000-0000-744AA400B807',
             u'id': host_id,
-            u'interfaces': unicode([{u'bond_type': None,
-                                     u'ip': u'10.43.203.44',
-                                     u'is_deployment': False,
-                                     u'mac': u'a0:36:9f:91:85:a9',
-                                     u'max_speed': u'1000baseT/Full',
-                                     u'name': u'ens8f1.900',
-                                     u'netmask': u'255.255.254.0'}]),
+            u'interfaces': [{u'bond_type': None,
+                             u'ip': u'10.43.203.44',
+                             u'is_deployment': False,
+                             u'mac': u'a0:36:9f:91:85:a9',
+                             u'max_speed': u'1000baseT/Full',
+                             u'name': u'ens8f1.900',
+                             u'netmask': u'255.255.254.0'}],
         }
+
         discover_host = {'status': u'DISCOVERY_SUCCESSFUL',
                          'ip': u'10.43.203.44',
                          'passwd': u'ossdbg1',
@@ -917,17 +919,16 @@ class TestSqlalchemyApi(test.TestCase):
             u'discover_mode': u'SSH',
             u'dmi_uuid': u'574775DC-0000-1000-0000-744AA400B807',
             u'id': host_id,
-            u'interfaces': unicode([{u'bond_type': None,
-                                     u'ip': u'10.43.203.44',
-                                     u'is_deployment': False,
-                                     u'mac': u'a0:36:9f:91:85:a9',
-                                     u'max_speed': u'1000baseT/Full',
-                                     u'name': u'ens8f1.900',
-                                     u'netmask': u'255.255.254.0',
-                                     u'vf': [
-                                         {'name': 'ens301', 'index': 0}]}]),
+            u'interfaces': [{u'bond_type': None,
+                             u'ip': u'10.43.203.44',
+                             u'is_deployment': False,
+                             u'mac': u'a0:36:9f:91:85:a9',
+                             u'max_speed': u'1000baseT/Full',
+                             u'name': u'ens8f1.900',
+                             u'netmask': u'255.255.254.0',
+                             u'vf': [
+                                 {'name': 'ens301', 'index': 0}]}],
         }
-
         api.host_add(self.req.context, host_meta)
         ret = api.host_interfaces_get_all(self.req.context)
         self.assertEqual(ret[0]["host_id"], host_id)
@@ -941,27 +942,27 @@ class TestSqlalchemyApi(test.TestCase):
             u'discover_mode': u'SSH',
             u'dmi_uuid': u'574775DC-0000-1000-0000-744AA400B807',
             u'id': host_id,
-            u'interfaces': unicode([{u'bond_type': None,
-                                     u'ip': u'10.43.203.44',
-                                     u'is_deployment': False,
-                                     u'mac': u'a0:36:9f:91:85:a9',
-                                     u'max_speed': u'1000baseT/Full',
-                                     u'name': u'ens8f1.900',
-                                     u'netmask': u'255.255.254.0',
-                                     u'vf': [
-                                         {'name': 'ens301', 'index': 0}]}]),
+            u'interfaces': [{u'bond_type': None,
+                             u'ip': u'10.43.203.44',
+                             u'is_deployment': False,
+                             u'mac': u'a0:36:9f:91:85:a9',
+                             u'max_speed': u'1000baseT/Full',
+                             u'name': u'ens8f1.900',
+                             u'netmask': u'255.255.254.0',
+                             u'vf': [
+                                 {'name': 'ens301', 'index': 0}]}],
         }
 
         update_meta = {
-            u'interfaces': unicode([{u'bond_type': None,
-                                     u'ip': u'10.43.203.44',
-                                     u'is_deployment': False,
-                                     u'mac': u'a0:36:9f:91:85:a9',
-                                     u'max_speed': u'1000baseT/Full',
-                                     u'name': u'ens8f1.900',
-                                     u'netmask': u'255.255.254.0',
-                                     u'vf': [
-                                         {'name': 'ens301', 'index': 1}]}]),
+            u'interfaces': [{u'bond_type': None,
+                             u'ip': u'10.43.203.44',
+                             u'is_deployment': False,
+                             u'mac': u'a0:36:9f:91:85:a9',
+                             u'max_speed': u'1000baseT/Full',
+                             u'name': u'ens8f1.900',
+                             u'netmask': u'255.255.254.0',
+                             u'vf': [
+                                 {'name': 'ens301', 'index': 1}]}],
         }
 
         api.host_add(self.req.context, host_meta)
