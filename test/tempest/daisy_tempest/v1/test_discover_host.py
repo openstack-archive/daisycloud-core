@@ -28,12 +28,12 @@ class DaisyDiscoverHostTest(base.BaseDaisyTest):
         cls.host_meta = {'ip': '127.0.0.1',
                          'passwd': 'ossdbg1'}
 
-    def test_add_dicover_host(self):
+    def test_add_discover_host(self):
         host = self.add_discover_host(**self.host_meta)
         self.assertEqual("init", host.status, "add discover host failed")
         self.delete_discover_host(host.id)
 
-    def test_delete_dicover_host(self):
+    def test_delete_discover_host(self):
         host = self.add_discover_host(**self.host_meta)
         self.delete_discover_host(host.id)
 
@@ -88,17 +88,6 @@ class DaisyDiscoverHostTest(base.BaseDaisyTest):
                                **add_host_meta)
         self.assertIn("PASSWD parameter can not be None.", str(ex))
 
-    def test_add_discover_host_with_repeat_ip(self):
-        # add_host_meta = {'ip': '127.0.0.2',
-        #                  'passwd': 'ossdbg2',
-        #                  'user': 'root'}
-        # host_1 = self.add_discover_host(**add_host_meta)
-        # ex = self.assertRaises(client_exc.HTTPForbidden,
-        #                        self.add_discover_host, **add_host_meta)
-        # self.assertIn("403 Forbidden: ip %s already existed."
-        #               % add_host_meta['ip'], str(ex))
-        pass
-
     def test_discover_host(self):
         daisy_endpoint = "http://127.0.0.1:19292"
 
@@ -120,6 +109,7 @@ class DaisyDiscoverHostTest(base.BaseDaisyTest):
         time.sleep(8)
         discover_flag = 'false'
         while 1:
+            time.sleep(1)
             print("discovring!!!!!!!!")
             if discover_flag == 'true':
                 break
