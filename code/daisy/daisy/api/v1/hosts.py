@@ -362,8 +362,8 @@ class Controller(controller.BaseController):
 
     def _check_add_host_interfaces(self, req, host_meta):
         host_meta_interfaces = []
-        if host_meta.get('interfaces') and eval(host_meta['interfaces']):
-            host_meta_interfaces = list(eval(host_meta['interfaces']))
+        if host_meta.get('interfaces') and host_meta['interfaces']:
+            host_meta_interfaces = list(host_meta['interfaces'])
         else:
             msg = "No Interface in host, host_meta is: %s" % host_meta
             LOG.error(msg)
@@ -537,9 +537,6 @@ class Controller(controller.BaseController):
         host_interfaces = (host_meta.get('interfaces') or
                            orig_host_meta.get('interfaces'))
         if host_interfaces:
-            if not isinstance(host_interfaces, list):
-                host_interfaces = eval(host_interfaces)
-
             has_dvs = utils.get_dvs_interfaces(host_interfaces)
             if has_dvs:
                 if (('hugepages' in host_meta and
@@ -578,7 +575,7 @@ class Controller(controller.BaseController):
                 role_list = registry.get_roles_detail(req.context, **params)
                 for role_name in role_list:
                     if role_name['cluster_id'] == host_meta['cluster']:
-                        host_roles = list(eval(host_meta['role']))
+                        host_roles = list(host_meta['role'])
                         for host_role in host_roles:
                             if role_name['name'] == host_role:
                                 role_id_list.append(role_name['id'])
@@ -638,11 +635,6 @@ class Controller(controller.BaseController):
             raise HTTPBadRequest(explanation=msg,
                                  request=req,
                                  content_type="text/plain")
-
-        for discov_keyword in ['cpu', 'system', 'memory',
-                               'pci', 'disks', 'devices']:
-            if host_meta.get(discov_keyword):
-                host_meta[discov_keyword] = eval(host_meta.get(discov_keyword))
 
         host_meta = registry.add_host_metadata(req.context, host_meta)
 
@@ -825,7 +817,6 @@ class Controller(controller.BaseController):
             raise HTTPBadRequest(explanation=msg)
 
     def _count_host_pxe_info(self, interfaces):
-        interfaces = eval(interfaces)
         input_host_pxe_info = [
             interface for interface in interfaces if interface.get(
                 'is_deployment',
@@ -866,7 +857,6 @@ class Controller(controller.BaseController):
         :return:
         """
         # verify interface among the input host
-        interfaces = eval(interfaces)
         same_mac_list = [interface1['name']
                          for interface1 in interfaces for interface2 in
                          interfaces
@@ -933,7 +923,7 @@ class Controller(controller.BaseController):
         for id in [host['id'] for host in all_hosts]:
             host_meta_list = registry.get_host_metadata(req.context, id)
             exist_nodes.append(host_meta_list)
-        interfaces = list(eval(host_meta['interfaces']))
+        interfaces = list(host_meta['interfaces'])
         for host_interface in interfaces:
             host_mac = host_interface.get('mac', None)
             if not host_mac:
@@ -1013,7 +1003,6 @@ class Controller(controller.BaseController):
         dhcp_ip_ranges = template_deploy_network[0]['ip_ranges']
 
         deployment_interface_count = 0
-        host_meta['interfaces'] = eval(host_meta['interfaces'])
         for interface in host_meta['interfaces']:
             if 'ip' in interface and interface['ip']:
                 ip_in_cidr = utils.is_ip_in_cidr(interface['ip'],
@@ -1034,7 +1023,6 @@ class Controller(controller.BaseController):
                 msg = "error, find more than one dhcp ip"
             LOG.error(msg)
             raise HTTPBadRequest(explanation=msg)
-        host_meta['interfaces'] = unicode(host_meta['interfaces'])
 
     def _get_os_version(self, host_meta, orig_host_meta):
         # os_version_file and os_version_id only exist one at same time
@@ -1184,9 +1172,6 @@ class Controller(controller.BaseController):
         if not interfaces:
             return None
 
-        if not isinstance(interfaces, list):
-            interfaces = eval(interfaces)
-
         for interface in interfaces:
             if name == interface.get('name'):
                 return interface
@@ -1247,7 +1232,7 @@ class Controller(controller.BaseController):
             cluster_id = orig_cluster_id
 
         if 'interfaces' in host_meta:
-            host_meta_interfaces = list(eval(host_meta['interfaces']))
+            host_meta_interfaces = list(host_meta['interfaces'])
             ether_nic_names_list = list()
             bond_nic_names_list = list()
             bond_slaves_lists = list()
@@ -1381,7 +1366,7 @@ class Controller(controller.BaseController):
                                                  orig_host_meta)
         new_mac_list = []
         if "interfaces" in host_meta:
-            interfaces = eval(host_meta['interfaces'])
+            interfaces = host_meta['interfaces']
             new_mac_list = [interface['mac'] for interface in
                             interfaces if interface.get('mac')]
             if orig_mac_list:
@@ -1471,7 +1456,7 @@ class Controller(controller.BaseController):
                 boot_partition_m = 400
                 redundant_partiton_m = 600
                 if host_meta.get('role', None):
-                    host_role_names = eval(host_meta['role'])
+                    host_role_names = host_meta['role']
                 elif orig_host_meta.get('role', None):
                     host_role_names = orig_host_meta['role']
                 else:
@@ -1578,7 +1563,7 @@ class Controller(controller.BaseController):
                 boot_partition_m = 400
                 redundant_partiton_m = 600
                 if host_meta.get('role', None):
-                    host_role_names = eval(host_meta['role'])
+                    host_role_names = host_meta['role']
                 elif orig_host_meta.get('role', None):
                     host_role_names = orig_host_meta['role']
                 else:
@@ -1720,7 +1705,7 @@ class Controller(controller.BaseController):
                 host_roles = list()
                 for role_name in role_list:
                     if role_name['cluster_id'] == host_meta['cluster']:
-                        host_roles = list(eval(host_meta['role']))
+                        host_roles = list(host_meta['role'])
                         for host_role in host_roles:
                             if role_name['name'] == host_role:
                                 role_id_list.append(role_name['id'])
@@ -1896,12 +1881,6 @@ class Controller(controller.BaseController):
                 if not pxe_macs:
                     daisy_cmn.add_ssh_host_to_cluster_and_assigned_network(
                         req, host_meta['cluster'], id)
-
-            for discov_keyword in ['cpu', 'system', 'memory',
-                                   'pci', 'disks', 'devices']:
-                if host_meta.get(discov_keyword):
-                    host_meta[discov_keyword] = eval(
-                        host_meta.get(discov_keyword))
 
             host_meta = registry.update_host_metadata(req.context, id,
                                                       host_meta)

@@ -1292,7 +1292,7 @@ class TestHostsApiConfig(test.TestCase):
                           "deleted": None}
         host_meta = {
             "cluster": "111111111111-22222222222-3333333333333",
-            u'interfaces': u"""[
+            "interfaces": [
                 {u'type': u'bond',
                  u'name': u'bond0',
                  u'slave2': u'enp_slave2',
@@ -1311,7 +1311,7 @@ class TestHostsApiConfig(test.TestCase):
                  u'name': u'enp_slave2',
                  u'vswitch_type': u'',
                  u'pci': u'0000:84:00.2',
-                 u'is_support_vf': False}]"""}
+                 u'is_support_vf': False}]}
         mock_get_host_meta_or_404.return_value = orig_host_meta
         self.assertRaises(webob.exc.HTTPBadRequest,
                           self.controller.update_host,
@@ -1329,7 +1329,7 @@ class TestHostsApiConfig(test.TestCase):
                           "deleted": None}
         host_meta = {
             "cluster": "111111111111-22222222222-3333333333333",
-            u'interfaces': u"""[
+            "interfaces": [
                 {u'type': u'ether',
                  u'name': u'enp_slave1',
                  u'vswitch_type': u'dvs,sriov(direct)',
@@ -1339,7 +1339,7 @@ class TestHostsApiConfig(test.TestCase):
                  u'name': u'enp_slave2',
                  u'vswitch_type': u'',
                  u'pci': u'0000:84:00.2',
-                 u'is_support_vf': False}]"""}
+                 u'is_support_vf': False}]}
         mock_get_host_meta_or_404.return_value = orig_host_meta
         self.assertRaises(webob.exc.HTTPBadRequest,
                           self.controller.update_host,
@@ -1357,7 +1357,7 @@ class TestHostsApiConfig(test.TestCase):
                           "deleted": None}
         host_meta = {
             "cluster": "111111111111-22222222222-3333333333333",
-            u'interfaces': u"""[
+            "interfaces": [
                 {u'type': u'ether',
                  u'name': u'enp_slave1',
                  u'vswitch_type': u'dvs,sriov(macvtap)',
@@ -1367,7 +1367,7 @@ class TestHostsApiConfig(test.TestCase):
                  u'name': u'enp_slave2',
                  u'vswitch_type': u'',
                  u'pci': u'0000:84:00.2',
-                 u'is_support_vf': False}]"""}
+                 u'is_support_vf': False}]}
         mock_get_host_meta_or_404.return_value = orig_host_meta
         self.assertRaises(webob.exc.HTTPBadRequest,
                           self.controller.update_host,
@@ -1385,7 +1385,7 @@ class TestHostsApiConfig(test.TestCase):
                           "deleted": None}
         host_meta = {
             "cluster": "111111111111-22222222222-3333333333333",
-            u'interfaces': u"""[
+            "interfaces": [
                 {u'type': u'ether',
                  u'name': u'enp_slave1',
                  u'vswitch_type': u'dvs,sriov(direct)',
@@ -1394,7 +1394,7 @@ class TestHostsApiConfig(test.TestCase):
                 {u'type': u'ether',
                  u'name': u'enp_slave2',
                  u'vswitch_type': u'',
-                 u'is_support_vf': False}]"""}
+                 u'is_support_vf': False}]}
         mock_get_host_meta_or_404.return_value = orig_host_meta
         self.assertRaises(webob.exc.HTTPBadRequest,
                           self.controller.update_host,
@@ -1410,7 +1410,7 @@ class TestHostsApiConfig(test.TestCase):
                           "deleted": None}
         host_meta = {
             "cluster": "111111111111-22222222222-3333333333333",
-            u'interfaces': u"""[
+            "interfaces": [
                 {u'type': u'bond',
                  u'name': u'enp_slave1',
                  u'vswitch_type': u'dvs,sriov(direct)',
@@ -1420,7 +1420,7 @@ class TestHostsApiConfig(test.TestCase):
                  u'name': u'enp_slave2',
                  u'vswitch_type': u'',
                   u'pci': u'0000:84:00.2',
-                 u'is_support_vf': False}]"""}
+                 u'is_support_vf': False}]}
         self.assertRaises(webob.exc.HTTPForbidden,
                           self.controller._check_interface_on_update_host,
                           req, host_meta, orig_host_meta)
@@ -1654,7 +1654,7 @@ class TestHostsApiConfig(test.TestCase):
         host_id = "fe604c80-b5a0-4454-bbfd-2295ad8f1e5d"
         req = fakes.HTTPRequest.blank('/nodes/%s' % host_id)
         host_meta = {"cluster": "111111-222222-333333",
-                     "interfaces": """[
+                     "interfaces": [
                         {
                             "name": "enp3s0f0",
                             "is_deployment": False,
@@ -1700,7 +1700,7 @@ class TestHostsApiConfig(test.TestCase):
                             "slave1":"enp3s0f0",
                             "slave2":"enp3s0f1",
                             "bond_type": "dvs/sr-iov/ovs"
-                        }   ]"""}
+                        }   ]}
         orig_host_meta = {
             "cluster": "test_host",
             "interfaces":
@@ -1765,21 +1765,21 @@ class TestHostsApiConfig(test.TestCase):
         host_meta = {
             'cluster': '1',
             'interfaces':
-                "[{'name': 'enp3s2','ip': '192.168.1.2',"
-                "'mac': '00:23:cd:96:53:96','pci': '0000:03:02.0',"
-                "'assigned_networks': [],"
-                "'host_id': '1','type': 'ether'},"
-                "{'name': 'bond0','bond_type': '',"
-                "'mode': 'active-backup;off',"
-                "'slaves': ['enp2s0', 'enp3s2'],"
-                "'assigned_networks':[{'ip': '192.168.1.5',"
-                "'name': 'PUBLICAPI'}],'host_id': '1','type': 'bond'},"
-                "{'name': 'enp2s0','ip': '10.43.178.21',"
-                "'mac': '00:24:21:74:8a:56','pci': '0000:02:00.0',"
-                "'assigned_networks': [],'host_id': '1',"
-                "'type': 'ether'}, {'name': 'enp3s1', "
-                "'mac': '00:23:cd:96:53:97', 'pci': '0000:03:02.1', "
-                "'type': 'ether'}]"}
+                [{'name': 'enp3s2','ip': '192.168.1.2',
+                'mac': '00:23:cd:96:53:96','pci': '0000:03:02.0',
+                'assigned_networks': [],
+                'host_id': '1','type': 'ether'},
+                {'name': 'bond0','bond_type': '',
+                'mode': 'active-backup;off',
+                'slaves': ['enp2s0', 'enp3s2'],
+                'assigned_networks':[{'ip': '192.168.1.5',
+                'name': 'PUBLICAPI'}],'host_id': '1','type': 'bond'},
+                {'name': 'enp2s0','ip': '10.43.178.21',
+                'mac': '00:24:21:74:8a:56','pci': '0000:02:00.0',
+                'assigned_networks': [],'host_id': '1',
+                'type': 'ether'}, {'name': 'enp3s1',
+                'mac': '00:23:cd:96:53:97', 'pci': '0000:03:02.1',
+                'type': 'ether'}]}
         orig_host_meta = {'status': 'in-cluster',
                           'discover_mode': 'PXE',
                           'cluster_name': 'cluster_1',
@@ -1832,21 +1832,21 @@ class TestHostsApiConfig(test.TestCase):
         host_meta = {
             'cluster': '1',
             'interfaces':
-                "[{'name': 'enp3s2','ip': '192.168.1.2',"
-                "'mac': '00:23:cd:96:53:96','pci': '0000:03:02.0',"
-                "'assigned_networks': [],"
-                "'host_id': '1','type': 'ether'},"
-                "{'name': 'bond0','bond_type': 'linux',"
-                "'mode': 'active-backup;off',"
-                "'slaves': ['enp2s0', 'enp3s2'],"
-                "'assigned_networks':[{'name': 'physnet1'}],"
-                "'host_id': '1','type': 'bond'},"
-                "{'name': 'enp2s0','ip': '10.43.178.21',"
-                "'mac': '00:24:21:74:8a:56','pci': '0000:02:00.0',"
-                "'assigned_networks': [],'host_id': '1',"
-                "'type': 'ether'}, {'name': 'enp3s1', "
-                "'mac': '00:23:cd:96:53:97', 'pci': '0000:03:02.1', "
-                "'type': 'ether'}]"}
+                [{'name': 'enp3s2','ip': '192.168.1.2',
+                'mac': '00:23:cd:96:53:96','pci': '0000:03:02.0',
+                'assigned_networks': [],
+                'host_id': '1','type': 'ether'},
+                {'name': 'bond0','bond_type': 'linux',
+                'mode': 'active-backup;off',
+                'slaves': ['enp2s0', 'enp3s2'],
+                'assigned_networks':[{'name': 'physnet1'}],
+                'host_id': '1','type': 'bond'},
+                {'name': 'enp2s0','ip': '10.43.178.21',
+                'mac': '00:24:21:74:8a:56','pci': '0000:02:00.0',
+                'assigned_networks': [],'host_id': '1',
+                'type': 'ether'}, {'name': 'enp3s1',
+                'mac': '00:23:cd:96:53:97', 'pci': '0000:03:02.1',
+                'type': 'ether'}]}
         orig_host_meta = {'status': 'in-cluster',
                           'discover_mode': 'PXE',
                           'cluster_name': 'cluster_1',
@@ -2044,21 +2044,21 @@ class TestHostsApiConfig(test.TestCase):
             'cluster': '1',
             'dmi_uuid': '03000200-0400-0500-0006-000700080009',
             'interfaces':
-                "[{'name': 'enp132s0f2292','ip': '192.168.1.2',"
-                "'mac': '4c:09:b4:b2:80:8c','pci': '0000:03:02.0',"
-                "'assigned_networks': [],"
-                "'host_id': '1','type': 'ether'},"
-                "{'name': 'bond0','bond_type': '',"
-                "'mode': 'active-backup;off',"
-                "'slaves': ['enp2s0', 'enp132s0f2292'],"
-                "'assigned_networks':[{'ip': '192.168.1.5',"
-                "'name': 'PUBLICAPI'}],'host_id': '1','type': 'bond'},"
-                "{'name': 'enp2s0','ip': '10.43.178.21',"
-                "'mac': '00:24:21:74:8a:56','pci': '0000:02:00.0',"
-                "'assigned_networks': [],'host_id': '1',"
-                "'type': 'ether'}, {'name': 'enp3s1', "
-                "'mac': '00:23:cd:96:53:97', 'pci': '0000:03:02.1', "
-                "'type': 'ether'}]"}
+                [{'name': 'enp132s0f2292', 'ip': '192.168.1.2',
+                  'mac': '4c:09:b4:b2:80:8c', 'pci': '0000:03:02.0',
+                  'assigned_networks': [],
+                  'host_id': '1', 'type': 'ether'},
+                 {'name': 'bond0', 'bond_type': '',
+                  'mode': 'active-backup;off',
+                  'slaves': ['enp2s0', 'enp132s0f2292'],
+                  'assigned_networks':[{'ip': '192.168.1.5',
+                  'name': 'PUBLICAPI'}], 'host_id': '1', 'type': 'bond'},
+                 {'name': 'enp2s0', 'ip': '10.43.178.21',
+                  'mac': '00:24:21:74:8a:56','pci': '0000:02:00.0',
+                  'assigned_networks': [], 'host_id': '1',
+                  'type': 'ether'}, {'name': 'enp3s1',
+                  'mac': '00:23:cd:96:53:97', 'pci': '0000:03:02.1',
+                  'type': 'ether'}]}
         req = webob.Request.blank('/')
         req.context = RequestContext(is_admin=True,
                                      user='fake user',
@@ -2113,22 +2113,22 @@ class TestHostsApiConfig(test.TestCase):
             'root_disk': 'sda',
             'os_status': 'init',
             'interfaces':
-                "[{'name': 'enp132s0f2292','ip': '192.168.1.2',"
-                "'mac': '4c:09:b4:b2:80:8c','pci': '0000:03:02.0',"
-                "'assigned_networks': [],"
-                "'host_id': '1','type': 'ether'},"
-                "{'name': 'bond0','bond_type': '',"
-                "'mode': 'active-backup;off',"
-                "'slaves': ['enp2s0', 'enp132s0f2292'],"
-                "'assigned_networks':[{'ip': '192.168.1.5',"
-                "'name': 'PUBLICAPI'}],'host_id': '1',"
-                "'type': 'bond'},"
-                "{'name': 'enp2s0','ip': '10.43.178.21',"
-                "'mac': '00:24:21:74:8a:56','pci': '0000:02:00.0',"
-                "'assigned_networks': [],'host_id': '1',"
-                "'type': 'ether'}, {'name': 'enp3s1', "
-                "'mac': '00:23:cd:96:53:97', 'pci': '0000:03:02.1', "
-                "'type': 'ether'}]",
+                [{'name': 'enp132s0f2292','ip': '192.168.1.2',
+                'mac': '4c:09:b4:b2:80:8c','pci': '0000:03:02.0',
+                'assigned_networks': [],
+                'host_id': '1','type': 'ether'},
+                {'name': 'bond0','bond_type': '',
+                'mode': 'active-backup;off',
+                'slaves': ['enp2s0', 'enp132s0f2292'],
+                'assigned_networks':[{'ip': '192.168.1.5',
+                'name': 'PUBLICAPI'}],'host_id': '1',
+                'type': 'bond'},
+                {'name': 'enp2s0','ip': '10.43.178.21',
+                'mac': '00:24:21:74:8a:56','pci': '0000:02:00.0',
+                'assigned_networks': [],'host_id': '1',
+                'type': 'ether'}, {'name': 'enp3s1',
+                'mac': '00:23:cd:96:53:97', 'pci': '0000:03:02.1',
+                'type': 'ether'}],
             'disks':
                 "{u'sda': {u'name': u'sda',"
                 "u'extra': [u'scsi-3500003956831a6d8',"
@@ -2508,6 +2508,6 @@ class TestGetClusterNetworkInfo(test.TestCase):
         ret = self.controller._get_interface_by_name(name, None)
         self.assertIsNone(ret)
 
-        intfaces = "[{'name': 'eth1'}]"
-        ret = self.controller._get_interface_by_name(name, intfaces)
+        interfaces = [{'name': 'eth1'}]
+        ret = self.controller._get_interface_by_name(name, interfaces)
         self.assertIsNone(ret)
