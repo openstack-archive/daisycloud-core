@@ -1,0 +1,30 @@
+Host Setup APIs
+===============
+
+API Usage
+---------
+from daisyclient.v1 import client as daisy_client
+
+@memoized
+def daisyclient():
+    return daisy_client.Client(version=1, endpoint="http://127.0.0.1:19292")
+
+
+def host_get(host_id):
+    return daisyclient(request).hosts.get(host_id)
+
+
+def host_update(host_id, **kwargs):
+    return daisyclient().hosts.update(host, **kwargs)
+
+
+Huge Page and CPU Isolation APIs Example
+----------------------------------------
+
+host_config = host_get(host_id)
+host_config["hugepagesize"] = 1G
+host_config["hugepages"] = 16
+host_config["isolcpus"] = 0-5,12-17
+host_update(host_id, **host_config)
+
+
