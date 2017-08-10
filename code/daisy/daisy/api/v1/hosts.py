@@ -1013,7 +1013,6 @@ class Controller(controller.BaseController):
         dhcp_ip_ranges = template_deploy_network[0]['ip_ranges']
 
         deployment_interface_count = 0
-        host_meta['interfaces'] = eval(host_meta['interfaces'])
         for interface in host_meta['interfaces']:
             if 'ip' in interface and interface['ip']:
                 ip_in_cidr = utils.is_ip_in_cidr(interface['ip'],
