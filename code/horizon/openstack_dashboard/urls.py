@@ -17,7 +17,7 @@
 #    under the License.
 
 """
-URL patterns for the OpenStack Dashboard.
+URL patterns for the Daisy Dashboard.
 """
 
 from django.conf import settings
