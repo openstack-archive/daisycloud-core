@@ -248,8 +248,6 @@ class HostsView(generic.TemplateView):
                 context["cluster_name"] = c.name
 
         pre_url = self.request.META.get('HTTP_REFERER', "/")
-        LOG.warning("################### pre_url = "
-                    "%s ###########################" % pre_url)
         if "network" in pre_url:
             context["pre_url"] =\
                 "/dashboard/environment/network/" + cluster_id + "/routes"
@@ -330,7 +328,6 @@ def update_host_nics(request, cluster_id, host_id):
             if nic['assigned_networks'] == []:
                 del nic['assigned_networks']'''
         # clean_none_attr(host_dict)
-        LOG.info("$$$$$$$$$$$$$$ host_interfaces: %s" % host_interfaces)
 
         # api.daisy.host_update(request, host_id, **host_dict)
         api.daisy.host_update(request,
@@ -360,10 +357,8 @@ def update_host_ipmis(request, cluster_id, host_id):
     try:
         host = get_host_by_id(request, host_id)
         host_dict = host.to_dict()
-        LOG.info("!!!!!!!!!!!! Before clean host_dict: " % host_dict)
 
         clean_none_attr(host_dict)
-        LOG.info("$$$$$$$$$$$$$$ After clean host_dict: %s" % host_dict)
 
         api.daisy.host_update(request, host_id,
                               cluster=cluster_id,
@@ -431,8 +426,6 @@ class HostNicsView(generic.TemplateView):
             nics = []
 
         netplanes = self.get_netplane_data(cluster_id)
-        LOG.info("!!!!!!!!!!!!!!!!!!!!``````` nics: %s" % nics)
-        LOG.info("~~~~~~~~~~~~~~~~~~~~``````` netplanes: %s" % netplanes)
 
         ether_nics = []
         bond_nics = []
