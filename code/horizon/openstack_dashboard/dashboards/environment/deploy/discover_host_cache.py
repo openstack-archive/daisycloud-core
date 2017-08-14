@@ -29,4 +29,3 @@ def get_cache():
 
 def set_cache(discover_host_result):
     cache.set("discover_host_cache", discover_host_result)
-    LOG.info("UUUUUUUUUUUUUUU %s" % get_cache())
