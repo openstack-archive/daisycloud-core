@@ -1,0 +1,8 @@
+Code-Review+2: KongWei <kong.wei2@zte.com.cn>
+Workflow+1: KongWei <kong.wei2@zte.com.cn>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Tue, 15 Aug 2017 08:33:35 +0000
+Reviewed-on: https://review.openstack.org/493395
+Project: openstack/daisycloud-core
+Branch: refs/heads/master
