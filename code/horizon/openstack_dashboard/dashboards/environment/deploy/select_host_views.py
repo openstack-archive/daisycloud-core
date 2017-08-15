@@ -33,7 +33,6 @@ def conf_ipmi(request, cluster_id):
         hosts = api.daisy.host_list(request)
         i = 1
         for host in hosts:
-            LOG.info("wmh dbg: host= %s" % host)
             api.daisy.host_update(request,
                                   host.id,
                                   # name=host_name,
@@ -66,7 +65,6 @@ def list_discover_host(request, cluster_id):
         LOG.info("host_list = %s" % host_list)
     except Exception as e:
         messages.error(request, e)
-        LOG.error('wmh dbg: e=%s' % e)
         response.status_code = 500
         return response
 
@@ -83,7 +81,6 @@ def get_discover_result(request, cluster_id):
         LOG.info("cache_discover_hosts = %s" % cache_discover_hosts)
     except Exception as e:
         messages.error(request, e)
-        LOG.error('wmh dbg2: e=%s' % e)
         response.status_code = 500
         return response
 
