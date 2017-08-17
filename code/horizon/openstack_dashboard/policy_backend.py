@@ -46,11 +46,11 @@ def _get_enforcer():
             enforcer.policy_path = os.path.join(_BASE_PATH,
                                                 policy_files[service])
             if os.path.isfile(enforcer.policy_path):
-                LOG.debug("adding enforcer for service: %s" % service)
+                LOG.debug("adding enforcer for service: %s", service)
                 _ENFORCER[service] = enforcer
             else:
-                LOG.warning("policy file for service: %s not found at %s" %
-                            (service, enforcer.policy_path))
+                LOG.warning("policy file for service: %s not found at %s",
+                            service, enforcer.policy_path)
     return _ENFORCER
 
 

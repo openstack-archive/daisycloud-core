@@ -70,7 +70,7 @@ def pci_get_cpu_sets(numa_cpus, device_numa_node, clc_pci_list):
     if not numa_cpus or not numa_cpus['numa_node0']:
         msg = "The architecture of CPU isn't supported for CLC"
         LOG.error(msg)
-        LOG.info("numa_cpus=%s" % numa_cpus)
+        LOG.info("numa_cpus=%s", numa_cpus)
         return_code = 4
         status['rc'] = return_code
         status['msg'] = msg
@@ -82,7 +82,7 @@ def pci_get_cpu_sets(numa_cpus, device_numa_node, clc_pci_list):
         numa_node = device_numa_node['0000:' + clc_pci]
         if numa_node < 0:
             msg = "Invalid numa_node '%s' for CLC, maybe you "\
-                  "need to upgrade BIOS version" % numa_node
+                  "need to upgrade BIOS version", numa_node
             LOG.error(msg)
             return_code = 1
             status['rc'] = return_code
@@ -106,7 +106,7 @@ def pci_get_cpu_sets(numa_cpus, device_numa_node, clc_pci_list):
     total_cpus = get_total_cpus_for_numa(numa_cpus)
     high_pci_cpu_set['low'] =\
         list(set(total_cpus) - set(high_pci_cpu_set['high']))
-    LOG.debug("high_pci_cpu_set:%s" % high_pci_cpu_set)
+    LOG.debug("high_pci_cpu_set:%s", high_pci_cpu_set)
 
     return (status, high_pci_cpu_set)
 
@@ -121,7 +121,7 @@ def get_numa_by_nic(nics_info, device_numa_node):
         numa = list(set(numa))
         numa_info = (-100 if len(numa) > 1 else numa[0])
     except Exception as e:
-        LOG.error("Error, exception message: %s" % e.message)
+        LOG.error("Error, exception message: %s", e.message)
         numa_info = -200
 
     return numa_info
@@ -143,7 +143,7 @@ def dvs_get_cpu_sets(dic_numas, nics_info, device_numa_node, cpu_num=6):
     if not dic_numas or not dic_numas['numa_node0']:
         msg = "The architecture of CPU isn't supported for DVS"
         LOG.error(msg)
-        LOG.info("numa_cpus=%s" % dic_numas)
+        LOG.info("numa_cpus=%s", dic_numas)
         return_code = 4
         status['rc'] = return_code
         status['msg'] = msg
@@ -179,7 +179,7 @@ def dvs_get_cpu_sets(dic_numas, nics_info, device_numa_node, cpu_num=6):
                        'numa_node': -3}
         else:
             msg = "Invalid numa node '%s' for DVS, maybe you "\
-                "need to upgrade BIOS version" % numa_node
+                "need to upgrade BIOS version", numa_node
             return_code = 1
             cpu_set = {'high': [-1],
                        'low': [-1],
@@ -209,7 +209,7 @@ def dvs_get_cpu_sets(dic_numas, nics_info, device_numa_node, cpu_num=6):
         return (status, cpu_set)
 
     if len(dic_numas[numa_key]) < (cpu_num + 1):
-        msg = "CPU on numa node '%s' is not enough for DVS" % numa_key
+        msg = "CPU on numa node '%s' is not enough for DVS", numa_key
         LOG.error(msg)
         return_code = 6
         status['rc'] = return_code
@@ -223,7 +223,7 @@ def dvs_get_cpu_sets(dic_numas, nics_info, device_numa_node, cpu_num=6):
         return (status, cpu_set)
 
     total_cpus = get_total_cpus_for_numa(dic_numas)
-    LOG.debug("total_cpu:%s" % total_cpus)
+    LOG.debug("total_cpu:%s", total_cpus)
     cpu_total_num = len(dic_numas[numa_key])
     half_total_num = divmod(cpu_total_num, 2)[0]
     half_cpu_num = divmod(cpu_num, 2)[0]
@@ -244,20 +244,20 @@ def dvs_get_cpu_sets(dic_numas, nics_info, device_numa_node, cpu_num=6):
              set(dvsc_cpus) | set(dvsp_cpus) | set(dvsv_cpus)))))
     low_cpu_set =\
         list(set(total_cpus).difference(set(dic_numas[numa_key])))
-    LOG.debug("cpu used by dvs:%s" % dvs_cpu_set)
-    LOG.debug("low_cpu_set:%s" % low_cpu_set)
-    LOG.debug("high_cpu_set:%s" % high_cpu_set)
+    LOG.debug("cpu used by dvs:%s", dvs_cpu_set)
+    LOG.debug("low_cpu_set:%s", low_cpu_set)
+    LOG.debug("high_cpu_set:%s", high_cpu_set)
 
     cpu_set['numa_node'] = numa_node
     cpu_set['dvs'] = dvs_cpu_set
     cpu_set['high'] = high_cpu_set
     cpu_set['low'] = low_cpu_set
-    LOG.debug("cpu_set:%s" % cpu_set)
+    LOG.debug("cpu_set:%s", cpu_set)
 
     msg = 'Success'
     status['rc'] = return_code
     status['msg'] = msg
-    LOG.debug("status:%s" % status)
+    LOG.debug("status:%s", status)
 
     return (status, cpu_set)
 
@@ -288,7 +288,7 @@ def get_dvs_cpusets(numa_cpus, host_detail, host_hw_info):
         device_numa = {}
         for device in host_hw_info['devices'].values():
             device_numa.update(device)
-        LOG.info("DVS netcard info: '%s'" % nics_info)
+        LOG.info("DVS netcard info: '%s'", nics_info)
         (status, dvs_cpusets) = \
             dvs_get_cpu_sets(numa_cpus,
                              nics_info,
@@ -306,7 +306,7 @@ def get_dvs_cpusets(numa_cpus, host_detail, host_hw_info):
                                'dvsp': [-7],
                                'dvsv': [-7]},
                        'numa_node': -7}
-        msg = "Can't get DVS nics for host %s" % host_detail['id']
+        msg = "Can't get DVS nics for host %s", host_detail['id']
         LOG.error(msg)
 
     return dvs_cpusets
@@ -369,9 +369,9 @@ def allocate_clc_cpus(host_detail):
     if not clc_pci_list:
         return pci_cpu_sets
     else:
-        LOG.info("CLC card pci number: '%s'" % clc_pci_list)
+        LOG.info("CLC card pci number: '%s'", clc_pci_list)
         numa_cpus = utils.get_numa_node_cpus(host_hw_info.get('cpu', {}))
-        LOG.info("Get CLC cpusets of host '%s'" % host_id)
+        LOG.info("Get CLC cpusets of host '%s'", host_id)
         device_numa = {}
         for device in host_hw_info['devices'].values():
             device_numa.update(device)
@@ -406,7 +406,7 @@ def allocate_dvs_cpus(host_detail):
         host_hw_info[f] = host_obj.get(f)
     numa_cpus = utils.get_numa_node_cpus(host_hw_info.get('cpu', {}))
 
-    LOG.info("Get DVS cpusets of host '%s'" % host_id)
+    LOG.info("Get DVS cpusets of host '%s'", host_id)
     dvs_cpu_sets = get_dvs_cpusets(numa_cpus,
                                    host_detail,
                                    host_hw_info)

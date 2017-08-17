@@ -61,7 +61,7 @@ class TestCommon(test.TestCase):
         mock_do_subprocess_call.side_effect = mock_subprocess_call
         mock_log.side_effect = self._log_handler.info
         common.trust_me(ip, passwd)
-        self.assertIn("Setup trust to '127.0.0.1' successfully",
+        self.assertIn(("Setup trust to '%s' successfully", '127.0.0.1'),
                       self._log_messages['info'])
 
     @mock.patch('daisy.registry.client.v1.api.'
