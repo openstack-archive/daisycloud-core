@@ -1,9 +1,4 @@
-# Copyright 2010 Jacob Kaplan-Moss
-# Copyright 2011 OpenStack Foundation
-# Copyright 2011 Piston Cloud Computing, Inc.
-# Copyright 2013 Alessio Ababilov
-# Copyright 2013 Grid Dynamics
-# Copyright 2013 OpenStack Foundation
+# Copyright 2012 OpenStack Foundation
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
