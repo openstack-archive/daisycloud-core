@@ -282,7 +282,7 @@ class Controller(controller.BaseController):
         try:
             roles = registry.get_roles_detail(req.context)
             for role in roles:
-                for role_name in eval(config_set_meta['role']):
+                for role_name in config_set_meta['role']:
                     if role['cluster_id'] == config_set_meta[
                             'cluster'] and role['name'] == role_name:
                         role_id_list.append(role['id'])
@@ -313,14 +313,14 @@ class Controller(controller.BaseController):
                 if config_set_meta.get('role', None):
                     role_id_list = self._raise_404_if_role_exist(
                         req, config_set_meta)
-                    if len(role_id_list) == len(eval(config_set_meta['role'])):
+                    if len(role_id_list) == len(config_set_meta['role']):
                         backend.push_config_by_roles(role_id_list)
                     else:
                         msg = "the role is not exist"
                         LOG.error(msg)
                         raise HTTPNotFound(msg)
                 elif config_set_meta.get('host_id'):
-                    hosts = eval(config_set_meta['host_id'])
+                    hosts = config_set_meta['host_id']
                     backend.push_config_by_hosts(hosts)
                 else:
                     roles = registry.get_roles_detail(req.context)
@@ -350,7 +350,7 @@ class Controller(controller.BaseController):
                 if config_set_meta.get('role', None):
                     role_id_list = self._raise_404_if_role_exist(
                         req, config_set_meta)
-                    if len(role_id_list) == len(eval(config_set_meta['role'])):
+                    if len(role_id_list) == len(config_set_meta['role']):
                         for role_id in role_id_list:
                             role_info = {}
                             role_meta = registry.get_role_metadata(
@@ -388,7 +388,7 @@ class Controller(controller.BaseController):
         if config_set_meta.get('host_id') and config_set_meta.get(
                 'template_config_id'):
             backend = manager.configBackend('clushshell', req)
-            template_config_ids = eval(config_set_meta['template_config_id'])
+            template_config_ids = config_set_meta['template_config_id']
             configs = self.get_config_meta(req, template_config_ids)
             host_configs = backend.get_config_by_host(
                 config_set_meta['host_id'], configs)
