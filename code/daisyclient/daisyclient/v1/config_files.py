@@ -239,10 +239,9 @@ class Config_fileManager(base.ManagerWithFind):
                 msg = 'create() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
 
-        hdrs = self._config_file_meta_to_headers(fields)
         resp, body = self.client.post('/v1/config_files',
                                       headers=None,
-                                      data=hdrs)
+                                      data=fields)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
@@ -263,7 +262,6 @@ class Config_fileManager(base.ManagerWithFind):
 
         TODO(bcwaldon): document accepted params
         """
-        hdrs = {}
         fields = {}
         for field in kwargs:
             if field in UPDATE_PARAMS:
@@ -274,10 +272,8 @@ class Config_fileManager(base.ManagerWithFind):
                 msg = 'update() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
 
-        hdrs.update(self._config_file_meta_to_headers(fields))
-
         url = '/v1/config_files/%s' % base.getid(config_file)
-        resp, body = self.client.put(url, headers=None, data=hdrs)
+        resp, body = self.client.put(url, headers=None, data=fields)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
