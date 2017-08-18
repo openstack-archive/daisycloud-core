@@ -492,16 +492,16 @@ class TestSqlalchemyApi(test.TestCase):
     def test_cluster_update_without_public_vip(self):
         cluster_add_values = {u'name': u'provider',
                               u'use_dns': u'1',
-                              u'networking_parameters': u"{u'base_mac': u''}",
+                              u'networking_parameters': {u'base_mac': u''},
                               u'public_vip': u'10.43.203.199',
                               u'target_systems': u'os+tecs'}
 
         cluster_update_values = {u'name': u'provider_update',
                                  u'use_dns': u'1',
                                  u'networking_parameters':
-                                     u"{u'base_mac': u'',\
-                                        u'net_l23_provider': None,\
-                                        u'segmentation_type': u'ovs'}"}
+                                     {u'base_mac': u'',
+                                      u'net_l23_provider': None,
+                                      u'segmentation_type': u'ovs'}}
         cluster_add__info = api.cluster_add(self.req.context,
                                             cluster_add_values)
         cluster_id = cluster_add__info.__dict__['id']
@@ -517,16 +517,16 @@ class TestSqlalchemyApi(test.TestCase):
     def test_cluster_update_with_public_vip(self):
         cluster_add_values = {u'name': u'provider',
                               u'use_dns': u'1',
-                              u'networking_parameters': u"{u'base_mac': u''}",
+                              u'networking_parameters': {u'base_mac': u''},
                               u'public_vip': u'10.43.203.199',
                               u'target_systems': u'os+tecs'}
         cluster_update_values = {u'name': u'provider_update',
                                  u'use_dns': u'1',
                                  u'networking_parameters':
-                                     u"{u'base_mac': u'',\
-                                        u'net_l23_provider': None,\
-                                        u'segmentation_type': u'ovs',\
-                                        u'public_vip': u'10.43.203.200'}"}
+                                     {u'base_mac': u'',
+                                      u'net_l23_provider': None,
+                                      u'segmentation_type': u'ovs',
+                                      u'public_vip': u'10.43.203.200'}}
         cluster_add__info = api.cluster_add(self.req.context,
                                             cluster_add_values)
         cluster_id = cluster_add__info.__dict__['id']
