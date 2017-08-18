@@ -1460,7 +1460,7 @@ def _cluster_update(context, values, cluster_id):
 
         # parse the range params
         if values.has_key('networking_parameters'):
-            network_params = eval(values['networking_parameters'])
+            network_params = values['networking_parameters']
             if network_params:
                 if network_params.has_key('gre_id_range') and \
                    len(network_params['gre_id_range']) > 1:
@@ -1488,7 +1488,7 @@ def _cluster_update(context, values, cluster_id):
 
         # save host info
         if values.has_key('nodes'):
-            for host_id in eval(values['nodes']):
+            for host_id in values['nodes']:
                 host = host_get(context, host_id, session=None,
                                 force_show_deleted=False)
                 host.status = "in-cluster"
@@ -1513,7 +1513,7 @@ def _cluster_update(context, values, cluster_id):
                     raise exception.Invalid(msg)
             if values.has_key('nodes'):
                 delete_cluster_host(context, cluster_id, session)
-                for host_id in eval(values['nodes']):
+                for host_id in values['nodes']:
                     cluster_host_ref = models.ClusterHost()
                     hosts_values['cluster_id'] = project_ref.id
                     hosts_values['host_id'] = host_id
@@ -1521,7 +1521,7 @@ def _cluster_update(context, values, cluster_id):
                     cluster_host_ref.save(session=session)
 
             if values.has_key('networks'):
-                for interface_id in eval(values['networks']):
+                for interface_id in values['networks']:
                     query = \
                         session.query(models.Network).filter_by(
                             id=interface_id)
@@ -1539,7 +1539,7 @@ def _cluster_update(context, values, cluster_id):
                         "Cluster not found,id=%s" % cluster_id)
                     # insert data to logic_network tables
 
-                logic_networks = eval(values['logic_networks'])
+                logic_networks = values['logic_networks']
                 if logic_networks:
                     _cluster_add_logic_network(
                         logic_networks=logic_networks,
@@ -1559,7 +1559,7 @@ def _cluster_update(context, values, cluster_id):
 
             # deal routers
             if values.has_key('routers'):
-                routers = eval(values['routers'])
+                routers = values['routers']
                 if routers:
                     _cluster_add_routers(
                         routers=routers,
@@ -1614,7 +1614,7 @@ def _cluster_update(context, values, cluster_id):
                 raise exception.Duplicate("cluster ID %s already exists!"
                                           % values['id'])
             if values.has_key('nodes'):
-                for host_id in eval(values['nodes']):
+                for host_id in values['nodes']:
                     cluster_host_ref = models.ClusterHost()
                     hosts_values['cluster_id'] = project_ref.id
                     hosts_values['host_id'] = host_id
@@ -1622,7 +1622,7 @@ def _cluster_update(context, values, cluster_id):
                     cluster_host_ref.save(session=session)
 
             if values.has_key('networks'):
-                for interface_id in eval(values['networks']):
+                for interface_id in values['networks']:
                     query = session.query(models.Network).filter_by(
                         id=interface_id)
                     interfaces_values['cluster_id'] = project_ref.id
@@ -1648,7 +1648,7 @@ def _cluster_update(context, values, cluster_id):
             # deal logic_network infos
             if values.has_key('logic_networks'):
                 # insert data to logic_network tables
-                logic_networks = eval(values['logic_networks'])
+                logic_networks = values['logic_networks']
                 if logic_networks:
                     _cluster_add_logic_network(
                         logic_networks=logic_networks,
@@ -1658,7 +1658,7 @@ def _cluster_update(context, values, cluster_id):
 
             # deal routers
             if values.has_key('routers'):
-                routers = eval(values['routers'])
+                routers = values['routers']
                 if routers:
                     _cluster_add_routers(
                         routers=routers,
@@ -2648,7 +2648,7 @@ def _role_update(context, values, role_id):
         if role_id:
             # Don't drop created_at if we're passing it in...
             if values.has_key('nodes'):
-                orig_hosts = list(eval(values['nodes']))
+                orig_hosts = list(values['nodes'])
                 nodes_ref = _role_host_member_get(context, session, role_id)
                 if nodes_ref:
                     for host_id in orig_hosts:

@@ -377,56 +377,6 @@ class Controller(object):
             raise
 
     @utils.mutating
-    def update_network(self, req, network_id, body):
-        """Updates an existing network with the registry.
-
-        :param req: wsgi Request object
-        :param body: Dictionary of information about the image
-        :param id:  The opaque internal identifier for the image
-
-        :retval Returns the updated image information as a mapping,
-        """
-        network_data = body['network']
-        try:
-            updated_network = self.db_api.network_update(
-                req.context, network_id, network_data)
-
-            msg = _LI("Updating metadata for network %(network_id)s") % {
-                'network_id': network_id}
-            LOG.info(msg)
-            if 'network' not in updated_network:
-                network_data = dict(network=updated_network)
-            return network_data
-        except exception.Invalid as e:
-            msg = (_("Failed to update network metadata. "
-                     "Got error: %s") % utils.exception_to_str(e))
-            LOG.error(msg)
-            return exc.HTTPBadRequest(msg)
-        except exception.NotFound:
-            msg = _LI("Network %(network_id)s not found") % {
-                'network_id': network_id}
-            LOG.info(msg)
-            raise exc.HTTPNotFound(body='Network not found',
-                                   request=req,
-                                   content_type='text/plain')
-        except exception.ForbiddenPublicImage:
-            msg = _LI("Update denied for public network %(network_id)s") % {
-                'network_id': network_id}
-            LOG.info(msg)
-            raise exc.HTTPForbidden()
-        except exception.Forbidden as e:
-            LOG.info(e)
-            raise exc.HTTPForbidden(e)
-        except exception.Conflict as e:
-            LOG.info(utils.exception_to_str(e))
-            raise exc.HTTPConflict(body='Network operation conflicts',
-                                   request=req,
-                                   content_type='text/plain')
-        except Exception:
-            LOG.exception(_LE("Unable to update network %s") % network_id)
-            raise
-
-    @utils.mutating
     def update_cluster(self, req, id, body):
         """Updates an existing cluster with the registry.
 
