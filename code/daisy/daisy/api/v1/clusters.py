@@ -222,12 +222,12 @@ class Controller(controller.BaseController):
                 :return:error message
                 """
                 if 'nodes' in cluster_meta:
-                    orig_keys = list(eval(cluster_meta['nodes']))
+                    orig_keys = list(cluster_meta['nodes'])
                     for host_id in orig_keys:
                         controller._raise_404_if_host_deleted(req, host_id)
 
                 if 'networks' in cluster_meta:
-                    orig_keys = list(eval(cluster_meta['networks']))
+                    orig_keys = list(cluster_meta['networks'])
                     network_with_same_name = []
                     for network_id in orig_keys:
                         network_name = \
@@ -246,7 +246,7 @@ class Controller(controller.BaseController):
                 # checkout network_params
                 if cluster_meta.get('networking_parameters', None):
                     networking_parameters =\
-                        eval(cluster_meta['networking_parameters'])
+                        cluster_meta['networking_parameters']
 
                 # check logic_networks
                 subnet_name_set = []  # record all subnets's name
@@ -256,12 +256,7 @@ class Controller(controller.BaseController):
                 if cluster_meta.get('logic_networks', None):
                     # get physnet_name list
                     all_private_cluster_networks_list = _get_network_detail(
-                        req, cluster_id, cluster_meta.get(
-                            'networks', None) if not isinstance(
-                            cluster_meta.get(
-                                'networks', None), unicode) else eval(
-                            cluster_meta.get(
-                                'networks', None)))
+                        req, cluster_id, cluster_meta.get('networks', None))
                     if not all_private_cluster_networks_list:
                         LOG.info(
                             "Private network is empty in db, it lead "
@@ -270,7 +265,7 @@ class Controller(controller.BaseController):
                                         for net in
                                         all_private_cluster_networks_list]
 
-                    logic_networks = eval(cluster_meta['logic_networks'])
+                    logic_networks = cluster_meta['logic_networks']
                     for logic_network in logic_networks:
                         subnets_in_logic_network[logic_network['name']] = []
 
@@ -397,7 +392,7 @@ class Controller(controller.BaseController):
                 subnet_name_set_deepcopy = copy.deepcopy(subnet_name_set)
                 router_name_set = []  # record all routers name
                 if cluster_meta.get('routers', None):
-                    router_data = eval(cluster_meta['routers'])
+                    router_data = cluster_meta['routers']
                     for router in router_data:
                         _check_param_nonull_and_valid(router, ['name'])
 
@@ -550,7 +545,7 @@ class Controller(controller.BaseController):
                 raise HTTPBadRequest(explanation=msg)
 
         if cluster_meta.get('nodes', None):
-            orig_keys = list(eval(cluster_meta['nodes']))
+            orig_keys = list(cluster_meta['nodes'])
             for host_id in orig_keys:
                 self._raise_404_if_host_deleted(req, host_id)
                 node = registry.get_host_metadata(req.context, host_id)
@@ -671,7 +666,7 @@ class Controller(controller.BaseController):
         """
         self._enforce(req, 'update_cluster')
         if 'nodes' in cluster_meta:
-            orig_keys = list(eval(cluster_meta['nodes']))
+            orig_keys = list(cluster_meta['nodes'])
             for host_id in orig_keys:
                 self._raise_404_if_host_deleted(req, host_id)
                 node = registry.get_host_metadata(req.context, host_id)
@@ -695,7 +690,7 @@ class Controller(controller.BaseController):
                             host_id
                         raise HTTPServerError(explanation=msg)
         if 'networks' in cluster_meta:
-            orig_keys = list(eval(cluster_meta['networks']))
+            orig_keys = list(cluster_meta['networks'])
             for network_id in orig_keys:
                 self._raise_404_if_network_deleted(req, network_id)
         orig_cluster_meta = self.get_cluster_meta_or_404(req, id)
