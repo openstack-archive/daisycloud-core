@@ -241,10 +241,9 @@ class ConfigManager(base.ManagerWithFind):
                 # msg = 'create() got an unexpected keyword argument \'%s\''
                 # raise TypeError(msg % field)
 
-        hdrs = self._config_meta_to_headers(fields)
         resp, body = self.client.post('/v1/configs',
                                       headers=None,
-                                      data=hdrs)
+                                      data=fields)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
@@ -258,9 +257,8 @@ class ConfigManager(base.ManagerWithFind):
                 fields[field] = kwargs[field]
             elif field == 'return_req_id':
                 continue
-        hdrs = self._config_meta_to_headers(fields)
         url = "/v1/configs_delete"
-        resp, body = self.client.delete(url, headers=None, data=hdrs)
+        resp, body = self.client.delete(url, headers=None, data=fields)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))

@@ -4775,11 +4775,7 @@ def config_interface(context, config_interface):
     config_flag=0
     config_info_list=[]
     config_interface = config_interface.copy()
-
-    if isinstance(config_interface['config'], list):
-        config_items = config_interface['config']
-    else:
-        config_items = eval(config_interface['config'])
+    config_items = config_interface['config']
 
     session = get_session()
     with session.begin():

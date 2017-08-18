@@ -222,7 +222,7 @@ class Controller(controller.BaseController):
         self._enforce(req, 'delete_config')
 
         try:
-            for id in eval(config_meta['config']):
+            for id in config_meta['config']:
                 registry.delete_config_metadata(req.context, id)
         except exception.NotFound as e:
             msg = (_("Failed to find config to delete: %s") %
