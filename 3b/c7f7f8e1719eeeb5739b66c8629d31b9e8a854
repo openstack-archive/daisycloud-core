@@ -1,0 +1,9 @@
+Code-Review+2: zhouya <zhou.ya@zte.com.cn>
+Code-Review+2: Zhijiang Hu <hu.zhijiang@zte.com.cn>
+Workflow+1: Zhijiang Hu <hu.zhijiang@zte.com.cn>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Fri, 18 Aug 2017 01:17:44 +0000
+Reviewed-on: https://review.openstack.org/494347
+Project: openstack/daisycloud-core
+Branch: refs/heads/stable/ocata
