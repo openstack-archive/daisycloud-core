@@ -2440,11 +2440,7 @@ def do_version(dc, args):
 
 def do_backend_types_get(dc, args):
     """Get backend_types of daisy."""
-    fields = dict(filter(lambda x: x[1] is not None, vars(args).items()))
-    BACKEND_TYPES_PARAMS = daisyclient.v1.backend_types.BACKEND_TYPES_PARAMS
-    fields = dict(filter(lambda x: x[0] in BACKEND_TYPES_PARAMS,
-                         fields.items()))
-    backend_types_get = dc.backend_types.get(**fields)
+    backend_types_get = dc.backend_types.get()
     _daisy_show(backend_types_get)
 
 

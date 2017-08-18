@@ -27,48 +27,17 @@ class BackendTypes(base.Resource):
     def __repr__(self):
         return "<BackendTypes %s>" % self._info
 
-    def update(self, **fields):
-        self.manager.update(self, **fields)
-
-    def delete(self, **kwargs):
-        return self.manager.delete(self)
-
-    def data(self, **kwargs):
-        return self.manager.data(self, **kwargs)
-
 
 class BackendTypesManager(base.ManagerWithFind):
     resource_class = BackendTypes
 
-    def _get_meta_to_headers(self, fields):
-        headers = {}
-        fields_copy = copy.deepcopy(fields)
-
-        # NOTE(flaper87): Convert to str, headers
-        # that are not instance of basestring. All
-        # headers will be encoded later, before the
-        # request is sent.
-
-        for key, value in six.iteritems(fields_copy):
-            headers['%s' % key] = utils.to_str(value)
-        return headers
-
     def list(self, **kwargs):
         pass
 
-    def get(self, **kwargs):
+    def get(self):
         """
         get backend types
         """
-        fields = {}
-        for field in kwargs:
-            if field in BACKEND_TYPES_PARAMS:
-                fields[field] = kwargs[field]
-            else:
-                msg = 'get() got an unexpected keyword argument \'%s\''
-                raise TypeError(msg % field)
-
         url = '/v1/backend_types'
-        hdrs = self._get_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=None, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=None)
         return BackendTypes(self, body)
