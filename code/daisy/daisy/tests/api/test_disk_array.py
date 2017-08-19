@@ -67,13 +67,13 @@ def set_cinder_volume_list():
 
 def set_add_cinder_volume_info():
     add_cinder_volume_info = {
-        'disk_array': "[{'management_ips': " +
-                      "'10.43.178.9', 'data_ips': '10.43.178.19'," +
-                      "'user_pwd': 'pwd', 'volume_type': 'ext4'," +
-                      "'volume_driver': 'FUJITSU_ETERNUS', " +
-                      "'root_pwd': 'root', 'pools': 'pool2,pool4'," +
-                      "'resource_pools': 'resource_pools', " +
-                      "'user_name': 'user'}]",
+        'disk_array': [{'management_ips':
+                        '10.43.178.9', 'data_ips': '10.43.178.19',
+                        'user_pwd': 'pwd', 'volume_type': 'ext4',
+                        'volume_driver': 'FUJITSU_ETERNUS',
+                        'root_pwd': 'root', 'pools': 'pool2,pool4',
+                        'resource_pools': 'resource_pools',
+                        'user_name': 'user'}],
         'role_id': 'badb5177-4659-4b40-8e46-856ef5a121e0'}
     return add_cinder_volume_info
 

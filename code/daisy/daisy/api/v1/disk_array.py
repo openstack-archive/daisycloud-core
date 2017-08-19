@@ -16,8 +16,6 @@
 """
 /hosts endpoint for Daisy v1 API
 """
-import ast
-
 from oslo_log import log as logging
 from webob.exc import HTTPBadRequest
 from webob.exc import HTTPForbidden
@@ -238,7 +236,6 @@ class Controller(controller.BaseController):
                                  request=req,
                                  content_type="text/plain")
 
-        disk_meta['size'] = ast.literal_eval(str(disk_meta['size']))
         if not isinstance(disk_meta['size'], int):
             msg = "'size' is not integer"
             raise HTTPBadRequest(explanation=msg,
@@ -298,7 +295,6 @@ class Controller(controller.BaseController):
                                      content_type="text/plain")
 
         if 'size' in disk_meta:
-            disk_meta['size'] = ast.literal_eval(str(disk_meta['size']))
             if not isinstance(disk_meta['size'], int):
                 msg = "'size' is not integer"
                 raise HTTPBadRequest(explanation=msg,
@@ -525,7 +521,7 @@ class Controller(controller.BaseController):
             role_detail = self.get_role_meta_or_404(
                 req, disk_meta['role_id'])
 
-        disk_arrays = eval(disk_meta['disk_array'])
+        disk_arrays = disk_meta['disk_array']
         for disk_array in disk_arrays:
             for key in disk_array.keys():
                 if (key not in CINDER_VOLUME_BACKEND_PARAMS and
@@ -752,7 +748,7 @@ class Controller(controller.BaseController):
                                  content_type="text/plain")
         else:
                 self.get_role_meta_or_404(req, disk_meta['role_id'])
-        optical_switchs = eval(disk_meta['switch_array'])
+        optical_switchs = disk_meta['switch_array']
         for optical_switch in optical_switchs:
             for switch_config in optical_switch.keys():
                 if switch_config not in OPTICAL_SWITCH_PARAMS:
