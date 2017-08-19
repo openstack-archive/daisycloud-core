@@ -4611,10 +4611,7 @@ def _network_update(context, values, network_id):
 
             network_ref = _network_get(context, network_id, session=session)
             if values.get("ip_ranges"):
-                if not isinstance(values['ip_ranges'], list):
-                    ip_ranges = eval(values['ip_ranges'])
-                else:
-                    ip_ranges = values['ip_ranges']
+                ip_ranges = values['ip_ranges']
                 old_ip_ranges = get_network_ip_range(context,  network_id)
                 # new_ip_ranges = [tuple(ran.values()) for ran in
                 #                  ip_ranges]
@@ -4663,7 +4660,7 @@ def _network_update(context, values, network_id):
                 raise exception.Duplicate("network ID %s already exists!"
                                           % values['id'])
             if values.has_key("ip_ranges"):
-                for ip_range in list(eval(values['ip_ranges'])):
+                for ip_range in list(values['ip_ranges']):
                     try:
                         ip_ranges_values['start'] = ip_range["start"]
                         ip_ranges_values['end'] = ip_range["end"]
