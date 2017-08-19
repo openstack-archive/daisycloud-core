@@ -182,9 +182,7 @@ class DiskArrayManager(base.ManagerWithFind):
                 raise TypeError(msg % field)
 
         url = '/v1/service_disk'
-
-        hdrs = self._service_disk_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=None, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=fields)
         return Disk_array(self, self._format_service_disk_meta_for_user(
             body['disk_meta']))
 
@@ -200,7 +198,6 @@ class DiskArrayManager(base.ManagerWithFind):
         """Update an service_disk
         TODO(bcwaldon): document accepted params
         """
-        hdrs = {}
         fields = {}
         for field in kwargs:
             if field in SERVICE_DISK_UPDATE_PARAMS:
@@ -211,10 +208,8 @@ class DiskArrayManager(base.ManagerWithFind):
                 msg = 'update() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
 
-        hdrs.update(self._service_disk_meta_to_headers(fields))
-
         url = '/v1/service_disk/%s' % base.getid(id)
-        resp, body = self.client.put(url, headers=None, data=hdrs)
+        resp, body = self.client.put(url, headers=None, data=fields)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
@@ -329,9 +324,7 @@ class DiskArrayManager(base.ManagerWithFind):
                 msg = 'Disk_array() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
         url = '/v1/cinder_volume'
-
-        hdrs = self._service_disk_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=None, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=fields)
         return Disk_array(self, self._format_service_disk_meta_for_user(
             body['disk_meta']))
 
@@ -348,7 +341,6 @@ class DiskArrayManager(base.ManagerWithFind):
 
         TODO(bcwaldon): document accepted params
         """
-        hdrs = {}
         fields = {}
         for field in kwargs:
             if field in CREATE_CINDER_BACKEND_INTER_PARAMS:
@@ -359,10 +351,8 @@ class DiskArrayManager(base.ManagerWithFind):
                 msg = 'update() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
 
-        hdrs.update(self._cinder_volume_meta_to_headers(fields))
-
         url = '/v1/cinder_volume/%s' % base.getid(id)
-        resp, body = self.client.put(url, headers=None, data=hdrs)
+        resp, body = self.client.put(url, headers=None, data=fields)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
