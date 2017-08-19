@@ -214,7 +214,6 @@ class DeployServerManager(base.ManagerWithFind):
         TODO(bcwaldon): document accepted params
         """
         fields = {}
-
         for field in kwargs:
             if field in PXE_ENV_CHECK_PARAMS:
                 fields[field] = kwargs[field]
@@ -226,8 +225,7 @@ class DeployServerManager(base.ManagerWithFind):
                 raise TypeError(msg % field)
 
         url = '/v1/deploy_servers/pxe_env_check'
-        hdrs = self._deploy_server_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=None, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=fields)
 
         return DeployServer(
             self, self._format_deploy_server_meta_for_user(
