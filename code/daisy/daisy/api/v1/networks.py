@@ -305,7 +305,7 @@ class Controller(controller.BaseController):
         common.valid_network_range(req, network_meta)
 
         if network_meta.get('ip_ranges', None) and \
-                eval(network_meta['ip_ranges']):
+                network_meta['ip_ranges']:
             cidr = None
             if 'cidr' not in network_meta and \
                     network_meta['network_type'] != 'DATAPLANE':
@@ -315,7 +315,7 @@ class Controller(controller.BaseController):
                 LOG.warning(msg)
                 raise HTTPForbidden(msg)
             else:
-                ip_ranges = eval(network_meta['ip_ranges'])
+                ip_ranges = network_meta['ip_ranges']
                 if network_meta['network_type'] != 'DATAPLANE':
                     cidr = network_meta['cidr']
                     utils.valid_cidr(cidr)
@@ -596,7 +596,7 @@ class Controller(controller.BaseController):
                                           orig_segment_type)
 
         if network_meta.get('ip_ranges', None) and \
-                eval(network_meta['ip_ranges']):
+                network_meta['ip_ranges']:
             dataplane_type = \
                 network_meta.get('network_type',
                                  orig_network_meta['network_type'])
@@ -606,7 +606,7 @@ class Controller(controller.BaseController):
                       "the CIDR parameter can not be empty."))
                 LOG.warning(msg)
                 raise HTTPForbidden(msg)
-            ip_ranges = eval(network_meta['ip_ranges'])
+            ip_ranges = network_meta['ip_ranges']
             if dataplane_type != 'DATAPLANE':
                 net_ip_ranges_list = []
                 for ip_pair in ip_ranges:
