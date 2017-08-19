@@ -84,14 +84,8 @@ class InstallManager(base.ManagerWithFind):
                 msg = 'install() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
 
-        # if fields.has_key("version_id"):
-            # url = '/v1/install/%s/version/%s' % (fields['cluster_id'],
-            # fields['version_id'])
-        # else:
         url = '/v1/install'
-
-        hdrs = self._install_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=None, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=fields)
         return Install(self, self._format_install_meta_for_user(body))
 
     def export_db(self, **kwargs):
@@ -108,8 +102,7 @@ class InstallManager(base.ManagerWithFind):
                 raise TypeError(msg % field)
 
         url = '/v1/export_db'
-        hdrs = self._install_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=None, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=fields)
         return Install(self, self._format_install_meta_for_user(body))
 
     def disk_array_update(self, cluster, **kwargs):
@@ -124,6 +117,5 @@ class InstallManager(base.ManagerWithFind):
                 raise TypeError(msg % field)
 
         url = '/v1/disk_array/%s' % base.getid(cluster)
-        hdrs = self._install_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=None, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=fields)
         return Install(self, self._format_install_meta_for_user(body))
