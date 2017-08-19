@@ -372,8 +372,6 @@ class Controller(controller.BaseController):
         uninstall_hosts = []
         if 'hosts' in install_meta and install_meta['hosts']:
             uninstall_hosts = install_meta['hosts']
-            if not isinstance(uninstall_hosts, list):
-                uninstall_hosts = eval(uninstall_hosts)
         for host_id in uninstall_hosts:
             self.get_host_meta_or_404(req, host_id)
         return uninstall_hosts
@@ -436,6 +434,7 @@ class Controller(controller.BaseController):
                                  request=req,
                                  content_type="text/plain")
         if not install_meta.get('hosts', None):
+            #TODO: Push kolla code into target(openstack)-driver(kolla)
             if install_meta['update_object'] == "kolla":
                 hosts = []
             else:
@@ -444,7 +443,7 @@ class Controller(controller.BaseController):
                                      request=req,
                                      content_type="text/plain")
         else:
-            hosts = eval(install_meta['hosts'])
+            hosts = install_meta['hosts']
         update_file = ""
         if install_meta.get('version_patch_id', None):
             version_patch = self.get_version_patch_meta_or_404(
