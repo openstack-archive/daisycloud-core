@@ -661,7 +661,7 @@ class TestNetworkApi(test.TestCase):
         ]
         network_meta = {'name': 'PUBLICAPI',
                         'network_type': 'PUBLICAPI',
-                        'ip_ranges': str(ip_ranges)
+                        'ip_ranges': ip_ranges
                         }
         return_network = {'name': 'MANAGEMENT1',
                           'network_type': 'MANAGEMENT',
@@ -698,7 +698,7 @@ class TestNetworkApi(test.TestCase):
         ]
         network_meta = {'name': 'PUBLICAPI',
                         'network_type': 'PUBLICAPI',
-                        'ip_ranges': str(ip_ranges),
+                        'ip_ranges': ip_ranges,
                         'cidr': '112.18.1.1/24'
                         }
         return_network = {'name': 'PUBLICAPI',
@@ -743,7 +743,7 @@ class TestNetworkApi(test.TestCase):
         ]
         network_meta = {'name': 'PUBLICAPI',
                         'network_type': 'PUBLICAPI',
-                        'ip_ranges': str(ip_ranges),
+                        'ip_ranges': ip_ranges,
                         'cidr': '112.18.1.1/24'
                         }
         return_network = {'name': 'PUBLICAPI',
@@ -784,7 +784,7 @@ class TestNetworkApi(test.TestCase):
         ]
         network_meta = {'name': 'DATAPLANE',
                         'network_type': 'DATAPLANE',
-                        'ip_ranges': str(ip_ranges),
+                        'ip_ranges': ip_ranges,
                         'cidr': '112.18.1.1/24',
                         'gateway': '112.18.1.1'
                         }
@@ -833,7 +833,7 @@ class TestNetworkApi(test.TestCase):
                         'name': 'physnet1',
                         'network_type': 'DATAPLANE',
                         'segmentation_type': 'vxlan',
-                        'ip_ranges': str(ip_ranges),
+                        'ip_ranges': ip_ranges,
                         'cidr': '112.18.1.1/24', }
         orig_network_meta = {'cidr': '112.18.1.1/24',
                              'gateway': '112.18.1.1',
@@ -903,7 +903,7 @@ class TestNetworkApi(test.TestCase):
                         'name': 'PUBLICAPI',
                         'network_type': 'PUBLICAPI',
                         'segmentation_type': 'vxlan',
-                        'ip_ranges': str(ip_ranges),
+                        'ip_ranges': ip_ranges,
                         'cidr': '112.18.1.1/24', }
         orig_network_meta = {'cidr': '112.18.1.1/24',
                              'gateway': '112.18.1.1',
@@ -970,7 +970,7 @@ class TestNetworkApi(test.TestCase):
         network_meta = {'cluster_id': '1',
                         'name': 'PUBLICAPI',
                         'network_type': 'PUBLICAPI',
-                        'ip_ranges': str(ip_ranges),
+                        'ip_ranges': ip_ranges,
                         'cidr': None}
         orig_network_meta = {'cidr': None,
                              'gateway': '112.18.1.1',
@@ -1034,7 +1034,7 @@ class TestNetworkApi(test.TestCase):
         network_meta = {'cluster_id': '1',
                         'name': 'PUBLICAPI',
                         'network_type': 'PUBLICAPI',
-                        'ip_ranges': str(ip_ranges),
+                        'ip_ranges': ip_ranges,
                         'cidr': '112.18.1.1/24'}
         orig_network_meta = {'cidr': '112.18.1.1/24',
                              'gateway': '112.18.1.1',
