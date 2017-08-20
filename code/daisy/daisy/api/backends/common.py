@@ -610,9 +610,7 @@ def sort_interfaces_by_pci(networks, host_detail):
     :param interfaces: interfaces info of the host
     :return:
     """
-    interfaces = eval(host_detail.get('interfaces', None)) \
-        if isinstance(host_detail, unicode) else \
-        host_detail.get('interfaces', None)
+    interfaces = host_detail.get('interfaces', None)
     if not interfaces:
         LOG.info("This host has no interfaces info.")
         return host_detail

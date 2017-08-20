@@ -584,7 +584,7 @@ class Controller(controller.BaseController):
                              'host_template %s.') % (
                         host_id, host_template['host_template_name']))
                     raise HTTPBadRequest(explanation=msg)
-            host_template_used['interfaces'] = str(host_template_interfaces)
+            host_template_used['interfaces'] = host_template_interfaces
             try:
                 host_template = registry.update_host_metadata(
                     req.context, host_id, host_template_used)

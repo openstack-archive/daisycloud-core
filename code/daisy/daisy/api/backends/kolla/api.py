@@ -250,7 +250,7 @@ class API(driver.DeploymentDriver):
             neutron_backend_meta = {}
             if role_meta.get('neutron_backends_array', None):
                 neutron_backend_metas = list(
-                    eval(role_meta.get('neutron_backends_array')))
+                    role_meta.get('neutron_backends_array'))
                 for neutron_backend_meta_tmp in neutron_backend_metas:
                     neutron_backend_meta['neutron_backends_type'] =\
                         neutron_backend_meta_tmp['sdn_controller_type']

@@ -97,9 +97,6 @@ def valid_ip_ranges(ip_ranges, cidr=None):
         LOG.error(msg)
         raise exc.HTTPBadRequest(explanation=msg)
 
-    if not isinstance(ip_ranges, list):
-        ip_ranges = ast.literal_eval(ip_ranges)
-
     last_ip_range_end = 0
     int_ip_ranges_list = list()
     sorted_int_ip_ranges_list = list()
@@ -212,9 +209,6 @@ def valid_vlan_id(vlan_id):
         msg = (_("IP ranges not given."))
         LOG.error(msg)
         raise exc.HTTPBadRequest(explanation=msg)
-
-    if not isinstance(vlan_id, int):
-        vlan_id = ast.literal_eval(vlan_id)
 
     if not (vlan_id >= 1 and vlan_id <= 4094):
         msg = "vlan id must be a integer between 1~4094"
