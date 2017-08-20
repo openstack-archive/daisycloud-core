@@ -273,10 +273,9 @@ class ServiceManager(base.ManagerWithFind):
                 msg = 'create() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
 
-        hdrs = self._service_meta_to_headers(fields)
         resp, body = self.client.post('/v1/services',
                                       headers=None,
-                                      data=hdrs)
+                                      data=fields)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
@@ -297,7 +296,6 @@ class ServiceManager(base.ManagerWithFind):
 
         TODO(bcwaldon): document accepted params
         """
-        hdrs = {}
         fields = {}
         for field in kwargs:
             if field in UPDATE_PARAMS:
@@ -308,10 +306,8 @@ class ServiceManager(base.ManagerWithFind):
                 msg = 'update() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
 
-        hdrs.update(self._service_meta_to_headers(fields))
-
         url = '/v1/services/%s' % base.getid(service)
-        resp, body = self.client.put(url, headers=None, data=hdrs)
+        resp, body = self.client.put(url, headers=None, data=fields)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
