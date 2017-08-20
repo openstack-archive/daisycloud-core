@@ -105,6 +105,5 @@ class UpdateManager(base.ManagerWithFind):
         if "cluster_id" in fields:
             url = '/v1/update/%s' % fields['cluster_id']
 
-            hdrs = self._Update_meta_to_headers(fields)
-            resp, body = self.client.post(url, headers=None, data=hdrs)
-            return Update(self, self._format_update_meta_for_user(body))
+        resp, body = self.client.post(url, headers=None, data=fields)
+        return Update(self, self._format_update_meta_for_user(body))

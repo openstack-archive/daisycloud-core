@@ -218,11 +218,10 @@ class TemplateManager(base.ManagerWithFind):
             else:
                 msg = 'create() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
-        hdrs = self._template_meta_to_headers(fields)
 
         resp, body = self.client.post('/v1/template',
                                       headers=None,
-                                      data=hdrs)
+                                      data=fields)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
@@ -240,7 +239,6 @@ class TemplateManager(base.ManagerWithFind):
 
         TODO(bcwaldon): document accepted params
         """
-        hdrs = {}
         fields = {}
         for field in kwargs:
             if field in UPDATE_PARAMS:
@@ -251,9 +249,8 @@ class TemplateManager(base.ManagerWithFind):
                 msg = 'update() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
 
-        hdrs.update(self._template_meta_to_headers(fields))
         url = '/v1/template/%s' % base.getid(template_id)
-        resp, body = self.client.put(url, headers=None, data=hdrs)
+        resp, body = self.client.put(url, headers=None, data=fields)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
@@ -274,8 +271,7 @@ class TemplateManager(base.ManagerWithFind):
                 raise TypeError(msg % field)
 
         url = '/v1/export_db_to_json'
-        hdrs = self._template_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=None, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=fields)
         return Template(
             self, self._format_template_meta_for_user(body['template']))
 
@@ -292,8 +288,7 @@ class TemplateManager(base.ManagerWithFind):
                 raise TypeError(msg % field)
 
         url = '/v1/import_json_to_template'
-        hdrs = self._template_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=None, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=fields)
         return Template(
             self, self._format_template_meta_for_user(body['template']))
 
@@ -310,8 +305,7 @@ class TemplateManager(base.ManagerWithFind):
                 raise TypeError(msg % field)
 
         url = '/v1/import_template_to_db'
-        hdrs = self._template_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=None, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=fields)
         return Template(
             self, self._format_template_meta_for_user(body['template']))
 
@@ -326,14 +320,12 @@ class TemplateManager(base.ManagerWithFind):
                 raise TypeError(msg % field)
 
         url = '/v1/host_to_template'
-        hdrs = self._template_meta_to_headers(fields)
-        resp, body = self.client.post(url, headers=None, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=fields)
         return Template(
             self, self._format_template_meta_for_user(body['host_template']))
 
     def template_to_host(self, **kwargs):
         """Update host with template"""
-        hdrs = {}
         fields = {}
         for field in kwargs:
             if field in CREATE_PARAMS:
@@ -343,9 +335,8 @@ class TemplateManager(base.ManagerWithFind):
             else:
                 msg = 'update() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
-        hdrs.update(self._template_meta_to_headers(fields))
         url = '/v1/template_to_host'
-        resp, body = self.client.put(url, headers=None, data=hdrs)
+        resp, body = self.client.put(url, headers=None, data=fields)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
@@ -402,7 +393,6 @@ class TemplateManager(base.ManagerWithFind):
                 raise TypeError(msg % field)
 
         url = '/v1/host_template'
-        hdrs = self._template_meta_to_headers(fields)
-        resp, body = self.client.put(url, headers=None, data=hdrs)
+        resp, body = self.client.put(url, headers=None, data=fields)
         return Template(
             self, self._format_template_meta_for_user(body['host_template']))

@@ -101,6 +101,5 @@ class UninstallManager(base.ManagerWithFind):
         if "cluster_id" in fields:
             url = '/v1/uninstall/%s' % fields['cluster_id']
 
-            hdrs = self._uninstall_meta_to_headers(fields)
-            resp, body = self.client.post(url, headers=None, data=hdrs)
+        resp, body = self.client.post(url, headers=None, data=fields)
         return Uninstall(self, self._format_uninstall_meta_for_user(body))

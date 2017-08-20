@@ -569,15 +569,6 @@ class Controller(controller.BaseController):
             template_content = json.loads(template_cluster['content'])
             template_content_cluster = template_content['cluster']
             template_content_cluster['name'] = cluster_name
-            template_content_cluster['networking_parameters'] = str(
-                template_content_cluster['networking_parameters'])
-            template_content_cluster['logic_networks'] = str(
-                template_content_cluster['logic_networks'])
-            template_content_cluster['logic_networks'] = \
-                template_content_cluster[
-                'logic_networks'].replace("\'true\'", "True")
-            template_content_cluster['routers'] = str(
-                template_content_cluster['routers'])
 
             if template_cluster['hosts']:
                 template_hosts = json.loads(template_cluster['hosts'])
@@ -636,8 +627,6 @@ class Controller(controller.BaseController):
                 req.context, cluster_id, **params)
             template_content_networks = template_content['networks']
             for template_content_network in template_content_networks:
-                template_content_network['ip_ranges'] = str(
-                    template_content_network['ip_ranges'])
                 network_exist = 'false'
                 for network in networks:
                     if template_content_network['name'] == network['name']:

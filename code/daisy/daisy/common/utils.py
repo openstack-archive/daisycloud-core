@@ -824,8 +824,6 @@ def stash_conf_values():
 
 
 def get_host_min_mac(host_interfaces):
-    if not isinstance(host_interfaces, list):
-        host_interfaces = eval(host_interfaces)
     macs = [interface['mac'] for interface in host_interfaces
             if interface['type'] == 'ether' and interface['mac']]
     min_mac = min(macs)
@@ -1078,15 +1076,10 @@ def is_ip_ranges_equal(ip_ranges1, ip_ranges2):
 
 def get_dvs_interfaces(host_interfaces):
     dvs_interfaces = []
-    if not isinstance(host_interfaces, list):
-        host_interfaces = eval(host_interfaces)
     for interface in host_interfaces:
-        if not isinstance(interface, dict):
-            interface = eval(interface)
         if ('vswitch_type' in interface and
                 interface['vswitch_type'] == 'dvs'):
             dvs_interfaces.append(interface)
-
     return dvs_interfaces
 
 
