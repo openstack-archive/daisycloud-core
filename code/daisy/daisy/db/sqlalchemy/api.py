@@ -2728,7 +2728,7 @@ def _role_update(context, values, role_id):
                                 cluster_host_ref.save(session=session)
 
             if values.has_key('services'):
-                orig_services = list(eval(values['services']))
+                orig_services = list(values['services'])
                 services_ref = \
                     _role_service_member_get(context, session, role_id)
 
@@ -2802,7 +2802,7 @@ def _role_update(context, values, role_id):
                                           % values['id'])
 
             if values.has_key('nodes'):
-                orig_hosts = list(eval(values['nodes']))
+                orig_hosts = list(values['nodes'])
                 cluster_id = None
                 if values.has_key('cluster_id') and values['cluster_id']:
                     cluster_id = values['cluster_id']
@@ -2832,7 +2832,7 @@ def _role_update(context, values, role_id):
                             cluster_host_ref.save(session=session)
 
             if values.has_key('services'):
-                orig_services = list(eval(values['services']))
+                orig_services = list(values['services'])
                 for service_id in orig_services:
                     role_service_ref = models.ServiceRole()
                     services_values['role_id'] = role_ref.id

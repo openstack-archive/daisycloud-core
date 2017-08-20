@@ -414,7 +414,7 @@ class Controller(controller.BaseController):
         else:
             nova_lv_size = orig_role_meta.get('nova_lv_size')
         if 'nodes' in role_meta:
-            host_id_list = list(eval(role_meta['nodes'])) + role_host_id_list
+            host_id_list = list(role_meta['nodes']) + role_host_id_list
         else:
             host_id_list = role_host_id_list
         self._check_all_lv_size(req, db_lv_size, glance_lv_size,
@@ -453,7 +453,7 @@ class Controller(controller.BaseController):
         db_lv_size = role_meta.get('db_lv_size', 0)
         glance_lv_size = role_meta.get('glance_lv_size', 0)
         nova_lv_size = role_meta.get('nova_lv_size', 0)
-        host_id_list = list(eval(role_meta['nodes']))
+        host_id_list = list(role_meta['nodes'])
         self._check_all_lv_size(req, db_lv_size, glance_lv_size,
                                 nova_lv_size, host_id_list, cluster_id, argws)
 
@@ -570,10 +570,10 @@ class Controller(controller.BaseController):
         if 'ntp_server' in role_meta:
             self._check_ntp_server(req, role_name)
         if 'nodes' in role_meta:
-            self._check_nodes_exist(req, list(eval(role_meta['nodes'])))
+            self._check_nodes_exist(req, list(role_meta['nodes']))
         if 'services' in role_meta:
-            self._check_services_exist(req, list(eval(role_meta['services'])))
-            role_service_id_list.extend(list(eval(role_meta['services'])))
+            self._check_services_exist(req, list(role_meta['services']))
+            role_service_id_list.extend(list(role_meta['services']))
         if 'config_set_id' in role_meta:
             self._check_config_set_id_exist(
                 req, str(role_meta['config_set_id']))
@@ -610,10 +610,10 @@ class Controller(controller.BaseController):
         if role_meta.get('type', None):
             self._check_role_type_in_role_add(req, role_meta)
         if 'nodes' in role_meta:
-            self._check_nodes_exist(req, list(eval(role_meta['nodes'])))
+            self._check_nodes_exist(req, list(role_meta['nodes']))
         if 'services' in role_meta:
-            self._check_services_exist(req, list(eval(role_meta['services'])))
-            role_service_id_list.extend(list(eval(role_meta['services'])))
+            self._check_services_exist(req, list(role_meta['services']))
+            role_service_id_list.extend(list(role_meta['services']))
         if 'config_set_id' in role_meta:
             self._check_config_set_id_exist(
                 req, str(role_meta['config_set_id']))

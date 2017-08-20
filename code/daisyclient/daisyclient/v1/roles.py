@@ -280,10 +280,9 @@ class RoleManager(base.ManagerWithFind):
                 msg = 'create() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
 
-        hdrs = self._role_meta_to_headers(fields)
         resp, body = self.client.post('/v1/roles',
                                       headers=None,
-                                      data=hdrs)
+                                      data=fields)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
@@ -303,7 +302,6 @@ class RoleManager(base.ManagerWithFind):
 
         TODO(bcwaldon): document accepted params
         """
-        hdrs = {}
         fields = {}
         for field in kwargs:
             if field in UPDATE_PARAMS:
@@ -314,10 +312,8 @@ class RoleManager(base.ManagerWithFind):
                 msg = 'update() got an unexpected keyword argument \'%s\''
                 raise TypeError(msg % field)
 
-        hdrs.update(self._role_meta_to_headers(fields))
-
         url = '/v1/roles/%s' % base.getid(role)
-        resp, body = self.client.put(url, headers=None, data=hdrs)
+        resp, body = self.client.put(url, headers=None, data=fields)
         return_request_id = kwargs.get('return_req_id', None)
         if return_request_id is not None:
             return_request_id.append(resp.headers.get(OS_REQ_ID_HDR, None))
