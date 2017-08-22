@@ -955,7 +955,7 @@ def do_service_update(gc, args):
 @utils.arg('--nova-lv-size', metavar='<NOVA_LV_SIZE>',
            help='the size of logic volume disk for nvoa, and the unit is MB.')
 @utils.arg('--disk-location', metavar='<DISK_LOCATION>',
-           help='where disks used by backends application from, default is "local". \
+           help='where disks used by backends from, default is "local". \
                  "local" means disks come from local host, \
                  "share" means disks come from share storage devices')
 @utils.arg('--role-type', metavar='<ROLE_TYPE>',
@@ -1079,7 +1079,7 @@ def do_role_detail(gc, args):
 @utils.arg('--docker-vg-size', metavar='<DOCKER_VG_SIZE>',
            help='the size of docker_vg(M).')
 @utils.arg('--disk-location', metavar='<DISK_LOCATION>',
-           help='where disks used by backends application from, default is "local". \
+           help='where disks used by backends from, default is "local". \
                  "local" means disks come from local host, \
                  "share" means disks come from share storage devices')
 @utils.arg('--ntp-server', metavar='<NTP_SERVER>',
