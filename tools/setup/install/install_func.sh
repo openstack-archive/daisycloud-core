@@ -62,7 +62,6 @@ function ip_to_cidr()
 function kolla_install
 {
   write_install_log "Begin install kolla depends..."
-
   check_installed "docker-engine"
   if [[ "$has_installed" == "yes" ]];then
       echo "docker-engine has been already installed"
@@ -71,8 +70,6 @@ function kolla_install
       yum remove -y docker-engine
       yum install -y https://yum.dockerproject.org/repo/main/centos/7/Packages/docker-engine-17.05.0.ce-1.el7.centos.x86_64.rpm
   fi
-  [ "$?" -ne 0 ] && { write_install_log "Install docker-engine failed"; exit 1; }
-
   mkdir -p /etc/systemd/system/docker.service.d
   config_path=/etc/systemd/system/docker.service.d/kolla.conf
   echo -e "[Service]\nMountFlags=shared" > $config_path
