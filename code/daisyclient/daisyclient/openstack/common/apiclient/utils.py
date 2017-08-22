@@ -90,7 +90,7 @@ def find_resource(manager, name_or_id, **find_args):
                 {
                     "name": manager.resource_class.__name__.lower(),
                     "name_or_id": name_or_id
-            }
+                }
             raise exceptions.CommandError(msg)
     except exceptions.NoUniqueMatch:
         msg = _("Multiple %(name)s matches found for "
@@ -98,5 +98,5 @@ def find_resource(manager, name_or_id, **find_args):
             {
                 "name": manager.resource_class.__name__.lower(),
                 "name_or_id": name_or_id
-        }
+            }
         raise exceptions.CommandError(msg)
