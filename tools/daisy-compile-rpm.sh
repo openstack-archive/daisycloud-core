@@ -45,4 +45,5 @@ yum -y install \
   gcc \
   autoconf \
   automake \
-  glibc-devel
+  glibc-devel \
+  fontawesome-fonts-web
