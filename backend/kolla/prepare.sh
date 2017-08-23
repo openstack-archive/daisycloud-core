@@ -12,7 +12,7 @@ daisy_management_ip=$1
 yum -y install epel-release
 #curl -sSL https://get.docker.io | bash
 yum remove -y docker-engine
-yum install -y https://yum.dockerproject.org/repo/main/centos/7/Packages/docker-engine-17.05.0.ce-1.el7.centos.x86_64.rpm
+yum install -y https://mirrors.nju.edu.cn/docker/yum/repo/centos7/Packages/docker-engine-17.05.0.ce-1.el7.centos.x86_64.rpm
 [ "$?" -ne 0 ] && { exit 1; }
 mkdir -p /etc/systemd/system/docker.service.d
 config_path=/etc/systemd/system/docker.service.d/kolla.conf
