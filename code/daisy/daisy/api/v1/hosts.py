@@ -1399,7 +1399,7 @@ class Controller(controller.BaseController):
             if host_meta.get('root_disk', None):
                 root_disk = host_meta['root_disk']
             elif orig_host_meta.get('root_disk', None):
-                root_disk = str(orig_host_meta['root_disk'])
+                root_disk = orig_host_meta['root_disk']
             else:
                 host_meta['root_disk'] = 'sda'
                 root_disk = host_meta['root_disk']
@@ -1430,21 +1430,22 @@ class Controller(controller.BaseController):
                 LOG.error(msg)
                 raise HTTPForbidden(explanation=msg)
             else:
-                host_meta['root_lv_size'] = str(orig_host_meta['root_lv_size'])
+                host_meta['root_lv_size'] = orig_host_meta['root_lv_size']
         elif orig_host_meta.get('discover_mode'):
             if host_meta.get('root_lv_size', None):
                 root_lv_size = host_meta['root_lv_size']
             elif orig_host_meta.get('root_lv_size', None):
-                root_lv_size = str(orig_host_meta['root_lv_size'])
+                root_lv_size = orig_host_meta['root_lv_size']
             else:
-                host_meta['root_lv_size'] = '102400'
+                host_meta['root_lv_size'] = 102400
                 root_lv_size = host_meta['root_lv_size']
+
             if not orig_host_meta.get('disks', None):
                 msg = "there is no disks in %s" % orig_host_meta['id']
                 LOG.error(msg)
                 raise HTTPNotFound(msg)
-            if root_lv_size.isdigit():
-                root_lv_size = int(root_lv_size)
+
+            if isinstance(root_lv_size, int):
                 root_disk_storage_size_b_str = str(
                     orig_host_meta['disks'][
                         '%s' %
@@ -1523,12 +1524,12 @@ class Controller(controller.BaseController):
                 LOG.error(msg)
                 raise HTTPForbidden(explanation=msg)
             else:
-                host_meta['swap_lv_size'] = str(orig_host_meta['swap_lv_size'])
+                host_meta['swap_lv_size'] = orig_host_meta['swap_lv_size']
         elif orig_host_meta.get('discover_mode'):
             if host_meta.get('swap_lv_size', None):
                 swap_lv_size = host_meta['swap_lv_size']
             elif orig_host_meta.get('swap_lv_size', None):
-                swap_lv_size = str(orig_host_meta['swap_lv_size'])
+                swap_lv_size = orig_host_meta['swap_lv_size']
             else:
                 if not orig_host_meta.get('memory', None):
                     msg = "there is no memory in %s" % orig_host_meta['id']
@@ -1538,9 +1539,10 @@ class Controller(controller.BaseController):
                 memory_size_b_int = int(memory_size_b_str.strip().split()[0])
                 memory_size_m = memory_size_b_int // 1024
                 swap_lv_size_m = self._get_swap_lv_size_m(memory_size_m)
-                host_meta['swap_lv_size'] = str(swap_lv_size_m)
+                host_meta['swap_lv_size'] = swap_lv_size_m
                 swap_lv_size = host_meta['swap_lv_size']
-            if swap_lv_size.isdigit():
+
+            if isinstance(swap_lv_size, int):
                 swap_lv_size = int(swap_lv_size)
                 disk_storage_size_b = 0
                 for key in orig_host_meta['disks']:
