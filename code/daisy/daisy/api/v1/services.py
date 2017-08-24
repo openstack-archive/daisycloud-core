@@ -132,7 +132,7 @@ class Controller(controller.BaseController):
         service_description = service_meta["description"]
 
         if 'component_id' in service_meta:
-            orig_component_id = str(service_meta['component_id'])
+            orig_component_id = service_meta['component_id']
             self._raise_404_if_component_deleted(req, orig_component_id)
 
         print service_name

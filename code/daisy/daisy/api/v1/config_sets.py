@@ -306,7 +306,7 @@ class Controller(controller.BaseController):
     @utils.mutating
     def cluster_config_set_update(self, req, config_set_meta):
         if 'cluster' in config_set_meta:
-            orig_cluster = str(config_set_meta['cluster'])
+            orig_cluster = config_set_meta['cluster']
             self._raise_404_if_cluster_deleted(req, orig_cluster)
             backend = manager.configBackend('clushshell', req)
             try:
@@ -344,7 +344,7 @@ class Controller(controller.BaseController):
     def cluster_config_set_progress(self, req, config_set_meta):
         role_list = []
         if 'cluster' in config_set_meta:
-            orig_cluster = str(config_set_meta['cluster'])
+            orig_cluster = config_set_meta['cluster']
             self._raise_404_if_cluster_deleted(req, orig_cluster)
             try:
                 if config_set_meta.get('role', None):

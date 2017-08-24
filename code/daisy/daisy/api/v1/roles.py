@@ -576,10 +576,10 @@ class Controller(controller.BaseController):
             role_service_id_list.extend(list(role_meta['services']))
         if 'config_set_id' in role_meta:
             self._check_config_set_id_exist(
-                req, str(role_meta['config_set_id']))
+                req, role_meta['config_set_id'])
         if 'cluster_id' in role_meta:
             self._check_cluster_id_in_role_update(
-                req, str(role_meta['cluster_id']), orig_role_meta)
+                req, role_meta['cluster_id'], orig_role_meta)
         if 'name' in role_meta:
             self._check_role_name_in_role_update(
                 req, role_meta, orig_role_meta)
@@ -616,9 +616,9 @@ class Controller(controller.BaseController):
             role_service_id_list.extend(list(role_meta['services']))
         if 'config_set_id' in role_meta:
             self._check_config_set_id_exist(
-                req, str(role_meta['config_set_id']))
+                req, role_meta['config_set_id'])
         if 'cluster_id' in role_meta:
-            orig_cluster = str(role_meta['cluster_id'])
+            orig_cluster = role_meta['cluster_id']
             self._raise_404_if_cluster_deleted(req, orig_cluster)
             self.check_cluster_role_name_repetition(
                 req, role_name, orig_cluster)

@@ -166,7 +166,7 @@ class Controller(controller.BaseController):
             # the first way to add config
             # when have 'role', config_set will be ignore
             if config_meta.get('cluster'):
-                orig_cluster = str(config_meta['cluster'])
+                orig_cluster = config_meta['cluster']
                 self._raise_404_if_cluster_deleted(req, orig_cluster)
             else:
                 msg = "cluster must be given when add config for role"
