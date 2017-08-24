@@ -130,7 +130,7 @@ def _check_ping_hosts(ping_ips, max_ping_times):
         return ping_ips
     ping_count = 0
     time_step = 5
-    LOG.info(_("begin ping test for %s", ','.join(ping_ips)))
+    LOG.info(_("begin ping test for %s"), ','.join(ping_ips))
     while True:
         if ping_count == 0:
             ips = _ping_hosts_test(ping_ips)
@@ -146,9 +146,9 @@ def _check_ping_hosts(ping_ips, max_ping_times):
                 return ips
             time.sleep(time_step)
         else:
-            LOG.info(_("ping host %s success", ','.join(ping_ips)))
+            LOG.info(_("ping host %s success"), ','.join(ping_ips))
             time.sleep(120)
-            LOG.info(_("120s after ping host %s success", ','.join(ping_ips)))
+            LOG.info(_("120s after ping host %s success"), ','.join(ping_ips))
             return ips
 
 
@@ -201,10 +201,12 @@ def get_cluster_kolla_config(req, cluster_id):
     cluster_networks = daisy_cmn.get_cluster_networks_detail(req, cluster_id)
     for network in cluster_networks:
         vlans_id.update({network.get('network_type'): network.get('vlan_id')})
+
     all_roles = kolla_cmn.get_roles_detail(req)
     roles = [role for role in all_roles if
              (role['cluster_id'] == cluster_id and
               role['deployment_backend'] == daisy_cmn.kolla_backend_name)]
+
     for role in roles:
         if role['name'] == 'CONTROLLER_LB':
             kolla_vip = role['vip']
@@ -478,7 +480,7 @@ def _thread_bin(req, cluster_id, host, root_passwd, fp, host_name_ip_list,
         fp.write(e.output.strip())
         raise exception.InstallException(message)
     else:
-        LOG.info(_("prepare for %s successfully!", host_ip))
+        LOG.info(_("prepare for %s successfully!"), host_ip)
         fp.write(exc_result)
         message = "Preparing for installation successful!"
         update_host_progress_to_db(req, role_id_list, host,
@@ -543,7 +545,14 @@ class KOLLAInstallTask(Thread):
                                            host_id_list,
                                            kolla_state['INSTALL_FAILED'],
                                            self.message)
-            LOG.error(("kolla deploy openstack failed!"))
+            LOG.error(("deploy openstack failed!"))
+        except:
+            update_all_host_progress_to_db(self.req, role_id_list,
+                                           host_id_list,
+                                           kolla_state['INSTALL_FAILED'],
+                                           self.message)
+            LOG.error("deploy openstack failed with other error")
+
         else:
             LOG.info(_("install Kolla for cluster %s successfully."
                        % self.cluster_id))
@@ -560,7 +569,9 @@ class KOLLAInstallTask(Thread):
             get_cluster_kolla_config(self.req, self.cluster_id)
         if not self.mgt_ip_list:
             msg = _("there is no host in cluster %s") % self.cluster_id
+            LOG.error(msg)
             raise exception.ThreadBinException(msg)
+
         unreached_hosts = _check_ping_hosts(self.mgt_ip_list, self.ping_times)
         if unreached_hosts:
             self.message = "hosts %s ping failed" % unreached_hosts
