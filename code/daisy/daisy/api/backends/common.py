@@ -373,7 +373,7 @@ def check_ping_hosts(ping_ips, max_ping_times):
         return ping_ips
     ping_count = 0
     time_step = 5
-    LOG.info(_("begin ping test for %s", ','.join(ping_ips)))
+    LOG.info(_("begin ping test for %s"), ','.join(ping_ips))
     while True:
         if ping_count == 0:
             ips = _ping_hosts_test(ping_ips)
@@ -383,14 +383,14 @@ def check_ping_hosts(ping_ips, max_ping_times):
         ping_count += 1
         if ips:
             LOG.debug(
-                _("ping host %s for %s times", (','.join(ips), ping_count)))
+                _("ping host %s for %s times"), ','.join(ips), ping_count)
             if ping_count >= max_ping_times:
-                LOG.info(_("ping host %s timeout for %ss",
-                           (','.join(ips), ping_count * time_step)))
+                LOG.info(_("ping host %s timeout for %ss"),
+                         ','.join(ips), ping_count * time_step)
                 return ips
             time.sleep(time_step)
         else:
-            LOG.info(_("ping %s successfully", ','.join(ping_ips)))
+            LOG.info(_("ping %s successfully"), ','.join(ping_ips))
             return ips
 
 
@@ -468,7 +468,7 @@ def get_rpm_package_by_name(path, rpm_name):
         rpm_name = subprocess.check_output(
             cmd, shell=True, stderr=subprocess.STDOUT).split('\n')[0]
     except subprocess.CalledProcessError:
-        msg = _("Get rpm %s failed in %s!", (rpm_name, path))
+        msg = _("Get rpm %s failed in %s!"), rpm_name, path
         raise exception.SubprocessCmdFailed(message=msg)
     return rpm_name
 
@@ -520,12 +520,12 @@ def trust_me(host_ips, root_passwd):
         while count < try_times:
             try:
                 trust_me_cmd = "/var/lib/daisy/trustme.sh\
-                        %s %s", (host_ip, root_passwd)
+                        %s %s" % (host_ip, root_passwd)
                 subprocess_call(trust_me_cmd)
             except:
                 count += 1
                 LOG.info("Trying to trust '%s' for %s times",
-                         (host_ip, count))
+                         host_ip, count)
                 time.sleep(2)
                 if count >= try_times:
                     message = "Setup trust for '%s' failed,"\
