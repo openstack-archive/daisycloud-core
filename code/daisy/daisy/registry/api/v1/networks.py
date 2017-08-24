@@ -377,8 +377,8 @@ class Controller(object):
             raise
 
     @utils.mutating
-    def update_cluster(self, req, id, body):
-        """Updates an existing cluster with the registry.
+    def update_network(self, req, network_id, body):
+        """Updates an existing network with the registry.
 
         :param req: wsgi Request object
         :param body: Dictionary of information about the image
@@ -386,49 +386,45 @@ class Controller(object):
 
         :retval Returns the updated image information as a mapping,
         """
-        cluster_data = body['cluster']
+        network_data = body['network']
         try:
-            updated_cluster = self.db_api.cluster_update(
-                req.context, id, cluster_data)
+            updated_network = self.db_api.network_update(
+                req.context, network_id, network_data)
 
-            msg = _LI("Updating metadata for cluster %(id)s") % {'id': id}
+            msg = _LI("Updating metadata for network %(network_id)s") % {
+                'network_id': network_id}
             LOG.info(msg)
-            if 'cluster' not in updated_cluster:
-                cluster_data = dict(cluster=updated_cluster)
-            return cluster_data
+            if 'network' not in updated_network:
+                network_data = dict(network=updated_network)
+            return network_data
         except exception.Invalid as e:
-            msg = (_("Failed to update cluster metadata. "
+            msg = (_("Failed to update network metadata. "
                      "Got error: %s") % utils.exception_to_str(e))
             LOG.error(msg)
             return exc.HTTPBadRequest(msg)
         except exception.NotFound:
-            msg = _LI("cluster %(id)s not found") % {'id': id}
+            msg = _LI("Network %(network_id)s not found") % {
+                'network_id': network_id}
             LOG.info(msg)
-            raise exc.HTTPNotFound(body='cluster not found',
+            raise exc.HTTPNotFound(body='Network not found',
                                    request=req,
                                    content_type='text/plain')
         except exception.ForbiddenPublicImage:
-            msg = _LI("Update denied for public cluster %(id)s") % {'id': id}
+            msg = _LI("Update denied for public network %(network_id)s") % {
+                'network_id': network_id}
             LOG.info(msg)
             raise exc.HTTPForbidden()
-        except exception.Forbidden:
-            # If it's private and doesn't belong to them, don't let on
-            # that it exists
-            msg = _LI("Access denied to cluster %(id)s but returning"
-                      " 'not found'") % {'id': id}
-            LOG.info(msg)
-            raise exc.HTTPNotFound(body='cluster not found',
-                                   request=req,
-                                   content_type='text/plain')
+        except exception.Forbidden as e:
+            LOG.info(e)
+            raise exc.HTTPForbidden(e)
         except exception.Conflict as e:
             LOG.info(utils.exception_to_str(e))
-            raise exc.HTTPConflict(body='cluster operation conflicts',
+            raise exc.HTTPConflict(body='Network operation conflicts',
                                    request=req,
                                    content_type='text/plain')
         except Exception:
-            LOG.exception(_LE("Unable to update cluster %s") % id)
+            LOG.exception(_LE("Unable to update network %s") % network_id)
             raise
-
 
 def _limit_locations(image):
     locations = image.pop('locations', [])
