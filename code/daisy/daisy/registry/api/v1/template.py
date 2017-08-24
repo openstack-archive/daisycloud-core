@@ -299,7 +299,6 @@ class Controller(object):
         try:
             template_data = self.db_api.template_destroy(
                 req.context, template_id)
-            # template_data = dict(template=make_image_dict(template_data))
             msg = (_LI("Successfully deleted template %s") % template_id)
             LOG.info(msg)
             if 'template' not in template_data:
@@ -362,8 +361,6 @@ class Controller(object):
 
         try:
             template_data = self.db_api.template_get(req.context, template_id)
-            # service_disk_data = dict(service_disk=make_image_dict(
-            # service_disk_data))
             msg = (
                 _LI("Successfully get template information:%s") %
                 template_id)
@@ -412,8 +409,6 @@ class Controller(object):
         try:
             template_data = self.db_api.host_template_add(
                 req.context, template_data)
-            # service_disk_data = dict(service_disk=make_image_dict(
-            # service_disk_data))
             msg = (_LI("Successfully created node %s") %
                    template_data["id"])
             LOG.info(msg)
@@ -458,8 +453,6 @@ class Controller(object):
         try:
             template_data = self.db_api.host_template_update(
                 req.context, template_id, template_data)
-            # service_disk_data = dict(service_disk=make_image_dict(
-            # service_disk_data))
             msg = (_LI("Successfully updated template %s") %
                    template_data["id"])
             LOG.info(msg)
@@ -502,8 +495,6 @@ class Controller(object):
         try:
             template_data = self.db_api.host_template_destroy(
                 req.context, template_id)
-            # service_disk_data = dict(service_disk=make_image_dict(
-            # service_disk_data))
             msg = (_LI("Successfully deleted template %s") % template_id)
             LOG.info(msg)
             if 'template' not in template_data:
@@ -570,8 +561,6 @@ class Controller(object):
         try:
             template_data = self.db_api.host_template_get(
                 req.context, template_id)
-            # service_disk_data = dict(service_disk=make_image_dict(
-            # service_disk_data))
             msg = (
                 _LI("Successfully get template information:%s") %
                 template_id)

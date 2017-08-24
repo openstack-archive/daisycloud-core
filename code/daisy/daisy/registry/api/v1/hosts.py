@@ -298,7 +298,6 @@ class Controller(object):
                         LOG.error(msg)
                         return exc.HTTPBadRequest(msg)
 
-            # host_data = dict(host=make_image_dict(host_data))
             msg = (_LI("Successfully created node %s") %
                    host_data["id"])
             LOG.info(msg)
@@ -582,7 +581,6 @@ class Controller(object):
             else:
                 discover_host_data = self.db_api.discover_host_update(
                     req.context, discover_host_id, discover_host_data)
-            # host_data = dict(host=make_image_dict(host_data))
             msg = (_LI("Successfully created node %s") %
                    discover_host_data["id"])
             LOG.info(msg)
@@ -964,7 +962,6 @@ class Controller(object):
         try:
             component_data = self.db_api.component_add(
                 req.context, component_data)
-            # host_data = dict(host=make_image_dict(host_data))
             msg = (_LI("Successfully created component %s") %
                    component_data["id"])
             LOG.info(msg)
@@ -1159,7 +1156,6 @@ class Controller(object):
         try:
             print service_data
             service_data = self.db_api.service_add(req.context, service_data)
-            # host_data = dict(host=make_image_dict(host_data))
             msg = (_LI("Successfully created service %s") %
                    service_data["id"])
             LOG.info(msg)
@@ -1353,7 +1349,6 @@ class Controller(object):
         try:
             print role_data
             role_data = self.db_api.role_add(req.context, role_data)
-            # host_data = dict(host=make_image_dict(host_data))
             msg = (_LI("Successfully created role %s") %
                    role_data["id"])
             LOG.info(msg)
@@ -1797,38 +1792,6 @@ class Controller(object):
             config_interface_meta = dict(
                 config_interface_meta=config_interface_meta)
         return config_interface_meta
-
-
-def _limit_locations(image):
-    locations = image.pop('locations', [])
-    image['location_data'] = locations
-    image['location'] = None
-    for loc in locations:
-        if loc['status'] == 'active':
-            image['location'] = loc['url']
-            break
-
-
-def make_image_dict(image):
-    """Create a dict representation of an image which we can use to
-    serialize the image.
-    """
-
-    def _fetch_attrs(d, attrs):
-        return dict([(a, d[a]) for a in attrs
-                     if a in d.keys()])
-
-    # TODO(sirp): should this be a dict, or a list of dicts?
-    # A plain dict is more convenient, but list of dicts would provide
-    # access to created_at, etc
-    properties = dict((p['name'], p['value'])
-                      for p in image['properties'] if not p['deleted'])
-
-    image_dict = _fetch_attrs(image, daisy.db.IMAGE_ATTRS)
-    image_dict['properties'] = properties
-    _limit_locations(image_dict)
-
-    return image_dict
 
 
 def create_resource():

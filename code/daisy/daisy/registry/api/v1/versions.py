@@ -237,7 +237,6 @@ class Controller(object):
 
         try:
             version_data = self.db_api.version_add(req.context, version_data)
-            # version_data = dict(version=make_image_dict(version_data))
             msg = (_LI("Successfully created node %s") %
                    version_data["id"])
             LOG.info(msg)
@@ -381,38 +380,6 @@ class Controller(object):
         except Exception:
             LOG.exception(_LE("Unable to update version %s") % version_id)
             raise
-
-
-def _limit_locations(image):
-    locations = image.pop('locations', [])
-    image['location_data'] = locations
-    image['location'] = None
-    for loc in locations:
-        if loc['status'] == 'active':
-            image['location'] = loc['url']
-            break
-
-
-def make_image_dict(image):
-    """Create a dict representation of an image which we can use to
-    serialize the image.
-    """
-
-    def _fetch_attrs(d, attrs):
-        return dict([(a, d[a]) for a in attrs
-                     if a in d.keys()])
-
-    # TODO(sirp): should this be a dict, or a list of dicts?
-    # A plain dict is more convenient, but list of dicts would provide
-    # access to created_at, etc
-    properties = dict((p['name'], p['value'])
-                      for p in image['properties'] if not p['deleted'])
-
-    image_dict = _fetch_attrs(image, daisy.db.IMAGE_ATTRS)
-    image_dict['properties'] = properties
-    _limit_locations(image_dict)
-
-    return image_dict
 
 
 def create_resource():

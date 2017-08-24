@@ -223,8 +223,6 @@ class Controller(object):
         try:
             service_disk_data = self.db_api.service_disk_add(
                 req.context, service_disk_data)
-            # service_disk_data = dict(service_disk=make_image_dict(
-            # service_disk_data))
             msg = (_LI("Successfully created node %s") %
                    service_disk_data["id"])
             LOG.info(msg)
