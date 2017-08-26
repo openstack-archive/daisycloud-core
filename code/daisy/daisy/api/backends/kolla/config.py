@@ -159,6 +159,12 @@ def config_lvm_for_cinder(config_data):
                     storage node %s ok!" % storage_ip))
 
 
+def enable_ceilometer():
+    ceilometer_config = {"enable_ceilometer": "yes",
+                         "enable_mongodb": "yes"}
+    update_kolla_globals_yml(ceilometer_config)
+
+
 def config_ceph_for_cinder(config_data, disk):
     ceph_config = {'enable_cinder': 'yes',
                    'enable_ceph': 'yes'}
