@@ -302,6 +302,7 @@ def generate_kolla_config_file(req, cluster_id, kolla_config, multicast_flag):
                                      cluster_id,
                                      kolla_config)
         config.enable_neutron_backend(req, cluster_id, kolla_config)
+        config.enbale_ceilometer(req,cluster_id,kolla_config)
 
 
 def config_nodes_hosts(host_name_ip_list, host_ip):
