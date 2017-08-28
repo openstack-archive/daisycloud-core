@@ -17,6 +17,7 @@ import mock
 import webob
 from daisy import test
 from daisy.api.backends.kolla import install
+from daisy.api.backends.kolla import common as kcommon
 from daisy.context import RequestContext
 import subprocess
 from oslo_serialization import jsonutils
@@ -481,7 +482,7 @@ class TestInstall(test.TestCase):
                                                       'ext_macname': u''}
 
         (kolla_config, mgt_ip_list, host_name_ip_list) =\
-            install.get_cluster_kolla_config(
+            kcommon.get_cluster_kolla_config(
             self.req,
             '8ad27e36-f3e2-48b4-84b8-5b676c6fabde')
         cmd_end1 = 'rm -rf %s/test.version' % daisy_kolla_ver_path
@@ -509,8 +510,8 @@ class TestInstall(test.TestCase):
     @mock.patch('daisy.api.backends.common.get_cluster_roles_detail')
     @mock.patch('daisy.api.backends.common.get_cluster_networks_detail')
     @mock.patch('daisy.api.backends.common.get_hosts_of_role')
-    @mock.patch('daisy.api.backends.kolla.install.generate_kolla_config_file')
-    @mock.patch('daisy.api.backends.kolla.install.get_cluster_kolla_config')
+    @mock.patch('daisy.api.backends.kolla.common.generate_kolla_config_file')
+    @mock.patch('daisy.api.backends.kolla.common.get_cluster_kolla_config')
     @mock.patch('subprocess.Popen.poll')
     @mock.patch('subprocess.check_output')
     @mock.patch('daisy.api.backends.common.subprocess_call')
