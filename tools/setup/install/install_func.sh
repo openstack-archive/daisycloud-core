@@ -78,6 +78,7 @@ function kolla_install
   echo -e "[Service]\nMountFlags=shared" > $config_path
   systemctl daemon-reload
   systemctl restart docker
+  systemctl enable docker
   check_and_install_rpm python-docker-py
   check_and_install_rpm ntp
   systemctl enable ntpd.service
