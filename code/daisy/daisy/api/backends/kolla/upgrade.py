@@ -112,11 +112,16 @@ class KOLLAUpgradeTask(Thread):
                                         'messages': self.message})
 
         res = kolla_cmn.version_load_mcast(kolla_version_pkg_file,
-                                           hosts_list)
+                                           hosts)
 
-        # TODO: re-config docker registry server based upon return value of
-        # kolla_cmn.version_load_mcast
-        hosts_ip_set = set()
+        # always call generate_kolla_config_file after version_load()
+        LOG.info(_("begin to generate kolla config file ..."))
+        (kolla_config, self.mgt_ip_list, host_name_ip_list) = \
+            kolla_cmn.get_cluster_kolla_config(self.req, self.cluster_id)
+        kolla_cmn.generate_kolla_config_file(self.req, self.cluster_id,
+                                             kolla_config, res)
+        LOG.info(_("generate kolla config file in /etc/kolla/ dir..."))
+
         for host in hosts:
             host_meta = daisy_cmn.get_host_detail(self.req, host["host_id"])
             host_ip = daisy_cmn.get_management_ip(host_meta)

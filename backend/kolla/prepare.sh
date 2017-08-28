@@ -12,6 +12,7 @@ echo -e "other_args=\"--insecure-registry $daisy_management_ip:4000 --insecure-r
 echo -e "[Service]\nMountFlags=shared\nEnvironmentFile=/etc/sysconfig/docker\nExecStart=\nExecStart=/usr/bin/docker daemon \$other_args" > $config_path
 systemctl daemon-reload
 systemctl restart docker
+systemctl enable docker
 yum install -y python-docker-py
 yum -y install ntp
 systemctl enable ntpd.service
