@@ -22,6 +22,7 @@ from oslo_log import log as logging
 from daisy import i18n
 import daisy.api.backends.common as daisy_cmn
 import daisy.api.backends.kolla.common as kolla_cmn
+from daisy.api.backends.kolla import config as kconfig
 import daisy.registry.client.v1.api as registry
 from threading import Thread
 from daisy.common import exception
@@ -115,12 +116,17 @@ class KOLLAUpgradeTask(Thread):
                                            hosts)
 
         # always call generate_kolla_config_file after version_load()
-        LOG.info(_("begin to generate kolla config file ..."))
+        LOG.info(_("begin to re-generate kolla config file ..."))
         (kolla_config, self.mgt_ip_list, host_name_ip_list) = \
             kolla_cmn.get_cluster_kolla_config(self.req, self.cluster_id)
-        kolla_cmn.generate_kolla_config_file(self.req, self.cluster_id,
-                                             kolla_config, res)
-        LOG.info(_("generate kolla config file in /etc/kolla/ dir..."))
+        # generate_kolla_config_file() can not be used here, it not only
+        # update global.yml, but also update passwd.yml and redo some
+        # ssh commands(cause failure) on target nodes. So do not be
+        # misleaded by that bad function name, here we only want to
+        # update global.yml.
+        if kolla_config:
+            kconfig.update_globals_yml(kolla_config, res)
+        LOG.info(_("re-generate kolla config file in /etc/kolla/ dir..."))
 
         for host in hosts:
             host_meta = daisy_cmn.get_host_detail(self.req, host["host_id"])
