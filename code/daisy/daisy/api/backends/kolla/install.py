@@ -674,8 +674,6 @@ class KOLLAInstallTask(Thread):
                                            self.message, 15)
 
             # always call generate_kolla_config_file after version_load()
-            # TODO: re-config docker registry server based upon return value of
-            # kolla_cmn.version_load_mcast
             LOG.info(_("begin to generate kolla config file ..."))
             (kolla_config, self.mgt_ip_list, host_name_ip_list) = \
                 get_cluster_kolla_config(self.req, self.cluster_id)
