@@ -17,16 +17,13 @@
 /install endpoint for kolla API
 """
 import subprocess
-import os
 import time
 from oslo_log import log as logging
-from webob.exc import HTTPForbidden
 from threading import Thread
 import threading
 from daisy import i18n
 import daisy.api.v1
 from daisy.common import exception
-from daisy.api.backends.kolla import config
 import daisy.api.backends.common as daisy_cmn
 import daisy.api.backends.kolla.common as kolla_cmn
 import daisy.api.common as api_cmn
@@ -53,8 +50,6 @@ kolla_state = kolla_cmn.KOLLA_STATE
 daisy_kolla_path = kolla_cmn.daisy_kolla_path
 install_kolla_progress = 0.0
 install_mutex = threading.Lock()
-kolla_file = "/home/kolla_install"
-kolla_config_file = "/etc/kolla/globals.yml"
 daisy_kolla_ver_path = kolla_cmn.daisy_kolla_ver_path
 thread_flag = {}
 
@@ -150,158 +145,6 @@ def _check_ping_hosts(ping_ips, max_ping_times):
             time.sleep(120)
             LOG.info(_("120s after ping host %s success"), ','.join(ping_ips))
             return ips
-
-
-def get_cluster_kolla_config(req, cluster_id):
-    LOG.info(_("get kolla config from database..."))
-    mgt_ip_list = set()
-    kolla_config = {}
-    controller_ip_list = []
-    computer_ip_list = []
-    storage_ip_list = []
-    mgt_macname_list = []
-    pub_macname_list = []
-    dat_macname_list = []
-    ext_macname_list = []
-    sto_macname_list = []
-    hbt_macname_list = []
-    vlans_id = {}
-    openstack_version = '3.0.0'
-    docker_namespace = 'kolla'
-    host_name_ip = {}
-    host_name_ip_list = []
-    version_flag = False
-    version_path = kolla_cmn.daisy_kolla_ver_path
-    for parent, dirnames, filenames in os.walk(version_path):
-        for filename in filenames:
-            if filename.endswith('.version'):
-                filename = version_path + filename
-                for line in open(filename):
-                    if 'tag' in line:
-                        version_flag = True
-                        kolla_openstack_version = line.strip()
-                        openstack_version = kolla_openstack_version.split(
-                            "= ")[1]
-    if version_flag == False:
-        version_path = kolla_file + '/kolla-ansible/ansible/group_vars/'
-        for parent, dirnames, filenames in os.walk(version_path):
-            for filename in filenames:
-                if filename == 'all.yml':
-                    filename = version_path + filename
-                    for line in open(filename):
-                        if 'openstack_release:' in line:
-                            version_flag = True
-                            kolla_openstack_version = line.strip()
-                            openstack_version = kolla_openstack_version.split(
-                                ": ")[1].strip('\"')
-    LOG.info(_("openstack version is %s"), openstack_version)
-    docker_registry_ip = kolla_cmn._get_local_ip()
-    docker_registry = docker_registry_ip + ':4000'
-    LOG.info(_("get cluster network detail..."))
-    cluster_networks = daisy_cmn.get_cluster_networks_detail(req, cluster_id)
-    for network in cluster_networks:
-        vlans_id.update({network.get('network_type'): network.get('vlan_id')})
-
-    all_roles = kolla_cmn.get_roles_detail(req)
-    roles = [role for role in all_roles if
-             (role['cluster_id'] == cluster_id and
-              role['deployment_backend'] == daisy_cmn.kolla_backend_name)]
-
-    for role in roles:
-        if role['name'] == 'CONTROLLER_LB':
-            kolla_vip = role['vip']
-            role_hosts = kolla_cmn.get_hosts_of_role(req, role['id'])
-            for role_host in role_hosts:
-                host_detail = kolla_cmn.get_host_detail(
-                    req, role_host['host_id'])
-                deploy_host_cfg = kolla_cmn.get_controller_node_cfg(
-                    req, host_detail, cluster_networks)
-                mgt_ip = deploy_host_cfg['mgtip']
-                host_name_ip = {
-                    deploy_host_cfg['host_name']: deploy_host_cfg['mgtip']}
-                controller_ip_list.append(mgt_ip)
-                mgt_macname = deploy_host_cfg['mgt_macname']
-                pub_macname = deploy_host_cfg['pub_macname']
-                sto_macname = deploy_host_cfg['sto_macname']
-                hbt_macname = deploy_host_cfg.get('hbt_macname')
-                mgt_macname_list.append(mgt_macname)
-                pub_macname_list.append(pub_macname)
-                sto_macname_list.append(sto_macname)
-                hbt_macname_list.append(hbt_macname)
-                if host_name_ip not in host_name_ip_list:
-                    host_name_ip_list.append(host_name_ip)
-            if len(set(mgt_macname_list)) != 1 or \
-                    len(set(pub_macname_list)) != 1 or \
-                    len(set(sto_macname_list)) != 1 or \
-                    len(set(hbt_macname_list)) > 1:
-                msg = (_("hosts interface name of public and \
-                         management and storage and heartbeat \
-                         must be same!"))
-                LOG.error(msg)
-                raise HTTPForbidden(msg)
-            kolla_config.update({'Version': openstack_version})
-            kolla_config.update({'Namespace': docker_namespace})
-            kolla_config.update({'VIP': kolla_vip})
-            kolla_config.update({'IntIfMac': mgt_macname})
-            kolla_config.update({'PubIfMac': pub_macname})
-            kolla_config.update({'StoIfMac': sto_macname})
-            kolla_config.update({'HbtIfMac': hbt_macname})
-            kolla_config.update({'LocalIP': docker_registry})
-            kolla_config.update({'Controller_ips': controller_ip_list})
-            kolla_config.update({'Network_ips': controller_ip_list})
-            kolla_config.update({'Odl_ips': controller_ip_list[0]})
-            #kolla_config.update({'Storage_ips': controller_ip_list})
-            kolla_config.update({'vlans_id': vlans_id})
-        if role['name'] == 'COMPUTER':
-            role_hosts = kolla_cmn.get_hosts_of_role(req, role['id'])
-            for role_host in role_hosts:
-                host_detail = kolla_cmn.get_host_detail(
-                    req, role_host['host_id'])
-                deploy_host_cfg = kolla_cmn.get_computer_node_cfg(
-                    req, host_detail, cluster_networks)
-                mgt_ip = deploy_host_cfg['mgtip']
-                host_name_ip = {
-                    deploy_host_cfg['host_name']: deploy_host_cfg['mgtip']}
-                computer_ip_list.append(mgt_ip)
-                if host_name_ip not in host_name_ip_list:
-                    host_name_ip_list.append(host_name_ip)
-                dat_macname = deploy_host_cfg['dat_macname']
-                dat_macname_list.append(dat_macname)
-                ext_macname = deploy_host_cfg['ext_macname']
-                ext_macname_list.append(ext_macname)
-            if len(set(dat_macname_list)) != 1 or \
-                    len(set(ext_macname_list)) != 1:
-                msg = (_("computer hosts interface name of dataplane \
-                         and external must be same!"))
-                LOG.error(msg)
-                raise HTTPForbidden(msg)
-            kolla_config.update({'Computer_ips': computer_ip_list})
-            kolla_config.update({'TulIfMac': dat_macname})
-            kolla_config.update({'ExtIfMac': ext_macname})
-    mgt_ip_list = set(controller_ip_list + computer_ip_list)
-    for ctl_host_ip in controller_ip_list:
-        if len(storage_ip_list) > 2:
-            break
-        storage_ip_list.append(ctl_host_ip)
-    for com_host_ip in computer_ip_list:
-        if com_host_ip not in controller_ip_list:
-            if len(storage_ip_list) > 2:
-                break
-            storage_ip_list.append(com_host_ip)
-    kolla_config.update({'Storage_ips': storage_ip_list})
-    return (kolla_config, mgt_ip_list, host_name_ip_list)
-
-
-def generate_kolla_config_file(req, cluster_id, kolla_config, multicast_flag):
-    LOG.info(_("generate kolla config..."))
-    if kolla_config:
-        config.update_globals_yml(kolla_config, multicast_flag)
-        config.update_password_yml()
-        config.add_role_to_inventory(kolla_file, kolla_config)
-        config.enable_cinder_backend(req,
-                                     cluster_id,
-                                     kolla_config)
-        config.enable_neutron_backend(req, cluster_id, kolla_config)
 
 
 def config_nodes_hosts(host_name_ip_list, host_ip):
@@ -566,7 +409,7 @@ class KOLLAInstallTask(Thread):
                                                      self.cluster_id)
 
         (kolla_config, self.mgt_ip_list, host_name_ip_list) = \
-            get_cluster_kolla_config(self.req, self.cluster_id)
+            kolla_cmn.get_cluster_kolla_config(self.req, self.cluster_id)
         if not self.mgt_ip_list:
             msg = _("there is no host in cluster %s") % self.cluster_id
             LOG.error(msg)
@@ -674,13 +517,11 @@ class KOLLAInstallTask(Thread):
                                            self.message, 15)
 
             # always call generate_kolla_config_file after version_load()
-            # TODO: re-config docker registry server based upon return value of
-            # kolla_cmn.version_load_mcast
             LOG.info(_("begin to generate kolla config file ..."))
             (kolla_config, self.mgt_ip_list, host_name_ip_list) = \
-                get_cluster_kolla_config(self.req, self.cluster_id)
-            generate_kolla_config_file(self.req, self.cluster_id,
-                                       kolla_config, res)
+                kolla_cmn.get_cluster_kolla_config(self.req, self.cluster_id)
+            kolla_cmn.generate_kolla_config_file(self.req, self.cluster_id,
+                                                 kolla_config, res)
             LOG.info(_("generate kolla config file in /etc/kolla/ dir..."))
 
             if thread_flag.get('flag', None) and thread_flag['flag'] == False:
