@@ -95,10 +95,10 @@ def add_role_to_inventory(file_path, config_data):
     LOG.info(_("add role to inventory file has finished..."))
 
 
-def update_kolla_globals_yml(date):
+def update_kolla_globals_yml(data):
     with open('/etc/kolla/globals.yml', 'r') as f:
         kolla_config = yaml.load(f.read())
-        kolla_config.update(date)
+        kolla_config.update(data)
         f.close()
     with open('/etc/kolla/globals.yml', 'w') as f:
         f.write(yaml.dump(kolla_config, default_flow_style=False))
@@ -322,3 +322,16 @@ def update_password_yml():
         f.write(yaml.dump(passwords, default_flow_style=False))
         f.close()
     LOG.info(_("generate kolla's passwd.yml file ok..."))
+
+
+def update_docker_registry_url(config_data, multicast_flag):
+    mcast = {'docker_registry': '127.0.0.1:4000'}
+    local_ip = config_data['LocalIP'].encode()
+    ucast = {'docker_registry': local_ip}
+
+    LOG.info(_("begin updating docker registry url"))
+    if multicast_flag == 0:
+        update_kolla_globals_yml(mcast)
+    else:
+        update_kolla_globals_yml(ucast)
+    LOG.info(_("updated docker registry url"))

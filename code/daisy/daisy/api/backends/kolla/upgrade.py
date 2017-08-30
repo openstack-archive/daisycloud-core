@@ -114,19 +114,15 @@ class KOLLAUpgradeTask(Thread):
 
         res = kolla_cmn.version_load_mcast(kolla_version_pkg_file,
                                            hosts)
-
-        # always call generate_kolla_config_file after version_load()
-        LOG.info(_("begin to re-generate kolla config file ..."))
         (kolla_config, self.mgt_ip_list, host_name_ip_list) = \
             kolla_cmn.get_cluster_kolla_config(self.req, self.cluster_id)
         # generate_kolla_config_file() can not be used here, it not only
         # update global.yml, but also update passwd.yml and redo some
         # ssh commands(cause failure) on target nodes. So do not be
         # misleaded by that bad function name, here we only want to
-        # update global.yml.
+        # update global.yml's docker_registry value.
         if kolla_config:
-            kconfig.update_globals_yml(kolla_config, res)
-        LOG.info(_("re-generate kolla config file in /etc/kolla/ dir..."))
+            kconfig.update_docker_registry_url(kolla_config, res)
 
         hosts_ip_set = set()
         for host in hosts:
