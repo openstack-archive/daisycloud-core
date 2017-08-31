@@ -335,3 +335,12 @@ def update_docker_registry_url(config_data, multicast_flag):
     else:
         update_kolla_globals_yml(ucast)
     LOG.info(_("updated docker registry url"))
+
+
+def update_openstack_release(config_data):
+    Version = config_data['Version'].encode()
+    new_version = {'openstack_release': Version}
+
+    LOG.info(_("begin updating openstack_release"))
+    update_kolla_globals_yml(new_version)
+    LOG.info(_("updated openstack_release"))
