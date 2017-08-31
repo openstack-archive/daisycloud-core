@@ -120,9 +120,10 @@ class KOLLAUpgradeTask(Thread):
         # update global.yml, but also update passwd.yml and redo some
         # ssh commands(cause failure) on target nodes. So do not be
         # misleaded by that bad function name, here we only want to
-        # update global.yml's docker_registry value.
+        # update global.yml's docker_registry and openstack_release value.
         if kolla_config:
             kconfig.update_docker_registry_url(kolla_config, res)
+            kconfig.update_openstack_release(kolla_config)
 
         hosts_ip_set = set()
         for host in hosts:
