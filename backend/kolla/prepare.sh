@@ -8,6 +8,12 @@
 ##############################################################################
 set -e
 
+config_path=/etc/systemd/system/docker.service.d/kolla.conf
+if [ -f "$config_path" ]; then
+    # Prevent prepare.sh to run again
+    exit 0
+fi
+
 echo "nameserver 8.8.8.8" > /etc/resolv.conf
 daisy_management_ip=$1
 yum -y install epel-release
@@ -18,7 +24,6 @@ yum install -y https://mirrors.nju.edu.cn/docker/yum/repo/centos7/Packages/docke
 [ "$?" -ne 0 ] && { exit 1; }
 
 mkdir -p /etc/systemd/system/docker.service.d
-config_path=/etc/systemd/system/docker.service.d/kolla.conf
 touch /etc/sysconfig/docker
 echo -e "other_args=\"--insecure-registry $daisy_management_ip:4000 --insecure-registry 127.0.0.1:4000\"" > /etc/sysconfig/docker
 echo -e "[Service]\nMountFlags=shared\nEnvironmentFile=/etc/sysconfig/docker\nExecStart=\nExecStart=/usr/bin/docker daemon \$other_args" > $config_path
