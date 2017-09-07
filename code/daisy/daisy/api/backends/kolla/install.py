@@ -24,6 +24,7 @@ import threading
 from daisy import i18n
 import daisy.api.v1
 from daisy.common import exception
+from daisy.common import utils
 import daisy.api.backends.common as daisy_cmn
 import daisy.api.backends.kolla.common as kolla_cmn
 import daisy.api.common as api_cmn
@@ -325,11 +326,11 @@ def _thread_bin(req, cluster_id, host, root_passwd, fp, host_name_ip_list,
             shell=True, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
         message = "exec prepare.sh on %s failed!", host_ip
-        LOG.error(message + e)
+        LOG.error(message)
         fp.write(e.output.strip())
         raise exception.InstallException(message)
     else:
-        LOG.info(_("prepare for %s successfully!" % host_ip))
+        LOG.info("prepare for %s successfully!", host_ip)
         fp.write(exc_result)
         message = "Preparing for installation successful!"
         update_host_progress_to_db(req, role_id_list, host,
@@ -341,7 +342,7 @@ def thread_bin(req, cluster_id, host, root_passwd, host_name_ip_list,
                host_prepare_file, docker_registry_ip, role_id_list):
 
     host_prepare_log = "/var/log/daisy/kolla_prepare_%s_%s.log" %\
-                       (self.cluster_id, host['mgtip'])
+                       (cluster_id, host['mgtip'])
     with open(host_prepare_log, "w+") as fp:
         try:
             _thread_bin(req, cluster_id, host, root_passwd,
@@ -349,12 +350,13 @@ def thread_bin(req, cluster_id, host, root_passwd, host_name_ip_list,
                         host_prepare_file, docker_registry_ip,
                         role_id_list)
         except Exception as e:
+            thread_flag['flag'] = False
             message = "Prepare for installation failed!"
-            LOG.error(message, e)
+            LOG.error(message)
             update_host_progress_to_db(req, role_id_list, host,
                                        kolla_state['INSTALL_FAILED'],
                                        message)
-            thread_flag['flag'] = False
+            fp.write(utils.exception_to_str(e))
 
 
 class KOLLAInstallTask(Thread):
@@ -490,7 +492,8 @@ class KOLLAInstallTask(Thread):
             LOG.error("join kolla prepare installation "
                       "thread %s failed!", t)
 
-        if thread_flag.get('flag', None) and thread_flag['flag'] == False:
+        if thread_flag.get('flag', None) is not None and \
+                thread_flag['flag'] == False:
             self.message = "prepare deploy nodes failed!"
             LOG.error(self.message)
             raise exception.InstallException(self.message)

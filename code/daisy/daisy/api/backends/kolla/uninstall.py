@@ -97,43 +97,30 @@ def _calc_uninstall_progress(log_file):
 
 
 def remove_registry(req, hosts_id_list, host_ip, log_file):
-    LOG.info(_("begin to remove docker images on host %s" % host_ip))
-    try:
-        check_docker_container_cmd = \
-            "ssh -o StrictHostKeyChecking=no %s \
-            docker ps |grep registry:2 |awk -F ' ' '{print $2}'" % (host_ip)
-        docker_container_result = \
-            subprocess.check_output(check_docker_container_cmd,
-                                    shell=True,
-                                    stderr=subprocess.STDOUT)
+    LOG.info(_("begin to remove docker registry on host %s" % host_ip))
+    check_docker_container_cmd = \
+        "ssh -o StrictHostKeyChecking=no %s \
+        docker ps |grep registry:2 |awk -F ' ' '{print $2}'" % (host_ip)
+    docker_container_result = \
+        subprocess.check_output(check_docker_container_cmd,
+                                shell=True,
+                                stderr=subprocess.STDOUT)
 
-        stop_docker_container_cmd = \
-            'ssh -o StrictHostKeyChecking=no %s \
-            "docker stop registry"' % (host_ip)
-        remove_docker_container_cmd = \
-            'ssh -o StrictHostKeyChecking=no %s \
-            "docker rm registry"' % (host_ip)
-        remove_docker_images_cmd = \
-            'ssh -o StrictHostKeyChecking=no %s \
-            "docker rmi -f registry:2"' % (host_ip)
+    stop_docker_container_cmd = \
+        'ssh -o StrictHostKeyChecking=no %s \
+        "docker stop registry"' % (host_ip)
+    remove_docker_container_cmd = \
+        'ssh -o StrictHostKeyChecking=no %s \
+        "docker rm registry"' % (host_ip)
+    remove_docker_images_cmd = \
+        'ssh -o StrictHostKeyChecking=no %s \
+        "docker rmi -f registry:2"' % (host_ip)
 
-        if "registry:2" in docker_container_result:
-            daisy_cmn.subprocess_call(stop_docker_container_cmd, log_file)
-            daisy_cmn.subprocess_call(remove_docker_container_cmd, log_file)
-        daisy_cmn.subprocess_call(remove_docker_images_cmd, log_file)
+    if "registry:2" in docker_container_result:
+        daisy_cmn.subprocess_call(stop_docker_container_cmd, log_file)
+        daisy_cmn.subprocess_call(remove_docker_container_cmd, log_file)
 
-    except Exception as e:
-        message = "remove docker images failed on host %s!" % host_ip
-        LOG.error(message)
-        thread_flag['flag'] = False
-        update_all_host_progress_to_db(req, hosts_id_list,
-                                       {'progress': 90,
-                                        'status': kolla_state[
-                                            'UNINSTALL_FAILED'],
-                                        'messages': message})
-        raise exception.UninstallException(message)
-    else:
-        LOG.info(_("remove docker images on host %s successfully!" % host_ip))
+    LOG.info(_("remove docker images on host %s successfully!" % host_ip))
 
 
 class KOLLAUninstallTask(Thread):
