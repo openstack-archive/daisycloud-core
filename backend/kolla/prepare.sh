@@ -31,17 +31,22 @@ systemctl daemon-reload
 systemctl restart docker
 systemctl enable docker
 yum install -y python-docker-py
+
 yum -y install ntp
 systemctl enable ntpd.service
-systemctl stop libvirtd.service
-systemctl disable libvirtd.service
 systemctl start ntpd.service
+
+systemctl stop libvirtd.service || true
+systemctl disable libvirtd.service || true
+
 systemctl disable NetworkManager
 systemctl stop NetworkManager
 service network start
 chkconfig network on
+
 systemctl disable firewalld
 systemctl stop firewalld
+
 yum -y install ansible
 
 # multicast related
