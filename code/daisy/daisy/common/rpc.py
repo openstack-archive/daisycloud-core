@@ -60,7 +60,7 @@ class RPCJSONSerializer(wsgi.JSONResponseSerializer):
             return {"_type": _type, "_value": _value}
 
         if isinstance(obj, datetime.datetime):
-            return to_primitive("datetime", timeutils.strtime(obj))
+            return to_primitive("datetime", obj.isoformat())
 
         return super(RPCJSONSerializer, self)._sanitizer(obj)
 
