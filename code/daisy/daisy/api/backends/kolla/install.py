@@ -289,6 +289,8 @@ def _thread_bin(req, cluster_id, host, root_passwd, fp, host_name_ip_list,
           (host_ip, host_prepare_file, host_prepare_file)
     daisy_cmn.subprocess_call(cmd, fp)
 
+    LOG.info("Remote directory created on %s", host_ip)
+
     # scp daisy4nfv-jasmine.rpm to the same dir of prepare.sh at target host
     cmd = "scp -o ConnectTimeout=10 \
            /var/lib/daisy/tools/daisy4nfv-jasmine*.rpm \
@@ -301,6 +303,8 @@ def _thread_bin(req, cluster_id, host, root_passwd, fp, host_name_ip_list,
            root@%s:%s" % (host_ip, host_prepare_file)
     daisy_cmn.subprocess_call(cmd, fp)
 
+    LOG.info("Files copied successfully to %s", host_ip)
+
     cmd = "scp -o ConnectTimeout=10 \
            /var/lib/daisy/kolla/prepare.sh \
            root@%s:%s" % (host_ip, host_prepare_file)
@@ -311,6 +315,8 @@ def _thread_bin(req, cluster_id, host, root_passwd, fp, host_name_ip_list,
           (host_ip, host_prepare_file)
     daisy_cmn.subprocess_call(cmd, fp)
 
+    LOG.info("Ready to execute prepare.sh on %s", host_ip)
+
     try:
         exc_result = subprocess.check_output(
             'ssh -o StrictHostKeyChecking='
@@ -318,7 +324,7 @@ def _thread_bin(req, cluster_id, host, root_passwd, fp, host_name_ip_list,
             (host_ip, host_prepare_file, docker_registry_ip),
             shell=True, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        message = "exec prepare.sh  in %s failed!", host_ip
+        message = "exec prepare.sh on %s failed!", host_ip
         LOG.error(message + e)
         fp.write(e.output.strip())
         raise exception.InstallException(message)
@@ -474,6 +480,8 @@ class KOLLAInstallTask(Thread):
                 t.setDaemon(True)
                 t.start()
                 threads.append(t)
+                LOG.info("prepare.sh threads for %s started", host['mgtip'])
+
             try:
                 LOG.info(_("prepare kolla installation threads have started, "
                            "please waiting...."))
