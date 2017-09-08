@@ -19,7 +19,6 @@ import itertools
 import daisy.api.middleware.context
 import daisy.api.versions
 import daisy.common.config
-import daisy.common.rpc
 import daisy.common.wsgi
 import daisy.notifier
 import daisy.registry
@@ -38,7 +37,6 @@ _api_opts = [
         daisy.api.middleware.context.context_opts,
         daisy.api.versions.versions_opts,
         daisy.common.config.common_opts,
-        daisy.common.rpc.rpc_opts,
         daisy.common.wsgi.bind_opts,
         daisy.common.wsgi.eventlet_opts,
         daisy.common.wsgi.socket_opts,
