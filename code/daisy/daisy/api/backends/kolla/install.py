@@ -341,7 +341,7 @@ def _thread_bin(req, cluster_id, host, root_passwd, fp, host_name_ip_list,
 def thread_bin(req, cluster_id, host, root_passwd, host_name_ip_list,
                host_prepare_file, docker_registry_ip, role_id_list):
 
-    host_prepare_log = "/var/log/daisy/kolla_%s_%s_prepare.log" %\
+    host_prepare_log = "/var/log/daisy/kolla_prepare_%s_%s.log" %\
                        (cluster_id, host['mgtip'])
     with open(host_prepare_log, "w+") as fp:
         try:
