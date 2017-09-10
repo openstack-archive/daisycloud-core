@@ -1339,40 +1339,18 @@ class Controller(controller.BaseController):
 
         return orig_mac_list
 
-    @utils.mutating
-    def update_host(self, req, id, host_meta):
-        """
-        Updates an existing host with the registry.
-
-        :param request: The WSGI/Webob Request object
-        :param id: The opaque image identifier
-
-        :retval Returns the updated image information as a mapping
-        """
-        self._enforce(req, 'update_host')
+    def _get_orig_host_meta(self, req, id):
         orig_host_meta = self.get_host_meta_or_404(req, id)
-        # Do not allow any updates on a deleted image.
-        # Fix for LP Bug #1060930
+        # Do not allow any updates on a deleted host.
         if orig_host_meta['deleted']:
             msg = _("Forbidden to update deleted host.")
             LOG.error(msg)
             raise HTTPForbidden(explanation=msg,
                                 request=req,
                                 content_type="text/plain")
-        self._verify_host_name(req, id, orig_host_meta, host_meta)
+        return orig_host_meta
 
-        orig_mac_list = \
-            self._check_interface_on_update_host(req, host_meta,
-                                                 orig_host_meta)
-        new_mac_list = []
-        if "interfaces" in host_meta:
-            interfaces = host_meta['interfaces']
-            new_mac_list = [interface['mac'] for interface in
-                            interfaces if interface.get('mac')]
-            if orig_mac_list:
-                orig_min_mac = min(orig_mac_list)
-
-        self._verify_host_cluster(req, id, orig_host_meta, host_meta)
+    def _check_supported_resource_type(self, host_meta):
         if ('resource_type' in host_meta and
                 host_meta['resource_type'] not in self.support_resource_type):
             msg = "resource type is not supported, please use it in %s" % \
@@ -1380,6 +1358,7 @@ class Controller(controller.BaseController):
             LOG.error(msg)
             raise HTTPNotFound(msg)
 
+    def _check_and_update_root_disk(self, req, id, host_meta, orig_host_meta):
         if host_meta.get(
                 'os_status',
                 None) != 'init' and orig_host_meta.get(
@@ -1414,6 +1393,8 @@ class Controller(controller.BaseController):
                                      request=req,
                                      content_type="text/plain")
 
+    def _check_and_update_root_lv_size(self, req, id, host_meta,
+                                       orig_host_meta):
         if host_meta.get(
                 'os_status',
                 None) != 'init' and orig_host_meta.get(
@@ -1508,6 +1489,8 @@ class Controller(controller.BaseController):
                                     request=req,
                                     content_type="text/plain")
 
+    def _check_and_update_swap_lv_size(self, req, id, host_meta,
+                                       orig_host_meta):
         if host_meta.get(
                 'os_status',
                 None) != 'init' and orig_host_meta.get(
@@ -1631,6 +1614,8 @@ class Controller(controller.BaseController):
                                     request=req,
                                     content_type="text/plain")
 
+    def _check_and_update_root_passwd(self, req, id, host_meta,
+                                      orig_host_meta):
         if host_meta.get(
                 'os_status',
                 None) != 'init' and orig_host_meta.get(
@@ -1654,6 +1639,7 @@ class Controller(controller.BaseController):
                     None):
                 host_meta['root_pwd'] = 'ossdbg1'
 
+    def _check_and_update_isolcpus(self, req, id, host_meta, orig_host_meta):
         if host_meta.get(
                 'os_status',
                 None) != 'init' and orig_host_meta.get(
@@ -1698,38 +1684,7 @@ class Controller(controller.BaseController):
                                             request=req,
                                             content_type="text/plain")
 
-        params = self._get_query_params(req)
-        role_list = registry.get_roles_detail(req.context, **params)
-        if 'role' in host_meta:
-            role_id_list = []
-            if 'cluster' in host_meta:
-                host_roles = list()
-                for role_name in role_list:
-                    if role_name['cluster_id'] == host_meta['cluster']:
-                        host_roles = list(host_meta['role'])
-                        for host_role in host_roles:
-                            if role_name['name'] == host_role:
-                                role_id_list.append(role_name['id'])
-                                continue
-                if len(role_id_list) != len(
-                        host_roles) and host_meta['role'] != u"[u'']":
-                    msg = "The role of params %s is not exist, " \
-                          "please use the right name" % host_roles
-                    LOG.error(msg)
-                    raise HTTPNotFound(msg)
-                host_meta['role'] = role_id_list
-            else:
-                msg = "cluster params is none"
-                LOG.error(msg)
-                raise HTTPNotFound(msg)
-
-        if 'os_status' in host_meta:
-            if host_meta['os_status'] not in \
-                    ['init', 'installing', 'active', 'failed', 'none']:
-                msg = "os_status is not valid."
-                LOG.error(msg)
-                raise HTTPNotFound(msg)
-
+    def _check_and_update_hugepage(self, req, id, host_meta, orig_host_meta):
         if host_meta.get('os_status', None) != 'init' and \
                 orig_host_meta.get('os_status', None) == 'active':
             if host_meta.get(
@@ -1819,8 +1774,41 @@ class Controller(controller.BaseController):
                         memory.strip().split(' ')[0]),
                         host_meta['hugepagesize'])
 
-        self._check_dvs_huge(host_meta, orig_host_meta)
+    def _check_and_update_role(self, req, id, host_meta, orig_host_meta):
+        params = self._get_query_params(req)
+        role_list = registry.get_roles_detail(req.context, **params)
+        if 'role' in host_meta:
+            role_id_list = []
+            if 'cluster' in host_meta:
+                host_roles = list()
+                for role_name in role_list:
+                    if role_name['cluster_id'] == host_meta['cluster']:
+                        host_roles = list(host_meta['role'])
+                        for host_role in host_roles:
+                            if role_name['name'] == host_role:
+                                role_id_list.append(role_name['id'])
+                                continue
+                if len(role_id_list) != len(
+                        host_roles) and host_meta['role'] != u"[u'']":
+                    msg = "The role of params %s is not exist, " \
+                          "please use the right name" % host_roles
+                    LOG.error(msg)
+                    raise HTTPNotFound(msg)
+                host_meta['role'] = role_id_list
+            else:
+                msg = "cluster params is none"
+                LOG.error(msg)
+                raise HTTPNotFound(msg)
 
+    def _check_supported_os_status(self, host_meta):
+        if 'os_status' in host_meta:
+            if host_meta['os_status'] not in \
+                    ['init', 'installing', 'active', 'failed', 'none']:
+                msg = "os_status is not valid."
+                LOG.error(msg)
+                raise HTTPNotFound(msg)
+
+    def _check_and_update_os_version(self, req, id, host_meta, orig_host_meta):
         if host_meta.get('os_status', None) != 'init' \
                 and orig_host_meta.get('os_status', None) == 'active':
             if host_meta.get('os_version', None) and utils.is_uuid_like(
@@ -1855,15 +1843,57 @@ class Controller(controller.BaseController):
                                                              os_version_type)
                 self._check_group_list(os_version_type, group_list)
 
+    def _check_and_update_config_set(self, req, id, host_meta, orig_host_meta):
         if (host_meta.get('config_set_id') and
                 host_meta['config_set_id'] !=
                 orig_host_meta.get('config_set_id')):
             self.get_config_set_meta_or_404(req,
                                             host_meta['config_set_id'])
 
+    @utils.mutating
+    def update_host(self, req, id, host_meta):
+        """
+        Updates an existing host with the registry.
+
+        :param request: The WSGI/Webob Request object
+        :param id: The opaque image identifier
+
+        :retval Returns the updated image information as a mapping
+        """
+        self._enforce(req, 'update_host')
+        orig_host_meta = self._get_orig_host_meta(req, id)
+        self._verify_host_name(req, id, orig_host_meta, host_meta)
+
+        orig_mac_list = \
+            self._check_interface_on_update_host(req, host_meta,
+                                                 orig_host_meta)
+
+        # Parameters sainty checks
+        self._check_supported_resource_type(host_meta)
+        self._check_supported_os_status(host_meta)
+
+        # Host baisc status checks
+        self._verify_host_cluster(req, id, orig_host_meta, host_meta)
+
+        # Do real checks and updates based upon parameters
+        self._check_and_update_root_disk(req, id, host_meta, orig_host_meta)
+        self._check_and_update_root_lv_size(req, id, host_meta, orig_host_meta)
+        self._check_and_update_swap_lv_size(req, id, host_meta, orig_host_meta)
+        self._check_and_update_root_passwd(req, id, host_meta, orig_host_meta)
+        self._check_and_update_isolcpus(req, id, host_meta, orig_host_meta)
+        self._check_and_update_hugepage(req, id, host_meta, orig_host_meta)
+        self._check_and_update_role(req, id, host_meta, orig_host_meta)
+        self._check_dvs_huge(host_meta, orig_host_meta)
+        self._check_and_update_os_version(req, id, host_meta, orig_host_meta)
+        self._check_and_update_config_set(req, id, host_meta, orig_host_meta)
+
+        # Check if we are ready for discovering the host
+
         if host_meta.get('os_status') == 'init' and orig_host_meta.get(
                 'os_status') == 'active':
             self._ready_to_discover_host(req, host_meta, orig_host_meta)
+
+            # Call extension when we ready to discover a host
             path = os.path.join(os.path.abspath(os.path.dirname(
                 os.path.realpath(__file__))), 'ext')
             for root, dirs, names in os.walk(path):
@@ -1874,19 +1904,23 @@ class Controller(controller.BaseController):
                     extension = importutils.import_module(
                         'daisy.api.v1.ext.%s' % ext_func)
                     extension.update_host_state(orig_host_meta)
+
         try:
+            # Do real data update into DB
+            host_meta = registry.update_host_metadata(req.context, id,
+                                                      host_meta)
+
+            # Check if the host was discovered successfully
+
             if host_meta.get('cluster', None):
-                host_detail = self.get_host_meta_or_404(req, id)
-                pxe_macs = [interface['mac'] for interface in host_detail[
+                pxe_macs = [interface['mac'] for interface in orig_host_meta[
                     'interfaces'] if interface['is_deployment']]
                 if not pxe_macs:
                     daisy_cmn.add_ssh_host_to_cluster_and_assigned_network(
                         req, host_meta['cluster'], id)
 
-            host_meta = registry.update_host_metadata(req.context, id,
-                                                      host_meta)
-
             if orig_mac_list:
+                orig_min_mac = min(orig_mac_list)
                 discover_host = self._get_discover_host_by_mac(req,
                                                                orig_min_mac)
                 if discover_host:
@@ -1896,6 +1930,7 @@ class Controller(controller.BaseController):
                     }
                     self.update_pxe_host(req, discover_host['id'],
                                          discover_host_params)
+
         except exception.Invalid as e:
             msg = (_("Failed to update host metadata. Got error: %s") %
                    utils.exception_to_str(e))
