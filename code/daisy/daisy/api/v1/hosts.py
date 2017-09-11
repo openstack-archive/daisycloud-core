@@ -1358,7 +1358,7 @@ class Controller(controller.BaseController):
             LOG.error(msg)
             raise HTTPNotFound(msg)
 
-    def _check_and_update_root_disk(self, req, id, host_meta, orig_host_meta):
+    def _check_and_update_disk(self, req, id, host_meta, orig_host_meta):
         if host_meta.get(
                 'os_status',
                 None) != 'init' and orig_host_meta.get(
@@ -1487,8 +1487,6 @@ class Controller(controller.BaseController):
                                     request=req,
                                     content_type="text/plain")
 
-    def _check_and_update_swap_lv_size(self, req, id, host_meta,
-                                       orig_host_meta):
         if host_meta.get(
                 'os_status',
                 None) != 'init' and orig_host_meta.get(
@@ -1874,8 +1872,7 @@ class Controller(controller.BaseController):
         self._verify_host_cluster(req, id, orig_host_meta, host_meta)
 
         # Do real checks and updates based upon parameters
-        self._check_and_update_root_disk(req, id, host_meta, orig_host_meta)
-        self._check_and_update_swap_lv_size(req, id, host_meta, orig_host_meta)
+        self._check_and_update_disk(req, id, host_meta, orig_host_meta)
         self._check_and_update_root_passwd(req, id, host_meta, orig_host_meta)
         self._check_and_update_isolcpus(req, id, host_meta, orig_host_meta)
         self._check_and_update_hugepage(req, id, host_meta, orig_host_meta)
