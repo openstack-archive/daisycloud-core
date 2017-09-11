@@ -1885,6 +1885,7 @@ class Controller(controller.BaseController):
 
         if host_meta.get('os_status') == 'init' and orig_host_meta.get(
                 'os_status') == 'active':
+            LOG.info("Ready fo discover host for %s" % host_meta['name'])
             self._ready_to_discover_host(req, host_meta, orig_host_meta)
 
             # Call extension when we ready to discover a host
