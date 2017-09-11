@@ -92,12 +92,7 @@ function kolla_install
   check_and_install_rpm python-six.noarch
   check_and_install_rpm python-beautifulsoup4.noarch
   check_and_install_rpm python2-setuptools.noarch
-  check_installed "python-jinja2-2.8-2.fc23.noarch"
-  if [[ "$has_installed" == "yes" ]];then
-      echo "jinja2 has been already installed"
-  else
-      yum install -y https://kojipkgs.fedoraproject.org//packages/python-jinja2/2.8/2.fc23/noarch/python-jinja2-2.8-2.fc23.noarch.rpm
-  fi
+  check_and_install_rpm python-jinja2
 
   imagebranch="ocata"
   imageversion="170811155446"
