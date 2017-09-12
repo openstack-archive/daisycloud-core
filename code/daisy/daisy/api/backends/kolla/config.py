@@ -161,7 +161,8 @@ def config_lvm_for_cinder(config_data):
 
 def enable_ceilometer():
     ceilometer_config = {"enable_ceilometer": "yes",
-                         "enable_mongodb": "yes"}
+                         "enable_mongodb": "yes",
+                         "enable_aodh": "yes"}
     update_kolla_globals_yml(ceilometer_config)
 
 
