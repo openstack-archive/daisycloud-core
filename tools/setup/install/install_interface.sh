@@ -63,6 +63,12 @@ function all_install
     write_install_log "install python-openstackclient rpm"
     install_rpm_by_yum "python-openstackclient"
 
+    write_install_log "install python-ceilometerclient rpm"
+    install_rpm_by_yum "python-ceilometerclient"
+
+    write_install_log "install python-aodhclient rpm"
+    install_rpm_by_yum "python-aodhclient"
+
     write_install_log "install daisy-discoverd depend rpm"
     install_rpm_by_yum "python-flask"
 
