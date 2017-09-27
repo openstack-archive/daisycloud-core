@@ -1,0 +1,21 @@
+Currently daisycloud-core use 3rd party fashion of check and gate job.
+To setup zuul and jenkins job:
+
+1. git clone https://github.com/huzhijiang/ansible-zuul,
+
+2. Copy CMD to its parent directory and run CMD, this will setup zuul
+on localhost.
+
+3. Setup jenkins version 1.625.x on localhost. and make it run as root.
+
+4. Add the following plugins to jenkins:
+    Gearman Plugin
+    Git plugin
+    Parameterized Trigger plugin
+    Post-Build Script Plug-in
+    SCP publisher plugin
+
+5. Push all jobs in jjb directory/
+
+6. Done.
+
