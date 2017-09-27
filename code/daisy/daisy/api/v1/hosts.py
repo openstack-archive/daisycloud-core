@@ -33,7 +33,7 @@ from daisy.api.v1 import filters
 from daisy.common import exception
 from daisy.common import utils
 from daisy.common import wsgi
-from daisy.common import vcpu_pin
+from daisy.common import vcpu_pin_dpdk
 from daisy import i18n
 from daisy import notifier
 import daisy.registry.client.v1.api as registry
