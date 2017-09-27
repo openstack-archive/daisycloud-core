@@ -33,7 +33,7 @@ from daisy.api.v1 import filters
 from daisy.common import exception
 from daisy.common import utils
 from daisy.common import wsgi
-from daisy.common import vcpu_pin
+from daisy.common import vcpu_pin_dpdk
 from daisy import i18n
 from daisy import notifier
 import daisy.registry.client.v1.api as registry
@@ -704,7 +704,7 @@ class Controller(controller.BaseController):
         os_handle.check_discover_state(req,
                                        host_meta,
                                        is_detail=True)
-        host_vcpu_pin = vcpu_pin.allocate_cpus(host_meta)
+        host_vcpu_pin = vcpu_pin_dpdk.allocate_cpus_for_dpdk(host_meta)
         host_meta.update(host_vcpu_pin)
         if 'role' in host_meta and 'CONTROLLER_HA' in host_meta['role']:
             host_cluster_name = host_meta['cluster']
