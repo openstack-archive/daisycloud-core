@@ -575,12 +575,12 @@ class Controller(controller.BaseController):
             for network in networks:
                 if network['cidr'] and network['vlan_id']:
                     if cidr == network['cidr'] \
-                            and vlan_id != network['vlan_id'] \
+                            and vlan_id != eval(network['vlan_id']) \
                             and network['id'] != network_id:
                         msg = (_('Networks with the same cidr must have '
                                  'the same vlan_id'))
                         raise HTTPBadRequest(explanation=msg)
-                    if vlan_id == network['vlan_id'] \
+                    if vlan_id == eval(network['vlan_id']) \
                             and cidr != network['cidr'] \
                             and network['id'] != network_id:
                         msg = (_('Networks with the same vlan_id must '
