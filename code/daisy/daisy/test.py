@@ -239,7 +239,7 @@ class TestCase(testtools.TestCase):
         return new_attr
 
     # Useful assertions
-    def assertDictMatch(self, d1, d2, approx_equal=False, tolerance=0.001):
+    def assertDictEqual(self, d1, d2, approx_equal=False, tolerance=0.001):
         """Assert two dicts are equivalent.
 
         This is a 'deep' match in the sense that it handles nested
@@ -282,7 +282,7 @@ class TestCase(testtools.TestCase):
                 within_tolerance = False
 
             if hasattr(d1value, 'keys') and hasattr(d2value, 'keys'):
-                self.assertDictMatch(d1value, d2value)
+                self.assertDictEqual(d1value, d2value)
             elif 'DONTCARE' in (d1value, d2value):
                 continue
             elif approx_equal and within_tolerance:
