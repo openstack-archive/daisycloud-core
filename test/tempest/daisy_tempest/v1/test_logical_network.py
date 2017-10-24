@@ -93,8 +93,8 @@ class TecsLogicalNetworkTest(base.BaseDaisyTest):
 
         self.assertRaisesMessage(
             client_exc.HTTPBadRequest,
-            "400 Bad Request\n"
-            "Logic_network flat1 is not valid range.\n    (HTTP 400)",
+            "400 Bad Request: "
+            "Logic_network flat1 is not valid range. (HTTP 400)",
             self.add_cluster, **fake_cluster)
 
     # STC-F-Daisy_Logical_Network-0002
@@ -145,8 +145,8 @@ class TecsLogicalNetworkTest(base.BaseDaisyTest):
                              'routers': fake_router})
         self.assertRaisesMessage(
             client_exc.HTTPBadRequest,
-            "400 Bad Request\nLogic network's subnets is all related "
-            "with a router, it's not allowed.\n    (HTTP 400)",
+            "400 Bad Request: Logic network's subnets is all related "
+            "with a router, it's not allowed. (HTTP 400)",
             self.add_cluster, **fake_cluster)
 
         tmp_fake_router1 = copy.deepcopy(fake_router)
@@ -191,8 +191,8 @@ class TecsLogicalNetworkTest(base.BaseDaisyTest):
                              'logic_networks': tmp_fake_logical1})
         self.assertRaisesMessage(
             client_exc.HTTPBadRequest,
-            "400 Bad Request\n"
-            "Between floating ip range can not be overlap.\n    (HTTP 400)",
+            "400 Bad Request: "
+            "Between floating ip range can not be overlap. (HTTP 400)",
             self.add_cluster, **fake_cluster)
 
         tmp_fake_logical2 = copy.deepcopy(

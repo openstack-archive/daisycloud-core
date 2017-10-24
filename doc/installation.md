@@ -1,8 +1,8 @@
 ## Build Daisy artifact
 
 ```
-# cd tools
-# ./daisy-compile-rpm.sh
+# cd tools && ./daisy-compile-rpm.sh
+(above run only once)
 # cd ../make
 # make allrpm
 ```
