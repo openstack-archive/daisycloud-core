@@ -79,7 +79,7 @@ function kolla_install
   systemctl daemon-reload
   systemctl restart docker
   systemctl enable docker
-  check_and_install_rpm python-docker-py
+  check_and_install_rpm python2-docker
   check_and_install_rpm ntp
   systemctl enable ntpd.service
   systemctl start ntpd.service
@@ -89,13 +89,13 @@ function kolla_install
   check_and_install_rpm GitPython.noarch
   check_and_install_rpm python2-pbr.noarch
   check_and_install_rpm python2-oslo-config.noarch
-  check_and_install_rpm python-six.noarch
+  check_and_install_rpm python2-six.noarch
   check_and_install_rpm python-beautifulsoup4.noarch
   check_and_install_rpm python2-setuptools.noarch
-  check_and_install_rpm python-jinja2
+  check_and_install_rpm python2-jinja2
 
-  imagebranch="ocata"
-  imageversion="170811155446"
+  imagebranch="pike"
+  imageversion="171025130324"
   imageserver="http://120.24.17.215"
   imagedir="/var/lib/daisy/versionfile/kolla"
   imagebakdir="/home/kolla_install/docker/"
