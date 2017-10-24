@@ -236,7 +236,10 @@ def enable_neutron_backend(req, cluster_id, kolla_config):
                     'opendaylight_features':
                         "odl-dlux-core,odl-dluxapps-applications,"
                         "odl-mdsal-apidocs,odl-netvirt-openstack",
-                    'opendaylight_restconf_port': "8087",
+                    'opendaylight_restconf_port': "8088",
+                    'opendaylight_restconf_port_backup': "8182",
+                    'opendaylight_haproxy_restconf_port': "8087",
+                    'opendaylight_haproxy_restconf_port_backup': "8181",
                     'opendaylight_leader_ip_address': ''}
                 opendaylight_config['opendaylight_leader_ip_address'] =\
                     kolla_config['Odl_ips'].encode()
