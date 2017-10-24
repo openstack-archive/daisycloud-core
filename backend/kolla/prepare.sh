@@ -30,7 +30,7 @@ echo -e "[Service]\nMountFlags=shared\nEnvironmentFile=/etc/sysconfig/docker\nEx
 systemctl daemon-reload
 systemctl restart docker
 systemctl enable docker
-yum install -y python-docker-py
+yum install -y python2-docker
 
 yum -y install ntp
 systemctl enable ntpd.service

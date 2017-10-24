@@ -174,10 +174,10 @@ class DaisyCinderVolumeTest(base.BaseDaisyTest):
             'af47d81c-7ae4-4148-a801-b4a5c6a52074'
 
         self.assertRaisesMessage(client_exc.HTTPNotFound,
-                                 "404 Not Found\nThe resource could not be "
-                                 "found.\n Role with identifier "
+                                 "404 Not Found: The resource could not be "
+                                 "found.: Role with identifier "
                                  "af47d81c-7ae4-4148-a801-b4a5c6a52074 not "
-                                 "found   (HTTP 404)",
+                                 "found (HTTP 404)",
                                  self.add_cinder_volume,
                                  **self.cinder_volume_add_meta)
         del self.cinder_volume_add_meta['role_id']
@@ -192,8 +192,8 @@ class DaisyCinderVolumeTest(base.BaseDaisyTest):
             'test_driver'
 
         self.assertRaisesMessage(client_exc.HTTPBadRequest,
-                                 "400 Bad Request\nvolume_driver test_driver "
-                                 "is not supported\n    (HTTP 400)",
+                                 "400 Bad Request: volume_driver test_driver "
+                                 "is not supported (HTTP 400)",
                                  self.add_cinder_volume,
                                  **self.cinder_volume_add_meta)
         del self.cinder_volume_add_meta['role_id']

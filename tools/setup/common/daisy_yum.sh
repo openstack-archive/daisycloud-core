@@ -37,7 +37,7 @@ function yum_set
     echo "creating epel yum repo, please wait for several seconds..."
     yum install -y epel-release
     echo "creating openstack yum repo, please wait for several seconds..."
-    yum install -y centos-release-openstack-ocata
+    yum install -y centos-release-openstack-pike
 }
 
 fi
