@@ -30,8 +30,8 @@ import json
 from tests import keystone_client_fixtures
 from tests import utils
 
-import keystoneclient
-from keystoneclient.openstack.common.apiclient import exceptions as ks_exc
+import keystoneauth1
+from keystoneauth1.openstack.common.apiclient import exceptions as ks_exc
 
 
 DEFAULT_IMAGE_URL = 'http://127.0.0.1:5000/'
@@ -65,7 +65,7 @@ class ShellTest(utils.TestCase):
     # auth environment to use
     auth_env = FAKE_V2_ENV.copy()
     # expected auth plugin to invoke
-    auth_plugin = 'keystoneclient.auth.identity.v2.Password'
+    auth_plugin = 'keystoneauth1.identity.v3.Password'
 
     # Patch os.environ to avoid required auth info
     def make_env(self, exclude=None):
@@ -193,8 +193,8 @@ class ShellTest(utils.TestCase):
             tenant_id='')
 
     @mock.patch('glanceclient.v1.client.Client')
-    @mock.patch('keystoneclient.session.Session')
-    @mock.patch.object(keystoneclient.discover.Discover, 'url_for',
+    @mock.patch('keystoneauth1.session.Session')
+    @mock.patch.object(keystoneauth1.discover.Discover, 'url_for',
                        side_effect=[keystone_client_fixtures.V2_URL, None])
     def test_auth_plugin_invocation_with_v1(self,
                                             v1_client,
@@ -207,9 +207,9 @@ class ShellTest(utils.TestCase):
             self._assert_auth_plugin_args(mock_auth_plugin)
 
     @mock.patch('glanceclient.v2.client.Client')
-    @mock.patch('keystoneclient.session.Session')
+    @mock.patch('keystoneauth1.session.Session')
     @mock.patch.object(openstack_shell.OpenStackImagesShell, '_cache_schemas')
-    @mock.patch.object(keystoneclient.discover.Discover, 'url_for',
+    @mock.patch.object(keystoneauth1.discover.Discover, 'url_for',
                        side_effect=[keystone_client_fixtures.V2_URL, None])
     def test_auth_plugin_invocation_with_v2(self,
                                             v2_client,
@@ -223,8 +223,8 @@ class ShellTest(utils.TestCase):
             self._assert_auth_plugin_args(mock_auth_plugin)
 
     @mock.patch('glanceclient.v1.client.Client')
-    @mock.patch('keystoneclient.session.Session')
-    @mock.patch.object(keystoneclient.discover.Discover, 'url_for',
+    @mock.patch('keystoneauth1.session.Session')
+    @mock.patch.object(keystoneauth1.discover.Discover, 'url_for',
                        side_effect=[keystone_client_fixtures.V2_URL,
                                     keystone_client_fixtures.V3_URL])
     def test_auth_plugin_invocation_with_unversioned_auth_url_with_v1(
@@ -237,9 +237,9 @@ class ShellTest(utils.TestCase):
             self._assert_auth_plugin_args(mock_auth_plugin)
 
     @mock.patch('glanceclient.v2.client.Client')
-    @mock.patch('keystoneclient.session.Session')
+    @mock.patch('keystoneauth1.session.Session')
     @mock.patch.object(openstack_shell.OpenStackImagesShell, '_cache_schemas')
-    @mock.patch.object(keystoneclient.discover.Discover, 'url_for',
+    @mock.patch.object(keystoneauth1.discover.Discover, 'url_for',
                        side_effect=[keystone_client_fixtures.V2_URL,
                                     keystone_client_fixtures.V3_URL])
     def test_auth_plugin_invocation_with_unversioned_auth_url_with_v2(
@@ -253,7 +253,7 @@ class ShellTest(utils.TestCase):
 
     @mock.patch('sys.stdin', side_effect=mock.MagicMock)
     @mock.patch('getpass.getpass', return_value='password')
-    @mock.patch('keystoneclient.session.Session.get_token',
+    @mock.patch('keystoneauth1.session.Session.get_token',
                 side_effect=ks_exc.ConnectionRefused)
     def test_password_prompted_with_v2(self, mock_session, mock_getpass,
                                        mock_stdin):
@@ -352,7 +352,7 @@ class ShellTestWithKeystoneV3Auth(ShellTest):
     # auth environment to use
     auth_env = FAKE_V3_ENV.copy()
     # expected auth plugin to invoke
-    auth_plugin = 'keystoneclient.auth.identity.v3.Password'
+    auth_plugin = 'keystoneauth1.auth.identity.v3.Password'
 
     def _assert_auth_plugin_args(self, mock_auth_plugin):
         mock_auth_plugin.assert_called_once_with(
@@ -368,8 +368,8 @@ class ShellTestWithKeystoneV3Auth(ShellTest):
             project_domain_name='')
 
     @mock.patch('glanceclient.v1.client.Client')
-    @mock.patch('keystoneclient.session.Session')
-    @mock.patch.object(keystoneclient.discover.Discover, 'url_for',
+    @mock.patch('keystoneauth1.session.Session')
+    @mock.patch.object(keystoneauth1.discover.Discover, 'url_for',
                        side_effect=[None, keystone_client_fixtures.V3_URL])
     def test_auth_plugin_invocation_with_v1(self,
                                             v1_client,
@@ -382,9 +382,9 @@ class ShellTestWithKeystoneV3Auth(ShellTest):
             self._assert_auth_plugin_args(mock_auth_plugin)
 
     @mock.patch('glanceclient.v2.client.Client')
-    @mock.patch('keystoneclient.session.Session')
+    @mock.patch('keystoneauth1.session.Session')
     @mock.patch.object(openstack_shell.OpenStackImagesShell, '_cache_schemas')
-    @mock.patch.object(keystoneclient.discover.Discover, 'url_for',
+    @mock.patch.object(keystoneauth1.discover.Discover, 'url_for',
                        side_effect=[None, keystone_client_fixtures.V3_URL])
     def test_auth_plugin_invocation_with_v2(self,
                                             v2_client,
@@ -397,8 +397,8 @@ class ShellTestWithKeystoneV3Auth(ShellTest):
             glance_shell.main(args.split())
             self._assert_auth_plugin_args(mock_auth_plugin)
 
-    @mock.patch('keystoneclient.session.Session')
-    @mock.patch('keystoneclient.discover.Discover',
+    @mock.patch('keystoneauth1.session.Session')
+    @mock.patch('keystoneauth1.discover.Discover',
                 side_effect=ks_exc.ClientException())
     def test_api_discovery_failed_with_unversioned_auth_url(self,
                                                             ks_session,
