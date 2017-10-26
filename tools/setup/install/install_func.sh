@@ -93,7 +93,7 @@ function kolla_install
 
   imagebranch="ocata"
   imageversion="170811155446"
-  imageserver="http://120.24.17.215"
+  imageserver="http://artifacts.opnfv.org/daisy/upstream"
   imagedir="/var/lib/daisy/versionfile/kolla"
   imagebakdir="/home/kolla_install/docker/"
   imagename="kolla-image-$imagebranch-$imageversion.tgz"
