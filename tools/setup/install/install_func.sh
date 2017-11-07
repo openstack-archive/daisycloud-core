@@ -96,7 +96,7 @@ function kolla_install
 
   imagebranch="pike"
   imageversion="171031195331"
-  imageserver="http://120.24.17.215"
+  imageserver="http://artifacts.opnfv.org/daisy/upstream"
   imagedir="/var/lib/daisy/versionfile/kolla"
   imagebakdir="/home/kolla_install/docker/"
   imagename="kolla-image-$imagebranch-$imageversion.tgz"
@@ -129,7 +129,7 @@ function kolla_install
   fi
   cd $sourcedir/kolla-ansible
   git remote update
-  git checkout -b stable/ocata remotes/origin/stable/ocata
+  git checkout -b stable/$imagebranch remotes/origin/stable/$imagebranch
   cp -r /home/kolla_install/kolla-ansible/etc/kolla /etc
   # TODO: (huzhj)Use latest registry server from upstream
   if [ ! -f "$imagedir/registry-server.tar" ];then
