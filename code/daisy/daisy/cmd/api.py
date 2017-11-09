@@ -37,7 +37,8 @@ from oslo_service import systemd
 
 # Monkey patch socket, time, select, threads
 eventlet.patcher.monkey_patch(all=False, socket=True, time=True,
-                              select=True, thread=True, os=True)
+                              select=True, thread=True, os=True,
+                              subprocess=True)
 
 # If ../glance/__init__.py exists, add ../ to Python search path, so that
 # it will override what happens to be installed in /usr/(local/)lib/python...
