@@ -39,7 +39,7 @@ def get_numa_by_nic(nics_info, device_numa):
         # Remove duplicated numa ids
         numa = list(set(numa))
 
-        numa_info = (-100 if len(numa) > 1 else numa[0])
+        numa_info = (-100 if len(numa) > 1 else int(numa[0]))
     except Exception as e:
         LOG.error("Error, exception message: %s" % e.message)
         numa_info = -200
@@ -176,7 +176,8 @@ def get_dvs_cpusets(numa_cpus, dvs_interfaces, host_hw_info, num):
         (status, dvs_cpusets) = \
             dvs_get_cpu_sets(numa_cpus,
                              nics_info,
-                             device_numa)
+                             device_numa,
+                             num)
         if status['rc'] != 0:
             msg = "Get dvs cpu sets for host '%s' failed,\
                     detail error is '%s'"\
