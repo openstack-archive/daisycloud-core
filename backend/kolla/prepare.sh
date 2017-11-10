@@ -47,8 +47,6 @@ chkconfig network on
 systemctl disable firewalld
 systemctl stop firewalld
 
-yum -y install ansible
-
 # multicast related
 prepare_dir=$(dirname $(readlink -f "$0"))
 yum install -y $prepare_dir/daisy4nfv-jasmine*.rpm
