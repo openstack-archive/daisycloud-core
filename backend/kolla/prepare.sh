@@ -30,6 +30,7 @@ echo -e "[Service]\nMountFlags=shared\nEnvironmentFile=/etc/sysconfig/docker\nEx
 systemctl daemon-reload
 systemctl restart docker
 systemctl enable docker
+yum install -y python2-docker
 
 yum -y install ntp
 systemctl enable ntpd.service
@@ -45,6 +46,8 @@ chkconfig network on
 
 systemctl disable firewalld
 systemctl stop firewalld
+
+yum -y install ansible
 
 # multicast related
 prepare_dir=$(dirname $(readlink -f "$0"))

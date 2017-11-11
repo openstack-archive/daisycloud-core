@@ -323,7 +323,7 @@ def _thread_bin(req, cluster_id, host, root_passwd, fp, host_name_ip_list,
             'ssh -o StrictHostKeyChecking='
             'no %s %s/prepare.sh %s' %
             (host_ip, host_prepare_file, docker_registry_ip),
-            shell=True, stdout=fp, stderr=fp)
+            shell=True, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
         message = "exec prepare.sh on %s failed!", host_ip
         LOG.error(message)
