@@ -16,7 +16,7 @@ fi
 
 echo "nameserver 8.8.8.8" > /etc/resolv.conf
 daisy_management_ip=$1
-yum -y install epel-release
+yum -y install epel-release centos-release-openstack-pike
 
 #curl -sSL https://get.docker.io | bash
 yum remove -y docker-engine
@@ -30,7 +30,7 @@ echo -e "[Service]\nMountFlags=shared\nEnvironmentFile=/etc/sysconfig/docker\nEx
 systemctl daemon-reload
 systemctl restart docker
 systemctl enable docker
-yum install -y python-docker-py
+yum install -y python2-docker
 
 yum -y install ntp
 systemctl enable ntpd.service
