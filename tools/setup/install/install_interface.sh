@@ -54,10 +54,18 @@ function all_install
                         python-openstackclient python-ceilometerclient python-aodhclient \
                         python-flask python-django"
 
-    write_install_log "install daisy rpms"
-    install_rpm_by_daisy_yum "daisy-discoverd python-daisy-discoverd daisy \
-                              python-django-horizon daisy-dashboard pxe_server_install \
-                              daisy4nfv-jasmine"
+    write_install_log "install daisy rpm 1"
+    install_rpm_by_daisy_yum "daisy-discoverd python-daisy-discoverd daisy4nfv-jasmine \
+                              pxe_server_install"
+
+    write_install_log "install daisy rpm 2"
+    install_rpm_by_yum "daisy"
+
+    write_install_log "install daisy rpm 3"
+    install_rpm_by_daisy_yum "python-django-horizon"
+
+    write_install_log "install daisy rpm 4"
+    install_rpm_by_yum "daisy-dashboard"
 
     mkdir -p /var/lib/daisy/tools/
     cp daisy4nfv-jasmine*.rpm /var/lib/daisy/tools/ # keep it for target hosts
