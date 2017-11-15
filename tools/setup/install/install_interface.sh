@@ -48,68 +48,19 @@ function all_install
     write_install_log "install epel-release rpm"
     install_rpm_by_yum "epel-release"
 
-    write_install_log "install fping rpm"
-    install_rpm_by_yum "fping"
+    write_install_log "install basic rpms"
+    install_rpm_by_yum "bc wget fping sshpass clustershell ipmitool syslinux dhcp nfs-utils \
+                        mariadb-server rabbitmq-server openstack-keystone \
+                        python-openstackclient python-ceilometerclient python-aodhclient \
+                        python-flask python-django"
 
-    write_install_log "install mariadb-server rpm"
-    install_rpm_by_yum "mariadb-server"
+    write_install_log "install daisy rpms"
+    install_rpm_by_daisy_yum "daisy-discoverd python-daisy-discoverd daisy \
+                              python-django-horizon daisy-dashboard pxe_server_install \
+                              daisy4nfv-jasmine"
 
-    write_install_log "install rabbitmq-server rpm"
-    install_rpm_by_yum "rabbitmq-server"
-
-    write_install_log "install keystone rpm"
-    install_rpm_by_yum "openstack-keystone"
-
-    write_install_log "install python-openstackclient rpm"
-    install_rpm_by_yum "python-openstackclient"
-
-    write_install_log "install python-ceilometerclient rpm"
-    install_rpm_by_yum "python-ceilometerclient"
-
-    write_install_log "install python-aodhclient rpm"
-    install_rpm_by_yum "python-aodhclient"
-
-    write_install_log "install daisy-discoverd depend rpm"
-    install_rpm_by_yum "python-flask"
-
-    write_install_log "install daisy-discoverd rpm"
-    install_rpm_by_daisy_yum "daisy-discoverd python-daisy-discoverd"
-
-    write_install_log "install daisy rpm"
-    install_rpm_by_yum "daisy"
-
-    write_install_log "install daisy dashboard rpm"
-    install_rpm_by_yum "python-django"
-    install_rpm_by_daisy_yum "python-django-horizon"
-    install_rpm_by_yum "daisy-dashboard"
-
-    write_install_log "install clustershell rpm"
-    install_rpm_by_yum "clustershell"
-
-    write_install_log "install discover relate rpm"
-    install_rpm_by_yum "ipmitool"
-    install_rpm_by_yum "syslinux"
-
-    write_install_log "install wget rpm"
-    install_rpm_by_yum "wget"
-
-    write_install_log "install bc rpm"
-    install_rpm_by_yum "bc"
-
-    write_install_log "install daisy4nfv-jasmine"
     mkdir -p /var/lib/daisy/tools/
     cp daisy4nfv-jasmine*.rpm /var/lib/daisy/tools/ # keep it for target hosts
-    install_rpm_by_daisy_yum "daisy4nfv-jasmine"
-
-    if [ -f "/etc/zte-docker" ];then
-        write_install_log "install pxe_docker_install rpm"
-        install_rpm_by_yum pxe_docker_install
-    else
-        write_install_log "install pxe server rpm"
-        install_rpm_by_daisy_yum pxe_server_install
-        install_rpm_by_yum "dhcp"
-        install_rpm_by_yum "nfs-utils"
-    fi
 
     #get management network IP address, and then update the database of Daisy user to the configuration file
     get_public_ip
