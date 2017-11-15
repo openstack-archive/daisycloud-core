@@ -76,10 +76,8 @@ def update_inventory_file(file_path, filename, node_name, host_name,
 def add_role_to_inventory(file_path, config_data):
     LOG.info(_("add role to inventory file..."))
     node_names = ['control', 'network', 'compute', 'monitoring',
-                  'storage', 'baremetal:children']
+                  'storage', 'deployment']
     clean_inventory_file(file_path, 'multinode', node_names)
-    opendaylight_node_names = ['opendaylight', 'cinder:children']
-    clean_inventory_file(kolla_file, 'multinode', opendaylight_node_names)
     role_names_list = {'Controller_ips': ['control'],
                        'Network_ips': ['network'],
                        'Computer_ips': ['compute', 'monitoring'],
@@ -222,9 +220,6 @@ def enable_neutron_backend(req, cluster_id, kolla_config):
                 and neutron_backend[
                     'neutron_backends_type'] == 'opendaylight' \
                     and neutron_backend['role_id'] == role['id']:
-                update_inventory_file(kolla_file, 'multinode',
-                                      'opendaylight', kolla_config['Odl_ips'],
-                                      1, 'ssh')
                 opendaylight_config = {
                     'enable_opendaylight': "yes",
                     'neutron_plugin_agent': "opendaylight",
@@ -239,12 +234,7 @@ def enable_neutron_backend(req, cluster_id, kolla_config):
                     'opendaylight_restconf_port': "8088",
                     'opendaylight_restconf_port_backup': "8182",
                     'opendaylight_haproxy_restconf_port': "8087",
-                    'opendaylight_haproxy_restconf_port_backup': "8181",
-                    'opendaylight_leader_ip_address': ''}
-                opendaylight_config['opendaylight_leader_ip_address'] =\
-                    kolla_config['Odl_ips'].encode()
-                LOG.info(_("opendaylight_leader_ip_address is %s" %
-                         kolla_config['Odl_ips']))
+                    'opendaylight_haproxy_restconf_port_backup': "8181"}
                 if neutron_backend['enable_l2_or_l3'] == 'l2':
                     opendaylight_config['enable_opendaylight_l3'] = 'no'
                 update_kolla_globals_yml(opendaylight_config)

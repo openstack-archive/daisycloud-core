@@ -601,7 +601,6 @@ def get_cluster_kolla_config(req, cluster_id):
             kolla_config.update({'LocalIP': docker_registry})
             kolla_config.update({'Controller_ips': controller_ip_list})
             kolla_config.update({'Network_ips': controller_ip_list})
-            kolla_config.update({'Odl_ips': controller_ip_list[0]})
             #kolla_config.update({'Storage_ips': controller_ip_list})
             kolla_config.update({'vlans_id': vlans_id})
         if role['name'] == 'COMPUTER':
