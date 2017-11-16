@@ -80,7 +80,7 @@ function kolla_install
   check_and_install_rpm ntp
   systemctl enable ntpd.service
   systemctl start ntpd.service
-  check_and_install_rpm ansible
+  yum install -y http://mirror.centos.org/centos/7/extras/x86_64/Packages/ansible-2.4.0.0-5.el7.noarch.rpm
   check_and_install_rpm python2-crypto
   check_and_install_rpm python-gitdb
   check_and_install_rpm GitPython.noarch
