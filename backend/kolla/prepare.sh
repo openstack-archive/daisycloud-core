@@ -47,7 +47,7 @@ chkconfig network on
 systemctl disable firewalld
 systemctl stop firewalld
 
-yum -y install ansible
+yum install -y http://mirror.centos.org/centos/7/extras/x86_64/Packages/ansible-2.4.0.0-5.el7.noarch.rpm
 
 # multicast related
 prepare_dir=$(dirname $(readlink -f "$0"))
