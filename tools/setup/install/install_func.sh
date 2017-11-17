@@ -99,7 +99,7 @@ function kolla_install
   check_and_install_rpm python2-jinja2
 
   imagebranch="pike"
-  imageversion="171116161159"
+  imageversion="171117113539"
   imageserver="http://artifacts.opnfv.org/daisy/upstream"
   imagedir="/var/lib/daisy/versionfile/kolla"
   imagebakdir="/home/kolla_install/docker/"
