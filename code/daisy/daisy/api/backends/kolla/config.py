@@ -302,6 +302,20 @@ def update_globals_yml(config_data, multicast_flag):
               default_flow_style=False)
 
 
+def enable_openswitch_dpdk(kolla_config):
+    if kolla_config['enable_dvs']:
+        openswitch_dpdk_config = {
+            'enable_ovs_dpdk': 'yes',
+            'neutron_bridge_name': 'dpdk_bridge',
+            'tunnel_interface': 'dpdk_bridge',
+            'enable_openvswitch': 'yes',
+            'ovs_hugepage_mountpoint': '/mnt/huge_1GB'}
+        openswitch_dpdk_config['ovs_dpdk_pmd_coremask'] = kolla_config['ovs_dpdk_pmd_coremask']
+        update_kolla_globals_yml(openswitch_dpdk_config)
+    else:
+        LOG.info(_("no need to config openvswitch dpdk"))
+
+
 def update_password_yml():
     LOG.info(_("begin to update kolla's passwd.yml file..."))
     cmd = 'python '\
