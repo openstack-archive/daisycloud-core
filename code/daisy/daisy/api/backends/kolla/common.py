@@ -29,6 +29,7 @@ from daisy.common import exception
 import daisy.registry.client.v1.api as registry
 import daisy.api.backends.common as daisy_cmn
 from daisy.api.backends.kolla import config as kconfig
+import re
 
 LOG = logging.getLogger(__name__)
 _ = i18n._
@@ -332,6 +333,15 @@ def _daisy_conf_mcast_flag():
     except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
         daisy_conf_mcast_enabled = False
     return daisy_conf_mcast_enabled
+  
+ 
+def convert_string_to_hex(isocpus):
+    isocpus_list = re.findall(r"\d+\.?\d*",a)
+    isocpus_int = 0
+    for i in isocpus_list:
+        isocpus_int = isocpus_int + 2**int(i)
+    isocpus_hex = hex(isocpus_int)[2:]
+    return isocpus_hex
 
 
 class MulticastServerTask(object):
@@ -517,6 +527,7 @@ def get_cluster_kolla_config(req, cluster_id):
     ext_macname_list = []
     sto_macname_list = []
     hbt_macname_list = []
+    enable_dvs_list = []
     vlans_id = {}
     openstack_version = '3.0.0'
     docker_namespace = 'kolla'
@@ -640,6 +651,29 @@ def get_cluster_kolla_config(req, cluster_id):
                 break
             storage_ip_list.append(com_host_ip)
     kolla_config.update({'Storage_ips': storage_ip_list})
+    LOG.info("update enable_dvs config")
+    params = {'cluster_id': cluster_id}
+    hosts = registry.get_hosts_detail(req.context, **params)
+    for host in hosts:
+        host_detail = registry.get_host_metadata(req.context,
+                                               host['id'])
+        enable_dvs = False
+        isolcpus = ''
+        for interface in host_detail['interfaces']:
+            vswitch_type = interface.get("vswitch_type")
+            if vswitch_type == 'dvs':
+                enable_dvs = True
+                isolcpus = host_detail['isolcpus']
+                break
+        enable_dvs_list.append(enable_dvs)
+    if len(set(enable_dvs_list)) != 1:
+         msg = (_("hosts interface vswitch type must be same!"))
+         LOG.error(msg)
+         raise HTTPForbidden(msg)
+    else:
+        isolcpus_hex = convert_string_to_hex(isolcpus)
+        kolla_config.update({'enable_dvs': enable_dvs})
+        kolla_config.update({'ovs_dpdk_pmd_coremask': isolcpus_hex})
     return (kolla_config, mgt_ip_list, host_name_ip_list)
 
 
@@ -654,3 +688,5 @@ def generate_kolla_config_file(req, cluster_id, kolla_config, multicast_flag):
                                       kolla_config)
         kconfig.enable_neutron_backend(req, cluster_id, kolla_config)
         #kconfig.enable_ceilometer()
+        if kolla_config['enable_dvs']:
+            kconfig.enable_openvswitch_dpdk(kolla_config['ovs_dpdk_pmd_coremask'].encode())
