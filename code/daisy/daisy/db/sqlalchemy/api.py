@@ -769,18 +769,24 @@ def _host_update(context, values, host_id):
                             for networks_plane in merged_assigned_networks:
                                 network_plane_names = \
                                     networks_plane['name'].split(',')
+                                #because EXTERNAL plane will not be assigned ip,
+                                #when EXTERNAL and DATAPLANE with same cidr/vlan, skip EXTERNAL plane
+                                if network_plane_names[0] == 'EXTERNAL' and len(network_plane_names) > 1:
+                                    network_plane_name = network_plane_names[1]
+                                else:
+                                    network_plane_name = network_plane_names[0]
                                 network_plane_ip = networks_plane.get('ip')
                                 if network_plane_ip:
                                     check_ip_exist(
                                         values['cluster'],
-                                        network_plane_names[0],
+                                        network_plane_name,
                                         network_plane_ip,
                                         session)
                                 else:
                                     network_plane_ip = \
                                         according_to_cidr_distribution_ip(
                                             values['cluster'],
-                                            network_plane_names[0],
+                                            network_plane_name,
                                             session)
 
                                 if 'MANAGEMENT' in network_plane_names:
