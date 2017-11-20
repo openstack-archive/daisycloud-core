@@ -287,6 +287,20 @@ host5_meta = {u'os_version_id': None,
               u'dvsp_cpus': None,
               u'deleted_at': None,
               u'id': u'9423980b-ec76-475a-b45f-558eb4b7dfed',
+              u'interfaces': [{u'assigned_networks':
+                                   [{u'ip': u'127.0.0.1',
+                                     u'name': u'MANAGEMENT',
+                                     u'type': u'MANAGEMENT'}],
+                               u'host_id':
+                                   u'9423980b-ec76-475a-b45f-558eb4b7dfed',
+                               u'id': u'299fc41d-dde5-45ca-be3b-c94693d2b9ce',
+                               u'ip': u'192.168.1.11', u'is_deployment': True,
+                               u'mac': u'4c:09:b4:b2:79:8a',
+                               u'mode': None, u'name': u'enp132s0f0',
+                               u'netmask': u'255.255.255.0',
+                               u'pci': u'0000:84:00.0', u'slave1': None,
+                               u'slave2': None, u'type': u'ether',
+                               u'vswitch_type': 'dvs'}],
               u'vcpu_pin_set': None,
               u'dvsv_cpus': None,
               u'hwm_ip': None,
@@ -314,7 +328,8 @@ host5_meta = {u'os_version_id': None,
               u'root_pwd': u'ossdbg1',
               u'dvs_high_cpuset': None,
               u'dvs_cpus': None,
-              u'root_lv_size': 102400}
+              u'root_lv_size': 102400,
+              u'isolcpus': u'1,13'}
 
 host6_meta = {u'os_version_id': None,
               u'config_set_id': None,
@@ -437,6 +452,8 @@ class TestInstall(test.TestCase):
         self.installer = install.KOLLAInstallTask(
             self.req, '8ad27e36-f3e2-48b4-84b8-5b676c6fabde')
 
+    @mock.patch("daisy.registry.client.v1.api.get_host_metadata")
+    @mock.patch("daisy.registry.client.v1.api.get_hosts_detail")
     @mock.patch('daisy.api.backends.kolla.common.get_computer_node_cfg')
     @mock.patch('daisy.api.backends.kolla.common.get_controller_node_cfg')
     @mock.patch('daisy.api.backends.kolla.common.get_host_detail')
@@ -449,7 +466,8 @@ class TestInstall(test.TestCase):
             mock_do_get_cluster_networks_detail,
             mock_do_get_roles_detail,
             mock_do_get_hosts_of_role, mock_do_get_host_detail,
-            mock_do_get_controller_node_cfg, mock_do_get_computer_node_cfg):
+            mock_do_get_controller_node_cfg, mock_do_get_computer_node_cfg,
+            mock_do_get_hosts_detail, mock_get_host_metadata):
         daisy_kolla_ver_path = '/var/lib/daisy/versionfile/kolla/'
         cmd = 'mkdir -p %s' % daisy_kolla_ver_path
         subprocesscall(cmd)
@@ -480,7 +498,8 @@ class TestInstall(test.TestCase):
                                                       'host_name': u'',
                                                       'dat_macname': u'',
                                                       'ext_macname': u''}
-
+        mock_do_get_hosts_detail.return_value = [host5_meta]
+        mock_get_host_metadata.return_value = host5_meta
         (kolla_config, mgt_ip_list, host_name_ip_list) =\
             kcommon.get_cluster_kolla_config(
             self.req,
