@@ -437,6 +437,8 @@ class TestInstall(test.TestCase):
         self.installer = install.KOLLAInstallTask(
             self.req, '8ad27e36-f3e2-48b4-84b8-5b676c6fabde')
 
+    @mock.patch("daisy.registry.client.v1.api.get_host_metadata")
+    @mock.patch("daisy.registry.client.v1.api.get_hosts_detail")
     @mock.patch('daisy.api.backends.kolla.common.get_computer_node_cfg')
     @mock.patch('daisy.api.backends.kolla.common.get_controller_node_cfg')
     @mock.patch('daisy.api.backends.kolla.common.get_host_detail')
@@ -449,7 +451,8 @@ class TestInstall(test.TestCase):
             mock_do_get_cluster_networks_detail,
             mock_do_get_roles_detail,
             mock_do_get_hosts_of_role, mock_do_get_host_detail,
-            mock_do_get_controller_node_cfg, mock_do_get_computer_node_cfg):
+            mock_do_get_controller_node_cfg, mock_do_get_computer_node_cfg,
+            mock_do_get_hosts_detail, mock_get_host_metadata):
         daisy_kolla_ver_path = '/var/lib/daisy/versionfile/kolla/'
         cmd = 'mkdir -p %s' % daisy_kolla_ver_path
         subprocesscall(cmd)
@@ -480,7 +483,8 @@ class TestInstall(test.TestCase):
                                                       'host_name': u'',
                                                       'dat_macname': u'',
                                                       'ext_macname': u''}
-
+        mock_do_get_hosts_detail.return_value = [host5_meta]
+        mock_get_host_metadata.return_value = host5_meta
         (kolla_config, mgt_ip_list, host_name_ip_list) =\
             kcommon.get_cluster_kolla_config(
             self.req,
