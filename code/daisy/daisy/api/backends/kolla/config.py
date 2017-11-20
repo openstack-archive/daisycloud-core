@@ -311,6 +311,21 @@ def update_globals_yml(config_data, multicast_flag):
               default_flow_style=False)
 
 
+def enable_openswitch_dpdk():
+    openswitch_dpdk_config = {
+        'enable_ovs_dpdk': 'yes',
+        'neutron_bridge_name': 'dpdk_bridge',
+        'tunnel_interface': 'dpdk_bridge',
+        'enable_openvswitch': 'yes',
+        'ovs_hugepage_mountpoint': '/dev/hugepages',
+        'dpdk_tunnel_interface_address_mode': 'systemd',
+        'ovsdpdk_install_type': 'source',
+        'ovs_coremask': '0x1',
+        'pmd_coremask': '0x1',
+        'dpdk_interface_driver': 'vfio_pci'}
+    update_kolla_globals_yml(openswitch_dpdk_config)
+
+
 def update_password_yml():
     LOG.info(_("begin to update kolla's passwd.yml file..."))
     cmd = 'python '\
