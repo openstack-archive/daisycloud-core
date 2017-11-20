@@ -517,6 +517,7 @@ def get_cluster_kolla_config(req, cluster_id):
     ext_macname_list = []
     sto_macname_list = []
     hbt_macname_list = []
+    enable_dvs_list = []
     vlans_id = {}
     openstack_version = '3.0.0'
     docker_namespace = 'kolla'
@@ -641,6 +642,28 @@ def get_cluster_kolla_config(req, cluster_id):
                 break
             storage_ip_list.append(com_host_ip)
     kolla_config.update({'Storage_ips': storage_ip_list})
+    LOG.info("update enable_dvs config")
+    params = {'cluster_id': cluster_id}
+    hosts = registry.get_hosts_detail(req.context, **params)
+    for host in hosts:
+        host_detail = registry.get_host_metadata(req.context,
+                                               host['id'])
+        enable_dvs = False
+        isolcpus = ''
+        for interface in host_detail['interfaces']:
+            vswitch_type = interface.get("vswitch_type")
+            if vswitch_type == 'dvs':
+                enable_dvs = True
+                isolcpus = host_detail['isolcpus']
+                break
+        enable_dvs_list.append(enable_dvs)
+    if len(set(enable_dvs_list)) != 1:
+         msg = (_("hosts interface vswitch type must be same!"))
+         LOG.error(msg)
+         raise HTTPForbidden(msg)
+    else:
+        kolla_config.update({'enable_dvs': enable_dvs})
+        kolla_config.update({'ovs_dpdk_pmd_coremask': isolcpus})
     return (kolla_config, mgt_ip_list, host_name_ip_list)
 
 
@@ -654,4 +677,6 @@ def generate_kolla_config_file(req, cluster_id, kolla_config, multicast_flag):
                                       cluster_id,
                                       kolla_config)
         kconfig.enable_neutron_backend(req, cluster_id, kolla_config)
+        if kolla_config['enable_dvs']:
+            kconfig.enable_openvswitch_dpdk(kolla_config['ovs_dpdk_pmd_coremask'].encode())
         kconfig.enable_ceilometer()

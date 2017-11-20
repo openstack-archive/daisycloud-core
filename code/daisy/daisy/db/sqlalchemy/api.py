@@ -769,6 +769,11 @@ def _host_update(context, values, host_id):
                             for networks_plane in merged_assigned_networks:
                                 network_plane_names = \
                                     networks_plane['name'].split(',')
+                                #if network_plane_names include EXTERNAL, should move 'EXTERNAL' 
+                                #to the end, in case of distribution ip to the interface
+                                if network_plane_names[0] == 'EXTERNAL' and len(network_plane_names) > 1:
+                                    network_plane_names.remove('EXTERNAL')
+                                    network_plane_names.append('EXTERNAL')
                                 network_plane_ip = networks_plane.get('ip')
                                 if network_plane_ip:
                                     check_ip_exist(
