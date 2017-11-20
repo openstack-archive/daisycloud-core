@@ -306,9 +306,24 @@ def update_globals_yml(config_data, multicast_flag):
     kolla_yml['neutron_external_interface'] = ExtIfMac
     kolla_yml['kolla_external_vip_interface'] = PubIfMac
     kolla_yml['storage_interface'] = StoIfMac
-
+    
     yaml.dump(kolla_yml, file('/etc/kolla/globals.yml', 'w'),
-              default_flow_style=False)
+              default_flow_style=False) 
+
+
+def enable_openswitch_dpdk():
+    openswitch_dpdk_config = {
+        'enable_ovs_dpdk': 'yes',
+        'neutron_bridge_name': 'dpdk_bridge',
+        'tunnel_interface': 'dpdk_bridge',
+        'enable_openvswitch': 'yes',
+        'ovs_hugepage_mountpoint': '/dev/hugepages',
+        'dpdk_tunnel_interface_address_mode': 'systemd',
+        'ovsdpdk_install_type': 'source',
+        'ovs_coremask': '0x1',
+        'pmd_coremask': '0x1',
+        'dpdk_interface_driver': 'vfio_pci'}
+    update_kolla_globals_yml(openswitch_dpdk_config)
 
 
 def update_password_yml():
