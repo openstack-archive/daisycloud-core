@@ -51,3 +51,7 @@ systemctl stop firewalld
 prepare_dir=$(dirname $(readlink -f "$0"))
 yum install -y $prepare_dir/daisy4nfv-jasmine*.rpm
 docker load < $prepare_dir/registry-server.tar
+
+#enlarge the TCP source port range to deal with functest thousands requests
+sudo sysctl net.ipv4.ip_local_port_range="5000 65000"
+echo -e "net.ipv4.ip_local_port_range='5000 65000'" >> /etc/sysctl.conf
