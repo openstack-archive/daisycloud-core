@@ -467,7 +467,7 @@ function custom_ks_hugepages
         [[ $sizes != "1G" && $sizes != "2M" ]] && { pxelog "[error]hugepagesize value error($sizes)" "console"; return 1; }
 
         sed -i "s/#bootloader_append_hugepage_place_holder/bootloader --append=\"intel_iommu=on iommu=pt transparent_hugepage=never default_hugepagesz=${sizes} hugepagesz=${sizes} hugepages=${pages}\"/g" $KS_FILE
-        sed -i "s/#fstab_hugetlbfs_place_holder/echo \"nodev /mnt/huge_1GB hugetlbfs pagesize=1GB 0 0\" >> /etc/fstab/g" $KS_FILE
+        sed -i "s/#fstab_hugetlbfs_place_holder/echo \"nodev \/mnt\/huge_1GB hugetlbfs pagesize=1GB 0 0\" >> \/etc\/fstab/g" $KS_FILE
     fi
 
     pxelog "end custom_ks_hugepages ${sizes}, ${sizes}\n"
