@@ -466,7 +466,7 @@ function custom_ks_hugepages
         [[ $sizes == "" ]] && sizes="1G"
         [[ $sizes != "1G" && $sizes != "2M" ]] && { pxelog "[error]hugepagesize value error($sizes)" "console"; return 1; }
 
-        sed -i "s/#bootloader_append_hugepage_place_holder/bootloader --append=\"intel_iommu=on iommu=pt transparent_hugepage=never default_hugepagesz=${sizes} hugepagesz=${sizes} hugepages=${pages}\"/g" $KS_FILE
+        bootloader_append_holder="$bootloader_append_holder intel_iommu=on iommu=pt transparent_hugepage=never default_hugepagesz=${sizes} hugepagesz=${sizes} hugepages=${pages}"
         sed -i "s/#fstab_hugetlbfs_place_holder/echo \"nodev \/mnt\/huge_1GB hugetlbfs pagesize=1GB 0 0\" >> \/etc\/fstab/g" $KS_FILE
     fi
 
@@ -483,7 +483,7 @@ function custom_ks_isolcpus
     get_config $CFG_FILE "isolcpus"
     isolcpus=$config_answer
     if [[ $isolcpus != "" ]]; then
-        sed -i "s/#bootloader_append_isolcpus_place_holder/bootloader --append=\"isolcpus=${isolcpus}\"/g" $KS_FILE
+            bootloader_append_holder="$bootloader_append_holder isolcpus=${isolcpus}"
     fi
 
     pxelog "end custom_ks_isolcpus ${isolcpus}\n"
@@ -953,7 +953,7 @@ function custom_ks_cfg
    local CFG_FILE=$1
    local KS_FILE=${INSTALLSHAREPATH}/pxe_kickstart.cfg
    local NET_FILE=${INSTALLSHAREPATH}/usrdata/nic_net_cfg.sh
-
+   bootloader_append_holder=""
    pxelog "starting custom_ks_cfg!"
 
    custom_ks_server_ip $KS_FILE
@@ -967,6 +967,9 @@ function custom_ks_cfg
    custom_ks_net_config $CFG_FILE $KS_FILE $NET_FILE || return 1
    custom_ks_isolcpus $CFG_FILE $KS_FILE
    custom_ks_package_group $CFG_FILE $KS_FILE
+   if [[ $bootloader_append_holder != "" ]];then
+       sed -i "s/#bootloader_append_holder/bootloader --append=\"$bootloader_append_holder\"/g" $KS_FILE
+   fi
 
    pxelog "started custom_ks_cfg!\n"
    return 0
