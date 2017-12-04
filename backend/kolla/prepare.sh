@@ -55,3 +55,6 @@ docker load < $prepare_dir/registry-server.tar
 #enlarge the TCP source port range to deal with functest thousands requests
 sudo sysctl net.ipv4.ip_local_port_range="5000 65000"
 echo -e "net.ipv4.ip_local_port_range='5000 65000'" >> /etc/sysctl.conf
+
+#support dpdk
+yum install -y crudini
