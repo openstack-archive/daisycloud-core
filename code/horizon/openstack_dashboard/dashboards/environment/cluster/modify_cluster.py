@@ -89,7 +89,9 @@ def GetCluster(request):
         "use_dns": cluster_info.use_dns,
         "target_systems": cluster_info.target_systems,
         "kolla_version_id": cluster_info.tecs_version_id,
-        "description": cluster_info.description})
+        "description": cluster_info.description,
+        "kolla_img_multicast":cluster_info.kolla_img_multicast,
+        })
 
     return HttpResponse(json.dumps(ret_cluster_list),
                         content_type="application/json")
@@ -131,7 +133,9 @@ def modify_submit(request, cluster_id):
             networking_parameters=cluster_info["networking_parameters"],
             auto_scale=cluster_info["auto_scale"],
             use_dns=cluster_info["use_dns"],
-            description=cluster_info["description"])
+            description=cluster_info["description"],
+            kolla_img_multicast=cluster_info["kolla_img_multicast"],
+            )
 
         role_list = api.daisy.role_list(request)
         roles = [role for role in role_list

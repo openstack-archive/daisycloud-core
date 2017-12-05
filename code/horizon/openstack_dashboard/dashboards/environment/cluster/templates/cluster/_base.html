@@ -123,6 +123,15 @@
         </div>
     </div>
     <div style="clear:both" class="form-group">
+        <label style="text-align:right;" for="kolla_img_multicast" class="col-sm-3 control-label">{% trans 'kolla_img_multicast' %}</label>
+        <div style="float:left;" class="col-sm-4">
+            <select id="kolla_img_multicast" name="kolla_img_multicast" class="form-control">
+                <option value="0">{% trans "No" %}</option>
+                <option value="1" selected="selected">{% trans "Yes" %}</option>
+            </select>
+        </div>
+    </div>
+    <div style="clear:both" class="form-group">
         <label style="text-align:right;" for="description" class="col-sm-3 control-label">{% trans 'Description' %}</label>
         <div style="float:left;" class="col-sm-4">
             <input type="text" id="description" name="description" class="form-control" placeholder="{% trans 'Descriptive info' %}">

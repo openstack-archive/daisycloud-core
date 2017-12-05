@@ -96,7 +96,10 @@ def create_submit(request):
             networking_parameters=cluster["networking_parameters"],
             use_dns=cluster["use_dns"],
             target_systems=cluster["target_systems"],
-            tecs_version_id=cluster["tecs_version_id"])
+            tecs_version_id=cluster["tecs_version_id"],
+            kolla_img_multicast=cluster["kolla_img_multicast"],
+        )
+
         cluster_new.append({
             "id": cluster_created.id
         })

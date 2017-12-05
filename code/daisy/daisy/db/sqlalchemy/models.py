@@ -246,6 +246,7 @@ class Cluster(BASE, DaisyBase):
     hwm_ip = Column(String(256))
     target_systems = Column(String(256))
     tecs_version_id = Column(String(36))
+    kolla_img_multicast = Column(Integer(), nullable=False, default=0)
 
 
 class ClusterHost(BASE, DaisyBase):

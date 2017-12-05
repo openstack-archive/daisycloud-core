@@ -24,8 +24,9 @@
             "networking_parameters": get_network_values(),
             "auto_scale": $("#auto_scale").val(),
             "use_dns": $("#use_dns").val(),
-            "description":$("#description").val()
-        };
+            "description":$("#description").val(),
+            "kolla_img_multicast": $("#kolla_img_multicast").val(),
+         };
         var role_info = {};
         var role_contexts = [
             {
@@ -211,6 +212,7 @@
         $("#base_mac").val(cluster_list[0].base_mac);
         $("#auto_scale").val(cluster_list[0].auto_scale);
         $("#use_dns").val(cluster_list[0].use_dns);
+        $("#kolla_img_multicast").val(cluster_list[0].kolla_img_multicast);
         $("#description").val(cluster_list[0].description);
     }
 
