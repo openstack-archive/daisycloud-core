@@ -244,6 +244,7 @@ def enable_neutron_backend(req, cluster_id, kolla_config):
 def update_globals_yml(config_data, multicast_flag):
     LOG.info(_("begin to update kolla's globals.yml file..."))
     kolla_yml = {'openstack_release': '3.0.0',
+                 'openstack_logging_debug': 'True',
                  'docker_registry': '127.0.0.1:4000',
                  'docker_namespace': 'kollaglue',
                  'kolla_internal_vip_address': '10.10.10.254',
