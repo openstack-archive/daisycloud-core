@@ -266,8 +266,6 @@ def multi_plane(interface):
 
 def plane_overlapping_check(interface):
     plane_num = len(interface['assigned_networks'])
-    if interface.get('vswitch_type', None) == 'dvs':
-        return 
     if plane_num == 0 and not update_network_mode:
         print "%s  %s is not belong to any physnet planes" % (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S:%f"),
                                                               interface['name'])
