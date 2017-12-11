@@ -476,7 +476,11 @@ def _get_host_interfaces(host_info):
             # remove duplicates assigned networks
             if assigned_network.get('ip') not in no_dup_networks.keys() \
                     or assigned_network.get('network_type') == 'MANAGEMENT':
-                no_dup_networks[assigned_network['ip']] = assigned_network
+                #ignore EXTERNAL network when it has same interface with dataplane
+                if assigned_network.get('network_type') == 'EXTERNAL' and len(interface['assigned_networks']) > 1:
+                    continue
+                else:
+                    no_dup_networks[assigned_network['ip']] = assigned_network
         if no_dup_networks:
             interface['assigned_networks'] = no_dup_networks.values()
     return interfaces
