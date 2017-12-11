@@ -476,7 +476,15 @@ def _get_host_interfaces(host_info):
             # remove duplicates assigned networks
             if assigned_network.get('ip') not in no_dup_networks.keys() \
                     or assigned_network.get('network_type') == 'MANAGEMENT':
-                no_dup_networks[assigned_network['ip']] = assigned_network
+                # when diff network assigned to same interface，we just use
+                # first assign network to call daisy.py to config env network.
+                # If in some case we get external instead of dataplane,
+                # it will not config ip to interrface according to daisy.py.
+                if assigned_network.get('network_type') == 'EXTERNAL' and \
+                        len(interface['assigned_networks']) > 1:
+                    continue
+                else:
+                    no_dup_networks[assigned_network['ip']] = assigned_network
         if no_dup_networks:
             interface['assigned_networks'] = no_dup_networks.values()
     return interfaces
