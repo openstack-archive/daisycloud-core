@@ -32,7 +32,7 @@ systemctl restart docker
 systemctl enable docker
 yum install -y python2-docker
 
-yum -y install ntp
+yum -y install ntp crudini
 systemctl enable ntpd.service
 systemctl start ntpd.service
 
@@ -55,3 +55,4 @@ docker load < $prepare_dir/registry-server.tar
 #enlarge the TCP source port range to deal with functest thousands requests
 sudo sysctl net.ipv4.ip_local_port_range="5000 65000"
 echo -e "net.ipv4.ip_local_port_range='5000 65000'" >> /etc/sysctl.conf
+
