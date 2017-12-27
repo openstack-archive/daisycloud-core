@@ -1,0 +1,9 @@
+Code-Review+1: Yao Lu <lu.yao135@zte.com.cn>
+Code-Review+2: zhouya <zhou.ya@zte.com.cn>
+Workflow+1: Yao Lu <lu.yao135@zte.com.cn>
+Verified+2: Zuul
+Submitted-by: Zuul
+Submitted-at: Wed, 27 Dec 2017 06:16:57 +0000
+Reviewed-on: https://review.openstack.org/530166
+Project: openstack/daisycloud-core
+Branch: refs/heads/master
