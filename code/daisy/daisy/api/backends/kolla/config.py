@@ -302,7 +302,7 @@ def update_globals_yml(config_data, multicast_flag):
               default_flow_style=False)
 
 
-def enable_openswitch_dpdk(kolla_config):
+def enable_openvswitch_dpdk(kolla_config):
     if kolla_config['enable_dvs']:
         openswitch_dpdk_config = {
             'enable_ovs_dpdk': 'yes',
