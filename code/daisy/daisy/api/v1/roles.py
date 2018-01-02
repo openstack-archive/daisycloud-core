@@ -483,7 +483,7 @@ class Controller(controller.BaseController):
             # get host disk infomation
             host_disk = self._get_host_disk_except_os_disk_by_info(host_info)
             host_disk_db_glance_nova_size['disk_size'] = host_disk
-            # get role_host db/galnce/nova infomation
+            # get role_host db/glance/nova infomation
             cluster_info = self.get_cluster_meta_or_404(req, cluster_id)
             if 'cluster' in host_info:  # host with cluster
                 if host_info['cluster'] != cluster_info['name']:
