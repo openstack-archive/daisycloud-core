@@ -1,0 +1,11 @@
+Code-Review+2: zhouya <zhou.ya@zte.com.cn>
+Code-Review+1: Yao Lu <lu.yao135@zte.com.cn>
+Code-Review+1: wanghui <wh@awcloud.com>
+Code-Review+1: wangqiang-bj <wangqiangbj@inspur.com>
+Workflow+1: Zhijiang Hu <hu.zhijiang@zte.com.cn>
+Verified+2: Zuul
+Submitted-by: Zuul
+Submitted-at: Tue, 02 Jan 2018 03:00:55 +0000
+Reviewed-on: https://review.openstack.org/528190
+Project: openstack/daisycloud-core
+Branch: refs/heads/master
