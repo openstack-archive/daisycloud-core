@@ -345,7 +345,7 @@ def do_host_list(gc, args):
 
     columns = ['ID', 'Name', 'Description', 'Resource_type',
                'Status', 'Os_progress', 'Os_status', 'Discover_state',
-               'Tecs_version_id', 'Messages']
+               'Tecs_version_id', 'Messages', 'role']
 #    if filters.has_key('cluster_id'):
     if 'cluster_id' in filters:
         role_columns = ['Role_progress', 'Role_status', 'Role_messages']
