@@ -522,7 +522,6 @@ class KOLLAInstallTask(Thread):
             self.message =\
                 "kolla version file not found in %s" % daisy_kolla_ver_path
             raise exception.NotFound(message=self.message)
-
         try:
             LOG.info(_("load kolla registry..."))
             kolla_cmn.version_load(kolla_version_pkg_file, hosts_list)
@@ -537,7 +536,6 @@ class KOLLAInstallTask(Thread):
                                        host_id_list,
                                        kolla_state['INSTALLING'],
                                        self.message, 15)
-
         # always call generate_kolla_config_file after version_load()
         LOG.info(_("begin to generate kolla config file ..."))
         (kolla_config, self.mgt_ip_list, host_name_ip_list) = \
