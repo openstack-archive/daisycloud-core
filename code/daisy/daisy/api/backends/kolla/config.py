@@ -75,6 +75,12 @@ def update_inventory_file(file_path, filename, node_name, host_name,
 
 def add_role_to_inventory(file_path, config_data):
     LOG.info(_("add role to inventory file..."))
+
+    # add by sj for support heterogeneous hosts
+    hosts_with_interfaces_list = config_data["hosts_with_interfaces_list"]
+    isomorphic_flag = config_data["isomorphic_flag"]
+    # end
+
     node_names = ['control', 'network', 'compute', 'monitoring',
                   'storage', 'deployment']
     clean_inventory_file(file_path, 'multinode', node_names)
@@ -86,10 +92,29 @@ def add_role_to_inventory(file_path, config_data):
         for role_section in role_sections:
             host_sequence = 1
             sort_ipv4(config_data[role_ips])
-            for ips in config_data[role_ips]:
-                update_inventory_file(file_path, 'multinode', role_section,
+            if isomorphic_flag:
+                for ips in config_data[role_ips]:     #ips modify to host_ip
+                    update_inventory_file(file_path, 'multinode', role_section,
                                       ips.encode(), host_sequence, 'ssh')
-                host_sequence = host_sequence + 1
+                    host_sequence = host_sequence + 1
+            else:
+                for host_ip in config_data[role_ips]:
+                    for host_info in hosts_with_interfaces_list:
+                        if host_ip == host_info["host_mng_ip"]:
+                            network_interface = host_info["mgt_mac_name"]
+                            kolla_external_vip_interface = host_info["pub_mac_name"]
+                            storage_interface = host_info["sto_mac_name"]
+                            keepalived_interface = host_info["hbt_mac_name"]
+                            tunnel_interface = host_info["dat_mac_name"]
+                            neutron_external_interface = host_info["ext_mac_name"]
+                            host_info_str = "%s network_interface=%s kolla_external_vip_interface=%s storage_interface=%s\
+                                         keepalived_interface=%s tunnel_interface=%s neutron_external_interface=%s"\
+                                         %(host_info["host_mng_ip"], host_info["mgt_mac_name"], host_info["pub_mac_name"],                                           host_info["sto_mac_name"], host_info["hbt_mac_name"], host_info["dat_mac_name"],host_info["ext_mac_name"])
+
+                            update_inventory_file(file_path, 'multinode', role_section,
+                                                  host_info_str.encode(), host_sequence, 'ssh')
+                            host_sequence = host_sequence + 1
+
     LOG.info(_("add role to inventory file has finished..."))
 
 
@@ -243,48 +268,57 @@ def enable_neutron_backend(req, cluster_id, kolla_config):
 # generate kolla's globals.yml file
 def update_globals_yml(config_data, multicast_flag):
     LOG.info(_("begin to update kolla's globals.yml file..."))
+    isomorphic_flag = config_data["isomorphic_flag"]
     kolla_yml = {'openstack_release': '3.0.0',
                  'openstack_logging_debug': 'True',
                  'docker_registry': '127.0.0.1:4000',
                  'docker_namespace': 'kollaglue',
                  'kolla_internal_vip_address': '10.10.10.254',
-                 'network_interface': 'eth0',
-                 'tunnel_interface': 'eth0',
-                 'storage_interface': 'eth0',
-                 'kolla_external_vip_interface': 'eth0',
-                 'neutron_external_interface': 'eth1',
-                 'keepalived_interface': '{{ network_interface }}'
                  }
+    if isomorphic_flag:
+        kolla_yml['network_interface'] = 'eth0'
+        kolla_yml['tunnel_interface'] = 'eth0'
+        kolla-yml['storage_interface'] = 'eth0'
+        kolla_yml['kolla_external_vip_interface'] = 'eth0'
+        kolla_yml['neutron_external_interface'] = 'eth1'
+        kolla_yml['keepalived_interface'] = '{{ network_interface }}'
+
+        IntIfMac = config_data['IntIfMac'].encode()
+        if config_data['vlans_id'].get('MANAGEMENT'):
+            IntIfMac = IntIfMac + '.' + \
+                config_data['vlans_id'].get('MANAGEMENT').encode()
+        ExtIfMac = config_data['ExtIfMac'].encode()
+        if config_data['vlans_id'].get('EXTERNAL'):
+            ExtIfMac = ExtIfMac + '.' + \
+                config_data['vlans_id'].get('EXTERNAL').encode()
+        TulIfMac = config_data['TulIfMac'].encode()
+        if config_data['vlans_id'].get('DATAPLANE'):
+            TulIfMac = TulIfMac + '.' + \
+                config_data['vlans_id'].get('DATAPLANE').encode()
+        PubIfMac = config_data['PubIfMac'].encode()
+        if config_data['vlans_id'].get('PUBLICAPI'):
+            PubIfMac = PubIfMac + '.' + \
+                config_data['vlans_id'].get('PUBLICAPI').encode()
+        StoIfMac = config_data['StoIfMac'].encode()
+        if config_data['vlans_id'].get('STORAGE'):
+            StoIfMac = StoIfMac + '.' + \
+                config_data['vlans_id'].get('STORAGE').encode()
+        if config_data.get('HbtIfMac') != None:
+            HbtIfMac = config_data['HbtIfMac'].encode()
+            if config_data['vlans_id'].get('HEARTBEAT'):
+                HbtIfMac = HbtIfMac + '.' + \
+                    config_data['vlans_id'].get('HEARTBEAT').encode()
+            kolla_yml['keepalived_interface'] = HbtIfMac
+        kolla_yml['network_interface'] = IntIfMac
+        kolla_yml['tunnel_interface'] = TulIfMac
+        kolla_yml['neutron_external_interface'] = ExtIfMac
+        kolla_yml['kolla_external_vip_interface'] = PubIfMac
+        kolla_yml['storage_interface'] = StoIfMac
+
     Version = config_data['Version'].encode()
     Namespace = config_data['Namespace'].encode()
     VIP = config_data['VIP'].encode()
     local_ip = config_data['LocalIP'].encode()
-    IntIfMac = config_data['IntIfMac'].encode()
-    if config_data['vlans_id'].get('MANAGEMENT'):
-        IntIfMac = IntIfMac + '.' + \
-            config_data['vlans_id'].get('MANAGEMENT').encode()
-    ExtIfMac = config_data['ExtIfMac'].encode()
-    if config_data['vlans_id'].get('EXTERNAL'):
-        ExtIfMac = ExtIfMac + '.' + \
-            config_data['vlans_id'].get('EXTERNAL').encode()
-    TulIfMac = config_data['TulIfMac'].encode()
-    if config_data['vlans_id'].get('DATAPLANE'):
-        TulIfMac = TulIfMac + '.' + \
-            config_data['vlans_id'].get('DATAPLANE').encode()
-    PubIfMac = config_data['PubIfMac'].encode()
-    if config_data['vlans_id'].get('PUBLICAPI'):
-        PubIfMac = PubIfMac + '.' + \
-            config_data['vlans_id'].get('PUBLICAPI').encode()
-    StoIfMac = config_data['StoIfMac'].encode()
-    if config_data['vlans_id'].get('STORAGE'):
-        StoIfMac = StoIfMac + '.' + \
-            config_data['vlans_id'].get('STORAGE').encode()
-    if config_data.get('HbtIfMac') != None:
-        HbtIfMac = config_data['HbtIfMac'].encode()
-        if config_data['vlans_id'].get('HEARTBEAT'):
-            HbtIfMac = HbtIfMac + '.' + \
-                config_data['vlans_id'].get('HEARTBEAT').encode()
-        kolla_yml['keepalived_interface'] = HbtIfMac
     kolla_yml['openstack_release'] = Version
     if multicast_flag == 0:
         pass
@@ -292,11 +326,6 @@ def update_globals_yml(config_data, multicast_flag):
         kolla_yml['docker_registry'] = local_ip
     kolla_yml['docker_namespace'] = Namespace
     kolla_yml['kolla_internal_vip_address'] = VIP
-    kolla_yml['network_interface'] = IntIfMac
-    kolla_yml['tunnel_interface'] = TulIfMac
-    kolla_yml['neutron_external_interface'] = ExtIfMac
-    kolla_yml['kolla_external_vip_interface'] = PubIfMac
-    kolla_yml['storage_interface'] = StoIfMac
 
     yaml.dump(kolla_yml, file('/etc/kolla/globals.yml', 'w'),
               default_flow_style=False)

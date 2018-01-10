@@ -156,6 +156,44 @@ def get_host_network_ip(req, host_detail, cluster_networks, network_type):
     return interface_network_ip
 
 
+# add by sj for support heterogeneous hosts
+def get_host_net_cfg(req, host_detail, cluster_networks):
+    deploy_node_cfg = {}
+    host_name = host_detail['name'].split('.')[0]
+    host_mgt_network = get_host_interface_by_network(host_detail, 'MANAGEMENT')
+    host_mgt_macname = host_mgt_network['name']
+    host_mgt_ip = get_host_network_ip(req, host_detail,
+                                      cluster_networks, 'MANAGEMENT')
+    host_pub_network = get_host_interface_by_network(host_detail, 'PUBLICAPI')
+    host_pub_macname = host_pub_network['name']
+    host_sto_network = get_host_interface_by_network(host_detail, 'STORAGE')
+    host_sto_macname = host_sto_network['name']
+    host_dat_network = get_host_interface_by_network(host_detail, 'physnet1')
+    host_dat_macname = host_dat_network['name']
+    host_ext_network = get_host_interface_by_network(host_detail, 'EXTERNAL')
+    host_ext_macname = host_ext_network['name']
+
+    try:
+        host_hbt_network = get_host_interface_by_network(host_detail,
+                                                         'HEARTBEAT')
+        host_hbt_macname = host_hbt_network['name']
+        deploy_node_cfg.update({'hbt_macname': host_hbt_macname})
+    except:
+        pass
+    if not host_mgt_ip:
+        msg = "management ip of host %s can't be empty" % host_detail['id']
+        raise exception.InvalidNetworkConfig(msg)
+    deploy_node_cfg.update({'mgtip': host_mgt_ip})
+    deploy_node_cfg.update({'mgt_macname': host_mgt_macname})
+    deploy_node_cfg.update({'pub_macname': host_pub_macname})
+    deploy_node_cfg.update({'sto_macname': host_sto_macname})
+    deploy_node_cfg.update({'dat_macname': host_dat_macname})
+    deploy_node_cfg.update({'ext_macname': host_ext_macname})
+    deploy_node_cfg.update({'host_name': host_name})
+    return deploy_node_cfg
+
+#end
+
 def get_controller_node_cfg(req, host_detail, cluster_networks):
     deploy_node_cfg = {}
     host_name = host_detail['name'].split('.')[0]
@@ -528,6 +566,12 @@ def get_cluster_kolla_config(req, cluster_id):
     sto_macname_list = []
     hbt_macname_list = []
     enable_dvs_list = []
+
+    #add by sj for support heterogeneous hosts
+    hosts_with_interfaces_list = []
+    isomorphic_flag = True
+    #end
+
     vlans_id = {}
     openstack_version = '3.0.0'
     docker_namespace = 'kolla'
@@ -570,76 +614,79 @@ def get_cluster_kolla_config(req, cluster_id):
              (role['cluster_id'] == cluster_id and
               role['deployment_backend'] == daisy_cmn.kolla_backend_name)]
 
+    # add by sj for support heterogeneous hosts
     for role in roles:
-        if role['name'] == 'CONTROLLER_LB':
-            kolla_vip = role['vip']
-            role_hosts = get_hosts_of_role(req, role['id'])
-            for role_host in role_hosts:
-                host_detail = get_host_detail(
-                    req, role_host['host_id'])
-                deploy_host_cfg = get_controller_node_cfg(
-                    req, host_detail, cluster_networks)
-                mgt_ip = deploy_host_cfg['mgtip']
-                host_name_ip = {
-                    deploy_host_cfg['host_name']: deploy_host_cfg['mgtip']}
-                controller_ip_list.append(mgt_ip)
-                mgt_macname = deploy_host_cfg['mgt_macname']
-                pub_macname = deploy_host_cfg['pub_macname']
-                sto_macname = deploy_host_cfg['sto_macname']
-                hbt_macname = deploy_host_cfg.get('hbt_macname')
-                mgt_macname_list.append(mgt_macname)
-                pub_macname_list.append(pub_macname)
-                sto_macname_list.append(sto_macname)
-                hbt_macname_list.append(hbt_macname)
-                if host_name_ip not in host_name_ip_list:
-                    host_name_ip_list.append(host_name_ip)
-            if len(set(mgt_macname_list)) != 1 or \
-                    len(set(pub_macname_list)) != 1 or \
-                    len(set(sto_macname_list)) != 1 or \
-                    len(set(hbt_macname_list)) > 1:
-                msg = (_("hosts interface name of public and \
-                         management and storage and heartbeat \
-                         must be same!"))
-                LOG.error(msg)
-                raise HTTPForbidden(msg)
-            kolla_config.update({'Version': openstack_version})
-            kolla_config.update({'Namespace': docker_namespace})
-            kolla_config.update({'VIP': kolla_vip})
-            kolla_config.update({'IntIfMac': mgt_macname})
-            kolla_config.update({'PubIfMac': pub_macname})
-            kolla_config.update({'StoIfMac': sto_macname})
-            kolla_config.update({'HbtIfMac': hbt_macname})
-            kolla_config.update({'LocalIP': docker_registry})
-            kolla_config.update({'Controller_ips': controller_ip_list})
-            kolla_config.update({'Network_ips': controller_ip_list})
-            #kolla_config.update({'Storage_ips': controller_ip_list})
-            kolla_config.update({'vlans_id': vlans_id})
-        if role['name'] == 'COMPUTER':
-            role_hosts = get_hosts_of_role(req, role['id'])
-            for role_host in role_hosts:
-                host_detail = get_host_detail(
-                    req, role_host['host_id'])
-                deploy_host_cfg = get_computer_node_cfg(
-                    req, host_detail, cluster_networks)
-                mgt_ip = deploy_host_cfg['mgtip']
-                host_name_ip = {
-                    deploy_host_cfg['host_name']: deploy_host_cfg['mgtip']}
+        role_hosts = get_hosts_of_role(req, role['id'])
+        for role_host in role_hosts:
+            host_detail = get_host_detail(req, role_host['host_id'])
+            deploy_host_cfg = get_host_net_cfg(req, host_detail, cluster_networks)
+            mgt_ip = deploy_host_cfg['mgtip']
+            if role['name'] == 'COMPUTER':
                 computer_ip_list.append(mgt_ip)
-                if host_name_ip not in host_name_ip_list:
-                    host_name_ip_list.append(host_name_ip)
-                dat_macname = deploy_host_cfg['dat_macname']
-                dat_macname_list.append(dat_macname)
-                ext_macname = deploy_host_cfg['ext_macname']
-                ext_macname_list.append(ext_macname)
-            if len(set(dat_macname_list)) != 1 or \
-                    len(set(ext_macname_list)) != 1:
-                msg = (_("computer hosts interface name of dataplane \
-                         and external must be same!"))
-                LOG.error(msg)
-                raise HTTPForbidden(msg)
-            kolla_config.update({'Computer_ips': computer_ip_list})
-            kolla_config.update({'TulIfMac': dat_macname})
-            kolla_config.update({'ExtIfMac': ext_macname})
+            elif role['name'] == 'CONTROLLER_LB':
+                kolla_vip = role['vip']
+                controller_ip_list.append(mgt_ip)
+            host_name_ip = {
+                    deploy_host_cfg['host_name']: deploy_host_cfg['mgtip']}
+            # controller_ip_list.append(mgt_ip)
+            mgt_macname = deploy_host_cfg['mgt_macname']
+            pub_macname = deploy_host_cfg['pub_macname']
+            sto_macname = deploy_host_cfg['sto_macname']
+            dat_macname = deploy_host_cfg['dat_macname']
+            ext_macname = deploy_host_cfg['ext_macname']
+            hbt_macname = deploy_host_cfg.get('hbt_macname')
+
+            mgt_macname_list.append(mgt_macname)
+            pub_macname_list.append(pub_macname)
+            sto_macname_list.append(sto_macname)
+            hbt_macname_list.append(hbt_macname)
+            dat_macname_list.append(dat_macname)
+            ext_macname_list.append(ext_macname)
+            if host_name_ip not in host_name_ip_list:
+                host_name_ip_list.append(host_name_ip)
+
+            host_with_interface = {"host_mng_ip": mgt_ip,
+                                   "mgt_mac_name": mgt_macname,
+                                   "pub_mac_name": pub_macname,
+                                   "sto_mac_name": sto_macname,
+                                   "hbt_mac_name": hbt_macname,
+                                   "dat_mac_name": dat_macname,
+                                   "ext_mac_name": ext_macname,
+                                   }
+            if host_with_interface not in hosts_with_interfaces_list:
+                hosts_with_interfaces_list.append(host_with_interface)
+
+        if len(set(mgt_macname_list)) != 1 or \
+                len(set(pub_macname_list)) != 1 or \
+                len(set(sto_macname_list)) != 1 or \
+                len(set(dat_macname_list)) != 1 or \
+                len(set(ext_macname_list)) != 1 or \
+                len(set(hbt_macname_list)) > 1:
+            # msg = (_("hosts interface name are not the same!"))
+            isomorphic_flag = False
+        kolla_config.update({'Version': openstack_version})
+
+        kolla_config.update({'Namespace': docker_namespace})
+        kolla_config.update({'VIP': kolla_vip})
+        kolla_config.update({'IntIfMac': mgt_macname})
+        kolla_config.update({'PubIfMac': pub_macname})
+        kolla_config.update({'StoIfMac': sto_macname})
+        kolla_config.update({'HbtIfMac': hbt_macname})
+        kolla_config.update({'LocalIP': docker_registry})
+        kolla_config.update({'Network_ips': controller_ip_list})
+        #kolla_config.update({'Storage_ips': controller_ip_list})
+        kolla_config.update({'vlans_id': vlans_id})
+        kolla_config.update({'TulIfMac': dat_macname})
+        kolla_config.update({'ExtIfMac': ext_macname})
+
+        kolla_config.update({'Controller_ips': controller_ip_list})
+        kolla_config.update({'Computer_ips': computer_ip_list})
+
+        kolla_config.update({'hosts_with_interfaces_list': hosts_with_interfaces_list})
+        kolla_config.updata({'isomorphic_flag': isomorphic_flag})
+    # end
+
+
     mgt_ip_list = set(controller_ip_list + computer_ip_list)
     for ctl_host_ip in controller_ip_list:
         if len(storage_ip_list) > 2:
