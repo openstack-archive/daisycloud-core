@@ -75,6 +75,12 @@ def update_inventory_file(file_path, filename, node_name, host_name,
 
 def add_role_to_inventory(file_path, config_data):
     LOG.info(_("add role to inventory file..."))
+
+    # add by sj
+    hosts_with_interfaces_list = config_data["hosts_with_interfaces_list"]
+    isomorphic_flag = config_data["isomorphic_flag"]
+    # end
+
     node_names = ['control', 'network', 'compute', 'monitoring',
                   'storage', 'deployment']
     clean_inventory_file(file_path, 'multinode', node_names)
@@ -86,10 +92,33 @@ def add_role_to_inventory(file_path, config_data):
         for role_section in role_sections:
             host_sequence = 1
             sort_ipv4(config_data[role_ips])
-            for ips in config_data[role_ips]:
-                update_inventory_file(file_path, 'multinode', role_section,
+            # 
+            if isomorphic_flag:
+                for ips in config_data[role_ips]:     #ips modify to host_ip
+                    update_inventory_file(file_path, 'multinode', role_section,
                                       ips.encode(), host_sequence, 'ssh')
-                host_sequence = host_sequence + 1
+                    host_sequence = host_sequence + 1
+           
+            # end
+            # add by sj
+            else:
+                for host_ip in config_data[role_ips]:
+                    for host_info in hosts_with_interfaces_list:     #ips modify to host_ip
+                        if host_ip == host_info["host_mng_ip"]:
+                            network_interface = host_info["mgt_mac_name"]
+                            kolla_external_vip_interface = host_info["pub_mac_name"]
+                            storage_interface = host_info["sto_mac_name"]
+                            keepalived_interface = host_info["hbt_mac_name"]
+                            tunnel_interface = host_info["dat_mac_name"]
+                            neutron_external_interface = host_info["ext_mac_name"]
+                            host_info_str = "%s network_interface=%s kolla_external_vip_interface=%s storage_interface=%s
+                                         keepalived_interface=%s tunnel_interface=%s neutron_external_interface=%s"
+                                         %(host_info["host_mng_ip"], host_info["mgt_mac_name"], host_info["pub_mac_name"],                                           host_info["sto_mac_name"], host_info["hbt_mac_name"], host_info["dat_mac_name",                                           host_info["ext_mac_name"])
+                            update_inventory_file(file_path, 'multinode', role_section,
+                                                  host_info_str.encode(), host_sequence, 'ssh')
+                            host_sequence = host_sequence + 1
+
+            # end
     LOG.info(_("add role to inventory file has finished..."))
 
 
