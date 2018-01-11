@@ -106,7 +106,7 @@ function kolla_install
   imagename="kolla-image-$imagebranch-$imageversion.tgz"
   sourcedir="/home/kolla_install/"
 
-  write_install_log "Begin copy images..."
+  write_install_log "Begin copy image, name:$imagename"
   if [ ! -f "$imagedir/$imagename" ];then
       mkdir -p $imagebakdir
       cd $imagebakdir
