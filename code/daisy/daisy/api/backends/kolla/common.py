@@ -528,6 +528,7 @@ def get_cluster_kolla_config(req, cluster_id):
     sto_macname_list = []
     hbt_macname_list = []
     enable_dvs_list = []
+    isolcpus_dict = {}
     vlans_id = {}
     openstack_version = '3.0.0'
     docker_namespace = 'kolla'
@@ -663,7 +664,10 @@ def get_cluster_kolla_config(req, cluster_id):
             vswitch_type = interface.get("vswitch_type")
             if vswitch_type == 'dvs':
                 enable_dvs = True
-                isolcpus = host_detail['isolcpus']
+                mgt_ip = get_host_network_ip(req, host_detail,
+                                             cluster_networks, 'MANAGEMENT')
+                isolcpus_hex = convert_string_to_hex(host_detail['isolcpus'])
+                isolcpus_dict[mgt_ip] = isolcpus_hex
                 break
         enable_dvs_list.append(enable_dvs)
     if len(set(enable_dvs_list)) != 1:
@@ -671,9 +675,8 @@ def get_cluster_kolla_config(req, cluster_id):
         LOG.error(msg)
         raise HTTPForbidden(msg)
     else:
-        isolcpus_hex = convert_string_to_hex(isolcpus)
         kolla_config.update({'enable_dvs': enable_dvs})
-        kolla_config.update({'ovs_dpdk_pmd_coremask': isolcpus_hex})
+        kolla_config.update({'ovs_dpdk_pmd_coremask_dict': isolcpus_dict})
     return (kolla_config, mgt_ip_list, host_name_ip_list)
 
 
@@ -688,4 +691,4 @@ def generate_kolla_config_file(req, cluster_id, kolla_config, multicast_flag):
                                       kolla_config)
         kconfig.enable_neutron_backend(req, cluster_id, kolla_config)
         #kconfig.enable_ceilometer()
-        kconfig.enable_openvswitch_dpdk(kolla_config)
+        kconfig.enable_openvswitch_dpdk(kolla_config, kolla_file)
