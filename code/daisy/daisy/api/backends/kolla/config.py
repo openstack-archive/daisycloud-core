@@ -73,6 +73,24 @@ def update_inventory_file(file_path, filename, node_name, host_name,
     fp.close()
 
 
+def update_inventory_file_of_ip_lines(file_path, filename,
+                                      ovs_dpdk_pmd_coremask_dict):
+    fp = file('%s/kolla-ansible/ansible/inventory/%s' % (file_path, filename))
+    lines = []
+    for line in fp:
+        for mgnt_ip in ovs_dpdk_pmd_coremask_dict.keys():
+            if mgnt_ip in line:
+                line = line.split('\n')[0] + ' ovs_dpdk_pmd_coremask=%s' % \
+                       ovs_dpdk_pmd_coremask_dict[mgnt_ip] + '\n'
+        lines.append(line)
+    fp.close()
+    s = ''.join(lines)
+    fp = file('%s/kolla-ansible/ansible/inventory/%s' % (
+        file_path, filename), 'w')
+    fp.write(s)
+    fp.close()
+
+
 def add_role_to_inventory(file_path, config_data):
     LOG.info(_("add role to inventory file..."))
     node_names = ['control', 'network', 'compute', 'monitoring',
@@ -302,7 +320,7 @@ def update_globals_yml(config_data, multicast_flag):
               default_flow_style=False)
 
 
-def enable_openvswitch_dpdk(kolla_config):
+def enable_openvswitch_dpdk(kolla_config, file_path):
     if kolla_config['enable_dvs']:
         openswitch_dpdk_config = {
             'enable_ovs_dpdk': 'yes',
@@ -310,8 +328,14 @@ def enable_openvswitch_dpdk(kolla_config):
             'tunnel_interface': 'dpdk_bridge',
             'enable_openvswitch': 'yes',
             'ovs_hugepage_mountpoint': '/mnt/huge_1GB'}
-        openswitch_dpdk_config['ovs_dpdk_pmd_coremask'] = \
-            kolla_config['ovs_dpdk_pmd_coremask']
+        isolcpus_list = kolla_config['ovs_dpdk_pmd_coremask_dict'].values()
+        if len(set(isolcpus_list)) == 1:
+            openswitch_dpdk_config['ovs_dpdk_pmd_coremask'] = isolcpus_list[0]
+        else:
+            update_inventory_file_of_ip_lines(
+                file_path,
+                'multinode',
+                kolla_config['ovs_dpdk_pmd_coremask_dict'])
         update_kolla_globals_yml(openswitch_dpdk_config)
     else:
         LOG.info(_("no need to config openvswitch dpdk"))
