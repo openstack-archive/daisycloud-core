@@ -169,8 +169,8 @@ function user_config_save
             touch $user_config_save_file
             echo -e "## opencos installation configure file at ${current_time}" >$user_config_save_file
             echo -e "## you can edit it and install opencos by conf_file option, as \"./installopencos_(arch).bin conf_file /home/tecs_install/user_install.conf\"\n" >>$user_config_save_file
-            echo -e "## global configration section\nmode=$mode\n">>$user_config_save_file
-            echo -e "## component configration section">>$user_config_save_file
+            echo -e "## global configuration section\nmode=$mode\n">>$user_config_save_file
+            echo -e "## component configuration section">>$user_config_save_file
         fi
         # If there is no component belonging to, put it after on mode
         if [ "$component" = "" ];then
