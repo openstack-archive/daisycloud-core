@@ -687,5 +687,5 @@ def generate_kolla_config_file(req, cluster_id, kolla_config, multicast_flag):
                                       cluster_id,
                                       kolla_config)
         kconfig.enable_neutron_backend(req, cluster_id, kolla_config)
-        #kconfig.enable_ceilometer()
+        kconfig.enable_ceilometer()
         kconfig.enable_openvswitch_dpdk(kolla_config)
