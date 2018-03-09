@@ -298,6 +298,12 @@ def _thread_bin(req, cluster_id, host, root_passwd, fp, host_name_ip_list,
            root@%s:%s" % (host_ip, host_prepare_file)
     daisy_cmn.subprocess_call(cmd, fp)
 
+    # scp docker-engine.rpm to the same dir of prepare.sh at target host
+    cmd = "scp -o ConnectTimeout=10 \
+           /var/lib/daisy/tools/docker-engine.rpm \
+           root@%s:%s" % (host_ip, host_prepare_file)
+    daisy_cmn.subprocess_call(cmd, fp)
+
     # scp registry-server.tar to the same dir of prepare.sh at target host
     cmd = "scp -o ConnectTimeout=10 \
            /var/lib/daisy/tools/registry-server.tar \

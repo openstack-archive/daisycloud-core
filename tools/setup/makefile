@@ -61,6 +61,8 @@ bin: binclean binforce
 	$(RM) $(_TECS_TOOLS_PATH)/setup/bin_temp/daisy4nfv-jasmine-devel*.rpm
 	$(RM) $(_TECS_TOOLS_PATH)/setup/bin_temp/daisy4nfv-jasmine-debuginfo*.rpm
 
+	curl -sSL https://yum.dockerproject.org/repo/main/centos/7/Packages/docker-engine-17.05.0.ce-1.el7.centos.x86_64.rpm -o $(_TECS_TOOLS_PATH)/setup/bin_temp/docker-engine.rpm
+
 	if [ -e makefile_patch.sh ]; then ./makefile_patch.sh $(_TECS_TOOLS_PATH) ; fi
 	cd $(_TECS_TOOLS_PATH)/setup; chmod +x ./makeself.sh; ./makeself.sh ./bin_temp $(_TECS_TARGET_PATH)/$(PURE_OS_TYPE)/$(ARCH)/$(VER_PREFIX)_$(BIN_TYPE).$(VER_SUFFIX) tecs ./setup.sh
 	$(RM) $(_TECS_TOOLS_PATH)/setup/bin_temp

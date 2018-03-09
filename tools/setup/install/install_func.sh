@@ -69,9 +69,11 @@ function kolla_install
   else
       #curl -sSL https://get.docker.io | bash
       yum remove -y docker-engine
-      yum install -y https://yum.dockerproject.org/repo/main/centos/7/Packages/docker-engine-17.05.0.ce-1.el7.centos.x86_64.rpm
+      yum install -y ./docker-engine.rpm
   fi
   [ "$?" -ne 0 ] && { write_install_log "Install docker-engine failed"; exit 1; }
+
+  cp ./docker-engine.rpm /var/lib/daisy/tools/ # keep it for target hosts
 
   mkdir -p /etc/systemd/system/docker.service.d
   config_path=/etc/systemd/system/docker.service.d/kolla.conf
