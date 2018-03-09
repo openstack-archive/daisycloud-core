@@ -8,6 +8,7 @@
 ##############################################################################
 set -e
 
+prepare_dir=$(dirname $(readlink -f "$0"))
 config_path=/etc/systemd/system/docker.service.d/kolla.conf
 if [ -f "$config_path" ]; then
     # Prevent prepare.sh to run again
@@ -48,7 +49,6 @@ systemctl disable firewalld
 systemctl stop firewalld
 
 # multicast related
-prepare_dir=$(dirname $(readlink -f "$0"))
 yum install -y $prepare_dir/daisy4nfv-jasmine*.rpm
 docker load < $prepare_dir/registry-server.tar
 
