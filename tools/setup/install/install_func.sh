@@ -143,7 +143,11 @@ function kolla_install
       if [ -f "$imagebakdir/registry-server.tar" ];then
           echo "registry-server.tar already exist!"
       else
-          wget "http://daisycloud.org/static/files/registry-server.tar"
+          # For daisy node
+          docker pull registry:2
+          # For other nodes
+          docker save registry:2 > $imagebakdir/registry-server.tar
+
       fi
       cp $imagebakdir/registry-server.tar $imagedir
   fi
@@ -152,7 +156,6 @@ function kolla_install
       cp $imagedir/registry-server.tar /var/lib/daisy/tools/ # keep it for target hosts
   fi
 
-  docker load < $imagedir/registry-server.tar
   rm -rf $imagedir/tmp
   rm -rf $imagedir/registry-*.version
 }
