@@ -137,22 +137,20 @@ function kolla_install
   git remote update
   git checkout -b stable/$imagebranch remotes/origin/stable/$imagebranch
   cp -r /home/kolla_install/kolla-ansible/etc/kolla /etc
-  # TODO: (huzhj)Use latest registry server from upstream
+
   if [ ! -f "$imagedir/registry-server.tar" ];then
-      cd $imagebakdir
-      if [ -f "$imagebakdir/registry-server.tar" ];then
-          echo "registry-server.tar already exist!"
-      else
-          wget "http://daisycloud.org/static/files/registry-server.tar"
-      fi
-      cp $imagebakdir/registry-server.tar $imagedir
+      # For daisy node
+      docker pull registry:2
+      # For other nodes
+      docker save registry:2 > $imagedir/registry-server.tar
+  else
+      docker load < $imagedir/registry-server.tar
   fi
 
   if [ ! -f "/var/lib/daisy/tools/registry-server.tar" ];then
       cp $imagedir/registry-server.tar /var/lib/daisy/tools/ # keep it for target hosts
   fi
 
-  docker load < $imagedir/registry-server.tar
   rm -rf $imagedir/tmp
   rm -rf $imagedir/registry-*.version
 }
