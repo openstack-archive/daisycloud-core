@@ -302,7 +302,7 @@ function create_daisy_service
     [ "$?" -ne 0 ] && { write_install_log "Error:query the id of amqp component failed"; exit 1; }
 
     local database_component_id=`/usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-list |grep -w "database" |awk -F  " " '{print $2}'` >> $install_logfile 2>&1
-    [ "$?" -ne 0 ] && { write_install_log "Error:query the id of datebase component failed"; exit 1; }
+    [ "$?" -ne 0 ] && { write_install_log "Error:query the id of database component failed"; exit 1; }
 
     local ha_component_id=`/usr/bin/daisy --os-endpoint="http://$public_ip:$bind_port" component-list |grep -w "ha" |awk -F  " " '{print $2}'` >> $install_logfile 2>&1
     [ "$?" -ne 0 ] && { write_install_log "Error:query the id of ha component failed"; exit 1; }
