@@ -21,7 +21,7 @@ from django.conf import settings
 from django.contrib.auth.models import User  # noqa
 from django.core.exceptions import ImproperlyConfigured  # noqa
 from django.core import urlresolvers
-from django.utils.importlib import import_module  # noqa
+from importlib import import_module
 
 import horizon
 from horizon import base

@@ -15,7 +15,7 @@ import logging
 import os
 import pkgutil
 
-from django.utils import importlib
+import importlib
 import six
 
 
