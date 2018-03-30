@@ -7,7 +7,7 @@
 # make allrpm
 ```
 
-The artifacts will be at target/el7/noarch/, with name such as installdaisy_el7_noarch.bin.
+The artifacts will be at target/el7/noarch/, with name is like installdaisy_el7_noarch.bin.
 
 ## Install Daisy
 

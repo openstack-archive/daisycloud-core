@@ -100,8 +100,8 @@ function kolla_install
   check_and_install_rpm python2-setuptools.noarch
   check_and_install_rpm python2-jinja2
 
-  imagebranch="pike"
-  imageversion="180124134113"
+  imagebranch="queens"
+  imageversion="180401110925"
   imageserver="http://artifacts.opnfv.org/daisy/upstream"
   imagedir="/var/lib/daisy/versionfile/kolla"
   imagebakdir="/home/kolla_install/docker/"
