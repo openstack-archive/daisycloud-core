@@ -31,7 +31,7 @@ from django.core.handlers import wsgi
 from django.core import urlresolvers
 from django.test.client import RequestFactory  # noqa
 from django.test import utils as django_test_utils
-from django.utils.importlib import import_module  # noqa
+from oslo_utils.importutils import import_module
 from django.utils import unittest
 import glanceclient
 from heatclient import client as heat_client
