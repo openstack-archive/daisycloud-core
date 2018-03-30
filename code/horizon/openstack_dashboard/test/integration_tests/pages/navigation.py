@@ -251,7 +251,7 @@ class Navigation(object):
 
         # return imported class
         module = importlib.import_module(self.PAGES_IMPORT_PATH %
-                                         page_cls_path)
+                                           page_cls_path)
         return getattr(module, page_cls_name)
 
     class GoToMethodFactory(object):
