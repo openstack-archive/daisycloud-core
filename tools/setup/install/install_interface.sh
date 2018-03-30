@@ -61,12 +61,6 @@ function all_install
     write_install_log "install daisy rpm 2"
     install_rpm_by_yum "daisy"
 
-    write_install_log "install daisy rpm 3"
-    install_rpm_by_daisy_yum "python-django-horizon"
-
-    write_install_log "install daisy rpm 4"
-    install_rpm_by_yum "daisy-dashboard"
-
     mkdir -p /var/lib/daisy/tools/
     cp daisy4nfv-jasmine*.rpm /var/lib/daisy/tools/ # keep it for target hosts
 
@@ -77,7 +71,6 @@ function all_install
         exit 1
     else
         update_section_config "$daisy_file" database connection "mysql://daisy:daisy@$public_ip/$db_name?charset=utf8"
-        config_dashboard_local_setting
         config_keystone_local_setting
     fi
 

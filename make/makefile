@@ -96,9 +96,6 @@ daisyclientrpm:
 daisydiscoverdrpm: 
 	$(MAKE) -C $(_TECS_RPM_PATH)/ daisy-discoverd  
 
-horizonrpm:
-	$(MAKE) -C $(_TECS_RPM_PATH)/ horizon
-
 pxe_server_install:
 	$(MAKE) -C $(_TECS_RPM_PATH)/ pxe_server_install
 

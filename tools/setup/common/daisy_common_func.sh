@@ -428,7 +428,6 @@ function stop_service_all
     service_stop  "daisy-api"
     service_stop  "daisy-registry"
     service_stop  "daisy-discoverd"
-    service_stop  "openstack-keystone"
     service_stop  "daisy-orchestration"
     service_stop  "daisy-auto-backup"
 }
@@ -437,7 +436,6 @@ function stop_service_all
 function start_service_all
 {
     service_start  "mariadb"
-    service_start  "openstack-keystone"
     service_start  "daisy-api"
     service_start  "daisy-registry"
     service_start  "daisy-discoverd"

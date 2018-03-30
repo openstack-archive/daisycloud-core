@@ -100,8 +100,8 @@ function kolla_install
   check_and_install_rpm python2-setuptools.noarch
   check_and_install_rpm python2-jinja2
 
-  imagebranch="pike"
-  imageversion="180124134113"
+  imagebranch="queens"
+  imageversion="180401110925"
   imageserver="http://artifacts.opnfv.org/daisy/upstream"
   imagedir="/var/lib/daisy/versionfile/kolla"
   imagebakdir="/home/kolla_install/docker/"
@@ -803,39 +803,6 @@ function build_pxe_server
         [ "$?" -ne 0 ] && { write_install_log "Error:dhcpd.service is not active,so build pxe server failed"; exit 1; }
     else
         write_install_log "Notice:No build PXE server"
-    fi
-}
-
-function config_dashboard_local_setting
-{
-    local dashboard_conf_file="/etc/openstack-dashboard/local_settings"
-
-    get_public_ip
-    if [ -z $public_ip ];then
-        write_install_log "Error:default gateway is not set!!!"
-        exit 1
-    fi
-
-    update_config "$dashboard_conf_file" OPENSTACK_KEYSTONE_URL "\"http://${public_ip}:5000/v3\""
-    update_config "$dashboard_conf_file" DAISY_ENDPOINT_URL "\"http://$public_ip:19292\""
-    update_config "$dashboard_conf_file" WEBROOT "'/dashboard/'"
-    update_config "$dashboard_conf_file" LOGIN_URL "'/dashboard/auth/login/'"
-    update_config "$dashboard_conf_file" LOGOUT_URL "'/dashboard/auth/logout/'"
-    update_config "$dashboard_conf_file" ALLOWED_HOSTS "['*']"
-    update_config "$dashboard_conf_file" AUTHENTICATION_URLS "['openstack_auth.urls',]"
-
-    touch /var/log/horizon/horizon.log
-    chown apache:apache /var/log/horizon/horizon.log
-
-    config_file="/home/daisy_install/daisy.conf"
-    local director_theme_conf_file="/usr/share/openstack-dashboard/openstack_dashboard/enabled/_20_director_theme.py"
-    [ ! -e $config_file ] && return
-    get_config "$config_file" with_director
-    local with_director=$config_answer
-    if [ "$with_director" == yes ];then
-        update_config "$director_theme_conf_file" DISABLED "False"
-    else
-        update_config "$director_theme_conf_file" DISABLED "True"
     fi
 }
 
