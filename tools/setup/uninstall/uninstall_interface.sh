@@ -17,7 +17,6 @@ function uninstall_daisy
     pxe_os_install_clean all
     echo "stop all service..."
     stop_service_all
-    remove_rpms_by_yum "python-django-horizon  daisy-dashboard"
     remove_rpms_by_yum "daisy python-daisyclient  python-daisy"
     remove_rpms_by_yum "daisy-discoverd python-daisy-discoverd"
     remove_rpms_by_yum "daisy4nfv-jasmine"

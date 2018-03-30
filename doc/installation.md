@@ -7,12 +7,10 @@
 # make allrpm
 ```
 
-The artifacts will be at target/el7/noarch/, with name such as installdaisy_el7_noarch.bin.
+The artifacts will be at target/el7/noarch/, with name is like installdaisy_el7_noarch.bin.
 
 ## Install Daisy
 
-NOTE:
-Daisy's WEBUI rpm includes files which conflicts with OpenStack Horizon, this is Daisy's bug which will be solved in future. For now, please uninstall python-django-horizon and openstack-dashboard before installing Daisy.
 
 ```
 # cd target/el7/noarch/

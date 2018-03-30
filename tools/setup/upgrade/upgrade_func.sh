@@ -26,8 +26,6 @@ function get_daisy_services
     daisy-discoverd
     python-daisy-discoverd
     pxe_server_install
-    python-django-horizon
-    daisy-dashboard
     " 
 }
 
