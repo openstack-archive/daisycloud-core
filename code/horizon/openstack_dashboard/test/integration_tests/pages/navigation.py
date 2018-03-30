@@ -10,7 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import importlib
+from oslo_utils import importutils
 import types
 
 
@@ -250,7 +250,7 @@ class Navigation(object):
         page_cls_name = page_cls_name or self._get_page_cls_name(final_module)
 
         # return imported class
-        module = importlib.import_module(self.PAGES_IMPORT_PATH %
+        module = importutils.import_module(self.PAGES_IMPORT_PATH %
                                          page_cls_path)
         return getattr(module, page_cls_name)
 

@@ -15,7 +15,7 @@ import logging
 import os
 import pkgutil
 
-from django.utils import importlib
+from oslo_utils import importutils
 import six
 
 
@@ -25,7 +25,7 @@ def import_submodules(module):
     for loader, name, ispkg in pkgutil.iter_modules(module.__path__,
                                                     module.__name__ + '.'):
         try:
-            submodule = importlib.import_module(name)
+            submodule = importutils.import_module(name)
         except ImportError as e:
             # FIXME: Make the errors non-fatal (do we want that?).
             logging.warning("Error importing %s" % name)

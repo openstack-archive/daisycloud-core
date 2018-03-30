@@ -26,6 +26,8 @@ import inspect
 import logging
 import os
 
+from oslo_utils.importutils import import_module
+
 from django.conf import settings
 from django.conf.urls import include
 from django.conf.urls import patterns
@@ -34,7 +36,6 @@ from django.core.exceptions import ImproperlyConfigured  # noqa
 from django.core.urlresolvers import reverse
 from django.utils.datastructures import SortedDict
 from django.utils.functional import SimpleLazyObject  # noqa
-from django.utils.importlib import import_module  # noqa
 from django.utils.module_loading import module_has_submodule  # noqa
 from django.utils.translation import ugettext_lazy as _
 
