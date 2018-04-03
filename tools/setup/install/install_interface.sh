@@ -50,7 +50,7 @@ function all_install
 
     write_install_log "install basic rpms"
     install_rpm_by_yum "bc wget fping sshpass clustershell ipmitool syslinux dhcp nfs-utils \
-                        mariadb-server rabbitmq-server openstack-keystone \
+                        mariadb-server rabbitmq-server openstack-keystone httpd \
                         python-openstackclient python-ceilometerclient python-aodhclient \
                         python-flask python-django"
 
