@@ -75,12 +75,12 @@ def update_inventory_file(file_path, filename, node_name, host_name,
 
 def add_role_to_inventory(file_path, config_data):
     LOG.info(_("add role to inventory file..."))
-    node_names = ['control', 'network', 'compute', 'monitoring',
+    node_names = ['control', 'network', 'external-compute', 'monitoring',
                   'storage', 'deployment']
     clean_inventory_file(file_path, 'multinode', node_names)
     role_names_list = {'Controller_ips': ['control'],
                        'Network_ips': ['network'],
-                       'Computer_ips': ['compute', 'monitoring'],
+                       'Computer_ips': ['external-compute'],
                        'Storage_ips': ['storage']}
     for role_ips, role_sections in role_names_list.items():
         for role_section in role_sections:
