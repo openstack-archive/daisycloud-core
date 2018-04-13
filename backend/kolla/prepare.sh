@@ -17,6 +17,13 @@ fi
 
 echo "nameserver 8.8.8.8" > /etc/resolv.conf
 daisy_management_ip=$1
+
+# sync /etc/resolv.conf in cache to disk...
+sync
+sync
+sync
+sleep 3
+
 yum -y install epel-release
 yum clean all
 yum -y install centos-release-openstack-queens
