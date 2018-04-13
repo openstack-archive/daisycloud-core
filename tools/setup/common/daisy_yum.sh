@@ -36,8 +36,10 @@ function yum_set
     make_yum_client
     echo "creating epel yum repo, please wait for several seconds..."
     yum install -y epel-release
+    yum clean all
     echo "creating openstack yum repo, please wait for several seconds..."
     yum install -y centos-release-openstack-queens
+    yum clean all
 }
 
 fi

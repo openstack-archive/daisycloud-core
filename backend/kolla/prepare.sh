@@ -18,7 +18,9 @@ fi
 echo "nameserver 8.8.8.8" > /etc/resolv.conf
 daisy_management_ip=$1
 yum -y install epel-release
+yum clean all
 yum -y install centos-release-openstack-queens
+yum clean all
 yum -y upgrade
 
 #curl -sSL https://get.docker.io | bash
