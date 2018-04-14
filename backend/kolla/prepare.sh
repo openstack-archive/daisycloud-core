@@ -22,7 +22,7 @@ daisy_management_ip=$1
 sync
 sync
 sync
-sleep 3
+sleep 30
 
 yum -y install epel-release
 yum clean all
