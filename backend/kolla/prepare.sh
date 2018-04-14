@@ -24,14 +24,14 @@ sync
 sync
 sleep 30
 
-yum clean all
-yum -y install epel-release
-yum clean all
-yum -y install centos-release-openstack-pike
-yum clean all
-yum -y upgrade
+yum clean all >> ~/prepare.log 2>&1
+yum -y install epel-release >> ~/prepare.log 2>&1
+yum clean all >> ~/prepare.log 2>&1
+yum -y install centos-release-openstack-pike >> ~/prepare.log 2>&1
+yum clean all >> ~/prepare.log 2>&1
+yum -y upgrade >> ~/prepare.log 2>&1
 #curl -sSL https://get.docker.io | bash
-yum remove -y docker-engine
+yum remove -y docker-engine >> ~/prepare.log 2>&1
 yum install -y $prepare_dir/docker-engine.rpm
 [ "$?" -ne 0 ] && { exit 1; }
 
