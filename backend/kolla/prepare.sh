@@ -24,6 +24,7 @@ sync
 sync
 sleep 30
 
+yum clean all
 yum -y install epel-release
 yum clean all
 yum -y install centos-release-openstack-pike
