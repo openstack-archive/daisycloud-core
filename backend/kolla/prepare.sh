@@ -24,11 +24,12 @@ sync
 sync
 sleep 30
 
-yum -y install epel-release
-yum clean all
-yum -y install centos-release-openstack-queens
-yum clean all
-yum -y upgrade
+yum clean all >> ~/prepare.log 2>&1
+yum -y install epel-release >> ~/prepare.log 2>&1
+yum clean all >> ~/prepare.log 2>&1
+yum -y install centos-release-openstack-queens >> ~/prepare.log 2>&1
+yum clean all >> ~/prepare.log 2>&1
+yum -y upgrade >> ~/prepare.log 2>&1
 
 #curl -sSL https://get.docker.io | bash
 yum remove -y docker-engine
