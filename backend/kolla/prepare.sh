@@ -7,6 +7,16 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 ##############################################################################
 set -e
+attemps=3
+
+function repeat_cmd()
+{
+    for i in $(seq 1 $attemps); do
+        $@ && return 0
+        echo "Failed $i times to run $@"
+    done
+    return 1
+}
 
 prepare_dir=$(dirname $(readlink -f "$0"))
 config_path=/etc/systemd/system/docker.service.d/kolla.conf
@@ -25,11 +35,12 @@ sync
 sleep 30
 
 yum clean all >> ~/prepare.log 2>&1
-yum -y install epel-release >> ~/prepare.log 2>&1
+repeat_cmd yum -y install epel-release >> ~/prepare.log 2>&1
 yum clean all >> ~/prepare.log 2>&1
-yum -y install centos-release-openstack-pike >> ~/prepare.log 2>&1
+repeat_cmd yum -y install centos-release-openstack-pike >> ~/prepare.log 2>&1
 yum clean all >> ~/prepare.log 2>&1
-yum -y upgrade >> ~/prepare.log 2>&1
+repeat_cmd yum -y upgrade >> ~/prepare.log 2>&1
+
 #curl -sSL https://get.docker.io | bash
 yum remove -y docker-engine >> ~/prepare.log 2>&1
 yum install -y $prepare_dir/docker-engine.rpm
