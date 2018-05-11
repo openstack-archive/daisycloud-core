@@ -24,7 +24,7 @@ from daisy_discoverd import conf
 
 LOG = logging.getLogger('daisy_discoverd.utils')
 OS_ARGS = ('os_password', 'os_username', 'os_auth_url', 'os_tenant_name')
-MIDDLEWARE_ARGS = ('admin_password', 'admin_user', 'auth_uri',
+MIDDLEWARE_ARGS = ('admin_password', 'admin_user', 'www_authenticate_uri',
                    'admin_tenant_name')
 RETRY_COUNT = 12
 RETRY_DELAY = 5
