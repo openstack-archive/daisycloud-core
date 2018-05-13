@@ -38,7 +38,7 @@ setup(
     description = open('README.rst', 'r').readline().strip(),
     author = "Dmitry Tantsur",
     author_email = "dtantsur@redhat.com",
-    url = "https://pypi.python.org/pypi/daisy-discoverd",
+    url = "https://pypi.org/project/daisy-discoverd",
     packages = ['daisy_discoverd', 'daisy_discoverd.plugins',
                 'daisy_discoverd.test'],
     install_requires = install_requires,
