@@ -24,6 +24,9 @@ sync
 sync
 sleep 30
 
+# https://review.openstack.org/#/c/568180/
+test -e /etc/yum/vars/contentdir || echo centos > /etc/yum/vars/contentdir
+
 yum clean all >> ~/prepare.log 2>&1
 yum -y install epel-release >> ~/prepare.log 2>&1
 yum clean all >> ~/prepare.log 2>&1
