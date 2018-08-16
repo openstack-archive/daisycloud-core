@@ -12,7 +12,7 @@ function operate_db
     local component="$1"
     local tecs_component_conf="$2"
     
-    PS3="Please select an operation to process the datebase: " # 设置提示符字串.
+    PS3="Please select an operation to process the database: " # 设置提示符字串.
     select db_operation in "rename" "drop" "nochange" "help"
     do
         echo

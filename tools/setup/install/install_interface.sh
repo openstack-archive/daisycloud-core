@@ -86,7 +86,7 @@ function all_install
     mysql_cmd="mysql"
     local mariadb_result=`systemctl is-active mariadb.service`
     if [ $? -eq 0 ];then
-        # creat keystone datebase
+        # creat keystone database
         local create_keystone_sql="create database IF NOT EXISTS $keystone_db_name default charset=utf8"
         write_install_log "create $keystone_db_name database in mariadb"
         echo ${create_keystone_sql} | ${mysql_cmd}
@@ -95,7 +95,7 @@ function all_install
             exit 1
         fi
 
-        # creat daisy datebase
+        # creat daisy database
         local create_db_sql="create database IF NOT EXISTS $db_name default charset=utf8"
         write_install_log "create $db_name database in mariadb"
         echo ${create_db_sql} | ${mysql_cmd}
@@ -143,7 +143,7 @@ function all_install
         exit 1
     fi
 
-    #creat keystone datebase tables
+    #creat keystone database tables
     which keystone-manage >> $install_logfile 2>&1
     if [ "$?" == 0 ];then
         write_install_log "start keystone-manage db_sync..."
@@ -176,7 +176,7 @@ function all_install
     openstack $params role create user
     openstack $params role add --project demo --user daisy user
 
-    #creat daisy datebase tables
+    #creat daisy database tables
     which daisy-manage >> $install_logfile 2>&1
     if [ "$?" == 0 ];then
         write_install_log "start daisy-manage db_sync..."
