@@ -220,7 +220,7 @@ def do_host_delete(gc, args):
 @utils.arg('--swap-lv-size', metavar='<SWAP_LV_SIZE>',
            help='the size of swap_lv(M).')
 @utils.arg('--root-pwd', metavar='<ROOT_PWD>',
-           help='the passward of os.')
+           help='the password of os.')
 @utils.arg('--isolcpus', metavar='<ISOLCPUS>',
            help='the cpus to be isolated.')
 @utils.arg('--cluster', metavar='<CLUSTER>',
