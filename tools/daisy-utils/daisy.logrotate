@@ -1,7 +1,0 @@
-/var/log/daisy/*.log {
-    daily
-    rotate 30
-    missingok
-    compress
-    size 4M
-}

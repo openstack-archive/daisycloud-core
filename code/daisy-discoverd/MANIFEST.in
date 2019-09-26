@@ -1,8 +1,0 @@
-include example.conf
-include LICENSE
-include daisy-discoverd.8
-include requirements.txt
-include test-requirements.txt
-include tox.ini
-include *.rst
-recursive-include functest *
